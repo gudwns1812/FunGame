@@ -1,5 +1,6 @@
 package com.fungame.songquiz.domain;
 
+import com.fungame.songquiz.domain.dto.RoomInfo;
 import com.fungame.songquiz.domain.event.HostChangeEvent;
 import com.fungame.songquiz.domain.event.PlayerJoinEvent;
 import com.fungame.songquiz.domain.event.PlayerLeaveEvent;
@@ -31,13 +32,14 @@ public class GameRoomService {
     private static final String ROOM_ID_COUNTER = "room_id_counter";
     private static final String ROOM_LOCK_PREFIX = "room_lock:";
 
-    public String createRoom(String title, int maxPlayers , String hostName) {
+    public String createRoom(String title, int maxPlayers , String hostName, Category category) {
         Long roomId = stringRedisTemplate.opsForValue().increment(ROOM_ID_COUNTER);
 
         GameRoom gameRoom = GameRoom.builder()
                 .id(String.valueOf(roomId))
                 .title(title)
                 .hostName(hostName)
+                .category(category)
                 .playerNames(new ArrayList<>(List.of(hostName)))
                 .status(GameRoomStatus.WAITING)
                 .maxPlayers(maxPlayers)
@@ -100,5 +102,12 @@ public class GameRoomService {
                 lock.unlock();
             }
         }
+    }
+
+    public List<RoomInfo> findAll() {
+        List<GameRoom> rooms = gameRoomRepository.findAll();
+        return rooms.stream()
+                .map(RoomInfo::from)
+                .toList();
     }
 }

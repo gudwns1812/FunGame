@@ -1,5 +1,6 @@
 package com.fungame.songquiz.controller.request;
 
+import com.fungame.songquiz.domain.Category;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
@@ -8,5 +9,6 @@ import lombok.NoArgsConstructor;
 public class CreateRoomRequest {
     private String title;
     private int maxPlayers;
-    private String name;
+    private String hostName;
+    private Category category;
 }
