@@ -1,4 +1,4 @@
-package com.fungame.songquiz.controller;
+package com.fungame.songquiz.controller.websocket;
 
 import org.springframework.web.bind.annotation.RestController;
 

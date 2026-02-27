@@ -2,7 +2,9 @@ package com.fungame.songquiz.support.response;
 
 import com.fungame.songquiz.support.error.ErrorMessage;
 import com.fungame.songquiz.support.error.ErrorType;
+import lombok.Getter;
 
+@Getter
 public class ApiResponse<T> {
     private final ResultType result;
     private final T data;
