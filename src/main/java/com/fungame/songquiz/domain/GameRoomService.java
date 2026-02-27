@@ -1,5 +1,8 @@
 package com.fungame.songquiz.domain;
 
+import com.fungame.songquiz.domain.event.HostChangeEvent;
+import com.fungame.songquiz.domain.event.PlayerJoinEvent;
+import com.fungame.songquiz.domain.event.PlayerLeaveEvent;
 import com.fungame.songquiz.storage.GameRoom;
 import com.fungame.songquiz.storage.GameRoomRepository;
 import com.fungame.songquiz.storage.GameRoomStatus;

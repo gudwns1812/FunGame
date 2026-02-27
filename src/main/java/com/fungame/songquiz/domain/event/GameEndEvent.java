@@ -1,4 +1,4 @@
-package com.fungame.songquiz.domain;
+package com.fungame.songquiz.domain.event;
 
 import java.util.Map;
 

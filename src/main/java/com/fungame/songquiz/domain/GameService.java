@@ -1,5 +1,10 @@
 package com.fungame.songquiz.domain;
 
+import com.fungame.songquiz.domain.event.CorrectAnswerEvent;
+import com.fungame.songquiz.domain.event.GameEndEvent;
+import com.fungame.songquiz.domain.event.GameStartEvent;
+import com.fungame.songquiz.domain.event.RoundTimeoutEvent;
+import com.fungame.songquiz.domain.event.TimerTickEvent;
 import com.fungame.songquiz.storage.GameRoom;
 import com.fungame.songquiz.storage.GameRoomRepository;
 import com.fungame.songquiz.support.error.CoreException;

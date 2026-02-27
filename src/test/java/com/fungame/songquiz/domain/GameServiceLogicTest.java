@@ -5,6 +5,10 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.*;
 
+import com.fungame.songquiz.domain.event.CorrectAnswerEvent;
+import com.fungame.songquiz.domain.event.GameEndEvent;
+import com.fungame.songquiz.domain.event.RoundTimeoutEvent;
+import com.fungame.songquiz.domain.event.TimerTickEvent;
 import com.fungame.songquiz.storage.GameRoom;
 import com.fungame.songquiz.storage.GameRoomRepository;
 import com.fungame.songquiz.storage.GameRoomStatus;
@@ -20,8 +24,6 @@ import org.redisson.api.RedissonClient;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.ZSetOperations;
-
-import static org.mockito.ArgumentMatchers.*;
 
 class GameServiceLogicTest {
 

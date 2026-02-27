@@ -1,13 +1,13 @@
 package com.fungame.songquiz.controller.websocket;
 
-import com.fungame.songquiz.domain.CorrectAnswerEvent;
-import com.fungame.songquiz.domain.GameEndEvent;
-import com.fungame.songquiz.domain.GameStartEvent;
-import com.fungame.songquiz.domain.HostChangeEvent;
-import com.fungame.songquiz.domain.PlayerJoinEvent;
-import com.fungame.songquiz.domain.PlayerLeaveEvent;
-import com.fungame.songquiz.domain.RoundTimeoutEvent;
-import com.fungame.songquiz.domain.TimerTickEvent;
+import com.fungame.songquiz.domain.event.CorrectAnswerEvent;
+import com.fungame.songquiz.domain.event.GameEndEvent;
+import com.fungame.songquiz.domain.event.GameStartEvent;
+import com.fungame.songquiz.domain.event.HostChangeEvent;
+import com.fungame.songquiz.domain.event.PlayerJoinEvent;
+import com.fungame.songquiz.domain.event.PlayerLeaveEvent;
+import com.fungame.songquiz.domain.event.RoundTimeoutEvent;
+import com.fungame.songquiz.domain.event.TimerTickEvent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.event.EventListener;
