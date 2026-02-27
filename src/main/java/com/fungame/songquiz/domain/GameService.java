@@ -161,7 +161,7 @@ public class GameService {
     }
 
     public void handleRoundTimeout(String roomId, int songIndex) {
-        handleNextRound(roomId, songIndex);
+        scheduleNextRound(roomId, songIndex);
     }
 
     public void handleNextRound(String roomId, int songIndex) {
@@ -172,7 +172,14 @@ public class GameService {
             }
 
             GameRoom gameRoom = gameRoomRepository.findById(roomId).orElse(null);
-            if (gameRoom == null || gameRoom.getCurrentSongIndex() != songIndex || gameRoom.isFinished()) {
+            if (gameRoom == null || gameRoom.getCurrentSongIndex() != songIndex) {
+                return;
+            }
+
+            if (gameRoom.isFinished()) {
+                Map<String, Integer> rankings = getRankings(roomId);
+                publisher.publishEvent(new GameEndEvent(roomId, rankings));
+                cancelTimer(roomId);
                 return;
             }
 
@@ -180,8 +187,7 @@ public class GameService {
             gameRoomRepository.save(gameRoom);
 
             if (isFinished) {
-                Map<String, Integer> rankings = getRankings(roomId);
-                publisher.publishEvent(new GameEndEvent(roomId, rankings));
+                scheduleNextRound(roomId, gameRoom.getCurrentSongIndex());
             } else {
                 publisher.publishEvent(new RoundTimeoutEvent(roomId, gameRoom.getCurrentSongIndex()));
                 scheduleRoundTimeout(roomId, gameRoom.getCurrentSongIndex());

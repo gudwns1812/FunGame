@@ -53,7 +53,7 @@ class GameServiceLogicTest {
     }
 
     @Test
-    @DisplayName("라운드 타임아웃 발생 시 다음 노래로 넘어가고 이벤트를 발행한다")
+    @DisplayName("라운드 타임아웃 발생 시 5초 대기 후 다음 노래로 넘어간다")
     void handleRoundTimeoutTest() {
         // given
         String roomId = "1";
@@ -67,8 +67,14 @@ class GameServiceLogicTest {
 
         given(gameRoomRepository.findById(roomId)).willReturn(Optional.of(gameRoom));
 
-        // when
+        // when - 타임아웃 발생
         gameService.handleRoundTimeout(roomId, 0);
+
+        // then - 바로 저장되지는 않음 (스케줄링됨)
+        verify(gameRoomRepository, never()).save(any());
+
+        // when - 5초 대기 후 handleNextRound 호출 시뮬레이션
+        gameService.handleNextRound(roomId, 0);
 
         // then
         assertThat(gameRoom.getCurrentSongIndex()).isEqualTo(1);
@@ -77,7 +83,7 @@ class GameServiceLogicTest {
     }
 
     @Test
-    @DisplayName("마지막 라운드 타임아웃 발생 시 게임이 종료되고 결과 이벤트를 발행한다")
+    @DisplayName("마지막 라운드 타임아웃 발생 시 5초 대기 후 게임이 종료된다")
     void gameEndOnTimeoutTest() {
         // given
         String roomId = "1";
@@ -93,11 +99,17 @@ class GameServiceLogicTest {
         ZSetOperations zSetOperations = mock(ZSetOperations.class);
         given(redisTemplate.opsForZSet()).willReturn(zSetOperations);
 
-        // when
-        gameService.handleRoundTimeout(roomId, 0);
+        // when - 라운드 종료 시뮬레이션 (타임아웃 후 5초 대기 경과)
+        gameService.handleNextRound(roomId, 0);
 
-        // then
+        // then - 상태는 FINISHED가 되지만 아직 GameEndEvent는 안나감
         assertThat(gameRoom.isFinished()).isTrue();
+        verify(publisher, never()).publishEvent(any(GameEndEvent.class));
+
+        // when - 다시 5초 대기 후 handleNextRound 호출 (최종 종료 처리)
+        gameService.handleNextRound(roomId, 1);
+
+        // then - 이제서야 GameEndEvent 발행
         verify(publisher).publishEvent(any(GameEndEvent.class));
     }
 
@@ -149,7 +161,7 @@ class GameServiceLogicTest {
         given(gameRoomRepository.findById(roomId)).willReturn(Optional.of(gameRoom));
 
         // when
-        gameService.handleNextRound(roomId, -1); // 처음 시작 시나 다음 라운드 진입 시 호출됨
+        gameService.handleNextRound(roomId, 0); // songIndex가 0인 상태에서 다음 라운드로 넘어가는 요청
 
         // then
         Thread.sleep(1500); // 1초 대기 (0초에 한 번, 1초에 한 번 발생 예상)
