@@ -1,5 +1,6 @@
 package com.fungame.songquiz.domain;
 
+import com.fungame.songquiz.storage.SongEntity;
 import com.fungame.songquiz.storage.SongRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -21,5 +22,23 @@ public class SongReader {
         return songs.stream()
                 .limit(count)
                 .collect(Collectors.toList());
+    }
+
+    public Song findById(Long id) {
+        return songRepository.findById(id)
+                .map(this::toDomain)
+                .orElse(null);
+    }
+
+    private Song toDomain(SongEntity entity) {
+        return Song.of(
+                entity.getTitle(),
+                entity.getSinger(),
+                entity.getCategory(),
+                entity.getReleaseDate(),
+                entity.getVideoId(),
+                entity.getPlaySeconds(),
+                entity.getAnswers()
+        );
     }
 }

@@ -1,5 +1,6 @@
 package com.fungame.songquiz.storage;
 
+import static com.fungame.songquiz.storage.GameRoomStatus.FINISHED;
 import static com.fungame.songquiz.storage.GameRoomStatus.PLAYING;
 import static com.fungame.songquiz.storage.GameRoomStatus.WAITING;
 
@@ -32,6 +33,7 @@ public class GameRoom {
     private Category category;
     private int count;
     private List<Long> songIds;
+    private int currentSongIndex;
 
     public void addPlayer(String playerName) {
         if (playerNames.size() == maxPlayers) {
@@ -65,11 +67,32 @@ public class GameRoom {
             throw new CoreException(ErrorType.GAME_ROOM_ALREADY_PLAYING);
         }
         this.songIds = songIds;
+        this.currentSongIndex = 0;
         status = PLAYING;
     }
 
+    public Long getCurrentSongId() {
+        if (status != PLAYING || songIds == null || currentSongIndex >= songIds.size()) {
+            return null;
+        }
+        return songIds.get(currentSongIndex);
+    }
+
+    public boolean nextSong() {
+        currentSongIndex++;
+        if (currentSongIndex >= songIds.size()) {
+            status = FINISHED;
+            return true;
+        }
+        return false;
+    }
+
     public void endGame() {
-        status = WAITING;
+        status = FINISHED;
+    }
+
+    public boolean isFinished() {
+        return status == FINISHED;
     }
 
     public boolean isHostName(String nickName) {

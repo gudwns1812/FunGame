@@ -23,8 +23,9 @@ public class Song {
         this.answers = answers;
     }
 
-    public boolean hasTitle(String title) {
-        return this.title.equals(title);
+    public boolean isCorrect(String answer) {
+        return answers.stream()
+                .anyMatch(a -> a.equalsIgnoreCase(answer.trim()));
     }
 
     public static Song of(String title, String singer, Category category, LocalDate releaseDate, String link,
