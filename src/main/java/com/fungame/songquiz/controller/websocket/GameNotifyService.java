@@ -12,6 +12,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.event.EventListener;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 import java.util.Map;
@@ -23,19 +24,20 @@ public class GameNotifyService {
 
     private final SimpMessagingTemplate messagingTemplate;
 
+    @Async
     @EventListener
     public void handlePlayerJoin(PlayerJoinEvent event) {
-        log.info("Broadcasting player join: {} in room {}", event.nickname(), event.roomId());
+        log.info("Broadcasting player join: {} in room {}", event.players(), event.roomId());
         String destination = "/subscribe/room/" + event.roomId();
-        Object payload = Map.of("type", "PLAYER_JOIN", "nickname", event.nickname());
+        Object payload = Map.of("type", "PLAYER_JOIN", "players", event.players());
         messagingTemplate.convertAndSend(destination, payload);
     }
 
     @EventListener
     public void handlePlayerLeave(PlayerLeaveEvent event) {
-        log.info("Broadcasting player leave: {} in room {}", event.nickname(), event.roomId());
+        log.info("Broadcasting player leave: {} in room {}", event.players(), event.roomId());
         String destination = "/subscribe/room/" + event.roomId();
-        Object payload = Map.of("type", "PLAYER_LEAVE", "nickname", event.nickname());
+        Object payload = Map.of("type", "PLAYER_LEAVE", "players", event.players());
         messagingTemplate.convertAndSend(destination, payload);
     }
 

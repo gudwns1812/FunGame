@@ -1,4 +1,6 @@
 package com.fungame.songquiz.domain.event;
 
-public record PlayerLeaveEvent(String roomId, String nickname) {
+import java.util.List;
+
+public record PlayerLeaveEvent(String roomId, List<String> players) {
 }

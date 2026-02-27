@@ -1,5 +1,6 @@
 package com.fungame.songquiz.controller.api;
 
+import com.fungame.songquiz.controller.config.argumentresolver.NickNameDecoder;
 import com.fungame.songquiz.controller.request.CreateRoomRequest;
 import com.fungame.songquiz.domain.dto.RoomInfo;
 import com.fungame.songquiz.domain.GameRoomService;
@@ -11,7 +12,6 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -32,6 +32,12 @@ public class GameController {
         return ApiResponse.success(rooms);
     }
 
+    @GetMapping("/{roomId}/users")
+    public ApiResponse<List<String>> findUsers(@PathVariable String roomId) {
+        List<String> users = gameRoomService.findUsers(roomId);
+        return ApiResponse.success(users);
+    }
+
     @PostMapping
     public ApiResponse<String> createRoom(@RequestBody CreateRoomRequest request) {
         log.info("category: {}", request.getCategory());
@@ -40,19 +46,19 @@ public class GameController {
     }
 
     @PostMapping("/{roomId}/join")
-    public ApiResponse<Void> joinRoom(@PathVariable String roomId, @RequestHeader("nickname") String playerName) {
+    public ApiResponse<Void> joinRoom(@PathVariable String roomId, @NickNameDecoder String playerName) {
         gameRoomService.joinRoom(roomId, playerName);
         return ApiResponse.success();
     }
 
     @PostMapping("/{roomId}/leave")
-    public ApiResponse<Void> leaveRoom(@PathVariable String roomId , @RequestHeader("nickname") String nickName) {
+    public ApiResponse<Void> leaveRoom(@PathVariable String roomId ,@NickNameDecoder String nickName) {
         gameRoomService.leaveRoom(roomId, nickName);
         return ApiResponse.success();
     }
 
     @PostMapping("/{roomId}/start")
-    public ApiResponse<Void> startGame(@PathVariable String roomId, @RequestHeader("nickname") String nickname) {
+    public ApiResponse<Void> startGame(@PathVariable String roomId, @NickNameDecoder String nickname) {
         gameService.startGame(roomId, nickname);
         return ApiResponse.success();
     }

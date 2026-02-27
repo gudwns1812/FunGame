@@ -62,7 +62,7 @@ public class GameRoomService {
 
             gameRoom.addPlayer(playerName);
             gameRoomRepository.save(gameRoom);
-            publisher.publishEvent(new PlayerJoinEvent(roomId, playerName));
+            publisher.publishEvent(new PlayerJoinEvent(roomId, gameRoom.getPlayerNames()));
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             throw new CoreException(ErrorType.DEFAULT_ERROR);
@@ -84,7 +84,7 @@ public class GameRoomService {
                     .orElseThrow(() -> new CoreException(ErrorType.GAME_ROOM_NOT_FOUND));
 
             String newHost = gameRoom.removePlayer(nickName);
-            publisher.publishEvent(new PlayerLeaveEvent(roomId, nickName));
+            publisher.publishEvent(new PlayerLeaveEvent(roomId, gameRoom.getPlayerNames()));
             if (gameRoom.isEmpty()) {
                 gameRoomRepository.delete(gameRoom);
                 return;
@@ -109,5 +109,12 @@ public class GameRoomService {
         return rooms.stream()
                 .map(RoomInfo::from)
                 .toList();
+    }
+
+    public List<String> findUsers(String roomId) {
+        GameRoom gameRoom = gameRoomRepository.findById(roomId)
+                .orElseThrow(() -> new CoreException(ErrorType.GAME_ROOM_NOT_FOUND));
+
+        return gameRoom.getPlayerNames();
     }
 }

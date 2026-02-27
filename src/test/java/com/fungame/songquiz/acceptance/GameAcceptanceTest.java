@@ -10,6 +10,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fungame.songquiz.controller.ApiControllerAdvice;
 import com.fungame.songquiz.controller.api.GameController;
+import com.fungame.songquiz.domain.Category;
 import com.fungame.songquiz.domain.GameRoomService;
 import com.fungame.songquiz.domain.GameService;
 import java.util.HashMap;
@@ -57,7 +58,7 @@ public class GameAcceptanceTest {
         request.put("maxPlayers", 5);
         request.put("name", "방장");
 
-        given(gameRoomService.createRoom(anyString(), anyInt(), anyString())).willReturn("1");
+        given(gameRoomService.createRoom(anyString(), anyInt(), anyString(), Category.KPOP)).willReturn("1");
 
         // when & then
         mockMvc.perform(post("/game/room")
@@ -65,7 +66,7 @@ public class GameAcceptanceTest {
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk());
 
-        verify(gameRoomService).createRoom("테스트 방", 5, "방장");
+        verify(gameRoomService).createRoom("테스트 방", 5, "방장", Category.KPOP);
     }
 
     @Test
