@@ -1,118 +1,54 @@
 package com.fungame.songquiz.domain;
 
 import com.fungame.songquiz.domain.dto.RoomInfo;
-import com.fungame.songquiz.domain.event.HostChangeEvent;
-import com.fungame.songquiz.domain.event.PlayerJoinEvent;
-import com.fungame.songquiz.domain.event.PlayerLeaveEvent;
-import com.fungame.songquiz.storage.GameRoomEntity;
-import com.fungame.songquiz.storage.GameRoomRepository;
-import com.fungame.songquiz.support.error.CoreException;
-import com.fungame.songquiz.support.error.ErrorType;
-import java.util.ArrayList;
+import com.fungame.songquiz.storage.GameRoomCounterEntity;
+import com.fungame.songquiz.storage.GameRoomCounterRepository;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 import lombok.RequiredArgsConstructor;
-import org.redisson.api.RLock;
-import org.redisson.api.RedissonClient;
 import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
 @Service
 @RequiredArgsConstructor
 public class GameRoomService {
 
-    private final GameRoomRepository gameRoomRepository;
-    private final StringRedisTemplate stringRedisTemplate;
+    private final GameRoomCounterRepository gameRoomCounterRepository;
+    private final SongReader songReader;
     private final ApplicationEventPublisher publisher;
-    private final RedissonClient redissonClient;
+
+    private final GameRoomManager gameRoomManager = new GameRoomManager();
 
     private static final String ROOM_ID_COUNTER = "room_id_counter";
     private static final String ROOM_LOCK_PREFIX = "room_lock:";
 
-    public String createRoom(String title, int maxPlayers, String hostName, Category category) {
-        Long roomId = stringRedisTemplate.opsForValue().increment(ROOM_ID_COUNTER);
+    public Long createRoom(String title, int maxPlayers, String hostName, Category category, int songCount) {
+        List<Song> songs = songReader.findSongByCategoryWithCount(category, songCount);
+        SongQuiz game = new SongQuiz(songs);
 
-        GameRoomEntity gameRoomEntity = GameRoomEntity.builder()
-                .id(String.valueOf(roomId))
-                .title(title)
-                .hostName(hostName)
-                .category(category)
-                .playerNames(new ArrayList<>(List.of(hostName)))
-                .status(GameRoomStatus.WAITING)
-                .maxPlayers(maxPlayers)
-                .build();
+        GameRoomCounterEntity counter = gameRoomCounterRepository.save(new GameRoomCounterEntity());
 
-        gameRoomRepository.save(gameRoomEntity);
-
-        return gameRoomEntity.getId();
+        gameRoomManager.createGameRoom(counter.getCounter(), title, game, hostName, maxPlayers);
+        return counter.getCounter();
     }
 
-    public void joinRoom(String roomId, String playerName) {
-        RLock lock = redissonClient.getLock(ROOM_LOCK_PREFIX + roomId);
-        try {
-            if (!lock.tryLock(5, 1, TimeUnit.SECONDS)) {
-                throw new CoreException(ErrorType.GAME_ROOM_LOCK_FAILED);
-            }
-
-            GameRoomEntity gameRoomEntity = gameRoomRepository.findById(roomId)
-                    .orElseThrow(() -> new CoreException(ErrorType.GAME_ROOM_NOT_FOUND));
-
-            gameRoomEntity.addPlayer(playerName);
-            gameRoomRepository.save(gameRoomEntity);
-            publisher.publishEvent(new PlayerJoinEvent(roomId, gameRoomEntity.getPlayerNames()));
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            throw new CoreException(ErrorType.DEFAULT_ERROR);
-        } finally {
-            if (lock.isHeldByCurrentThread()) {
-                lock.unlock();
-            }
-        }
+    public int joinRoom(Long roomId, String playerName) {
+        return gameRoomManager.joinRoom(roomId, playerName);
     }
 
-    public void leaveRoom(String roomId, String nickName) {
-        RLock lock = redissonClient.getLock(ROOM_LOCK_PREFIX + roomId);
-        try {
-            if (!lock.tryLock(5, 1, TimeUnit.SECONDS)) {
-                throw new CoreException(ErrorType.GAME_ROOM_LOCK_FAILED);
-            }
-
-            GameRoomEntity gameRoomEntity = gameRoomRepository.findById(roomId)
-                    .orElseThrow(() -> new CoreException(ErrorType.GAME_ROOM_NOT_FOUND));
-
-            String newHost = gameRoomEntity.removePlayer(nickName);
-            publisher.publishEvent(new PlayerLeaveEvent(roomId, gameRoomEntity.getPlayerNames()));
-            if (gameRoomEntity.isEmpty()) {
-                gameRoomRepository.delete(gameRoomEntity);
-                return;
-            }
-
-            gameRoomRepository.save(gameRoomEntity);
-            if (newHost != null) {
-                publisher.publishEvent(new HostChangeEvent(roomId, newHost));
-            }
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            throw new CoreException(ErrorType.DEFAULT_ERROR);
-        } finally {
-            if (lock.isHeldByCurrentThread()) {
-                lock.unlock();
-            }
-        }
+    public void leaveRoom(Long roomId, String playerName) {
+        gameRoomManager.leaveRoom(roomId, playerName);
     }
 
-    public List<RoomInfo> findAll() {
-        List<GameRoomEntity> rooms = gameRoomRepository.findAll();
-        return rooms.stream()
-                .map(RoomInfo::from)
+    public List<RoomInfo> findAllRooms() {
+        var rooms = gameRoomManager.getRooms();
+        return rooms.entrySet().stream()
+                .map(room -> RoomInfo.from(room.getKey(), room.getValue()))
                 .toList();
     }
 
-    public List<String> findUsers(String roomId) {
-        GameRoomEntity gameRoomEntity = gameRoomRepository.findById(roomId)
-                .orElseThrow(() -> new CoreException(ErrorType.GAME_ROOM_NOT_FOUND));
+    public List<String> findUsers(Long roomId) {
+        GameRoom room = gameRoomManager.getRoom(roomId);
 
-        return gameRoomEntity.getPlayerNames();
+        return room.getRoomPlayers();
     }
 }

@@ -1,15 +1,14 @@
 package com.fungame.songquiz.controller.config.argumentresolver;
 
-import org.jspecify.annotations.Nullable;
+import jakarta.servlet.http.HttpServletRequest;
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
 import org.springframework.core.MethodParameter;
 import org.springframework.stereotype.Component;
 import org.springframework.web.bind.support.WebDataBinderFactory;
 import org.springframework.web.context.request.NativeWebRequest;
 import org.springframework.web.method.support.HandlerMethodArgumentResolver;
 import org.springframework.web.method.support.ModelAndViewContainer;
-
-import java.net.URLDecoder;
-import java.nio.charset.StandardCharsets;
 
 @Component
 public class NickNameDecodeResolver implements HandlerMethodArgumentResolver {
@@ -22,8 +21,8 @@ public class NickNameDecodeResolver implements HandlerMethodArgumentResolver {
     @Override
     public Object resolveArgument(MethodParameter parameter, ModelAndViewContainer mavContainer,
                                   NativeWebRequest webRequest, WebDataBinderFactory binderFactory) throws Exception {
-
-        String encodedNickname = webRequest.getHeader("nickname");
+        HttpServletRequest request = (HttpServletRequest) webRequest.getNativeRequest();
+        String encodedNickname = request.getHeader("playerName");
 
         if (encodedNickname == null) {
             return null;

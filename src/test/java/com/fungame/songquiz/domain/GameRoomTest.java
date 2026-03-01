@@ -18,7 +18,7 @@ class GameRoomTest {
         var songs = List.of(Song.of("불장난", "", Category.KPOP, LocalDate.of(2015, 1, 1), "", 30, List.of()));
         var songQuiz = new SongQuiz(songs);
         List<String> players = List.of("hi");
-        gameRoom = GameRoom.create(songQuiz, players, 1, "hi");
+        gameRoom = GameRoom.create("방1", songQuiz, players, 1, "hi");
     }
 
     @Test

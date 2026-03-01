@@ -1,14 +1,18 @@
 package com.fungame.songquiz.domain;
 
 import java.util.List;
+import lombok.Getter;
 
+@Getter
 public class GameRoom {
+    private final String title;
     private final Game game;
     private final GameRank rank;
     private final GameRoomStatus status;
-    private final GamePlayers players; // 일급 컬렉션 적용
+    private final GamePlayers players;
 
-    private GameRoom(Game game, GameRank rank, GamePlayers players) {
+    private GameRoom(String title, Game game, GameRank rank, GamePlayers players) {
+        this.title = title;
         this.game = game;
         this.rank = rank;
         this.players = players;
@@ -38,8 +42,12 @@ public class GameRoom {
         return rank.getPlayerScores();
     }
 
-    // 팩토리 메서드들도 한결 깔끔해집니다
-    public static GameRoom create(Game game, List<String> initialPlayers, int maxPlayer, String host) {
-        return new GameRoom(game, new GameRank(initialPlayers), new GamePlayers(initialPlayers, maxPlayer, host));
+    public List<String> getRoomPlayers() {
+        return players.getPlayers();
+    }
+
+    public static GameRoom create(String title, Game game, List<String> initialPlayers, int maxPlayer, String host) {
+        return new GameRoom(title, game, new GameRank(initialPlayers),
+                new GamePlayers(initialPlayers, maxPlayer, host));
     }
 }

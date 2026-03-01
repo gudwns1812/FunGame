@@ -1,10 +1,10 @@
 package com.fungame.songquiz.domain.dto;
 
+import com.fungame.songquiz.domain.GameRoom;
 import com.fungame.songquiz.domain.GameRoomStatus;
-import com.fungame.songquiz.storage.GameRoomEntity;
 
 public record RoomInfo(
-        String roomId,
+        Long roomId,
         String title,
         String hostName,
         GameRoomStatus status,
@@ -12,14 +12,14 @@ public record RoomInfo(
         int currentPlayers
 ) {
 
-    public static RoomInfo from(GameRoomEntity gameRoomEntity) {
+    public static RoomInfo from(Long id, GameRoom gameRoom) {
         return new RoomInfo(
-                gameRoomEntity.getId(),
-                gameRoomEntity.getTitle(),
-                gameRoomEntity.getHostName(),
-                gameRoomEntity.getStatus(),
-                gameRoomEntity.getMaxPlayers(),
-                gameRoomEntity.getPlayerNames().size()
+                id,
+                gameRoom.getTitle(),
+                gameRoom.getPlayers().getHost(),
+                gameRoom.getStatus(),
+                gameRoom.getPlayers().getMaxPlayer(),
+                gameRoom.getPlayers().getCurrentCount()
         );
     }
 }

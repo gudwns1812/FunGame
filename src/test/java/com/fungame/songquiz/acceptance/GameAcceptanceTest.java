@@ -2,6 +2,7 @@ package com.fungame.songquiz.acceptance;
 
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -10,6 +11,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fungame.songquiz.controller.ApiControllerAdvice;
 import com.fungame.songquiz.controller.api.GameController;
+import com.fungame.songquiz.controller.config.argumentresolver.NickNameDecodeResolver;
 import com.fungame.songquiz.domain.Category;
 import com.fungame.songquiz.domain.GameRoomService;
 import com.fungame.songquiz.domain.GameService;
@@ -45,6 +47,7 @@ public class GameAcceptanceTest {
     @BeforeEach
     void setUp() {
         mockMvc = MockMvcBuilders.standaloneSetup(gameController)
+                .setCustomArgumentResolvers(new NickNameDecodeResolver())
                 .setControllerAdvice(new ApiControllerAdvice())
                 .build();
     }
@@ -56,49 +59,52 @@ public class GameAcceptanceTest {
         Map<String, Object> request = new HashMap<>();
         request.put("title", "테스트 방");
         request.put("maxPlayers", 5);
-        request.put("name", "방장");
+        request.put("hostName", "방장");
+        request.put("category", "KPOP");
+        request.put("songCount", 10);
 
-        given(gameRoomService.createRoom(anyString(), anyInt(), anyString(), Category.KPOP)).willReturn("1");
+        given(gameRoomService.createRoom(anyString(), anyInt(), anyString(), eq(Category.KPOP), anyInt())).willReturn(
+                1L);
 
         // when & then
-        mockMvc.perform(post("/game/room")
+        mockMvc.perform(post("/game/rooms")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk());
 
-        verify(gameRoomService).createRoom("테스트 방", 5, "방장", Category.KPOP);
+        verify(gameRoomService).createRoom("테스트 방", 5, "방장", Category.KPOP, 10);
     }
 
     @Test
     @DisplayName("방 입장 요청이 올바르게 처리되는지 검증한다")
     void joinRoomTest() throws Exception {
         // when & then
-        mockMvc.perform(post("/game/room/1/join")
-                        .header("nickname", "플레이어2")
+        mockMvc.perform(post("/game/rooms/1/join")
+                        .header("playerName", "플레이어2")
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk());
 
-        verify(gameRoomService).joinRoom("1", "플레이어2");
+        verify(gameRoomService).joinRoom(1L, "플레이어2");
     }
 
     @Test
     @DisplayName("방 퇴장 요청이 올바르게 처리되는지 검증한다")
     void leaveRoomTest() throws Exception {
         // when & then
-        mockMvc.perform(post("/game/room/1/leave")
-                        .header("nickname", "플레이어2")
+        mockMvc.perform(post("/game/rooms/1/leave")
+                        .header("playerName", "플레이어2")
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk());
 
-        verify(gameRoomService).leaveRoom("1", "플레이어2");
+        verify(gameRoomService).leaveRoom(1L, "플레이어2");
     }
 
     @Test
     @DisplayName("게임 시작 요청이 올바르게 처리되는지 검증한다")
     void startGameTest() throws Exception {
         // when & then
-        mockMvc.perform(post("/game/room/1/start")
-                        .header("nickname", "방장")
+        mockMvc.perform(post("/game/rooms/1/start")
+                        .header("playerName", "방장")
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk());
 

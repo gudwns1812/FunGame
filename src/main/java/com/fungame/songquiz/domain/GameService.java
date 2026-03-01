@@ -2,14 +2,12 @@ package com.fungame.songquiz.domain;
 
 import com.fungame.songquiz.domain.event.CorrectAnswerEvent;
 import com.fungame.songquiz.domain.event.GameEndEvent;
-import com.fungame.songquiz.domain.event.GameStartEvent;
 import com.fungame.songquiz.domain.event.RoundTimeoutEvent;
 import com.fungame.songquiz.domain.event.TimerTickEvent;
 import com.fungame.songquiz.storage.GameRoomEntity;
 import com.fungame.songquiz.storage.GameRoomRepository;
 import com.fungame.songquiz.support.error.CoreException;
 import com.fungame.songquiz.support.error.ErrorType;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -44,40 +42,7 @@ public class GameService {
     private static final int ANSWER_DELAY_SECONDS = 5;
 
     public void startGame(String roomId, String nickname) {
-        RLock lock = redissonClient.getLock(ROOM_LOCK_PREFIX + roomId);
-        try {
-            if (!lock.tryLock(5, 1, TimeUnit.SECONDS)) {
-                throw new CoreException(ErrorType.GAME_ROOM_LOCK_FAILED);
-            }
 
-            GameRoomEntity gameRoomEntity = gameRoomRepository.findById(roomId)
-                    .orElseThrow(() -> new CoreException(ErrorType.GAME_ROOM_NOT_FOUND));
-
-            if (!gameRoomEntity.isHostName(nickname)) {
-                throw new CoreException(ErrorType.GAME_ROOM_NOT_HOST);
-            }
-
-            List<Long> songs = songReader.findSongByCategoryWithCount(gameRoomEntity.getCategory(),
-                    gameRoomEntity.getCount());
-            gameRoomEntity.startGame(songs);
-            gameRoomRepository.save(gameRoomEntity);
-            
-            String rankingKey = RANKING_KEY_PREFIX + roomId;
-            redisTemplate.delete(rankingKey);
-            for (String playerName : gameRoomEntity.getPlayerNames()) {
-                redisTemplate.opsForZSet().add(rankingKey, playerName, 0);
-            }
-
-            publisher.publishEvent(new GameStartEvent(roomId, songs));
-            scheduleRoundTimeout(roomId, 0);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            throw new CoreException(ErrorType.DEFAULT_ERROR);
-        } finally {
-            if (lock.isHeldByCurrentThread()) {
-                lock.unlock();
-            }
-        }
     }
 
     public void processAnswer(String roomId, String nickname, String message) {

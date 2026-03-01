@@ -11,4 +11,5 @@ public class CreateRoomRequest {
     private int maxPlayers;
     private String hostName;
     private Category category;
+    private int songCount;
 }

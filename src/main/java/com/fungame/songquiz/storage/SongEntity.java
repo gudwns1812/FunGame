@@ -1,6 +1,7 @@
 package com.fungame.songquiz.storage;
 
 import com.fungame.songquiz.domain.Category;
+import com.fungame.songquiz.domain.Song;
 import com.fungame.songquiz.storage.converter.StringListConverter;
 import jakarta.persistence.Column;
 import jakarta.persistence.Convert;
@@ -40,11 +41,15 @@ public class SongEntity {
     private LocalDate releaseDate;
 
     @Column(nullable = false)
-    private String videoId;
+    private String videoLink;
 
     @Column(nullable = false)
     private int playSeconds;
 
     @Convert(converter = StringListConverter.class)
     private List<String> answers;
+
+    public Song toDomain() {
+        return Song.of(title, singer, category, releaseDate, videoLink, playSeconds, answers);
+    }
 }

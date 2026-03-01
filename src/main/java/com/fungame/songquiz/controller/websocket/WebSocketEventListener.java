@@ -1,18 +1,16 @@
 package com.fungame.songquiz.controller.websocket;
 
 import com.fungame.songquiz.domain.GameRoomService;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.event.EventListener;
-import org.springframework.messaging.simp.SimpMessageHeaderAccessor;
 import org.springframework.messaging.simp.stomp.StompHeaderAccessor;
 import org.springframework.stereotype.Component;
 import org.springframework.web.socket.messaging.SessionConnectEvent;
 import org.springframework.web.socket.messaging.SessionDisconnectEvent;
 import org.springframework.web.socket.messaging.SessionSubscribeEvent;
-
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 
 @Component
 @RequiredArgsConstructor
@@ -38,7 +36,7 @@ public class WebSocketEventListener {
             String nickname = (String) headerAccessor.getSessionAttributes().get("nickname");
 
             if (nickname != null) {
-                sessionMap.put(sessionId, new UserSession(roomId, nickname));
+                sessionMap.put(sessionId, new UserSession(Long.parseLong(roomId), nickname));
                 log.info("User {} subscribed to room {}", nickname, roomId);
             }
         }
@@ -56,5 +54,6 @@ public class WebSocketEventListener {
         }
     }
 
-    private record UserSession(String roomId, String nickname) {}
+    private record UserSession(Long roomId, String nickname) {
+    }
 }

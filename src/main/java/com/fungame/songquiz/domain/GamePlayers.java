@@ -4,7 +4,9 @@ import com.fungame.songquiz.support.error.CoreException;
 import com.fungame.songquiz.support.error.ErrorType;
 import java.util.ArrayList;
 import java.util.List;
+import lombok.Getter;
 
+@Getter
 public class GamePlayers {
     private final List<String> players;
     private final int maxPlayer;
