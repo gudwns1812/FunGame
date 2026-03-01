@@ -1,13 +1,6 @@
 package com.fungame.songquiz.domain;
 
-import com.fungame.songquiz.domain.event.CorrectAnswerEvent;
-import com.fungame.songquiz.domain.event.GameEndEvent;
-import com.fungame.songquiz.domain.event.RoundTimeoutEvent;
 import com.fungame.songquiz.domain.event.TimerTickEvent;
-import com.fungame.songquiz.storage.GameRoomEntity;
-import com.fungame.songquiz.storage.GameRoomRepository;
-import com.fungame.songquiz.support.error.CoreException;
-import com.fungame.songquiz.support.error.ErrorType;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -17,7 +10,6 @@ import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
-import org.redisson.api.RLock;
 import org.redisson.api.RedissonClient;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -28,7 +20,6 @@ import org.springframework.stereotype.Service;
 @RequiredArgsConstructor
 public class GameService {
 
-    private final GameRoomRepository gameRoomRepository;
     private final SongReader songReader;
     private final ApplicationEventPublisher publisher;
     private final RedissonClient redissonClient;
@@ -46,37 +37,7 @@ public class GameService {
     }
 
     public void processAnswer(String roomId, String nickname, String message) {
-        RLock lock = redissonClient.getLock(ROOM_LOCK_PREFIX + roomId);
-        try {
-            if (!lock.tryLock(5, 1, TimeUnit.SECONDS)) {
-                return;
-            }
 
-            GameRoomEntity gameRoomEntity = gameRoomRepository.findById(roomId)
-                    .orElseThrow(() -> new CoreException(ErrorType.GAME_ROOM_NOT_FOUND));
-
-            Long currentSongId = gameRoomEntity.getCurrentSongId();
-            if (currentSongId == null) {
-                return;
-            }
-
-            Song song = songReader.findById(currentSongId);
-            if (song != null && song.isCorrect(message)) {
-                // 정답 처리
-                String rankingKey = RANKING_KEY_PREFIX + roomId;
-                redisTemplate.opsForZSet().incrementScore(rankingKey, nickname, 10);
-                Double score = redisTemplate.opsForZSet().score(rankingKey, nickname);
-
-                publisher.publishEvent(new CorrectAnswerEvent(roomId, nickname, message, score.intValue()));
-                scheduleNextRound(roomId, gameRoomEntity.getCurrentSongIndex());
-            }
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-        } finally {
-            if (lock.isHeldByCurrentThread()) {
-                lock.unlock();
-            }
-        }
     }
 
     private void scheduleRoundTimeout(String roomId, int songIndex) {
@@ -129,40 +90,7 @@ public class GameService {
     }
 
     public void handleNextRound(String roomId, int songIndex) {
-        RLock lock = redissonClient.getLock(ROOM_LOCK_PREFIX + roomId);
-        try {
-            if (!lock.tryLock(5, 1, TimeUnit.SECONDS)) {
-                return;
-            }
 
-            GameRoomEntity gameRoomEntity = gameRoomRepository.findById(roomId).orElse(null);
-            if (gameRoomEntity == null || gameRoomEntity.getCurrentSongIndex() != songIndex) {
-                return;
-            }
-
-            if (gameRoomEntity.isFinished()) {
-                Map<String, Integer> rankings = getRankings(roomId);
-                publisher.publishEvent(new GameEndEvent(roomId, rankings));
-                cancelTimer(roomId);
-                return;
-            }
-
-            boolean isFinished = gameRoomEntity.nextSong();
-            gameRoomRepository.save(gameRoomEntity);
-
-            if (isFinished) {
-                scheduleNextRound(roomId, gameRoomEntity.getCurrentSongIndex());
-            } else {
-                publisher.publishEvent(new RoundTimeoutEvent(roomId, gameRoomEntity.getCurrentSongIndex()));
-                scheduleRoundTimeout(roomId, gameRoomEntity.getCurrentSongIndex());
-            }
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-        } finally {
-            if (lock.isHeldByCurrentThread()) {
-                lock.unlock();
-            }
-        }
     }
 
     private Map<String, Integer> getRankings(String roomId) {

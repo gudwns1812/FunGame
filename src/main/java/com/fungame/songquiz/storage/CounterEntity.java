@@ -8,9 +8,16 @@ import lombok.Getter;
 
 @Entity
 @Getter
-public class GameRoomCounterEntity {
-
+public class CounterEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long counter;
+    private Long id;
+
+    private String name;
+    private Long count;
+
+
+    public void increment() {
+        count++;
+    }
 }

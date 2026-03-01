@@ -1,18 +1,20 @@
 package com.fungame.songquiz.domain;
 
 import com.fungame.songquiz.domain.dto.RoomInfo;
-import com.fungame.songquiz.storage.GameRoomCounterEntity;
-import com.fungame.songquiz.storage.GameRoomCounterRepository;
+import com.fungame.songquiz.storage.CounterEntity;
+import com.fungame.songquiz.storage.CounterRepository;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
 public class GameRoomService {
 
-    private final GameRoomCounterRepository gameRoomCounterRepository;
+    private static final String GAME_ROOM_COUNTER = "GAME_ROOM_COUNTER";
+    private final CounterRepository counterRepository;
     private final SongReader songReader;
     private final ApplicationEventPublisher publisher;
 
@@ -21,14 +23,16 @@ public class GameRoomService {
     private static final String ROOM_ID_COUNTER = "room_id_counter";
     private static final String ROOM_LOCK_PREFIX = "room_lock:";
 
+    @Transactional
     public Long createRoom(String title, int maxPlayers, String hostName, Category category, int songCount) {
         List<Song> songs = songReader.findSongByCategoryWithCount(category, songCount);
         SongQuiz game = new SongQuiz(songs);
 
-        GameRoomCounterEntity counter = gameRoomCounterRepository.save(new GameRoomCounterEntity());
+        CounterEntity counter = counterRepository.findByName(GAME_ROOM_COUNTER);
+        counter.increment();
 
-        gameRoomManager.createGameRoom(counter.getCounter(), title, game, hostName, maxPlayers);
-        return counter.getCounter();
+        gameRoomManager.createGameRoom(counter.getCount(), title, game, hostName, maxPlayers);
+        return counter.getCount();
     }
 
     public int joinRoom(Long roomId, String playerName) {
