@@ -1,7 +1,7 @@
 package com.fungame.songquiz.domain.dto;
 
-import com.fungame.songquiz.storage.GameRoom;
-import com.fungame.songquiz.storage.GameRoomStatus;
+import com.fungame.songquiz.domain.GameRoomStatus;
+import com.fungame.songquiz.storage.GameRoomEntity;
 
 public record RoomInfo(
         String roomId,
@@ -12,14 +12,14 @@ public record RoomInfo(
         int currentPlayers
 ) {
 
-    public static RoomInfo from(GameRoom gameRoom) {
+    public static RoomInfo from(GameRoomEntity gameRoomEntity) {
         return new RoomInfo(
-                gameRoom.getId(),
-                gameRoom.getTitle(),
-                gameRoom.getHostName(),
-                gameRoom.getStatus(),
-                gameRoom.getMaxPlayers(),
-                gameRoom.getPlayerNames().size()
+                gameRoomEntity.getId(),
+                gameRoomEntity.getTitle(),
+                gameRoomEntity.getHostName(),
+                gameRoomEntity.getStatus(),
+                gameRoomEntity.getMaxPlayers(),
+                gameRoomEntity.getPlayerNames().size()
         );
     }
 }

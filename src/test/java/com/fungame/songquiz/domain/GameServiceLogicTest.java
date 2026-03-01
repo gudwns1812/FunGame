@@ -3,15 +3,20 @@ package com.fungame.songquiz.domain;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.anyLong;
+import static org.mockito.Mockito.anyString;
+import static org.mockito.Mockito.atLeast;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 
 import com.fungame.songquiz.domain.event.CorrectAnswerEvent;
 import com.fungame.songquiz.domain.event.GameEndEvent;
 import com.fungame.songquiz.domain.event.RoundTimeoutEvent;
 import com.fungame.songquiz.domain.event.TimerTickEvent;
-import com.fungame.songquiz.storage.GameRoom;
+import com.fungame.songquiz.storage.GameRoomEntity;
 import com.fungame.songquiz.storage.GameRoomRepository;
-import com.fungame.songquiz.storage.GameRoomStatus;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -57,7 +62,7 @@ class GameServiceLogicTest {
     void handleRoundTimeoutTest() {
         // given
         String roomId = "1";
-        GameRoom gameRoom = GameRoom.builder()
+        GameRoomEntity gameRoomEntity = GameRoomEntity.builder()
                 .id(roomId)
                 .status(GameRoomStatus.PLAYING)
                 .songIds(List.of(101L, 102L))
@@ -65,7 +70,7 @@ class GameServiceLogicTest {
                 .playerNames(new ArrayList<>(List.of("p1")))
                 .build();
 
-        given(gameRoomRepository.findById(roomId)).willReturn(Optional.of(gameRoom));
+        given(gameRoomRepository.findById(roomId)).willReturn(Optional.of(gameRoomEntity));
 
         // when - 타임아웃 발생
         gameService.handleRoundTimeout(roomId, 0);
@@ -77,8 +82,8 @@ class GameServiceLogicTest {
         gameService.handleNextRound(roomId, 0);
 
         // then
-        assertThat(gameRoom.getCurrentSongIndex()).isEqualTo(1);
-        verify(gameRoomRepository).save(gameRoom);
+        assertThat(gameRoomEntity.getCurrentSongIndex()).isEqualTo(1);
+        verify(gameRoomRepository).save(gameRoomEntity);
         verify(publisher).publishEvent(any(RoundTimeoutEvent.class));
     }
 
@@ -87,7 +92,7 @@ class GameServiceLogicTest {
     void gameEndOnTimeoutTest() {
         // given
         String roomId = "1";
-        GameRoom gameRoom = GameRoom.builder()
+        GameRoomEntity gameRoomEntity = GameRoomEntity.builder()
                 .id(roomId)
                 .status(GameRoomStatus.PLAYING)
                 .songIds(List.of(101L))
@@ -95,7 +100,7 @@ class GameServiceLogicTest {
                 .playerNames(new ArrayList<>(List.of("p1")))
                 .build();
 
-        given(gameRoomRepository.findById(roomId)).willReturn(Optional.of(gameRoom));
+        given(gameRoomRepository.findById(roomId)).willReturn(Optional.of(gameRoomEntity));
         ZSetOperations zSetOperations = mock(ZSetOperations.class);
         given(redisTemplate.opsForZSet()).willReturn(zSetOperations);
 
@@ -103,7 +108,7 @@ class GameServiceLogicTest {
         gameService.handleNextRound(roomId, 0);
 
         // then - 상태는 FINISHED가 되지만 아직 GameEndEvent는 안나감
-        assertThat(gameRoom.isFinished()).isTrue();
+        assertThat(gameRoomEntity.isFinished()).isTrue();
         verify(publisher, never()).publishEvent(any(GameEndEvent.class));
 
         // when - 다시 5초 대기 후 handleNextRound 호출 (최종 종료 처리)
@@ -120,7 +125,7 @@ class GameServiceLogicTest {
         String roomId = "1";
         String nickname = "p1";
         String message = "정답";
-        GameRoom gameRoom = GameRoom.builder()
+        GameRoomEntity gameRoomEntity = GameRoomEntity.builder()
                 .id(roomId)
                 .status(GameRoomStatus.PLAYING)
                 .songIds(List.of(101L, 102L))
@@ -131,8 +136,8 @@ class GameServiceLogicTest {
         Song song = mock(Song.class);
         given(song.isCorrect(message)).willReturn(true);
         given(songReader.findById(101L)).willReturn(song);
-        given(gameRoomRepository.findById(roomId)).willReturn(Optional.of(gameRoom));
-        
+        given(gameRoomRepository.findById(roomId)).willReturn(Optional.of(gameRoomEntity));
+
         ZSetOperations<String, Object> zSetOperations = mock(ZSetOperations.class);
         given(redisTemplate.opsForZSet()).willReturn(zSetOperations);
         doReturn(10.0).when(zSetOperations).score(anyString(), any(Object.class));
@@ -141,7 +146,7 @@ class GameServiceLogicTest {
         gameService.processAnswer(roomId, nickname, message);
 
         // then
-        assertThat(gameRoom.getCurrentSongIndex()).isEqualTo(0); // 바로 넘어가지 않음
+        assertThat(gameRoomEntity.getCurrentSongIndex()).isEqualTo(0); // 바로 넘어가지 않음
         verify(publisher).publishEvent(any(CorrectAnswerEvent.class));
     }
 
@@ -150,7 +155,7 @@ class GameServiceLogicTest {
     void scheduleRoundTimeoutTimerTest() throws InterruptedException {
         // given
         String roomId = "1";
-        GameRoom gameRoom = GameRoom.builder()
+        GameRoomEntity gameRoomEntity = GameRoomEntity.builder()
                 .id(roomId)
                 .status(GameRoomStatus.PLAYING)
                 .songIds(List.of(101L, 102L))
@@ -158,7 +163,7 @@ class GameServiceLogicTest {
                 .playerNames(new ArrayList<>(List.of("p1")))
                 .build();
 
-        given(gameRoomRepository.findById(roomId)).willReturn(Optional.of(gameRoom));
+        given(gameRoomRepository.findById(roomId)).willReturn(Optional.of(gameRoomEntity));
 
         // when
         gameService.handleNextRound(roomId, 0); // songIndex가 0인 상태에서 다음 라운드로 넘어가는 요청

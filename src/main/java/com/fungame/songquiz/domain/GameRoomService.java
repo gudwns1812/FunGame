@@ -4,21 +4,19 @@ import com.fungame.songquiz.domain.dto.RoomInfo;
 import com.fungame.songquiz.domain.event.HostChangeEvent;
 import com.fungame.songquiz.domain.event.PlayerJoinEvent;
 import com.fungame.songquiz.domain.event.PlayerLeaveEvent;
-import com.fungame.songquiz.storage.GameRoom;
+import com.fungame.songquiz.storage.GameRoomEntity;
 import com.fungame.songquiz.storage.GameRoomRepository;
-import com.fungame.songquiz.storage.GameRoomStatus;
 import com.fungame.songquiz.support.error.CoreException;
 import com.fungame.songquiz.support.error.ErrorType;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.TimeUnit;
 import lombok.RequiredArgsConstructor;
 import org.redisson.api.RLock;
 import org.redisson.api.RedissonClient;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.concurrent.TimeUnit;
 
 @Service
 @RequiredArgsConstructor
@@ -32,10 +30,10 @@ public class GameRoomService {
     private static final String ROOM_ID_COUNTER = "room_id_counter";
     private static final String ROOM_LOCK_PREFIX = "room_lock:";
 
-    public String createRoom(String title, int maxPlayers , String hostName, Category category) {
+    public String createRoom(String title, int maxPlayers, String hostName, Category category) {
         Long roomId = stringRedisTemplate.opsForValue().increment(ROOM_ID_COUNTER);
 
-        GameRoom gameRoom = GameRoom.builder()
+        GameRoomEntity gameRoomEntity = GameRoomEntity.builder()
                 .id(String.valueOf(roomId))
                 .title(title)
                 .hostName(hostName)
@@ -45,9 +43,9 @@ public class GameRoomService {
                 .maxPlayers(maxPlayers)
                 .build();
 
-        gameRoomRepository.save(gameRoom);
+        gameRoomRepository.save(gameRoomEntity);
 
-        return gameRoom.getId();
+        return gameRoomEntity.getId();
     }
 
     public void joinRoom(String roomId, String playerName) {
@@ -57,12 +55,12 @@ public class GameRoomService {
                 throw new CoreException(ErrorType.GAME_ROOM_LOCK_FAILED);
             }
 
-            GameRoom gameRoom = gameRoomRepository.findById(roomId)
+            GameRoomEntity gameRoomEntity = gameRoomRepository.findById(roomId)
                     .orElseThrow(() -> new CoreException(ErrorType.GAME_ROOM_NOT_FOUND));
 
-            gameRoom.addPlayer(playerName);
-            gameRoomRepository.save(gameRoom);
-            publisher.publishEvent(new PlayerJoinEvent(roomId, gameRoom.getPlayerNames()));
+            gameRoomEntity.addPlayer(playerName);
+            gameRoomRepository.save(gameRoomEntity);
+            publisher.publishEvent(new PlayerJoinEvent(roomId, gameRoomEntity.getPlayerNames()));
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             throw new CoreException(ErrorType.DEFAULT_ERROR);
@@ -80,17 +78,17 @@ public class GameRoomService {
                 throw new CoreException(ErrorType.GAME_ROOM_LOCK_FAILED);
             }
 
-            GameRoom gameRoom = gameRoomRepository.findById(roomId)
+            GameRoomEntity gameRoomEntity = gameRoomRepository.findById(roomId)
                     .orElseThrow(() -> new CoreException(ErrorType.GAME_ROOM_NOT_FOUND));
 
-            String newHost = gameRoom.removePlayer(nickName);
-            publisher.publishEvent(new PlayerLeaveEvent(roomId, gameRoom.getPlayerNames()));
-            if (gameRoom.isEmpty()) {
-                gameRoomRepository.delete(gameRoom);
+            String newHost = gameRoomEntity.removePlayer(nickName);
+            publisher.publishEvent(new PlayerLeaveEvent(roomId, gameRoomEntity.getPlayerNames()));
+            if (gameRoomEntity.isEmpty()) {
+                gameRoomRepository.delete(gameRoomEntity);
                 return;
             }
 
-            gameRoomRepository.save(gameRoom);
+            gameRoomRepository.save(gameRoomEntity);
             if (newHost != null) {
                 publisher.publishEvent(new HostChangeEvent(roomId, newHost));
             }
@@ -105,16 +103,16 @@ public class GameRoomService {
     }
 
     public List<RoomInfo> findAll() {
-        List<GameRoom> rooms = gameRoomRepository.findAll();
+        List<GameRoomEntity> rooms = gameRoomRepository.findAll();
         return rooms.stream()
                 .map(RoomInfo::from)
                 .toList();
     }
 
     public List<String> findUsers(String roomId) {
-        GameRoom gameRoom = gameRoomRepository.findById(roomId)
+        GameRoomEntity gameRoomEntity = gameRoomRepository.findById(roomId)
                 .orElseThrow(() -> new CoreException(ErrorType.GAME_ROOM_NOT_FOUND));
 
-        return gameRoom.getPlayerNames();
+        return gameRoomEntity.getPlayerNames();
     }
 }

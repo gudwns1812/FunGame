@@ -1,23 +1,23 @@
 package com.fungame.songquiz.storage;
 
-import static com.fungame.songquiz.storage.GameRoomStatus.FINISHED;
-import static com.fungame.songquiz.storage.GameRoomStatus.PLAYING;
-import static com.fungame.songquiz.storage.GameRoomStatus.WAITING;
+import static com.fungame.songquiz.domain.GameRoomStatus.FINISHED;
+import static com.fungame.songquiz.domain.GameRoomStatus.PLAYING;
+import static com.fungame.songquiz.domain.GameRoomStatus.WAITING;
 
 import com.fungame.songquiz.domain.Category;
+import com.fungame.songquiz.domain.GameRoomStatus;
 import com.fungame.songquiz.support.error.CoreException;
 import com.fungame.songquiz.support.error.ErrorType;
 import jakarta.persistence.Id;
+import java.util.List;
 import lombok.Builder;
 import lombok.Getter;
 import org.springframework.data.redis.core.RedisHash;
 
-import java.util.List;
-
 @Getter
 @Builder
 @RedisHash(value = "GameRoom", timeToLive = 60 * 60 * 24)
-public class GameRoom {
+public class GameRoomEntity {
 
     @Id
     private String id;

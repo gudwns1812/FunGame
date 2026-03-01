@@ -5,18 +5,10 @@ import com.fungame.songquiz.domain.event.GameEndEvent;
 import com.fungame.songquiz.domain.event.GameStartEvent;
 import com.fungame.songquiz.domain.event.RoundTimeoutEvent;
 import com.fungame.songquiz.domain.event.TimerTickEvent;
-import com.fungame.songquiz.storage.GameRoom;
+import com.fungame.songquiz.storage.GameRoomEntity;
 import com.fungame.songquiz.storage.GameRoomRepository;
 import com.fungame.songquiz.support.error.CoreException;
 import com.fungame.songquiz.support.error.ErrorType;
-import lombok.RequiredArgsConstructor;
-import org.redisson.api.RLock;
-import org.redisson.api.RedissonClient;
-import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.data.redis.core.RedisTemplate;
-import org.springframework.data.redis.core.ZSetOperations;
-import org.springframework.stereotype.Service;
-
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -26,6 +18,13 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
+import lombok.RequiredArgsConstructor;
+import org.redisson.api.RLock;
+import org.redisson.api.RedissonClient;
+import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.ZSetOperations;
+import org.springframework.stereotype.Service;
 
 @Service
 @RequiredArgsConstructor
@@ -51,21 +50,21 @@ public class GameService {
                 throw new CoreException(ErrorType.GAME_ROOM_LOCK_FAILED);
             }
 
-            GameRoom gameRoom = gameRoomRepository.findById(roomId)
+            GameRoomEntity gameRoomEntity = gameRoomRepository.findById(roomId)
                     .orElseThrow(() -> new CoreException(ErrorType.GAME_ROOM_NOT_FOUND));
 
-            if (!gameRoom.isHostName(nickname)) {
+            if (!gameRoomEntity.isHostName(nickname)) {
                 throw new CoreException(ErrorType.GAME_ROOM_NOT_HOST);
             }
 
-            List<Long> songs = songReader.findSongByCategoryWithCount(gameRoom.getCategory(), gameRoom.getCount());
-            gameRoom.startGame(songs);
-            gameRoomRepository.save(gameRoom);
-
-            // 랭킹 초기화
+            List<Long> songs = songReader.findSongByCategoryWithCount(gameRoomEntity.getCategory(),
+                    gameRoomEntity.getCount());
+            gameRoomEntity.startGame(songs);
+            gameRoomRepository.save(gameRoomEntity);
+            
             String rankingKey = RANKING_KEY_PREFIX + roomId;
             redisTemplate.delete(rankingKey);
-            for (String playerName : gameRoom.getPlayerNames()) {
+            for (String playerName : gameRoomEntity.getPlayerNames()) {
                 redisTemplate.opsForZSet().add(rankingKey, playerName, 0);
             }
 
@@ -88,10 +87,10 @@ public class GameService {
                 return;
             }
 
-            GameRoom gameRoom = gameRoomRepository.findById(roomId)
+            GameRoomEntity gameRoomEntity = gameRoomRepository.findById(roomId)
                     .orElseThrow(() -> new CoreException(ErrorType.GAME_ROOM_NOT_FOUND));
 
-            Long currentSongId = gameRoom.getCurrentSongId();
+            Long currentSongId = gameRoomEntity.getCurrentSongId();
             if (currentSongId == null) {
                 return;
             }
@@ -104,7 +103,7 @@ public class GameService {
                 Double score = redisTemplate.opsForZSet().score(rankingKey, nickname);
 
                 publisher.publishEvent(new CorrectAnswerEvent(roomId, nickname, message, score.intValue()));
-                scheduleNextRound(roomId, gameRoom.getCurrentSongIndex());
+                scheduleNextRound(roomId, gameRoomEntity.getCurrentSongIndex());
             }
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
@@ -171,26 +170,26 @@ public class GameService {
                 return;
             }
 
-            GameRoom gameRoom = gameRoomRepository.findById(roomId).orElse(null);
-            if (gameRoom == null || gameRoom.getCurrentSongIndex() != songIndex) {
+            GameRoomEntity gameRoomEntity = gameRoomRepository.findById(roomId).orElse(null);
+            if (gameRoomEntity == null || gameRoomEntity.getCurrentSongIndex() != songIndex) {
                 return;
             }
 
-            if (gameRoom.isFinished()) {
+            if (gameRoomEntity.isFinished()) {
                 Map<String, Integer> rankings = getRankings(roomId);
                 publisher.publishEvent(new GameEndEvent(roomId, rankings));
                 cancelTimer(roomId);
                 return;
             }
 
-            boolean isFinished = gameRoom.nextSong();
-            gameRoomRepository.save(gameRoom);
+            boolean isFinished = gameRoomEntity.nextSong();
+            gameRoomRepository.save(gameRoomEntity);
 
             if (isFinished) {
-                scheduleNextRound(roomId, gameRoom.getCurrentSongIndex());
+                scheduleNextRound(roomId, gameRoomEntity.getCurrentSongIndex());
             } else {
-                publisher.publishEvent(new RoundTimeoutEvent(roomId, gameRoom.getCurrentSongIndex()));
-                scheduleRoundTimeout(roomId, gameRoom.getCurrentSongIndex());
+                publisher.publishEvent(new RoundTimeoutEvent(roomId, gameRoomEntity.getCurrentSongIndex()));
+                scheduleRoundTimeout(roomId, gameRoomEntity.getCurrentSongIndex());
             }
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();

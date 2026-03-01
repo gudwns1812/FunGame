@@ -1,6 +1,7 @@
 package com.fungame.songquiz.domain;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 
 public class Song {
@@ -29,8 +30,10 @@ public class Song {
     }
 
     public static Song of(String title, String singer, Category category, LocalDate releaseDate, String link,
-                          int playSeconds,
-                          List<String> answers) {
-        return new Song(title, singer, category, releaseDate, link, playSeconds, answers);
+                          int playSeconds, List<String> answers) {
+        var answersWithTitle = new ArrayList<>(answers);
+        answersWithTitle.add(title);
+        
+        return new Song(title, singer, category, releaseDate, link, playSeconds, answersWithTitle);
     }
 }
