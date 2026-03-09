@@ -1,28 +1,29 @@
-# 프로젝트 작업 진행 현황 (tasks.md)
+# 백엔드 리팩토링 진행 현황 (tasks.md)
 
-이 문서는 Spring Rest Docs 도입 및 API 명세 동기화 작업의 단계별 진행 상황을 관리합니다.
+이 문서는 백엔드 시스템의 아키텍처 개선 및 리팩토링 작업의 단계별 진행 상황을 관리합니다.
 
-## Phase 1: Spring Rest Docs 인프라 설정
-- [x] `backend/build.gradle`에 Spring Rest Docs 및 Asciidoctor 관련 플러그인 설정
-- [x] Rest Docs 의존성(`spring-restdocs-mockmvc`) 추가
-- [x] 빌드 태스크(`asciidoctor`, `test`) 간의 의존성 및 출력 경로 설정
-- [x] 프로젝트 빌드 및 설정 정상 작동 여부 확인
+## Phase 1: 풍부한 도메인 모델(Rich Domain Model) 구현
+- [x] `GameRoom` 도메인 클래스 리팩토링
+- [x] `Game` 인터페이스 및 구현체 리팩토링 (GameSession 포함)
+- [x] `GamePlayers` 모델 개선
+- [x] `Service` 레이어 슬림화 (Fat Service -> Orchestrator)
 
-## Phase 2: API 테스트 코드 작성 및 스니펫 생성
-- [x] Rest Docs 공통 설정을 위한 베이스 테스트 클래스(`RestDocsSupport`) 작성
-- [x] `GameController` 관련 API 테스트 작성 (MockMvc 활용)
-- [x] 테스트 실행 및 `build/generated-snippets` 생성 확인
+## Phase 2: 응답 구조 및 예외 처리 일관성 확보
+- [x] WebSocket 공통 응답 규격 정립
+- [x] 전역 예외 처리 체계 강화
+- [x] 클라이언트향 에러 메시지 및 코드 표준화
 
-## Phase 3: 명세서 분석 및 AI 최적화 문서 업데이트
-- [x] 생성된 AsciiDoc 스니펫 분석 (실제 요청/응답 필드 확인)
-- [x] 루트 `api/` 디렉토리의 Markdown 문서 업데이트
-- [x] AI 가독성을 높이기 위한 문서 포맷팅 최적화
+## Phase 3: 단일 서버 동시성 제어 강화 (오버엔지니어링 금지)
+- [x] 메모리 기반 상태 관리 객체(`GameRoomManager`, `GameSessionManager`) 정밀 검토
+- [x] 핵심 비즈니스 로직(방 입장, 게임 시작 등)에 대한 동기화 전략 수립
+- [x] 불필요한 인프라(Redis 등) 제거 및 자바 레벨의 최적화 수행
+- [x] 도메인 모델 내에서의 원자적 상태 변경 로직 검증
 
-## Phase 4: 최종 검증 및 배포 준비
-- [ ] 전체 빌드(`gradlew :backend:build`) 수행 및 테스트 통과 확인
-- [ ] `GEMINI.md` 및 `GUIDELINE.md` 내용과 일치하는지 최종 검토
-- [ ] 사용자 최종 승인 요청
-- [ ] (승인 후) Git 커밋 및 푸시 수행
+## Phase 4: 테스트 코드 강화 (TDD)
+- [ ] 리팩토링 대상 도메인 로직에 대한 단위 테스트(`JUnit5`, `AssertJ`) 작성 및 업데이트
+- [ ] 동시성 상황을 가정한 멀티스레드 테스트 케이스 구현
+    - [ ] 다수의 플레이어가 동시에 방에 입장하거나 정답을 입력할 때의 데이터 정합성 검증
+- [ ] 전체 인수 테스트(`AcceptanceTest`)를 통한 기능 회귀 검증
 
 ---
 *마지막 업데이트: 2026-03-09*

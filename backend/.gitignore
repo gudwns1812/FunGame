@@ -1,0 +1,16 @@
+# Build & Output
+build/
+out/
+bin/
+.apt_generated/
+.classpath
+.factorypath
+.project
+.settings/
+
+# Spring Boot Config (Sensitive Data)
+application-*.yml
+application-*.properties
+
+# Testing
+/src/test/resources/application-test.yml

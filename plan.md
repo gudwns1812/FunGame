@@ -1,32 +1,38 @@
-# 작업 계획: Spring Rest Docs를 통한 API 명세 동기화
+# 작업 계획: 백엔드 리팩토링 및 아키텍처 개선
 
 ## 배경 및 목표
-현재 API 명세와 실제 코드가 불일치하는 문제를 해결하기 위해, Spring Rest Docs를 도입하여 코드를 기반으로 한 정확한 API 문서를 생성하고, 이를 AI가 읽기 쉬운 Markdown 형식으로 `api/` 폴더에 재구성합니다.
+`LEGACY.md`에서 식별된 기술 부채를 해결하고, `GUIDELINE.md`의 도메인 중심 설계(DDD) 및 이벤트 기반 아키텍처 원칙을 준수하도록 코드를 개선합니다.
 
 ## 작업 상세
 
-### 1. Spring Rest Docs 설정 (`backend/build.gradle`)
-- **의존성 추가**: `spring-restdocs-mockmvc`, `asciidoctor-gradle-plugin` 등을 추가합니다.
-- **빌드 태스크 설정**: 테스트 실행 시 스니펫이 생성되도록 `test` 태스크를 설정하고, `asciidoctor` 태스크를 구성합니다.
+### Phase 1: 풍부한 도메인 모델(Rich Domain Model) 구현
+- **대상**: `GameRoom`, `Game`, `GamePlayers` 등의 도메인 클래스.
+- **작업**:
+  - `GameRoomService`의 방 입장(`joinRoom`) 로직 중 검증 및 상태 변경 코드를 `GameRoom.joinPlayer()` 메서드로 이동.
+  - `GameService`의 정답 처리(`processAnswer`) 및 스킵 투표 로직을 `Game` 또는 관련 도메인 클래스로 이동.
+  - 서비스 레이어는 도메인 객체를 조회하고, 도메인 메서드를 호출한 뒤, 결과를 영속화하거나 이벤트를 발행하는 '조율자' 역할로 축소.
 
-### 2. API 문서화를 위한 테스트 코드 작성
-- **`GameControllerTest`**: 방 생성, 목록 조회, 게임 시작 등의 API에 대해 `MockMvc`와 Rest Docs를 사용한 테스트를 작성합니다.
-- **필드 및 헤더 명세**: 실제 코드의 DTO 및 헤더 정보를 바탕으로 요청/응답 필드에 대한 명세를 상세히 작성합니다.
+### Phase 2: 응답 구조 및 예외 처리 일관성 확보
+- **작업**:
+  - WebSocket 메시지 전송 시에도 `ApiResponse`와 유사한 규격을 적용하여 프론트엔드 파싱 로직의 통일성을 기함.
+  - 현재 산재해 있는 예외 발생 지점을 `ErrorCode` 기반의 `CoreException`으로 교체.
+  - `ApiControllerAdvice`의 로깅 전략을 정교화하여 디버깅 편의성 향상.
 
-### 3. 문서 생성 및 스니펫 분석
-- `./gradlew :backend:test` 실행을 통해 `build/generated-snippets` 경로에 스니펫을 생성합니다.
-- 생성된 스니펫(HTTP request/response, fields 등)을 분석하여 최신 API 정보를 확보합니다.
+### Phase 3: 단일 서버 동시성 제어 강화 (오버엔지니어링 금지)
+- **작업**:
+  - `GameRoomManager` 및 `GameSessionManager`의 메모리 기반 상태 관리에 대해 원자적 연산 보장.
+  - 게임 시작 및 방 입장 등 동시 접근이 빈번한 비즈니스 로직에 대해 Java 표준 락(ReentrantLock) 또는 원자적 클래스 적용 검토.
+  - 불필요한 인프라(Redis 등) 없이 자바 레벨에서 최적의 동기화 전략 수립.
 
-### 4. `api/` 폴더의 Markdown 문서 업데이트
-- **`api/room.md`, `api/game.md`, `api/common.md`** 등 기존 문서들을 생성된 스니펫을 바탕으로 수정합니다.
-- AI가 읽기 쉽도록 명확한 필드 설명, 제약 조건, 예시 데이터를 포함합니다.
-
-### 5. Git 반영 (사용자 승인 후)
-- 모든 변경 사항을 커밋하고 푸시합니다.
+### Phase 4: 테스트 코드 강화 (TDD)
+- **작업**:
+  - 로직 이동 전후의 동작 일관성을 보장하기 위해 도메인 단위 테스트 강화.
+  - 동시성 상황을 가정한 멀티스레드 테스트 케이스 추가.
 
 ## 예상 결과
-- 실제 동작하는 코드와 문서 간의 100% 일치 보장.
-- AI가 API를 활용할 때 정확한 명세를 기반으로 제안 및 구현 가능.
+- 서비스 코드 가독성 향상 및 비즈니스 로직의 응집도 증가.
+- 단일 서버 환경에서의 높은 안정성 확보.
+- 프론트엔드 개발자가 일관된 방식으로 API와 WebSocket 메시지 처리 가능.
 
 ---
-위 계획에 대해 리뷰 부탁드립니다. 승인해 주시면 Spring Rest Docs 설정을 시작하겠습니다.
+위 계획에 대해 리뷰 부탁드립니다. 승인해 주시면 Phase 1부터 순차적으로 구현을 시작하겠습니다.

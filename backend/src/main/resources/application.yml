@@ -1,0 +1,41 @@
+spring:
+  profiles:
+    active: local
+
+---
+spring:
+  config:
+    activate:
+      on-profile: local
+  jpa:
+    show-sql: true
+    hibernate:
+      ddl-auto: none
+  datasource:
+    url: jdbc:mysql://localhost:3306/songquiz
+    username: root
+    password: root
+
+#logging:
+#  level:
+#    org.hibernate.SQL: debug
+#    org.hibernate.orm.jdbc.bind: trace
+#    org.springframework.data.redis: DEBUG
+#    org.redisson: DEBUG
+#    io.netty: DEBUG
+
+cors:
+  allowed-origins: http://70.12.50.220:5173, http://songquiz.duckdns.org:5173
+
+---
+spring:
+  config:
+    activate:
+      on-profile: test
+  jpa:
+    show-sql: true
+    hibernate:
+      ddl-auto: create-drop
+
+cors:
+  allowed-origins: http://70.12.50.220:5173, http://songquiz.duckdns.org:5173
