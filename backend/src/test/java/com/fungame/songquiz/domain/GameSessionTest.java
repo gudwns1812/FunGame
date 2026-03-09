@@ -1,9 +1,11 @@
 package com.fungame.songquiz.domain;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 
-import com.fungame.songquiz.domain.dto.GameSkipInfo;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -22,38 +24,31 @@ class GameSessionTest {
     }
 
     @Test
-    @DisplayName("스킵 투표가 정족수(인원-1)에 도달하면 스킵 여부가 true가 된다.")
-    void voteSkip_reaches_threshold() {
+    @DisplayName("handleAction 호출 시 game의 handleAction으로 위임된다.")
+    void handleAction_delegates_to_game() {
+        // given
+        GameAction action = GameAction.submitAnswer("p1", "answer");
+        given(game.handleAction(action)).willReturn(ActionResult.CORRECT);
+
         // when
-        gameSession.voteSkip("p1");
-        GameSkipInfo info = gameSession.voteSkip("p2");
+        ActionResult result = gameSession.handleAction(action);
 
         // then
-        assertThat(info.isSkip()).isTrue();
-        assertThat(info.skipCount()).isEqualTo(2);
-        assertThat(info.totalCount()).isEqualTo(2); // requiredCount
+        assertThat(result).isEqualTo(ActionResult.CORRECT);
+        verify(game).handleAction(action);
     }
 
     @Test
-    @DisplayName("스킵 투표가 부족하면 스킵 여부는 false다.")
-    void voteSkip_under_threshold() {
+    @DisplayName("startProcessing 호출 시 game의 startProcessing으로 위임된다.")
+    void startProcessing_delegates_to_game() {
+        // given
+        given(game.startProcessing()).willReturn(true);
+
         // when
-        GameSkipInfo info = gameSession.voteSkip("p1");
+        boolean result = gameSession.startProcessing();
 
         // then
-        assertThat(info.isSkip()).isFalse();
-        assertThat(info.skipCount()).isEqualTo(1);
-    }
-
-    @Test
-    @DisplayName("라운드 종료 처리는 한 번만 성공해야 한다 (원자성).")
-    void startProcessing_is_atomic() {
-        // when
-        boolean first = gameSession.startProcessing();
-        boolean second = gameSession.startProcessing();
-
-        // then
-        assertThat(first).isTrue();
-        assertThat(second).isFalse();
+        assertThat(result).isTrue();
+        verify(game).startProcessing();
     }
 }

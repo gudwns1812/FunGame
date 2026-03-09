@@ -98,7 +98,7 @@ public class GameRoomManager {
 
     public PlayersInfo findRoomUsers(Long roomId) {
         return lockContext.processWithLockKey(roomId, () -> {
-            GameRoom gameRoom = gameRooms.get(roomId);
+            GameRoom gameRoom = getRoom(roomId);
 
             return PlayersInfo.from(gameRoom);
         });
@@ -118,5 +118,9 @@ public class GameRoomManager {
         GameRoom gameRoom = gameRooms.get(roomId);
 
         gameRoom.touch();
+    }
+
+    public GameType getGameType(Long roomId) {
+        return getRoom(roomId).getGame().getType();
     }
 }

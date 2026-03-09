@@ -11,6 +11,7 @@ bin/
 # Spring Boot Config (Sensitive Data)
 application-*.yml
 application-*.properties
+application.yml
 
 # Testing
 /src/test/resources/application-test.yml

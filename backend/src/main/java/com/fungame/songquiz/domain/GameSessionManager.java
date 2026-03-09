@@ -39,11 +39,4 @@ public class GameSessionManager {
                 .findAny()
                 .orElse(null);
     }
-
-    public GameSkipInfo increaseSkipVote(Long roomId, String player) {
-        return lockContext.processWithLockKey(roomId, () -> {
-            GameSession gameSession = getGameSession(roomId);
-            return gameSession.voteSkip(player);
-        });
-    }
 }

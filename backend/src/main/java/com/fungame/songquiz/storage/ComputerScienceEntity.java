@@ -5,6 +5,8 @@ import com.fungame.songquiz.domain.ComputerScienceQuiz;
 import com.fungame.songquiz.storage.converter.StringListConverter;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
@@ -13,6 +15,8 @@ import java.util.List;
 @Entity
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
+@AllArgsConstructor
+@Builder
 public class ComputerScienceEntity {
 
     @Id

@@ -1,5 +1,6 @@
 package com.fungame.songquiz.controller.websocket;
 
+import com.fungame.songquiz.domain.GameAction;
 import com.fungame.songquiz.domain.GameRoomManager;
 import com.fungame.songquiz.domain.GameService;
 import java.util.Map;
@@ -34,5 +35,13 @@ public class ChatController {
         messagingTemplate.convertAndSend("/subscribe/room/" + roomId, ApiResponse.success(payload));
         gameRoomManager.touch(roomId);
         gameService.processAnswer(roomId, playerName, message);
+    }
+
+    @MessageMapping("/room/{roomId}/action")
+    public void handleAction(@DestinationVariable Long roomId, @Header("playerName") String playerName, GameAction action) {
+        log.info("Action in room {}: {} - {}", roomId, playerName, action);
+        gameRoomManager.touch(roomId);
+        // 클라이언트에서 보낸 action의 playerName이 실제 헤더와 일치하는지 검증 로직 추가 가능
+        gameService.handleAction(roomId, action);
     }
 }

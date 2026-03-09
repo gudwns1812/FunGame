@@ -8,19 +8,20 @@ import java.util.concurrent.atomic.AtomicInteger;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-public class SongQuiz implements Game {
+public class SongQuiz extends AbstractQuizGame {
 
     private final List<Song> songs;
     private final Category gameCategory;
     private final AtomicInteger currentIdx = new AtomicInteger(0);
 
     public SongQuiz(List<Song> songs, Category gameCategory) {
+        super(null);
         this.songs = songs;
         this.gameCategory = gameCategory;
     }
 
     @Override
-    public GameContentDto getContent() {
+    public GameContentDto getStatus() {
         int current = currentIdx.get();
         return GameContentDto.from(this, songs.get(current).getLink());
     }
@@ -31,9 +32,14 @@ public class SongQuiz implements Game {
     }
 
     @Override
-    public boolean isCorrect(String answer) {
+    public GameType getType() {
+        return GameType.SONG;
+    }
+
+    @Override
+    protected ActionResult processAnswer(String playerName, String answer) {
         Song song = songs.get(currentIdx.get());
-        return song.isCorrect(answer);
+        return song.isCorrect(answer) ? ActionResult.CORRECT : ActionResult.WRONG;
     }
 
     @Override

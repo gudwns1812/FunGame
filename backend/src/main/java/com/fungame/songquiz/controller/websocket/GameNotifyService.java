@@ -1,10 +1,18 @@
 package com.fungame.songquiz.controller.websocket;
 
-import com.fungame.songquiz.domain.dto.GameInfo;
-import com.fungame.songquiz.domain.GameTimer;
 import com.fungame.songquiz.domain.PlayerScore;
-import com.fungame.songquiz.domain.event.*;
-
+import com.fungame.songquiz.domain.dto.GameInfo;
+import com.fungame.songquiz.domain.event.GameEndEvent;
+import com.fungame.songquiz.domain.event.GameResultEvent;
+import com.fungame.songquiz.domain.event.GameSkipEvent;
+import com.fungame.songquiz.domain.event.GameStartEvent;
+import com.fungame.songquiz.domain.event.HostChangeEvent;
+import com.fungame.songquiz.domain.event.PlayerJoinEvent;
+import com.fungame.songquiz.domain.event.PlayerLeaveEvent;
+import com.fungame.songquiz.domain.event.PlayerReadyEvent;
+import com.fungame.songquiz.domain.event.RoundEndEvent;
+import com.fungame.songquiz.domain.event.RoundStartEvent;
+import com.fungame.songquiz.domain.event.TimerTickEvent;
 import com.fungame.songquiz.support.response.ApiResponse;
 import java.util.List;
 import java.util.Map;
@@ -21,7 +29,6 @@ import org.springframework.stereotype.Service;
 public class GameNotifyService {
 
     private final SimpMessagingTemplate messagingTemplate;
-    private final GameTimer timer;
 
     @EventListener
     public void handlePlayerJoin(PlayerJoinEvent event) {
@@ -51,7 +58,8 @@ public class GameNotifyService {
     public void handlePlayerReady(PlayerReadyEvent event) {
         log.info("Broadcasting player ready: ready player {} in room {}", event.player(), event.roomId());
         String destination = "/subscribe/room/" + event.roomId();
-        Object payload = Map.of("type", "PLAYER_READY", "player", event.player(), "PLAYER_ALL_READY", event.isAllReady());
+        Object payload = Map.of("type", "PLAYER_READY", "player", event.player(), "PLAYER_ALL_READY",
+                event.isAllReady());
         messagingTemplate.convertAndSend(destination, ApiResponse.success(payload));
     }
 
@@ -96,7 +104,7 @@ public class GameNotifyService {
         String destination = "/subscribe/room/" + event.roomId();
         Object payload = Map.of(
                 "type", "ROUND_SKIP",
-                "skipCount" , event.skipCount(),
+                "skipCount", event.skipCount(),
                 "totalCount", event.totalCount()
         );
         messagingTemplate.convertAndSend(destination, ApiResponse.success(payload));

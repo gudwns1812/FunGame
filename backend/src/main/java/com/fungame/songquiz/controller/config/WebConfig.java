@@ -40,8 +40,10 @@ public class WebConfig implements WebMvcConfigurer {
         registry.addInterceptor(playerInterceptor)
                 .addPathPatterns("/**")
                 .excludePathPatterns(
+                        "/game/rooms/*/skip",
                         "/game/player/**",
                         "/game/rooms/*/play/rank",
+                        "/game/rooms/*/join",
                         "/ws-stomp/**"
                 );
     }
