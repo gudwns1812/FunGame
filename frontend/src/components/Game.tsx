@@ -13,11 +13,9 @@ interface GameProps {
   onAnswerSubmit: (answer: string) => void;
   onSkipRound: () => void;
   onFetchRank: () => Promise<void>;
-  playerIndex: number | null;
   gameStartInfo: GameStartInfo | null;
   gameType: string | null;
   roundEndInfo: RoundEndInfo | null;
-  roundIndex: number;
   currentRound: number;
   totalRound: number;
   logs: string[];
@@ -31,11 +29,9 @@ const Game: React.FC<GameProps> = ({
   onAnswerSubmit,
   onSkipRound,
   onFetchRank,
-  playerIndex,
   gameStartInfo,
   gameType,
   roundEndInfo,
-  roundIndex,
   currentRound,
   totalRound,
   logs,
@@ -50,9 +46,12 @@ const Game: React.FC<GameProps> = ({
   }, []);
 
   useEffect(() => {
-    if (logContainerRef.current) {
-      logContainerRef.current.scrollTop = logContainerRef.current.scrollHeight;
-    }
+    // 채팅이나 로그가 추가된 후 확실하게 스크롤을 내리도록 타임아웃 100ms 적용
+    setTimeout(() => {
+      if (logContainerRef.current) {
+        logContainerRef.current.scrollTop = logContainerRef.current.scrollHeight;
+      }
+    }, 100);
   }, [logs]);
 
   useEffect(() => {
@@ -108,11 +107,11 @@ const Game: React.FC<GameProps> = ({
           <span className="material-symbols-outlined text-8xl text-green-400 drop-shadow-[0_0_20px_rgba(74,222,128,0.6)]">check_circle</span>
           <div className="space-y-4">
             <p className="text-sm text-green-400 uppercase tracking-[0.3em] font-bold">TARGET_IDENTIFIED</p>
-            <p className="text-4xl md:text-6xl font-black text-white tracking-tight uppercase drop-shadow-lg">{roundEndInfo.answer}</p>
+            <p className="text-4xl md:text-2xl font-semibold text-white tracking-tight uppercase drop-shadow-lg">{roundEndInfo.answer}</p>
           </div>
           {roundEndInfo.winner && roundEndInfo.winner !== '없음' ? (
             <div className="mt-6 inline-flex items-center gap-4 bg-primary/10 border border-primary/30 px-8 py-4 rounded-full">
-              <span className="text-xs text-primary uppercase tracking-widest font-bold">승리자</span>
+              <span className="text-xs text-primary uppercase tracking-widest font-bold">맞춘 사람</span>
               <span className="text-2xl font-black text-white uppercase">{stripTag(roundEndInfo.winner)}</span>
             </div>
           ) : (
@@ -151,9 +150,12 @@ const Game: React.FC<GameProps> = ({
 
     if (gameType === 'CS' && currentVideoId) {
       return (
-        <div className="flex flex-col items-center justify-center gap-6 h-full p-10 text-center">
-          <p className="text-xs text-primary uppercase tracking-[0.3em] font-bold">CS QUIZ</p>
-          <p className="text-base md:text-lg font-bold text-white leading-relaxed max-w-4xl break-keep">{currentVideoId}</p>
+        // justify-start -> justify-center, text-left -> text-center 로 변경되었습니다.
+        <div className="flex flex-col items-center justify-center gap-4 h-full p-8 overflow-y-auto custom-scrollbar text-center w-full">
+          <p className="text-[10px] text-primary uppercase tracking-[0.3em] font-normal shrink-0">CS QUIZ</p>
+          <div className="text-2xl md:text-xl font-black text-slate-300 leading-relaxed max-w-4xl break-keep whitespace-pre-wrap">
+            {currentVideoId}
+          </div>
         </div>
       );
     }
@@ -267,11 +269,11 @@ const Game: React.FC<GameProps> = ({
         </div>
 
         {/* 채팅 터미널 */}
-        <div className="panel-border bg-slate-900/60 rounded-xl flex flex-col flex-1 min-h-0 overflow-hidden">
+        <div className="panel-border bg-slate-900/60 rounded-xl flex flex-col h-[350px] shrink-0 overflow-hidden">
           <div className="bg-primary/10 border-b border-primary/30 p-4 flex items-center justify-between shrink-0">
             <div className="flex items-center gap-2">
               <span className="material-symbols-outlined text-primary text-base">terminal</span>
-              <h3 className="text-xs font-bold text-primary tracking-widest uppercase">메시지 디코더 터미널</h3>
+              <h3 className="text-xs font-bold text-primary tracking-widest uppercase"> 채팅 로그</h3>
             </div>
             <span className="text-[10px] font-mono text-primary/40 uppercase font-bold tracking-widest">Secure Link Active</span>
           </div>

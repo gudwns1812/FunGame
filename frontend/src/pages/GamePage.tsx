@@ -11,11 +11,9 @@ interface GamePageProps {
   onAnswerSubmit: (answer: string) => void;
   onSkipRound: () => void;
   onFetchRank: () => Promise<void>;
-  playerIndex: number | null;
   gameStartInfo: GameStartInfo | null;
   gameType: string | null;
   roundEndInfo: RoundEndInfo | null;
-  roundIndex: number;
   currentRound: number;
   totalRound: number;
 }
@@ -30,11 +28,9 @@ const GamePage: React.FC<GamePageProps> = ({
   onAnswerSubmit,
   onSkipRound,
   onFetchRank,
-  playerIndex,
   gameStartInfo,
   gameType,
   roundEndInfo,
-  roundIndex,
   currentRound,
   totalRound,
 }) => {
@@ -76,16 +72,14 @@ const GamePage: React.FC<GamePageProps> = ({
           onAnswerSubmit={onAnswerSubmit}
           onSkipRound={onSkipRound}
           onFetchRank={onFetchRank}
-          playerIndex={playerIndex}
           gameStartInfo={gameStartInfo}
           gameType={gameType}
           roundEndInfo={roundEndInfo}
-          roundIndex={roundIndex}
           currentRound={currentRound}
           totalRound={totalRound}
         />
       </main>
-      
+
       {/* 한글 푸터 */}
       <footer className="mt-auto border-t border-primary/10 px-6 py-4 bg-slate-900/40 backdrop-blur-sm flex justify-between items-center z-10">
         <div className="flex items-center gap-6">
@@ -93,7 +87,7 @@ const GamePage: React.FC<GamePageProps> = ({
         </div>
         <div className="flex items-center gap-4">
           <div className="w-32 h-2 bg-slate-800 rounded-full overflow-hidden">
-            <div 
+            <div
               className="h-full bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.5)] transition-all duration-1000 ease-linear"
               style={{ width: `${Math.max(0, Math.min(100, (timeLeft / totalTime) * 100))}%` }}
             ></div>

@@ -1,7 +1,6 @@
 import { renderHook, act } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { useGameLogic } from './useGameLogic';
-import axios from 'axios';
 
 // Mock dependencies
 vi.mock('axios');
@@ -14,9 +13,9 @@ vi.mock('@stomp/stompjs', () => {
         subscribe: vi.fn(),
         publish: vi.fn(),
         // mock to trigger events
-        triggerEvent: (destination: string, message: any) => {
+        triggerEvent: (_destination: string, _message: any) => {
           if (config && config.onConnect) {
-             // Mock triggering by exposing a global or directly running
+            // Mock triggering by exposing a global or directly running
           }
         }
       };
@@ -46,7 +45,7 @@ describe('useGameLogic Event Logging', () => {
 
     // TODO: WebSocket subscribe 콜백을 가로채서 PLAYER_READY, CORRECT_ANSWER 이벤트를 발생시키고
     // logs 배열이 변하지 않는 것을 테스트해야 함 (현재 TDD Phase 1 스위트 구조 셋업)
-    
+
     expect(result.current.logs.length).toBe(1);
     expect(result.current.logs[0]).toContain('PLAYER1님이 입장하셨습니다');
   });

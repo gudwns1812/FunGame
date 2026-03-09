@@ -2,7 +2,7 @@ import { useState, useCallback, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { Client } from '@stomp/stompjs';
 import SockJS from 'sockjs-client';
-import type { Player, GameStatus, GameEvent, Room, GameStartInfo, RoundEndInfo } from '../types/game';
+import type { Player, GameStatus, Room, GameStartInfo, RoundEndInfo } from '../types/game';
 import { stripTag } from '../utils/stringUtils';
 import { PLAYER_COLOR_INDEX_KEY } from '../utils/playerColor';
 
@@ -22,11 +22,11 @@ export const useGameLogic = () => {
   const [timeLeft, setTimeLeft] = useState(30);
   const [totalTime, setTotalTime] = useState(30);
   const [logs, setLogs] = useState<string[]>([]);
-  const [currentVideoId, setCurrentVideoId] = useState('');
+  const [currentVideoId, setCurrentVideoId] = useState(() => localStorage.getItem('ums_currentVideoId') || '');
   const [isHost, setIsHost] = useState(false);
   const [playerIndex, setPlayerIndex] = useState<number | null>(null);
   const [gameStartInfo, setGameStartInfo] = useState<GameStartInfo | null>(null);
-  const [gameType, setGameType] = useState<string | null>(null);
+  const [gameType, setGameType] = useState<string | null>(() => localStorage.getItem('ums_gameType'));
   const [roundEndInfo, setRoundEndInfo] = useState<RoundEndInfo | null>(null);
   const [roundIndex, setRoundIndex] = useState<number>(0);
   const [currentRound, setCurrentRound] = useState<number>(0);
@@ -116,17 +116,19 @@ export const useGameLogic = () => {
         addLog(`${stripTag(event.playerName)}: ${event.message}`);
         break;
 
-      case 'GAME_START':
+      case 'GAME_START': {
         setStatus('PLAYING');
-        setGameType(event.gameType);
+        const normalizedGameType = event.gameType === 'CS 문제 맞추기' || event.gameType === 'CS' ? 'CS' : 'SONG';
+        setGameType(normalizedGameType);
         setGameStartInfo({
-          gameType: event.gameType,
+          gameType: normalizedGameType,
           category: event.category,
           songCount: event.songCount,
           message: event.message,
         });
         setLogs([]);
         break;
+      }
 
       case 'ROUND_START':
         setStatus('PLAYING');
@@ -274,27 +276,15 @@ export const useGameLogic = () => {
     const bootstrap = async () => {
       if (status === 'WAITING' || status === 'PLAYING') {
         if (roomId) {
-          if (status === 'PLAYING') {
-            try {
-              await axios.post(`/game/rooms/${roomId}/join`, null, {
-                headers: { playerName: encodeURIComponent(nickname) }
-              });
-            } catch (error: any) {
-              const status409 = error?.response?.status === 409;
-              const redirectRoomId = error?.response?.data?.data?.redirectRoomId ?? error?.response?.data?.redirectRoomId;
-              if (status409 && redirectRoomId) {
-                setRoomId(redirectRoomId);
-                setStatus('PLAYING');
-                setIsBootstrapping(false);
-                connectWebSocket(redirectRoomId);
-                return;
-              }
-              setStatus('ROOM_LIST');
-              setIsBootstrapping(false);
-              return;
-            }
-          }
           connectWebSocket(roomId);
+          if (nickname) {
+            setPlayers(prev => {
+              if (prev.length === 0) {
+                return [{ id: nickname, name: nickname, isHost, isReady: isHost, score: 0 }];
+              }
+              return prev;
+            });
+          }
         } else {
           setStatus('ROOM_LIST');
         }
@@ -302,7 +292,7 @@ export const useGameLogic = () => {
       setIsBootstrapping(false);
     };
     bootstrap();
-  }, []);
+  }, []); // Run once on mount
 
   useEffect(() => {
     if (status === 'WAITING' && roomId) {
@@ -319,6 +309,16 @@ export const useGameLogic = () => {
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
   }, [status, leaveRoom]);
+
+  useEffect(() => {
+    if (gameType) localStorage.setItem('ums_gameType', gameType);
+    else localStorage.removeItem('ums_gameType');
+  }, [gameType]);
+
+  useEffect(() => {
+    if (currentVideoId) localStorage.setItem('ums_currentVideoId', currentVideoId);
+    else localStorage.removeItem('ums_currentVideoId');
+  }, [currentVideoId]);
 
   const fetchRooms = useCallback(async () => {
     try {

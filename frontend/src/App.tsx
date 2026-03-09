@@ -18,11 +18,9 @@ function App() {
     logs,
     currentVideoId,
     isHost,
-    playerIndex,
     gameStartInfo,
     gameType,
     roundEndInfo,
-    roundIndex,
     currentRound,
     totalRound,
     isBootstrapping,
@@ -140,11 +138,9 @@ function App() {
                 onAnswerSubmit={sendMessage}
                 onSkipRound={skipRound}
                 onFetchRank={fetchRank}
-                playerIndex={playerIndex}
                 gameStartInfo={gameStartInfo}
                 gameType={gameType}
                 roundEndInfo={roundEndInfo}
-                roundIndex={roundIndex}
                 currentRound={currentRound}
                 totalRound={totalRound}
               />

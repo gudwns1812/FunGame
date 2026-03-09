@@ -8,10 +8,9 @@ interface RoomListProps {
   onCreateRoom: (title: string, maxPlayers: number, category: string, songCount: number, gameType: string) => void;
   onRefreshRooms: () => void;
   onChangeNickname: (newName: string) => void;
-  nickname: string;
 }
 
-const RoomList: React.FC<RoomListProps> = ({ rooms, onJoinRoom, onCreateRoom, onRefreshRooms, nickname }) => {
+const RoomList: React.FC<RoomListProps> = ({ rooms, onJoinRoom, onCreateRoom, onRefreshRooms }) => {
   const [showCreate, setShowCreate] = useState(false);
   const [newRoomName, setNewRoomName] = useState('');
   const [maxPlayers, setMaxPlayers] = useState(8);

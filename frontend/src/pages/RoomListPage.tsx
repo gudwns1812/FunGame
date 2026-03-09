@@ -116,7 +116,6 @@ const RoomListPage: React.FC<RoomListPageProps> = ({
       <main className="flex-1 flex flex-col items-center p-6 relative z-10">
         <RoomList
           rooms={rooms}
-          nickname={nickname}
           onJoinRoom={onJoinRoom}
           onCreateRoom={onCreateRoom}
           onRefreshRooms={onRefreshRooms}
