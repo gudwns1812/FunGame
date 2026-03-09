@@ -13,6 +13,7 @@ public enum ErrorCode {
     G006,
     G007,
     G008,
+    G009,
 
-    P001;
+    P001, P002;
 }

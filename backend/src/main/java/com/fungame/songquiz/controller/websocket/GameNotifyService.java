@@ -48,6 +48,14 @@ public class GameNotifyService {
     }
 
     @EventListener
+    public void handlePlayerReady(PlayerReadyEvent event) {
+        log.info("Broadcasting player ready: ready player {} in room {}", event.player(), event.roomId());
+        String destination = "/subscribe/room/" + event.roomId();
+        Object payload = Map.of("type", "PLAYER_READY", "player", event.player(), "PLAYER_ALL_READY", event.isAllReady());
+        messagingTemplate.convertAndSend(destination, ApiResponse.success(payload));
+    }
+
+    @EventListener
     public void handleGameStart(GameStartEvent event) {
         log.info("Broadcasting game start in room {}", event.roomId());
         String destination = "/subscribe/room/" + event.roomId();

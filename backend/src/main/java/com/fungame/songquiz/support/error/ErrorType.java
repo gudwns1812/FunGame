@@ -20,7 +20,10 @@ public enum ErrorType {
 
     NOT_VALID_HOST(HttpStatus.BAD_REQUEST, ErrorCode.G007, "호스트가 아닙니다.", LogLevel.DEBUG),
 
-    GAME_NOT_FOUND(HttpStatus.BAD_REQUEST, ErrorCode.G008 , "게임이 없습니다.", LogLevel.WARN);
+    GAME_NOT_FOUND(HttpStatus.BAD_REQUEST, ErrorCode.G008 , "게임이 없습니다.", LogLevel.WARN),
+    GAME_ROOM_NOT_ALL_READY(HttpStatus.BAD_REQUEST, ErrorCode.G009, "모든 플레이어가 준비되지 않았습니다.", LogLevel.DEBUG),
+
+    PLAYER_NOT_FOUND(HttpStatus.INTERNAL_SERVER_ERROR, ErrorCode.P002, "플레이어를 찾을 수 없습니다.", LogLevel.ERROR);
 
     private final HttpStatus status;
     private final ErrorCode code;

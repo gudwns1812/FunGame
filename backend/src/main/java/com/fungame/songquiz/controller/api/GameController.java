@@ -48,8 +48,13 @@ public class GameController {
     @PostMapping
     public ApiResponse<Long> createRoom(@RequestBody CreateRoomRequest request) {
         log.info("category: {}", request.getCategory());
-        Long roomId = gameRoomService.createRoom(request.getGameType(),request.getTitle(), request.getMaxPlayers(), request.getHostName(),
-                request.toGameInfo());
+        Long roomId = gameRoomService.createRoom(
+                request.getGameType(),
+                request.getTitle(),
+                request.getMaxPlayers(),
+                request.getHostName(),
+                request.toGameInfo()
+        );
         return ApiResponse.success(roomId);
     }
 
@@ -74,6 +79,12 @@ public class GameController {
     @PostMapping("/{roomId}/skip")
     public ApiResponse<Void> skipCurrentQuiz(@PathVariable Long roomId, @NickNameDecoder String playerName) {
         gameService.increaseSkipVote(roomId, playerName);
+        return ApiResponse.success();
+    }
+
+    @PostMapping("/{roomId}/ready")
+    public ApiResponse<Void> playerReady(@PathVariable Long roomId, @NickNameDecoder String playerName) {
+        gameRoomService.readyPlayer(roomId, playerName);
         return ApiResponse.success();
     }
 }

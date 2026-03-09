@@ -1,0 +1,518 @@
+import { useState, useCallback, useEffect, useRef } from 'react';
+import axios from 'axios';
+import { Client } from '@stomp/stompjs';
+import SockJS from 'sockjs-client';
+import type { Player, GameStatus, GameEvent, Room, GameStartInfo, RoundEndInfo } from '../types/game';
+import { stripTag } from '../utils/stringUtils';
+import { PLAYER_COLOR_INDEX_KEY } from '../utils/playerColor';
+
+// Configure axios base URL
+axios.defaults.baseURL = import.meta.env.VITE_API_BASE_URL;
+
+export const useGameLogic = () => {
+  const [nickname, setNickname] = useState(() => localStorage.getItem('ums_nickname') || '');
+  const [roomId, setRoomId] = useState<string | null>(() => localStorage.getItem('ums_roomId'));
+  const [status, setStatus] = useState<GameStatus>(() => {
+    const savedStatus = localStorage.getItem('ums_status');
+    const savedNickname = localStorage.getItem('ums_nickname');
+    return (savedStatus as GameStatus) || (savedNickname ? 'ROOM_LIST' : 'LOBBY');
+  });
+  const [players, setPlayers] = useState<Player[]>([]);
+  const [rooms, setRooms] = useState<Room[]>([]);
+  const [timeLeft, setTimeLeft] = useState(30);
+  const [totalTime, setTotalTime] = useState(30);
+  const [logs, setLogs] = useState<string[]>([]);
+  const [currentVideoId, setCurrentVideoId] = useState('');
+  const [isHost, setIsHost] = useState(false);
+  const [playerIndex, setPlayerIndex] = useState<number | null>(null);
+  const [gameStartInfo, setGameStartInfo] = useState<GameStartInfo | null>(null);
+  const [roundEndInfo, setRoundEndInfo] = useState<RoundEndInfo | null>(null);
+  const [roundIndex, setRoundIndex] = useState<number>(0);
+  const [currentRound, setCurrentRound] = useState<number>(0);
+  const [totalRound, setTotalRound] = useState<number>(0);
+  const [isBootstrapping, setIsBootstrapping] = useState(true);
+  const [isCreatingRoom, setIsCreatingRoom] = useState(false);
+  const [myColorIndex, setMyColorIndex] = useState<number | null>(() => {
+    const saved = localStorage.getItem(PLAYER_COLOR_INDEX_KEY);
+    return saved !== null ? Number(saved) : null;
+  });
+
+  const stompClient = useRef<Client | null>(null);
+  const fetchRankRef = useRef<() => Promise<void>>(async () => { });
+
+  const addLog = useCallback((msg: string) => {
+    setLogs(prev => [...prev.slice(-49), msg]);
+  }, []);
+
+  const clearLogs = useCallback(() => {
+    setLogs([]);
+  }, []);
+
+  const fetchRoomUsers = useCallback(
+    async (targetRoomId: string) => {
+      try {
+        const response = await axios.get(`/game/rooms/${targetRoomId}/users`, {
+          headers: nickname ? { playerName: encodeURIComponent(nickname) } : undefined,
+        });
+
+        if (response.data?.result === 'SUCCESS' && response.data.data) {
+          const players: string[] = response.data.data.players ?? [];
+          const host: string = response.data.data.host ?? '';
+          setPlayers(prev => {
+            const prevMap = new Map(prev.map(p => [p.name, p]));
+            return players.map((name, idx) => {
+              const prevPlayer = prevMap.get(name);
+              return {
+                id: name,
+                name,
+                isHost: name === host,
+                score: prevPlayer?.score ?? 0,
+                colorIndex: idx,
+              };
+            });
+          });
+          setIsHost(host === nickname);
+        }
+      } catch (error) {
+        console.error('Failed to fetch room users:', error);
+      }
+    },
+    [nickname],
+  );
+
+  const handleEvent = useCallback((event: any) => {
+    console.log("Processing WebSocket Event:", event);
+    switch (event.type) {
+      case 'PLAYER_JOIN':
+      case 'PLAYER_LEAVE':
+        if (roomId) {
+          if (event.player === nickname && event.type === 'PLAYER_JOIN') break;
+          const action = event.type === 'PLAYER_JOIN' ? '입장' : '퇴장';
+          addLog(`[시스템] ${stripTag(event.player)}님이 ${action}하셨습니다.`);
+          fetchRoomUsers(roomId);
+        }
+        break;
+
+      case 'HOST_CHANGE':
+        setPlayers(prev => prev.map(p => ({
+          ...p,
+          isHost: p.name === event.newHost
+        })));
+        setIsHost(event.newHost === nickname);
+        addLog(`[시스템] 방장이 ${stripTag(event.newHost)}님으로 변경되었습니다.`);
+        break;
+
+      case 'PLAYER_READY':
+        addLog(`[시스템] ${stripTag(event.player)}님이 준비를 마쳤습니다.`);
+        break;
+
+      case 'CHAT':
+        addLog(`${stripTag(event.playerName)}: ${event.message}`);
+        break;
+
+      case 'GAME_START':
+        setStatus('PLAYING');
+        setGameStartInfo({
+          gameType: event.gameType,
+          category: event.category,
+          songCount: event.songCount,
+          message: event.message,
+        });
+        setLogs([]);
+        addLog(`[시스템] 게임이 시작됩니다! 5초 뒤 첫 문제가 출제됩니다.`);
+        break;
+
+      case 'ROUND_START':
+        setStatus('PLAYING');
+        setCurrentVideoId(event.content); 
+        setRoundEndInfo(null);
+        setGameStartInfo(null);
+        setRoundIndex(event.round);
+        setCurrentRound(event.round);
+        setTotalRound(event.totalRound);
+        addLog(`[시스템] 제 ${event.round} 라운드 시작!`);
+        setPlayers(prev => {
+          const idx = prev.findIndex(p => p.name === nickname);
+          setPlayerIndex(idx !== -1 ? idx + 1 : null);
+          return prev;
+        });
+        break;
+
+      case 'TIMER_TICK':
+        setTimeLeft(event.remainingSeconds);
+        setTotalTime(30); 
+        break;
+
+      case 'CORRECT_ANSWER':
+        addLog(`[시스템] ${stripTag(event.playerName)}님이 정답을 맞췄습니다!`);
+        setPlayers(prev => prev.map(p =>
+          p.name === event.playerName ? { ...p, score: event.score } : p
+        ));
+        break;
+
+      case 'ROUND_SKIP':
+        addLog(`[시스템] 스킵 투표 현황: (${event.skipCount} / ${event.totalCount})`);
+        break;
+
+      case 'ROUND_END':
+        setRoundEndInfo({ answer: event.answer, winner: event.winner });
+        const winnerMsg = (event.winner && event.winner !== '없음') ? `${stripTag(event.winner)}님 정답!` : '정답자가 없습니다.';
+        addLog(`[시스템] 라운드 종료. 정답: ${event.answer} (${winnerMsg})`);
+        fetchRankRef.current();
+        break;
+
+      case 'GAME_RESULT': {
+        setStatus('RESULT');
+        setPlayerIndex(null);
+        setGameStartInfo(null);
+        setRoundEndInfo(null);
+        addLog(`[시스템] 게임이 최종 종료되었습니다.`);
+        const finalRankings: Player[] = event.rankings
+          .split('\n')
+          .filter((line: string) => line.trim() !== '')
+          .map((line: string) => {
+            const colonIdx = line.lastIndexOf(':');
+            const name = line.substring(0, colonIdx).trim();
+            const score = parseInt(line.substring(colonIdx + 1).trim(), 10) || 0;
+            return { id: name, name, score, isHost: false };
+          });
+        setPlayers(finalRankings);
+        break;
+      }
+
+      case 'GAME_END':
+        addLog(`[시스템] 게임 세션이 종료되었습니다.`);
+        break;
+    }
+  }, [addLog, nickname, roomId, fetchRoomUsers, players]);
+
+  const handleEventRef = useRef(handleEvent);
+
+  useEffect(() => {
+    handleEventRef.current = handleEvent;
+  }, [handleEvent]);
+
+  const connectWebSocket = useCallback((targetRoomId: string) => {
+    if (stompClient.current) {
+      stompClient.current.deactivate();
+    }
+
+    const client = new Client({
+      webSocketFactory: () => new SockJS(import.meta.env.VITE_WS_URL),
+      reconnectDelay: 5000,
+      onConnect: () => {
+        client.subscribe(`/subscribe/room/${targetRoomId}`, (message) => {
+          const response = JSON.parse(message.body);
+          if (response.result === 'SUCCESS' && response.data) {
+            handleEventRef.current(response.data);
+          }
+        });
+      },
+      onStompError: (frame) => {
+        console.error('STOMP Error:', frame);
+        addLog('[오류] 서버 통신 중 문제가 발생했습니다.');
+      }
+    });
+
+    client.activate();
+    stompClient.current = client;
+  }, [addLog, handleEvent]);
+
+  const leaveRoom = useCallback(async () => {
+    if (roomId) {
+      try {
+        await axios.post(`/game/rooms/${roomId}/leave`, null, {
+          headers: { playerName: encodeURIComponent(nickname) }
+        });
+      } catch (error) {
+        console.error('Leave room failed:', error);
+      }
+    }
+    if (stompClient.current) {
+      stompClient.current.deactivate();
+    }
+    setRoomId(null);
+    setStatus('ROOM_LIST');
+    setPlayers([]);
+    setIsHost(false);
+    setPlayerIndex(null);
+    setGameStartInfo(null);
+    setRoundEndInfo(null);
+    localStorage.removeItem(PLAYER_COLOR_INDEX_KEY);
+    setMyColorIndex(null);
+  }, [roomId, nickname]);
+
+  const returnToLobby = useCallback(() => {
+    if (stompClient.current) {
+      stompClient.current.deactivate();
+    }
+    setRoomId(null);
+    setStatus('ROOM_LIST');
+    setPlayers([]);
+    setIsHost(false);
+    setPlayerIndex(null);
+    setGameStartInfo(null);
+    setRoundEndInfo(null);
+    localStorage.removeItem(PLAYER_COLOR_INDEX_KEY);
+    setMyColorIndex(null);
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem('ums_status', status);
+    if (roomId) {
+      localStorage.setItem('ums_roomId', roomId);
+    } else {
+      localStorage.removeItem('ums_roomId');
+    }
+  }, [status, roomId]);
+
+  useEffect(() => {
+    const bootstrap = async () => {
+      if (status === 'WAITING' || status === 'PLAYING') {
+        if (roomId) {
+          if (status === 'PLAYING') {
+            try {
+              await axios.post(`/game/rooms/${roomId}/join`, null, {
+                headers: { playerName: encodeURIComponent(nickname) }
+              });
+            } catch (error: any) {
+              const status409 = error?.response?.status === 409;
+              const redirectRoomId = error?.response?.data?.data?.redirectRoomId ?? error?.response?.data?.redirectRoomId;
+              if (status409 && redirectRoomId) {
+                setRoomId(redirectRoomId);
+                setStatus('PLAYING');
+                setIsBootstrapping(false);
+                connectWebSocket(redirectRoomId);
+                return;
+              }
+              setStatus('ROOM_LIST');
+              setIsBootstrapping(false);
+              return;
+            }
+          }
+          connectWebSocket(roomId);
+        } else {
+          setStatus('ROOM_LIST');
+        }
+      }
+      setIsBootstrapping(false);
+    };
+    bootstrap();
+  }, []);
+
+  useEffect(() => {
+    if (status === 'WAITING' && roomId) {
+      fetchRoomUsers(roomId);
+    }
+  }, [status, roomId, fetchRoomUsers]);
+
+  useEffect(() => {
+    const handlePopState = () => {
+      if (status === 'WAITING' || status === 'RESULT') {
+        leaveRoom();
+      }
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [status, leaveRoom]);
+
+  const fetchRooms = useCallback(async () => {
+    try {
+      const response = await axios.get('/game/rooms');
+      if (response.data && response.data.result === 'SUCCESS') {
+        const mappedRooms: Room[] = response.data.data.map((r: any) => ({
+          id: r.roomId,
+          name: r.title,
+          hostName: r.hostName,
+          playerCount: r.currentPlayers,
+          maxPlayers: r.maxPlayers,
+          status: r.status || 'WAITING'
+        }));
+        setRooms(mappedRooms);
+      }
+    } catch (error) {
+      console.error('Failed to fetch rooms:', error);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (status === 'ROOM_LIST') {
+      fetchRooms();
+    }
+  }, [status, fetchRooms]);
+
+  const enterLobby = useCallback((name: string) => {
+    localStorage.setItem('ums_nickname', name);
+    setNickname(name);
+    setStatus('ROOM_LIST');
+  }, []);
+
+  const joinRoom = useCallback(async (room: Room) => {
+    try {
+      const response = await axios.post(`/game/rooms/${room.id}/join`, null, {
+        headers: { playerName: encodeURIComponent(nickname) }
+      });
+      if (response.data.result === 'SUCCESS') {
+        const slotIndex = typeof response.data.data === 'number' ? response.data.data : null;
+        if (slotIndex !== null) {
+          localStorage.setItem(PLAYER_COLOR_INDEX_KEY, String(slotIndex));
+          setMyColorIndex(slotIndex);
+        }
+        clearLogs();
+        setRoomId(room.id);
+        setIsHost(room.hostName === nickname);
+        setStatus('WAITING');
+        setPlayers([{ id: nickname, name: nickname, isHost: room.hostName === nickname, score: 0, colorIndex: slotIndex ?? undefined }]);
+        connectWebSocket(room.id);
+        addLog(`[시스템] ${room.name} 방에 입장했습니다.`);
+        window.history.pushState({ room: room.id }, '');
+      }
+    } catch (error: any) {
+      console.error('Join room failed:', error);
+      const httpStatus = error?.response?.status;
+      const redirectRoomId = error?.response?.data?.data?.redirectRoomId ?? error?.response?.data?.redirectRoomId;
+      if (httpStatus === 409 && redirectRoomId) {
+        setRoomId(redirectRoomId);
+        setIsHost(false);
+        setStatus('PLAYING');
+        setPlayers([{ id: nickname, name: nickname, isHost: false, score: 0 }]);
+        connectWebSocket(redirectRoomId);
+        return;
+      }
+      const message = error?.response?.data?.error?.message || '방에 입장할 수 없습니다.';
+      window.alert(message);
+    }
+  }, [nickname, connectWebSocket, clearLogs, addLog]);
+
+  const createRoom = useCallback(async (title: string, maxPlayers: number, category: string, songCount: number, gameType: string) => {
+    setIsCreatingRoom(true);
+    try {
+      const response = await axios.post('/game/rooms', {
+        title,
+        maxPlayers,
+        hostName: nickname,
+        category,
+        totalRound: songCount,
+        gameType
+      });
+      if (response.data.result === 'SUCCESS') {
+        const newRoomId = response.data.data;
+        localStorage.setItem(PLAYER_COLOR_INDEX_KEY, '0');
+        setMyColorIndex(0);
+        clearLogs();
+        setRoomId(newRoomId);
+        setIsHost(true);
+        setStatus('WAITING');
+        setPlayers([{ id: nickname, name: nickname, isHost: true, score: 0, colorIndex: 0 }]);
+        connectWebSocket(newRoomId);
+        window.history.pushState({ room: newRoomId }, '');
+      }
+    } catch (error) {
+      console.error('Create room failed:', error);
+      addLog('[오류] 방 생성에 실패했습니다.');
+    } finally {
+      setIsCreatingRoom(false);
+    }
+  }, [nickname, addLog, connectWebSocket, clearLogs]);
+
+  const startGame = useCallback(async () => {
+    if (!roomId || !isHost) return;
+    try {
+      await axios.post(`/game/rooms/${roomId}/start`, null, {
+        headers: { playerName: encodeURIComponent(nickname) }
+      });
+    } catch (error) {
+      console.error('Start game failed:', error);
+    }
+  }, [roomId, isHost, nickname]);
+
+  const skipRound = useCallback(async () => {
+    if (!roomId) return;
+    try {
+      await axios.post(`/game/rooms/${roomId}/skip`, null, {
+        headers: { playerName: encodeURIComponent(nickname) }
+      });
+      addLog(`[시스템] 스킵 투표를 완료했습니다.`);
+    } catch (error) {
+      console.error('Skip vote failed:', error);
+      addLog(`[오류] 스킵 투표에 실패했습니다.`);
+    }
+  }, [roomId, nickname, addLog]);
+
+  const fetchRank = useCallback(async () => {
+    if (!roomId) return;
+    try {
+      const response = await axios.get(`/game/rooms/${roomId}/play/rank`, {
+        headers: nickname ? { playerName: encodeURIComponent(nickname) } : undefined,
+      });
+      if (response.data?.result === 'SUCCESS' && Array.isArray(response.data.data)) {
+        const rankData: { player: string; score: number }[] = response.data.data;
+        setPlayers(prev => {
+          const prevMap = new Map(prev.map(p => [p.name, p]));
+          return rankData.map(({ player, score }) => ({
+            id: player,
+            name: player,
+            isHost: prevMap.get(player)?.isHost ?? false,
+            score,
+          }));
+        });
+      }
+    } catch (error) {
+      console.error('Failed to fetch rank:', error);
+    }
+  }, [roomId, nickname]);
+
+  useEffect(() => {
+    fetchRankRef.current = fetchRank;
+  }, [fetchRank]);
+
+  const changeNickname = useCallback((newName: string) => {
+    localStorage.setItem('ums_nickname', newName);
+    setNickname(newName);
+  }, []);
+
+  const sendMessage = useCallback((message: string) => {
+    if (!roomId || !stompClient.current || !stompClient.current.connected) return;
+    stompClient.current.publish({
+      destination: `/publish/room/${roomId}/chat`,
+      headers: { playerName: nickname },
+      body: message
+    });
+  }, [roomId, nickname]);
+
+  return {
+    status,
+    nickname,
+    roomId,
+    players,
+    rooms,
+    timeLeft,
+    totalTime,
+    logs,
+    currentVideoId,
+    isHost,
+    playerIndex,
+    gameStartInfo,
+    roundEndInfo,
+    roundIndex,
+    currentRound,
+    totalRound,
+    isBootstrapping,
+    isCreatingRoom,
+    myColorIndex,
+    enterLobby,
+    joinRoom,
+    createRoom,
+    leaveRoom,
+    returnToLobby,
+    startGame,
+    skipRound,
+    sendMessage,
+    setStatus,
+    addLog,
+    clearLogs,
+    changeNickname,
+    fetchRooms,
+    fetchRank,
+  };
+};

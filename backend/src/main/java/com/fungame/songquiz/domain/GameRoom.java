@@ -2,6 +2,8 @@ package com.fungame.songquiz.domain;
 
 import com.fungame.songquiz.support.error.CoreException;
 import com.fungame.songquiz.support.error.ErrorType;
+
+import java.time.Instant;
 import java.util.List;
 import lombok.Getter;
 
@@ -11,12 +13,14 @@ public class GameRoom {
     private final Game game;
     private final GamePlayers players;
     private GameRoomStatus status;
+    private Instant lastActivityTime;
 
     private GameRoom(String title, Game game, GamePlayers players) {
         this.title = title;
         this.game = game;
         this.players = players;
         this.status = GameRoomStatus.WAITING;
+        this.lastActivityTime = Instant.now();
     }
 
     public int join(String playerName) {
@@ -54,6 +58,9 @@ public class GameRoom {
         if (status == GameRoomStatus.PLAYING) {
             throw new CoreException(ErrorType.GAME_ALREADY_PLAYING);
         }
+        if (!isAllReady()) {
+            throw new CoreException(ErrorType.GAME_ROOM_NOT_ALL_READY);
+        }
     }
 
     public void end() {
@@ -68,7 +75,23 @@ public class GameRoom {
         return players.getHost().equals(name);
     }
 
+    public void readyPlayer(String player) {
+        players.readyPlayer(player);
+    }
+
+    public boolean isAllReady() {
+        return players.isAllReady();
+    }
+
     public static GameRoom create(String title, Game game, List<String> initialPlayers, int maxPlayer, String host) {
         return new GameRoom(title, game, new GamePlayers(initialPlayers, maxPlayer, host));
+    }
+
+    public boolean isIdle(Instant threshold) {
+        return lastActivityTime.isBefore(threshold);
+    }
+
+    public void touch() {
+        lastActivityTime = Instant.now();
     }
 }

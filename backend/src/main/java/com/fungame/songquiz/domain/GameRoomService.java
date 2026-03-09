@@ -4,6 +4,7 @@ import com.fungame.songquiz.domain.dto.PlayersInfo;
 import com.fungame.songquiz.domain.dto.RoomInfo;
 import com.fungame.songquiz.domain.event.PlayerJoinEvent;
 import com.fungame.songquiz.domain.event.PlayerLeaveEvent;
+import com.fungame.songquiz.domain.event.PlayerReadyEvent;
 import com.fungame.songquiz.domain.gamecreator.GameCreateInfo;
 import com.fungame.songquiz.storage.CounterEntity;
 import com.fungame.songquiz.storage.CounterRepository;
@@ -67,5 +68,11 @@ public class GameRoomService {
 
     public PlayersInfo findUsers(Long roomId) {
         return gameRoomManager.findRoomUsers(roomId);
+    }
+
+    public void readyPlayer(Long roomId, String playerName) {
+        boolean isAllReady = gameRoomManager.readyPlayer(roomId, playerName);
+
+        applicationEventPublisher.publishEvent(new PlayerReadyEvent(roomId, playerName, isAllReady));
     }
 }

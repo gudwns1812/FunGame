@@ -30,7 +30,7 @@ public class ChatController {
         );
         
         messagingTemplate.convertAndSend("/subscribe/room/" + roomId, payload);
-        gameRoomManager.updateActivityTime(roomId);
+        gameRoomManager.touch(roomId);
         gameService.processAnswer(roomId, playerName, message);
     }
 }

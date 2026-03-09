@@ -9,6 +9,7 @@ import java.util.function.Supplier;
 
 import com.fungame.songquiz.domain.dto.GameInfo;
 import com.fungame.songquiz.domain.dto.GameSkipInfo;
+import com.fungame.songquiz.support.lock.LockContext;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -16,7 +17,7 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class GameSessionManager {
     private final Map<Long, GameSession> manager = new ConcurrentHashMap<>();
-    private final Map<Long, ReentrantLock> locks = new ConcurrentHashMap<>();
+    private final LockContext lockContext;
 
     public GameInfo startGame(Long roomId, Game game, List<String> players) {
         manager.put(roomId, new GameSession(game, players));
@@ -40,20 +41,9 @@ public class GameSessionManager {
     }
 
     public GameSkipInfo increaseSkipVote(Long roomId, String player) {
-        return processWithLock(roomId, () -> {
+        return lockContext.processWithLockKey(roomId, () -> {
             GameSession gameSession = getGameSession(roomId);
             return gameSession.voteSkip(player);
         });
-    }
-
-    private <T> T processWithLock(Long roomId, Supplier<T> supplier) {
-        ReentrantLock lock = locks.computeIfAbsent(roomId, k -> new ReentrantLock());
-        lock.lock();
-
-        try {
-            return supplier.get();
-        } finally {
-            lock.unlock();
-        }
     }
 }
