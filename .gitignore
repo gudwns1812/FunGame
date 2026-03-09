@@ -1,0 +1,23 @@
+# IDE & Editors
+.idea/
+.vscode/
+*.iws
+*.iml
+*.ipr
+
+# OS Files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Gradle
+.gradle/
+!gradle/wrapper/gradle-wrapper.jar
+
+# Build
+build/
+out/
+bin/
+
+# Logs
+*.log
