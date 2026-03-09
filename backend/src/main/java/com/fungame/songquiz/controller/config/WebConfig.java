@@ -42,7 +42,6 @@ public class WebConfig implements WebMvcConfigurer {
                 .excludePathPatterns(
                         "/game/player/**",
                         "/game/rooms/*/play/rank",
-                        "/game/rooms/*",
                         "/ws-stomp/**"
                 );
     }

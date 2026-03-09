@@ -6,6 +6,7 @@ import com.fungame.songquiz.support.response.ApiResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.BindException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -26,8 +27,8 @@ public class ApiControllerAdvice {
     }
 
     @ResponseStatus(HttpStatus.BAD_REQUEST)
-    @ExceptionHandler(org.springframework.validation.BindException.class)
-    public ApiResponse<Void> handleBindException(org.springframework.validation.BindException e) {
+    @ExceptionHandler(BindException.class)
+    public ApiResponse<Void> handleBindException(BindException e) {
         log.warn("BindException : {}", e.getMessage());
         return ApiResponse.fail(ErrorType.INVALID_INPUT_VALUE);
     }
