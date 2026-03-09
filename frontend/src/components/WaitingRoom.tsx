@@ -7,14 +7,16 @@ interface WaitingRoomProps {
   players: Player[];
   onStart: () => void;
   onLeave: () => void;
+  onToggleReady: () => void;
   isHost: boolean;
   logs: string[];
   onSendMessage: (message: string) => void;
 }
 
-const WaitingRoom: React.FC<WaitingRoomProps> = ({ players, onStart, onLeave, isHost, logs, onSendMessage }) => {
+const WaitingRoom: React.FC<WaitingRoomProps> = ({ players, onStart, onLeave, onToggleReady, isHost, logs, onSendMessage }) => {
   const [chatInput, setChatInput] = useState('');
   const logContainerRef = useRef<HTMLDivElement>(null);
+  const chatInputRef = useRef<HTMLInputElement>(null);
   const SLOTS = 8;
   const slotsArray = Array.from({ length: SLOTS }, (_, i) => players[i] || null);
 
@@ -23,6 +25,17 @@ const WaitingRoom: React.FC<WaitingRoomProps> = ({ players, onStart, onLeave, is
       logContainerRef.current.scrollTop = logContainerRef.current.scrollHeight;
     }
   }, [logs]);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Enter' && document.activeElement !== chatInputRef.current) {
+        e.preventDefault();
+        chatInputRef.current?.focus();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   const handleChatSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -35,7 +48,7 @@ const WaitingRoom: React.FC<WaitingRoomProps> = ({ players, onStart, onLeave, is
   const renderLog = (log: string, i: number) => {
     if (log.startsWith('[시스템]') || log.startsWith('[오류]')) {
       return (
-        <p key={i} className={`font-mono text-xs ${log.startsWith('[오류]') ? 'text-red-400' : 'text-slate-400'}`}>
+        <p key={i} className={`font-mono text-xs py-0.5 ${log.startsWith('[오류]') ? 'text-red-400' : 'text-slate-400'}`}>
           <span className="opacity-50">[{new Date().toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute:'2-digit', second:'2-digit' })}]</span> {log}
         </p>
       );
@@ -73,30 +86,28 @@ const WaitingRoom: React.FC<WaitingRoomProps> = ({ players, onStart, onLeave, is
           </span>
         </div>
         
-        <div 
-          ref={logContainerRef}
-          className="flex-1 overflow-y-auto p-4 flex flex-col gap-1 space-y-1"
-        >
-          <div className="text-xs font-mono text-primary/50 mb-4 border-b border-primary/20 pb-2">
-            보안 채널이 연결되었습니다.<br/>
-            메시지 수신 대기 중...
+        <div ref={logContainerRef} className="flex-1 overflow-y-auto p-4 flex flex-col gap-1 space-y-1 bg-black/20">
+          <div className="text-xs font-mono text-primary/50 mb-4 border-b border-primary/20 pb-2 uppercase tracking-widest font-bold">
+            Secure Link: Established<br/>
+            Awaiting input...
           </div>
           {logs.map((log, i) => renderLog(log, i))}
         </div>
 
-        <form onSubmit={handleChatSubmit} className="p-3 border-t border-primary/30 bg-black/40 flex gap-2">
+        <form onSubmit={handleChatSubmit} className="p-3 border-t border-primary/30 bg-slate-950 flex gap-2">
           <div className="flex-1 relative">
             <span className="absolute left-3 top-1/2 -translate-y-1/2 text-primary/50 font-mono text-sm">{'>'}</span>
             <input
+              ref={chatInputRef}
               type="text"
-              className="w-full bg-slate-950 border border-primary/30 rounded pl-8 pr-3 py-2 text-sm text-white focus:border-primary outline-none font-mono transition-colors"
+              className="w-full bg-slate-900 border border-primary/30 rounded pl-8 pr-3 py-2 text-sm text-white focus:border-primary outline-none font-mono transition-colors"
               placeholder="메시지 입력..."
               value={chatInput}
               onChange={(e) => setChatInput(e.target.value)}
               autoFocus
             />
           </div>
-          <button type="submit" className="bg-primary/20 hover:bg-primary/40 text-primary border border-primary/50 rounded px-4 transition-colors flex items-center justify-center">
+          <button type="submit" className="bg-primary/20 hover:bg-primary/40 text-primary border border-primary/50 rounded px-4 transition-colors">
             <span className="material-symbols-outlined text-sm">send</span>
           </button>
         </form>
@@ -107,25 +118,36 @@ const WaitingRoom: React.FC<WaitingRoomProps> = ({ players, onStart, onLeave, is
         
         {/* 상단 컨트롤 */}
         <div className="panel-border bg-slate-900/60 rounded-xl p-6 flex flex-col sm:flex-row justify-between items-center gap-4">
-          <div className="space-y-1">
-            <h2 className="text-2xl font-black text-white tracking-tighter uppercase flex items-center gap-2">
+          <div className="space-y-1 text-center sm:text-left">
+            <h2 className="text-2xl font-black text-white tracking-tighter uppercase flex items-center justify-center sm:justify-start gap-2">
               <span className="material-symbols-outlined text-primary text-3xl">meeting_room</span>
               게임 <span className="text-primary neon-glow">대기실</span>
             </h2>
-            <p className="text-xs text-slate-400 font-mono">참가 인원: {players.length} / {SLOTS}</p>
+            <p className="text-xs text-slate-400 font-mono uppercase tracking-widest">Pilots Boarded: {players.length} / {SLOTS}</p>
           </div>
           
-          <div className="flex gap-3">
+          <div className="flex gap-3 w-full sm:w-auto">
             <button 
-              className="px-6 py-3 border border-red-500/50 text-red-400 font-bold rounded hover:bg-red-500/10 transition-colors flex items-center gap-2"
+              className="flex-1 sm:flex-none px-6 py-3 border border-red-500/50 text-red-400 font-bold rounded-lg hover:bg-red-500/10 transition-colors flex items-center justify-center gap-2 uppercase tracking-widest text-xs"
               onClick={onLeave}
             >
               <span className="material-symbols-outlined text-sm">logout</span>
               방 나가기
             </button>
+            
+            {!isHost && (
+              <button 
+                className="flex-1 sm:flex-none px-8 py-3 bg-primary/20 border-2 border-primary/50 text-primary font-black rounded-lg hover:bg-primary/40 transition-all flex items-center justify-center gap-2 shadow-[0_0_15px_rgba(37,192,244,0.2)] uppercase tracking-widest text-xs"
+                onClick={onToggleReady}
+              >
+                <span className="material-symbols-outlined text-sm">check_circle</span>
+                준비하기
+              </button>
+            )}
+
             {isHost && (
               <button 
-                className="px-8 py-3 bg-primary text-background-dark font-black rounded hover:bg-primary/90 transition-all transform hover:scale-105 flex items-center gap-2 shadow-[0_0_15px_rgba(37,192,244,0.3)] disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex-1 sm:flex-none px-10 py-3 bg-primary text-background-dark font-black rounded-lg hover:bg-primary/90 transition-all transform hover:scale-105 flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(37,192,244,0.4)] disabled:opacity-50 disabled:cursor-not-allowed uppercase tracking-widest text-xs"
                 onClick={onStart}
                 disabled={players.length < 1}
               >
@@ -141,47 +163,60 @@ const WaitingRoom: React.FC<WaitingRoomProps> = ({ players, onStart, onLeave, is
           {slotsArray.map((player, index) => {
             const color = player ? (getPlayerColor(player.colorIndex ?? null) || '#25c0f4') : 'rgba(37, 192, 244, 0.1)';
             const isFilled = !!player;
+            const isReady = player?.isReady || player?.isHost;
             
             return (
               <div
                 key={index}
-                className={`panel-border rounded-xl flex flex-col items-center justify-center p-6 relative overflow-hidden transition-all duration-500 ${isFilled ? 'bg-slate-800/80' : 'bg-slate-900/30 border-dashed opacity-50'}`}
+                className={`panel-border rounded-2xl flex flex-col items-center justify-center p-6 relative overflow-hidden transition-all duration-500 ${isFilled ? 'bg-slate-800/80 shadow-[inset_0_0_20px_rgba(0,0,0,0.5)]' : 'bg-slate-900/30 border-dashed opacity-40'}`}
               >
-                {isFilled && (
-                  <div className="absolute inset-0 opacity-10" style={{ background: `radial-gradient(circle at center, ${color} 0%, transparent 70%)` }}></div>
+                {/* 준비 완료 상태 네온 효과 */}
+                {isFilled && isReady && (
+                  <div className="absolute inset-0 bg-primary/5 animate-pulse"></div>
                 )}
                 
                 <div 
-                  className={`w-16 h-16 rounded-full flex items-center justify-center border-2 mb-3 z-10 transition-all duration-500`}
+                  className={`w-16 h-16 rounded-full flex items-center justify-center border-2 mb-4 z-10 transition-all duration-500`}
                   style={{ 
-                    borderColor: color,
-                    backgroundColor: isFilled ? 'rgba(16, 30, 34, 0.8)' : 'transparent',
-                    boxShadow: isFilled ? `0 0 15px ${color}40` : 'none'
+                    borderColor: isFilled ? (isReady ? '#25c0f4' : color) : 'rgba(37, 192, 244, 0.2)',
+                    backgroundColor: isFilled ? 'rgba(16, 30, 34, 0.9)' : 'transparent',
+                    boxShadow: isFilled && isReady ? '0 0 20px rgba(37, 192, 244, 0.4)' : 'none'
                   }}
                 >
-                  <span className="material-symbols-outlined text-3xl" style={{ color: isFilled ? color : 'rgba(37, 192, 244, 0.3)' }}>
-                    {isFilled ? 'person' : 'person_off'}
+                  <span className={`material-symbols-outlined text-3xl transition-all ${isFilled && isReady ? 'text-primary scale-110' : ''}`} style={{ color: isFilled ? (isReady ? '#25c0f4' : color) : 'rgba(37, 192, 244, 0.2)' }}>
+                    {isFilled ? (isReady ? 'verified' : 'person') : 'person_off'}
                   </span>
                 </div>
 
-                <div className="text-center z-10 w-full">
+                <div className="text-center z-10 w-full px-2">
                   <span 
-                    className={`block font-bold text-sm truncate uppercase tracking-wider ${isFilled ? 'text-white' : 'text-primary/30'}`}
-                    style={isFilled ? { textShadow: `0 0 10px ${color}80` } : undefined}
+                    className={`block font-black text-sm truncate uppercase tracking-widest ${isFilled ? (isReady ? 'text-white' : 'text-slate-300') : 'text-primary/20'}`}
+                    style={isFilled && isReady ? { textShadow: '0 0 10px rgba(37, 192, 244, 0.8)' } : undefined}
                   >
-                    {isFilled ? stripTag(player.name) : '비어 있음'}
+                    {isFilled ? stripTag(player.name) : 'EMPTY'}
                   </span>
                   
-                  {player?.isHost ? (
-                    <div className="mt-2 inline-flex items-center gap-1 text-[9px] font-bold bg-primary/20 text-primary border border-primary/50 px-2 py-0.5 rounded uppercase tracking-widest">
-                      <span className="material-symbols-outlined text-[10px]">stars</span> 방장
+                  {isFilled && (
+                    <div className={`mt-3 inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-[0.2em] border transition-all
+                      ${player.isHost 
+                        ? 'bg-primary/20 text-primary border-primary/50 shadow-[0_0_10px_rgba(37,192,244,0.2)]' 
+                        : isReady 
+                          ? 'bg-green-500/20 text-green-400 border-green-500/50 shadow-[0_0_10px_rgba(74,222,128,0.2)]' 
+                          : 'bg-slate-900 text-slate-500 border-white/5'
+                      }`}
+                    >
+                      {player.isHost ? (
+                        <><span className="material-symbols-outlined text-[10px]">stars</span> Commander</>
+                      ) : isReady ? (
+                        <><span className="material-symbols-outlined text-[10px]">check_circle</span> Ready</>
+                      ) : (
+                        'Standby'
+                      )}
                     </div>
-                  ) : (
-                    <div className="mt-2 h-4"></div>
                   )}
                 </div>
 
-                <div className="absolute top-2 left-2 text-[8px] font-mono text-primary/40 font-bold">
+                <div className="absolute top-3 left-3 text-[8px] font-mono text-primary/30 font-black">
                   SLOT_0{index + 1}
                 </div>
               </div>

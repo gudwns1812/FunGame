@@ -7,6 +7,7 @@ interface WaitingRoomPageProps {
   isHost: boolean;
   onStart: () => void;
   onLeave: () => void;
+  onToggleReady: () => void;
   onSendMessage: (message: string) => void;
 }
 
@@ -16,6 +17,7 @@ const WaitingRoomPage: React.FC<WaitingRoomPageProps> = ({
   isHost,
   onStart,
   onLeave,
+  onToggleReady,
   onSendMessage,
 }) => {
   return (
@@ -34,7 +36,7 @@ const WaitingRoomPage: React.FC<WaitingRoomPageProps> = ({
         <div className="flex items-center gap-4">
           <div className="hidden md:flex flex-col items-end px-4 border-r border-primary/20">
             <span className="text-[10px] text-primary/50 uppercase">방 상태</span>
-            <span className="text-sm font-bold text-green-400">플레이어 대기 중</span>
+            <span className="text-sm font-bold text-green-400 uppercase tracking-widest">Boarding</span>
           </div>
           <div className="flex gap-2">
             <button className="p-2 rounded border border-primary/30 hover:bg-primary/10 text-primary transition-colors">
@@ -52,6 +54,7 @@ const WaitingRoomPage: React.FC<WaitingRoomPageProps> = ({
           isHost={isHost}
           onStart={onStart}
           onLeave={onLeave}
+          onToggleReady={onToggleReady}
           onSendMessage={onSendMessage}
         />
       </main>
@@ -59,13 +62,13 @@ const WaitingRoomPage: React.FC<WaitingRoomPageProps> = ({
       {/* 한글 푸터 */}
       <footer className="mt-auto border-t border-primary/10 px-6 py-4 bg-slate-900/40 backdrop-blur-sm flex justify-between items-center z-10">
         <div className="flex items-center gap-6">
-          <span className="text-[10px] font-bold tracking-[0.3em] text-primary/40 uppercase">방장의 시작 신호를 기다리는 중...</span>
+          <span className="text-[10px] font-bold tracking-[0.3em] text-primary/40 uppercase tracking-widest">Awaiting Launch Sequence...</span>
         </div>
         <div className="flex items-center gap-4">
-          <div className="w-32 h-2 bg-slate-800 rounded-full overflow-hidden">
+          <div className="w-32 h-2 bg-slate-800 rounded-full overflow-hidden border border-white/5">
             <div className="h-full bg-primary w-[50%] shadow-[0_0_8px_rgba(37,192,244,0.5)] animate-pulse"></div>
           </div>
-          <span className="text-[10px] font-bold text-primary">준비율: 50%</span>
+          <span className="text-[10px] font-bold text-primary uppercase tracking-widest">Readiness: 50%</span>
         </div>
       </footer>
     </div>

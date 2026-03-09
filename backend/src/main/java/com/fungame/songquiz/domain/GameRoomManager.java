@@ -52,15 +52,18 @@ public class GameRoomManager {
         });
     }
 
-    public void leaveRoom(Long roomId, String playerName) {
-        lockContext.processWithLockKey(roomId, () -> {
+    public boolean leaveRoom(Long roomId, String playerName) {
+        return lockContext.processWithLockKey(roomId, () -> {
             GameRoom gameRoom = getRoom(roomId);
             gameRoom.leave(playerName);
             gameRoom.touch();
 
             if (gameRoom.isEmpty()) {
                 deleteRoom(roomId);
+                return true;
             }
+
+            return false;
         });
     }
 

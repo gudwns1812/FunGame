@@ -1,5 +1,6 @@
 package com.fungame.songquiz.domain;
 
+import com.fungame.songquiz.domain.dto.GamePlayerInfo;
 import com.fungame.songquiz.support.error.CoreException;
 import com.fungame.songquiz.support.error.ErrorType;
 import java.util.ArrayList;
@@ -68,6 +69,12 @@ public class GamePlayers {
 
     public List<String> getPlayers() {
         return players.values().stream().map(GamePlayer::name)
+                .toList();
+    }
+
+    public List<GamePlayerInfo> getPlayersWithReadyStatus() {
+        return players.values().stream()
+                .map(p -> new GamePlayerInfo(p.name(), p.isReady()))
                 .toList();
     }
 

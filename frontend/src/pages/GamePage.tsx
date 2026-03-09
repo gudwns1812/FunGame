@@ -13,6 +13,7 @@ interface GamePageProps {
   onFetchRank: () => Promise<void>;
   playerIndex: number | null;
   gameStartInfo: GameStartInfo | null;
+  gameType: string | null;
   roundEndInfo: RoundEndInfo | null;
   roundIndex: number;
   currentRound: number;
@@ -31,6 +32,7 @@ const GamePage: React.FC<GamePageProps> = ({
   onFetchRank,
   playerIndex,
   gameStartInfo,
+  gameType,
   roundEndInfo,
   roundIndex,
   currentRound,
@@ -76,6 +78,7 @@ const GamePage: React.FC<GamePageProps> = ({
           onFetchRank={onFetchRank}
           playerIndex={playerIndex}
           gameStartInfo={gameStartInfo}
+          gameType={gameType}
           roundEndInfo={roundEndInfo}
           roundIndex={roundIndex}
           currentRound={currentRound}

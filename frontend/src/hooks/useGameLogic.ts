@@ -26,6 +26,7 @@ export const useGameLogic = () => {
   const [isHost, setIsHost] = useState(false);
   const [playerIndex, setPlayerIndex] = useState<number | null>(null);
   const [gameStartInfo, setGameStartInfo] = useState<GameStartInfo | null>(null);
+  const [gameType, setGameType] = useState<string | null>(null);
   const [roundEndInfo, setRoundEndInfo] = useState<RoundEndInfo | null>(null);
   const [roundIndex, setRoundIndex] = useState<number>(0);
   const [currentRound, setCurrentRound] = useState<number>(0);
@@ -56,16 +57,19 @@ export const useGameLogic = () => {
         });
 
         if (response.data?.result === 'SUCCESS' && response.data.data) {
-          const players: string[] = response.data.data.players ?? [];
+          const playersData: any[] = response.data.data.players ?? [];
           const host: string = response.data.data.host ?? '';
           setPlayers(prev => {
             const prevMap = new Map(prev.map(p => [p.name, p]));
-            return players.map((name, idx) => {
+            return playersData.map((pData, idx) => {
+              const name = pData.name;
+              const isReady = pData.isReady;
               const prevPlayer = prevMap.get(name);
               return {
                 id: name,
                 name,
                 isHost: name === host,
+                isReady: isReady,
                 score: prevPlayer?.score ?? 0,
                 colorIndex: idx,
               };
@@ -96,14 +100,16 @@ export const useGameLogic = () => {
       case 'HOST_CHANGE':
         setPlayers(prev => prev.map(p => ({
           ...p,
-          isHost: p.name === event.newHost
+          isHost: p.name === event.newHost,
+          isReady: p.name === event.newHost ? true : p.isReady
         })));
         setIsHost(event.newHost === nickname);
-        addLog(`[시스템] 방장이 ${stripTag(event.newHost)}님으로 변경되었습니다.`);
         break;
 
       case 'PLAYER_READY':
-        addLog(`[시스템] ${stripTag(event.player)}님이 준비를 마쳤습니다.`);
+        setPlayers(prev => prev.map(p =>
+          p.name === event.player ? { ...p, isReady: true } : p
+        ));
         break;
 
       case 'CHAT':
@@ -112,6 +118,7 @@ export const useGameLogic = () => {
 
       case 'GAME_START':
         setStatus('PLAYING');
+        setGameType(event.gameType);
         setGameStartInfo({
           gameType: event.gameType,
           category: event.category,
@@ -119,18 +126,20 @@ export const useGameLogic = () => {
           message: event.message,
         });
         setLogs([]);
-        addLog(`[시스템] 게임이 시작됩니다! 5초 뒤 첫 문제가 출제됩니다.`);
         break;
 
       case 'ROUND_START':
         setStatus('PLAYING');
-        setCurrentVideoId(event.content); 
+        setCurrentVideoId(event.content);
         setRoundEndInfo(null);
         setGameStartInfo(null);
         setRoundIndex(event.round);
         setCurrentRound(event.round);
         setTotalRound(event.totalRound);
-        addLog(`[시스템] 제 ${event.round} 라운드 시작!`);
+
+        // 라운드 시작 시 구분선 강화
+        addLog(`================================================================================`);
+
         setPlayers(prev => {
           const idx = prev.findIndex(p => p.name === nickname);
           setPlayerIndex(idx !== -1 ? idx + 1 : null);
@@ -140,24 +149,20 @@ export const useGameLogic = () => {
 
       case 'TIMER_TICK':
         setTimeLeft(event.remainingSeconds);
-        setTotalTime(30); 
+        setTotalTime(30);
         break;
 
       case 'CORRECT_ANSWER':
-        addLog(`[시스템] ${stripTag(event.playerName)}님이 정답을 맞췄습니다!`);
         setPlayers(prev => prev.map(p =>
           p.name === event.playerName ? { ...p, score: event.score } : p
         ));
         break;
 
       case 'ROUND_SKIP':
-        addLog(`[시스템] 스킵 투표 현황: (${event.skipCount} / ${event.totalCount})`);
         break;
 
       case 'ROUND_END':
         setRoundEndInfo({ answer: event.answer, winner: event.winner });
-        const winnerMsg = (event.winner && event.winner !== '없음') ? `${stripTag(event.winner)}님 정답!` : '정답자가 없습니다.';
-        addLog(`[시스템] 라운드 종료. 정답: ${event.answer} (${winnerMsg})`);
         fetchRankRef.current();
         break;
 
@@ -165,8 +170,8 @@ export const useGameLogic = () => {
         setStatus('RESULT');
         setPlayerIndex(null);
         setGameStartInfo(null);
+        setGameType(null);
         setRoundEndInfo(null);
-        addLog(`[시스템] 게임이 최종 종료되었습니다.`);
         const finalRankings: Player[] = event.rankings
           .split('\n')
           .filter((line: string) => line.trim() !== '')
@@ -174,17 +179,16 @@ export const useGameLogic = () => {
             const colonIdx = line.lastIndexOf(':');
             const name = line.substring(0, colonIdx).trim();
             const score = parseInt(line.substring(colonIdx + 1).trim(), 10) || 0;
-            return { id: name, name, score, isHost: false };
+            return { id: name, name, score, isHost: false, isReady: false };
           });
         setPlayers(finalRankings);
         break;
       }
 
       case 'GAME_END':
-        addLog(`[시스템] 게임 세션이 종료되었습니다.`);
         break;
     }
-  }, [addLog, nickname, roomId, fetchRoomUsers, players]);
+  }, [addLog, nickname, roomId, fetchRoomUsers]);
 
   const handleEventRef = useRef(handleEvent);
 
@@ -216,7 +220,7 @@ export const useGameLogic = () => {
 
     client.activate();
     stompClient.current = client;
-  }, [addLog, handleEvent]);
+  }, [addLog]);
 
   const leaveRoom = useCallback(async () => {
     if (roomId) {
@@ -362,7 +366,7 @@ export const useGameLogic = () => {
         setRoomId(room.id);
         setIsHost(room.hostName === nickname);
         setStatus('WAITING');
-        setPlayers([{ id: nickname, name: nickname, isHost: room.hostName === nickname, score: 0, colorIndex: slotIndex ?? undefined }]);
+        setPlayers([{ id: nickname, name: nickname, isHost: room.hostName === nickname, isReady: room.hostName === nickname, score: 0, colorIndex: slotIndex ?? undefined }]);
         connectWebSocket(room.id);
         addLog(`[시스템] ${room.name} 방에 입장했습니다.`);
         window.history.pushState({ room: room.id }, '');
@@ -375,7 +379,7 @@ export const useGameLogic = () => {
         setRoomId(redirectRoomId);
         setIsHost(false);
         setStatus('PLAYING');
-        setPlayers([{ id: nickname, name: nickname, isHost: false, score: 0 }]);
+        setPlayers([{ id: nickname, name: nickname, isHost: false, isReady: false, score: 0 }]);
         connectWebSocket(redirectRoomId);
         return;
       }
@@ -403,7 +407,7 @@ export const useGameLogic = () => {
         setRoomId(newRoomId);
         setIsHost(true);
         setStatus('WAITING');
-        setPlayers([{ id: nickname, name: nickname, isHost: true, score: 0, colorIndex: 0 }]);
+        setPlayers([{ id: nickname, name: nickname, isHost: true, isReady: true, score: 0, colorIndex: 0 }]);
         connectWebSocket(newRoomId);
         window.history.pushState({ room: newRoomId }, '');
       }
@@ -415,14 +419,37 @@ export const useGameLogic = () => {
     }
   }, [nickname, addLog, connectWebSocket, clearLogs]);
 
+  const toggleReady = useCallback(async () => {
+    if (!roomId) return;
+    try {
+      const response = await axios.post(`/game/rooms/${roomId}/ready`, null, {
+        headers: { playerName: encodeURIComponent(nickname) }
+      });
+      if (response.data.result === 'SUCCESS') {
+        setPlayers(prev => prev.map(p =>
+          p.name === nickname ? { ...p, isReady: !p.isReady } : p
+        ));
+      }
+    } catch (error: any) {
+      console.error('Toggle ready failed:', error);
+      const message = error?.response?.data?.error?.message || '준비 상태 변경에 실패했습니다.';
+      window.alert(message);
+    }
+  }, [roomId, nickname]);
+
   const startGame = useCallback(async () => {
     if (!roomId || !isHost) return;
     try {
-      await axios.post(`/game/rooms/${roomId}/start`, null, {
+      const response = await axios.post(`/game/rooms/${roomId}/start`, null, {
         headers: { playerName: encodeURIComponent(nickname) }
       });
-    } catch (error) {
+      if (response.data.result === 'FAIL') {
+        window.alert(response.data.error.message);
+      }
+    } catch (error: any) {
       console.error('Start game failed:', error);
+      const message = error?.response?.data?.error?.message || '게임 시작에 실패했습니다.';
+      window.alert(message);
     }
   }, [roomId, isHost, nickname]);
 
@@ -432,12 +459,10 @@ export const useGameLogic = () => {
       await axios.post(`/game/rooms/${roomId}/skip`, null, {
         headers: { playerName: encodeURIComponent(nickname) }
       });
-      addLog(`[시스템] 스킵 투표를 완료했습니다.`);
     } catch (error) {
       console.error('Skip vote failed:', error);
-      addLog(`[오류] 스킵 투표에 실패했습니다.`);
     }
-  }, [roomId, nickname, addLog]);
+  }, [roomId, nickname]);
 
   const fetchRank = useCallback(async () => {
     if (!roomId) return;
@@ -453,6 +478,7 @@ export const useGameLogic = () => {
             id: player,
             name: player,
             isHost: prevMap.get(player)?.isHost ?? false,
+            isReady: prevMap.get(player)?.isReady ?? false,
             score,
           }));
         });
@@ -493,6 +519,7 @@ export const useGameLogic = () => {
     isHost,
     playerIndex,
     gameStartInfo,
+    gameType,
     roundEndInfo,
     roundIndex,
     currentRound,
@@ -506,6 +533,7 @@ export const useGameLogic = () => {
     leaveRoom,
     returnToLobby,
     startGame,
+    toggleReady,
     skipRound,
     sendMessage,
     setStatus,

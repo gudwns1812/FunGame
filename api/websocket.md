@@ -37,6 +37,7 @@
 | :--- | :--- | :--- |
 | **`PLAYER_JOIN`** | 플레이어 입장 | `{ "player": "닉네임" }` |
 | **`PLAYER_LEAVE`** | 플레이어 퇴장 | `{ "player": "닉네임" }` |
+| **`PLAYER_READY`** | 플레이어 준비 상태 변경 | `{ "player": "닉네임" }` |
 | **`HOST_CHANGE`** | 방장 변경 | `{ "newHost": "새방장닉네임" }` |
 | **`CHAT`** | 채팅 메시지 | `{ "playerName": "닉네임", "message": "내용" }` |
 | **`GAME_START`** | 게임 시작 알림 | `{ "gameType": "SONG", "category": "KPOP", "songCount": 10, "message": "설명문구" }` |

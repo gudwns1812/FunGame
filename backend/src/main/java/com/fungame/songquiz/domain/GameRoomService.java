@@ -54,9 +54,11 @@ public class GameRoomService {
     }
 
     public void leaveRoom(Long roomId, String playerName) {
-        gameRoomManager.leaveRoom(roomId, playerName);
+        boolean isDestroy = gameRoomManager.leaveRoom(roomId, playerName);
 
-        applicationEventPublisher.publishEvent(new PlayerLeaveEvent(roomId, playerName));
+        if (!isDestroy) {
+            applicationEventPublisher.publishEvent(new PlayerLeaveEvent(roomId, playerName));
+        }
     }
 
     public List<RoomInfo> findAllRooms() {

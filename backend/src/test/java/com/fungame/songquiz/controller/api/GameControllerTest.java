@@ -120,4 +120,19 @@ class GameControllerTest extends RestDocsSupport {
                         )
                 ));
     }
+
+    @Test
+    @DisplayName("플레이어가 준비 상태를 변경한다.")
+    void playerReady() throws Exception {
+        // when // then
+        mockMvc.perform(post("/game/rooms/{roomId}/ready", 1L)
+                        .header("playerName", "플레이어닉네임"))
+                .andExpect(status().isOk())
+                .andDo(document("room-ready",
+                        preprocessResponse(prettyPrint()),
+                        pathParameters(
+                                parameterWithName("roomId").description("방 ID")
+                        )
+                ));
+    }
 }

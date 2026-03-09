@@ -2,6 +2,7 @@ export interface Player {
   id: string; // nickname as id for now as per API
   name: string;
   isHost: boolean;
+  isReady: boolean;
   score: number;
   colorIndex?: number; // 플레이어 슬롯 번호 (0~7), 색상 매핑용
 }
@@ -18,6 +19,7 @@ export interface Room {
 export type GameEvent =
   | { type: 'PLAYER_JOIN'; player: string }
   | { type: 'PLAYER_LEAVE'; player: string }
+  | { type: 'PLAYER_READY'; player: string }
   | { type: 'HOST_CHANGE'; newHost: string }
   | { type: 'CHAT'; playerName: string; message: string }
   | { type: 'GAME_START'; gameType: string; category: string; songCount: number; message: string }

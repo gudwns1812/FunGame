@@ -3,6 +3,8 @@ package com.fungame.songquiz.controller.websocket;
 import com.fungame.songquiz.domain.GameRoomManager;
 import com.fungame.songquiz.domain.GameService;
 import java.util.Map;
+
+import com.fungame.songquiz.support.response.ApiResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.messaging.handler.annotation.DestinationVariable;
@@ -29,7 +31,7 @@ public class ChatController {
                 "message", message
         );
         
-        messagingTemplate.convertAndSend("/subscribe/room/" + roomId, payload);
+        messagingTemplate.convertAndSend("/subscribe/room/" + roomId, ApiResponse.success(payload));
         gameRoomManager.touch(roomId);
         gameService.processAnswer(roomId, playerName, message);
     }

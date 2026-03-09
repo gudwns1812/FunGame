@@ -20,6 +20,7 @@ function App() {
     isHost,
     playerIndex,
     gameStartInfo,
+    gameType,
     roundEndInfo,
     roundIndex,
     currentRound,
@@ -32,15 +33,13 @@ function App() {
     leaveRoom,
     returnToLobby,
     startGame,
+    toggleReady,
+    skipRound,
     sendMessage,
     fetchRooms,
     fetchRank,
     changeNickname,
   } = useGameLogic();
-
-  const handleAnswerSubmit = (answer: string) => {
-    sendMessage(answer);
-  };
 
   const statusToPath = (s: typeof status) => {
     switch (s) {
@@ -120,6 +119,7 @@ function App() {
                   isHost={isHost}
                   onStart={startGame}
                   onLeave={leaveRoom}
+                  onToggleReady={toggleReady}
                   onSendMessage={sendMessage}
                 />
               )
@@ -142,6 +142,7 @@ function App() {
                 onFetchRank={fetchRank}
                 playerIndex={playerIndex}
                 gameStartInfo={gameStartInfo}
+                gameType={gameType}
                 roundEndInfo={roundEndInfo}
                 roundIndex={roundIndex}
                 currentRound={currentRound}

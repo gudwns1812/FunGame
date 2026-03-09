@@ -64,4 +64,15 @@
 - **Response Data (data 필드)**: `null`
 
 ---
+
+## 5. 준비 상태 변경
+
+현재 플레이어의 준비 상태를 토글합니다.
+
+- **Method**: `POST`
+- **Path**: `/game/rooms/{roomId}/ready`
+- **Header**: `playerName: 플레이어닉네임` (필수)
+- **Response Data (data 필드)**: `null`
+
+---
 *참고: 모든 응답은 `api/common.md`에 정의된 공통 응답 구조를 따릅니다.*
