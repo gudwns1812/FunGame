@@ -259,12 +259,14 @@ const Game: React.FC<GameProps> = ({
           </div>
 
           <div style={{ position: 'absolute', width: 1, height: 1, opacity: 0, pointerEvents: 'none', overflow: 'hidden' }}>
-            <YouTube
-              key={currentVideoId}
-              videoId={currentVideoId}
-              opts={{ height: '1', width: '1', playerVars: { autoplay: 1, controls: 0, mute: 0, origin: window.location.origin, host: 'https://www.youtube.com' } }}
-              onReady={(e) => { e.target.playVideo(); }}
-            />
+            {currentVideoId && (
+              <YouTube
+                key={currentVideoId}
+                videoId={currentVideoId}
+                opts={{ height: '1', width: '1', playerVars: { autoplay: 1, controls: 0, mute: 0, origin: window.location.origin, host: 'https://www.youtube.com' } }}
+                onReady={(e) => { e.target.playVideo(); }}
+              />
+            )}
           </div>
         </div>
 

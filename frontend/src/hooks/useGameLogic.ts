@@ -77,8 +77,13 @@ export const useGameLogic = () => {
           });
           setIsHost(host === nickname);
         }
-      } catch (error) {
+      } catch (error: any) {
         console.error('Failed to fetch room users:', error);
+        const errorCode = error?.response?.data?.error?.code;
+        if (errorCode === 'G002' || errorCode === 'G008') {
+          window.alert('방이 종료되었거나 더 이상 존재하지 않습니다.');
+          returnToLobby();
+        }
       }
     },
     [nickname],
@@ -244,6 +249,8 @@ export const useGameLogic = () => {
     setPlayerIndex(null);
     setGameStartInfo(null);
     setRoundEndInfo(null);
+    setCurrentVideoId(''); // 비디오 아이디 초기화
+    localStorage.removeItem('ums_currentVideoId'); // 로컬 스토리지도 함께 삭제
     localStorage.removeItem(PLAYER_COLOR_INDEX_KEY);
     setMyColorIndex(null);
   }, [roomId, nickname]);
@@ -259,6 +266,8 @@ export const useGameLogic = () => {
     setPlayerIndex(null);
     setGameStartInfo(null);
     setRoundEndInfo(null);
+    setCurrentVideoId(''); // 비디오 아이디 초기화
+    localStorage.removeItem('ums_currentVideoId'); // 로컬 스토리지도 함께 삭제
     localStorage.removeItem(PLAYER_COLOR_INDEX_KEY);
     setMyColorIndex(null);
   }, []);
@@ -277,6 +286,8 @@ export const useGameLogic = () => {
       if (status === 'WAITING' || status === 'PLAYING') {
         if (roomId) {
           connectWebSocket(roomId);
+          // 방 정보 확인 (여기서 G002, G008 에러 발생 시 fetchRoomUsers 내의 returnToLobby()가 실행됨)
+          await fetchRoomUsers(roomId);
           if (nickname) {
             setPlayers(prev => {
               if (prev.length === 0) {
@@ -366,6 +377,8 @@ export const useGameLogic = () => {
         setRoomId(room.id);
         setIsHost(room.hostName === nickname);
         setStatus('WAITING');
+        setCurrentVideoId(''); // 이전 비디오 아이디 초기화
+        localStorage.removeItem('ums_currentVideoId');
         setPlayers([{ id: nickname, name: nickname, isHost: room.hostName === nickname, isReady: room.hostName === nickname, score: 0, colorIndex: slotIndex ?? undefined }]);
         connectWebSocket(room.id);
         addLog(`[시스템] ${room.name} 방에 입장했습니다.`);
@@ -407,6 +420,8 @@ export const useGameLogic = () => {
         setRoomId(newRoomId);
         setIsHost(true);
         setStatus('WAITING');
+        setCurrentVideoId(''); // 이전 비디오 아이디 초기화
+        localStorage.removeItem('ums_currentVideoId');
         setPlayers([{ id: nickname, name: nickname, isHost: true, isReady: true, score: 0, colorIndex: 0 }]);
         connectWebSocket(newRoomId);
         window.history.pushState({ room: newRoomId }, '');
@@ -483,10 +498,15 @@ export const useGameLogic = () => {
           }));
         });
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to fetch rank:', error);
+      const errorCode = error?.response?.data?.error?.code;
+      if (errorCode === 'G002' || errorCode === 'G008') {
+        window.alert('방이 종료되었거나 더 이상 존재하지 않습니다.');
+        returnToLobby();
+      }
     }
-  }, [roomId, nickname]);
+  }, [roomId, nickname, returnToLobby]);
 
   useEffect(() => {
     fetchRankRef.current = fetchRank;
