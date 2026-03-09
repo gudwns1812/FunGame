@@ -5,13 +5,14 @@
 - **모든 문서 및 응답:** 모든 문서 작성과 사용자 응답은 반드시 **한글**로 수행합니다.
 - **작업 절차 (Plan-First):** 모든 구현 작업 지시를 받으면 즉시 코드를 수정하지 않고, 먼저 `plan.md` 파일을 생성하여 구체적인 작업 계획을 작성한 뒤 사용자의 리뷰를 받아야 합니다. 승인된 후에만 구현을 시작합니다.
 - **모듈별 가이드 준수:**
-  - `backend/` 작업 시: 반드시 `backend/BACKEND.md`를 참고하고 준수합니다.
-  - `frontend/` 작업 시: 반드시 `frontend/FRONTEND.md`를 참고하고 준수합니다.
+  - `backend/` 작업 시: 반드시 `backend/docs/BACKEND.md`를 참고하고 준수합니다.
+  - `frontend/` 작업 시: 반드시 `frontend/docs/FRONTEND.md`를 참고하고 준수합니다.
 
 ## 프로젝트 구조
 
 - `backend/`: Java/Spring Boot 기반 게임 백엔드.
 - `frontend/`: React/TypeScript 기반 게임 프론트엔드.
+- `docs/`: 각 모듈별 상세 문서 및 가이드라인이 위치합니다.
 
 ## 커밋 가이드라인
 
