@@ -20,11 +20,17 @@
 - **GameServiceRouter 구현**: `GameType`에 따라 `QuizGameService` 또는 향후 추가될 `ActionGameService`로 요청을 위임하는 라우터 클래스 구현.
 - **의존성 주입 최적화**: 컨트롤러와 이벤트 리스너가 인터페이스(`GameService`)를 바라보도록 설정하고, 실제 빈 주입은 라우터를 통하도록 구성.
 
-### Phase 3: 공통 로직 및 예외 처리 고도화
-- **공통 기능 추출**: `GameSession` 조회, 사용자 검증 등 여러 게임에서 공통으로 쓰이는 로직을 별도 컴포넌트나 추상 클래스로 분리.
-- **액션 인터페이스 확장**: `processAnswer` 메서드를 다양한 액션을 수용할 수 있는 형태로 일반화 고민.
+## 5. [긴급] application.yml Git 추적 해제 작업
 
-## 4. 검증 계획
-1. **회귀 테스트**: `GameServiceIntegrationTest`가 리팩토링 후에도 100% 통과하는지 확인.
-2. **의존성 체크**: 프로젝트 전체 빌드 및 컴파일 에러 여부 확인.
-3. **확장성 테스트**: (선택 사항) 간단한 Mock 서비스(`HalliGalliGameService`)를 추가하여 라우팅이 정상적으로 동작하는지 확인.
+### 배경
+- `backend/src/main/resources/application.yml` 파일이 현재 Git에 포함되어 GitHub에 공유되고 있습니다.
+- 이 파일에는 민감한 설정 정보가 포함될 수 있으므로, Git 추적을 중단하고 로컬에서만 관리하도록 설정해야 합니다.
+
+### 작업 단계
+1.  **Git 인덱스에서 제거**: `git rm --cached` 명령을 사용하여 로컬 파일은 유지하면서 Git 추적만 중단합니다.
+2.  **.gitignore 확인**: `backend/.gitignore`에 `application.yml`이 이미 포함되어 있는지 다시 확인합니다. (확인 결과: 이미 포함됨)
+3.  **변경사항 커밋**: 추적 해제된 상태를 커밋하여 원격 저장소에서도 해당 파일이 삭제되도록 합니다. (주의: 다른 개발자가 pull 할 경우 해당 파일이 로컬에서 삭제될 수 있으므로 사전에 공지가 필요합니다.)
+
+### 검증 계획
+1.  `git ls-files` 명령을 통해 해당 파일이 더 이상 추적되지 않는지 확인합니다.
+2.  로컬 파일 시스템에 `backend/src/main/resources/application.yml`이 여전히 존재하는지 확인합니다.

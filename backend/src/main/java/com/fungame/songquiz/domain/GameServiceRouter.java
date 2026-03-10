@@ -1,9 +1,10 @@
 package com.fungame.songquiz.domain;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-import lombok.RequiredArgsConstructor;
+import java.util.stream.Collectors;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Component;
@@ -12,32 +13,29 @@ import org.springframework.stereotype.Component;
 @Component
 public class GameServiceRouter implements GameService {
 
-    private final List<GameService> services;
+    private final Map<GameType,GameService> services;
     private final GameRoomManager roomManager;
-    private final Map<GameType, GameService> serviceCache = new ConcurrentHashMap<>();
 
     @Autowired
     public GameServiceRouter(List<GameService> services, GameRoomManager roomManager) {
         // 자신을 제외한 실제 게임 엔진들만 필터링
-        this.services = services.stream()
+        this.services = new HashMap<>();
+        services.stream()
                 .filter(s -> !(s instanceof GameServiceRouter))
-                .toList();
+                .forEach(service ->
+                        service.getSupportTypes().forEach(gameType -> this.services.put(gameType, service))
+                );
         this.roomManager = roomManager;
-    }
-
-    private GameService getService(Long roomId) {
-        GameType type = roomManager.getGameType(roomId);
-        return serviceCache.computeIfAbsent(type, t -> 
-            services.stream()
-                .filter(s -> s.supports(t))
-                .findFirst()
-                .orElseThrow(() -> new IllegalArgumentException("No GameService found for type: " + t))
-        );
     }
 
     @Override
     public void startGame(Long roomId, String nickname) {
         getService(roomId).startGame(roomId, nickname);
+    }
+
+    private GameService getService(Long roomId) {
+        GameType gameType = roomManager.getGameType(roomId);
+        return services.get(gameType);
     }
 
     @Override
@@ -66,7 +64,7 @@ public class GameServiceRouter implements GameService {
     }
 
     @Override
-    public boolean supports(GameType type) {
-        return services.stream().anyMatch(s -> s.supports(type));
+    public List<GameType> getSupportTypes() {
+        return List.of(GameType.NONE);
     }
 }

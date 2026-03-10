@@ -4,12 +4,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.locks.ReentrantLock;
-import java.util.function.Supplier;
-
 import com.fungame.songquiz.domain.dto.GameInfo;
-import com.fungame.songquiz.domain.dto.GameSkipInfo;
-import com.fungame.songquiz.support.lock.LockContext;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -17,7 +12,6 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class GameSessionManager {
     private final Map<Long, GameSession> manager = new ConcurrentHashMap<>();
-    private final LockContext lockContext;
 
     public GameInfo startGame(Long roomId, Game game, List<String> players) {
         manager.put(roomId, new GameSession(game, players));

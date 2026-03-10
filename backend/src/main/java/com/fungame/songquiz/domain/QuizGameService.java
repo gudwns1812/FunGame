@@ -28,6 +28,11 @@ public class QuizGameService implements GameService {
     private final GameTimer timer;
 
     @Override
+    public List<GameType> getSupportTypes() {
+        return List.of(GameType.SONG, GameType.CS);
+    }
+
+    @Override
     public void startGame(Long roomId, String nickname) {
         GameRoom gameRoom = gameRoomManager.startGame(roomId, nickname);
         GameInfo gameInfo = sessionManager.startGame(roomId, gameRoom.getGame(), gameRoom.getRoomPlayers());
@@ -53,11 +58,6 @@ public class QuizGameService implements GameService {
                 endRound(roomId, null);
             }
         });
-    }
-
-    @Override
-    public boolean supports(GameType type) {
-        return type == GameType.SONG || type == GameType.CS;
     }
 
     private void endRound(Long roomId, String winner) {

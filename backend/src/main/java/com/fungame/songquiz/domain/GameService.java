@@ -2,6 +2,8 @@ package com.fungame.songquiz.domain;
 
 import java.util.List;
 public interface GameService {
+    List<GameType> getSupportTypes();
+
     void startGame(Long roomId, String nickname);
 
     void processAnswer(Long roomId, String playerName, String message);
@@ -13,7 +15,5 @@ public interface GameService {
     List<PlayerScore> getPlayerRanks(Long roomId);
 
     void startRound(Long roomId);
-
-    boolean supports(GameType type);
 }
 

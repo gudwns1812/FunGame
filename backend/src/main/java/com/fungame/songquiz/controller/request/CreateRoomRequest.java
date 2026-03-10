@@ -26,6 +26,7 @@ public class CreateRoomRequest {
         return switch (gameType) {
             case SONG -> new SongGameCreateInfo(category, totalRound);
             case CS -> new CsQuizGameCreateInfo(totalRound);
+            case NONE -> null;
         };
     }
 }
