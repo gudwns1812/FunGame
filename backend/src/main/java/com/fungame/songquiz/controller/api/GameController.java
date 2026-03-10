@@ -2,6 +2,7 @@ package com.fungame.songquiz.controller.api;
 
 import com.fungame.songquiz.controller.config.argumentresolver.NickNameDecoder;
 import com.fungame.songquiz.controller.request.CreateRoomRequest;
+import com.fungame.songquiz.domain.GameAction;
 import com.fungame.songquiz.domain.GameRoomService;
 import com.fungame.songquiz.domain.GameService;
 import com.fungame.songquiz.domain.PlayerScore;
@@ -37,6 +38,12 @@ public class GameController {
     public ApiResponse<PlayersInfo> findUsers(@PathVariable Long roomId) {
         PlayersInfo users = gameRoomService.findUsers(roomId);
         return ApiResponse.success(users);
+    }
+
+    @GetMapping("/{roomId}/health")
+    public ApiResponse<String> healthCheck(@PathVariable Long roomId) {
+        gameRoomService.findUsers(roomId); // 방이 존재하지 않으면 예외 발생
+        return ApiResponse.success("ok");
     }
 
     @GetMapping("/{roomId}/play/rank")
@@ -85,6 +92,12 @@ public class GameController {
     @PostMapping("/{roomId}/ready")
     public ApiResponse<Void> playerReady(@PathVariable Long roomId, @NickNameDecoder String playerName) {
         gameRoomService.readyPlayer(roomId, playerName);
+        return ApiResponse.success();
+    }
+
+    @PostMapping("/{roomId}/action")
+    public ApiResponse<Void> handleAction(@PathVariable Long roomId, @RequestBody GameAction action) {
+        gameService.handleAction(roomId, action);
         return ApiResponse.success();
     }
 }

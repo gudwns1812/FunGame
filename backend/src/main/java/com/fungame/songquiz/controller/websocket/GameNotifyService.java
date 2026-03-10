@@ -13,6 +13,7 @@ import com.fungame.songquiz.domain.event.PlayerReadyEvent;
 import com.fungame.songquiz.domain.event.RoundEndEvent;
 import com.fungame.songquiz.domain.event.RoundStartEvent;
 import com.fungame.songquiz.domain.event.TimerTickEvent;
+import com.fungame.songquiz.domain.event.HaliGaliActionEvent;
 import com.fungame.songquiz.support.response.ApiResponse;
 import java.util.List;
 import java.util.Map;
@@ -29,6 +30,21 @@ import org.springframework.stereotype.Service;
 public class GameNotifyService {
 
     private final SimpMessagingTemplate messagingTemplate;
+
+    @EventListener
+    public void handleHaliGaliAction(HaliGaliActionEvent event) {
+        log.info("Broadcasting HaliGali action: {} in room {}", event.actionType(), event.roomId());
+        String destination = "/subscribe/room/" + event.roomId();
+        
+        Object payload = Map.of(
+                "type", "HALIGALI_ACTION",
+                "playerName", event.playerName(),
+                "actionType", event.actionType().name(),
+                "result", event.result().name(),
+                "status", event.status().data()
+        );
+        messagingTemplate.convertAndSend(destination, ApiResponse.success(payload));
+    }
 
     @EventListener
     public void handlePlayerJoin(PlayerJoinEvent event) {
@@ -56,10 +72,14 @@ public class GameNotifyService {
 
     @EventListener
     public void handlePlayerReady(PlayerReadyEvent event) {
-        log.info("Broadcasting player ready: ready player {} in room {}", event.player(), event.roomId());
+        log.info("Broadcasting player ready: player {} is now {} in room {}", event.player(), event.ready(), event.roomId());
         String destination = "/subscribe/room/" + event.roomId();
-        Object payload = Map.of("type", "PLAYER_READY", "player", event.player(), "PLAYER_ALL_READY",
-                event.isAllReady());
+        Object payload = Map.of(
+                "type", "PLAYER_READY", 
+                "player", event.player(), 
+                "ready", event.ready(), 
+                "isAllReady", event.isAllReady()
+        );
         messagingTemplate.convertAndSend(destination, ApiResponse.success(payload));
     }
 

@@ -5,6 +5,7 @@ import com.fungame.songquiz.domain.GameType;
 import com.fungame.songquiz.domain.gamecreator.CsQuizGameCreateInfo;
 import com.fungame.songquiz.domain.gamecreator.GameCreateInfo;
 import com.fungame.songquiz.domain.gamecreator.SongGameCreateInfo;
+import com.fungame.songquiz.domain.gamecreator.HaliGaliGameCreateInfo;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -26,6 +27,7 @@ public class CreateRoomRequest {
         return switch (gameType) {
             case SONG -> new SongGameCreateInfo(category, totalRound);
             case CS -> new CsQuizGameCreateInfo(totalRound);
+            case HALLIGALLI -> new HaliGaliGameCreateInfo(totalRound);
             case NONE -> null;
         };
     }
