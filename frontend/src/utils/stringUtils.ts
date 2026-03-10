@@ -3,7 +3,8 @@
  * @example stripTag('홍길동#001') // => '홍길동'
  * @example stripTag('홍길동') // => '홍길동'
  */
-export const stripTag = (nickname: string): string => {
+export const stripTag = (nickname: string | undefined | null): string => {
+    if (!nickname) return '';
     const idx = nickname.indexOf('#');
     return idx !== -1 ? nickname.slice(0, idx) : nickname;
 };

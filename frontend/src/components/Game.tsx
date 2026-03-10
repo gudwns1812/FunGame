@@ -123,6 +123,19 @@ const Game: React.FC<GameProps> = ({
       );
     }
 
+    // CS 퀴즈 질문 노출
+    if (gameType === 'CS' && currentVideoId) {
+      return (
+        <div className="flex flex-col items-center justify-center gap-4 h-full p-8 overflow-y-auto custom-scrollbar text-center w-full">
+          <p className="text-[10px] text-primary uppercase tracking-[0.3em] font-normal shrink-0">CS QUIZ</p>
+          <div className="text-2xl md:text-xl font-black text-slate-300 leading-relaxed max-w-4xl break-keep whitespace-pre-wrap">
+            {currentVideoId}
+          </div>
+        </div>
+      );
+    }
+
+    // 게임 시작 메시지 노출 (ROUND_START 전 5초간)
     if (gameStartInfo) {
       return (
         <div className="flex flex-col items-center justify-center gap-10 h-full p-12 text-center animate-in fade-in duration-1000">
@@ -148,18 +161,7 @@ const Game: React.FC<GameProps> = ({
       );
     }
 
-    if (gameType === 'CS' && currentVideoId) {
-      return (
-        // justify-start -> justify-center, text-left -> text-center 로 변경되었습니다.
-        <div className="flex flex-col items-center justify-center gap-4 h-full p-8 overflow-y-auto custom-scrollbar text-center w-full">
-          <p className="text-[10px] text-primary uppercase tracking-[0.3em] font-normal shrink-0">CS QUIZ</p>
-          <div className="text-2xl md:text-xl font-black text-slate-300 leading-relaxed max-w-4xl break-keep whitespace-pre-wrap">
-            {currentVideoId}
-          </div>
-        </div>
-      );
-    }
-
+    // 기본 대기 화면
     return (
       <div className="flex flex-col items-center justify-center gap-6 h-full relative w-full overflow-hidden group">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(37,192,244,0.15)_0%,transparent_70%)] opacity-50 group-hover:opacity-100 transition-opacity duration-1000 pointer-events-none"></div>
@@ -259,7 +261,7 @@ const Game: React.FC<GameProps> = ({
           </div>
 
           <div style={{ position: 'absolute', width: 1, height: 1, opacity: 0, pointerEvents: 'none', overflow: 'hidden' }}>
-            {currentVideoId && (
+            {gameType === 'SONG' && currentVideoId && (
               <YouTube
                 key={currentVideoId}
                 videoId={currentVideoId}

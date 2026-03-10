@@ -1,3 +1,6 @@
+// HaliGali Update: Forced refresh
+export type FruitType = 'STRAWBERRY' | 'BANANA' | 'LIME' | 'GRAPE' | 'NONE';
+
 export interface Player {
   id: string; // nickname as id for now as per API
   name: string;
@@ -19,7 +22,7 @@ export interface Room {
 export type GameEvent =
   | { type: 'PLAYER_JOIN'; player: string }
   | { type: 'PLAYER_LEAVE'; player: string }
-  | { type: 'PLAYER_READY'; player: string }
+  | { type: 'PLAYER_READY'; player: string; ready: boolean }
   | { type: 'HOST_CHANGE'; newHost: string }
   | { type: 'CHAT'; playerName: string; message: string }
   | { type: 'GAME_START'; gameType: string; category: string; songCount: number; message: string }
@@ -27,9 +30,19 @@ export type GameEvent =
   | { type: 'TIMER_TICK'; remainingSeconds: number }
   | { type: 'CORRECT_ANSWER'; playerName: string; answer: string; score: number }
   | { type: 'ROUND_END'; answer: string; winner: string }
-  | { type: 'GAME_RESULT'; rankings: string };
+  | { type: 'GAME_RESULT'; rankings: string }
+  | { type: 'HALIGALI_ACTION'; playerName: string; actionType: string; result: string; status: string[] };
 
 export type GameStatus = 'LOBBY' | 'ROOM_LIST' | 'WAITING' | 'PLAYING' | 'RESULT';
+
+export interface HaliGaliPlayerInfo {
+  nickname: string;
+  fruit: FruitType;
+  count: number;
+  deckSize: number;
+  isTurn: boolean;
+  position: 'BOTTOM' | 'TOP' | 'LEFT' | 'RIGHT';
+}
 
 export interface GameStartInfo {
   gameType: string;

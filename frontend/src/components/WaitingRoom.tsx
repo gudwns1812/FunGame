@@ -136,15 +136,26 @@ const WaitingRoom: React.FC<WaitingRoomProps> = ({ players, onStart, onLeave, on
               방 나가기
             </button>
 
-            {!isHost && (
-              <button
-                className="flex-1 sm:flex-none px-8 py-3 bg-primary/20 border-2 border-primary/50 text-primary font-black rounded-lg hover:bg-primary/40 transition-all flex items-center justify-center gap-2 shadow-[0_0_15px_rgba(37,192,244,0.2)] uppercase tracking-widest text-xs"
-                onClick={onToggleReady}
-              >
-                <span className="material-symbols-outlined text-sm">check_circle</span>
-                준비하기
-              </button>
-            )}
+            {!isHost && (() => {
+              const me = players.find(p => stripTag(p.name) === localStorage.getItem('ums_nickname') || p.name === localStorage.getItem('ums_nickname'));
+              const amIReady = me?.isReady || false;
+              
+              return (
+                <button
+                  className={`flex-1 sm:flex-none px-8 py-3 border-2 font-black rounded-lg transition-all flex items-center justify-center gap-2 shadow-lg uppercase tracking-widest text-xs ${
+                    amIReady 
+                    ? 'bg-red-500/20 border-red-500/50 text-red-400 hover:bg-red-500/30' 
+                    : 'bg-primary/20 border-primary/50 text-primary hover:bg-primary/40'
+                  }`}
+                  onClick={onToggleReady}
+                >
+                  <span className="material-symbols-outlined text-sm">
+                    {amIReady ? 'cancel' : 'check_circle'}
+                  </span>
+                  {amIReady ? '준비 취소' : '준비하기'}
+                </button>
+              );
+            })()}
 
             {isHost && (
               <button
