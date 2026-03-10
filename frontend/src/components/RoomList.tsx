@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import type { Room } from '../types/game';
 import { stripTag } from '../utils/stringUtils';
 
@@ -8,17 +8,28 @@ interface RoomListProps {
   onCreateRoom: (title: string, maxPlayers: number, category: string, songCount: number, gameType: string) => void;
   onRefreshRooms: () => void;
   onChangeNickname: (newName: string) => void;
+  nickname: string;
 }
 
-const RoomList: React.FC<RoomListProps> = ({ rooms, onJoinRoom, onCreateRoom, onRefreshRooms }) => {
+const RoomList: React.FC<RoomListProps> = ({
+  rooms,
+  onJoinRoom,
+  onCreateRoom,
+  onRefreshRooms,
+  onChangeNickname,
+  nickname,
+}) => {
   const [showCreate, setShowCreate] = useState(false);
   const [newRoomName, setNewRoomName] = useState('');
   const [maxPlayers, setMaxPlayers] = useState(8);
   const [songCount, setSongCount] = useState(10);
   const [category, setCategory] = useState('KPOP');
   const [gameType, setGameType] = useState('SONG');
+  const [showNicknameEdit, setShowNicknameEdit] = useState(false);
+  const [nicknameInput, setNicknameInput] = useState('');
 
   const categories = [
+    { value: 'TOTAL', label: '전체' },
     { value: 'KPOP', label: 'K-POP' },
     { value: 'POP', label: 'POP' },
     { value: 'BALLADE', label: '발라드' },
@@ -33,13 +44,11 @@ const RoomList: React.FC<RoomListProps> = ({ rooms, onJoinRoom, onCreateRoom, on
 
   const songCountOptions = [10, 20, 30, 40, 50, 60, 70, 80, 90, 100];
 
-  // CS 퀴즈 선택 시 카테고리 및 문제 수 자동 조정
-  useEffect(() => {
+  // 게임 타입 선택 시 제약 사항 자동 조정
+  React.useEffect(() => {
     if (gameType === 'CS') {
       setCategory('DEFAULT');
-      if (songCount > 50) {
-        setSongCount(50);
-      }
+      if (songCount > 50) setSongCount(50);
     } else {
       if (category === 'DEFAULT') {
         setCategory('KPOP');
@@ -47,10 +56,59 @@ const RoomList: React.FC<RoomListProps> = ({ rooms, onJoinRoom, onCreateRoom, on
     }
   }, [gameType]);
 
-  const filteredSongCountOptions = gameType === 'CS' ? songCountOptions.filter((n) => n <= 50) : songCountOptions;
+  const filteredSongCountOptions = gameType === 'CS' ? songCountOptions.filter(n => n <= 50) : songCountOptions;
 
   return (
     <div className="w-full max-w-6xl flex flex-col gap-8">
+      {/* 닉네임 변경 모달 */}
+      {showNicknameEdit && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm"
+          onClick={() => setShowNicknameEdit(false)}>
+          <div
+            className="panel-border bg-background-dark/95 p-6 rounded-lg w-80 space-y-4"
+            onClick={(e) => e.stopPropagation()}>
+            <p className="text-sm font-bold uppercase tracking-widest text-primary flex items-center gap-2">
+              <span className="material-symbols-outlined">edit</span> 닉네임 수정
+            </p>
+            <input
+              autoFocus
+              type="text"
+              className="w-full bg-slate-900 border border-primary/30 rounded p-3 text-white focus:border-primary outline-none transition-colors"
+              value={nicknameInput}
+              onChange={(e) => setNicknameInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && nicknameInput.trim()) {
+                  onChangeNickname(nicknameInput.trim());
+                  setShowNicknameEdit(false);
+                } else if (e.key === 'Escape') {
+                  setShowNicknameEdit(false);
+                }
+              }}
+              maxLength={16}
+              placeholder="새 닉네임 입력"
+            />
+            <div className="flex gap-2 pt-2">
+              <button
+                className="flex-1 bg-primary text-background-dark font-bold py-2 rounded hover:bg-primary/80 transition-colors"
+                onClick={() => {
+                  if (nicknameInput.trim()) {
+                    onChangeNickname(nicknameInput.trim());
+                    setShowNicknameEdit(false);
+                  }
+                }}>
+                확인
+              </button>
+              <button
+                className="flex-1 border border-primary/30 text-primary font-bold py-2 rounded hover:bg-primary/10 transition-colors"
+                onClick={() => setShowNicknameEdit(false)}>
+                취소
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* 상단 컨트롤 패널 */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
         <div className="space-y-2">
@@ -59,6 +117,15 @@ const RoomList: React.FC<RoomListProps> = ({ rooms, onJoinRoom, onCreateRoom, on
           </div>
           <h2 className="text-3xl font-black text-white tracking-tighter uppercase flex items-center gap-3">
             게임 <span className="text-primary neon-glow">로비</span>
+            <button
+              onClick={() => {
+                setNicknameInput(nickname);
+                setShowNicknameEdit(true);
+              }}
+              className="text-slate-500 hover:text-primary transition-colors flex items-center"
+              title="닉네임 변경">
+              <span className="material-symbols-outlined text-xl">edit_square</span>
+            </button>
           </h2>
         </div>
 
@@ -78,7 +145,7 @@ const RoomList: React.FC<RoomListProps> = ({ rooms, onJoinRoom, onCreateRoom, on
 
       {/* 방 생성 폼 */}
       {showCreate && (
-        <div className="panel-border bg-slate-900/50 p-6 rounded-xl space-y-6 animate-in fade-in duration-300">
+        <div className="panel-border bg-slate-900/50 p-6 rounded-xl space-y-6">
           <div className="flex items-center gap-2 border-b border-primary/20 pb-3">
             <span className="material-symbols-outlined text-primary">add_box</span>
             <h3 className="text-lg font-bold text-white uppercase tracking-widest">새 게임 방 설정</h3>
@@ -116,13 +183,14 @@ const RoomList: React.FC<RoomListProps> = ({ rooms, onJoinRoom, onCreateRoom, on
               </label>
               {gameType === 'CS' ? (
                 <div className="w-full bg-slate-900/50 border border-primary/10 rounded-lg p-3 text-primary/50 font-bold">
-                  종합 CS
+                  CS 종합
                 </div>
               ) : (
                 <select
                   className="w-full bg-slate-950 border border-primary/30 rounded-lg p-3 text-white focus:border-primary outline-none appearance-none"
                   value={category}
-                  onChange={(e) => setCategory(e.target.value)}>
+                  onChange={(e) => setCategory(e.target.value)}
+                >
                   {categories.map((cat) => (
                     <option key={cat.value} value={cat.value} className="bg-background-dark">
                       {cat.label}
