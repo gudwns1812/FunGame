@@ -104,13 +104,15 @@ public class GameRoomManager {
         });
     }
 
-    public boolean readyPlayer(Long roomId, String playerName) {
+    public record ReadyResult(boolean ready, boolean isAllReady) {}
+
+    public ReadyResult readyPlayer(Long roomId, String playerName) {
         return lockContext.processWithLockKey(roomId, () -> {
             GameRoom gameRoom = gameRooms.get(roomId);
             gameRoom.touch();
 
-            gameRoom.readyPlayer(playerName);
-            return gameRoom.isAllReady();
+            boolean ready = gameRoom.readyPlayer(playerName);
+            return new ReadyResult(ready, gameRoom.isAllReady());
         });
     }
 
@@ -122,5 +124,9 @@ public class GameRoomManager {
 
     public GameType getGameType(Long roomId) {
         return getRoom(roomId).getGame().getType();
+    }
+
+    public void healthCheck(Long roomId) {
+        getRoom(roomId);
     }
 }

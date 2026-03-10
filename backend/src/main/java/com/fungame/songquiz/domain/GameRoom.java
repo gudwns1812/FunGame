@@ -75,8 +75,8 @@ public class GameRoom {
         return players.getHost().equals(name);
     }
 
-    public void readyPlayer(String player) {
-        players.readyPlayer(player);
+    public boolean readyPlayer(String player) {
+        return players.readyPlayer(player);
     }
 
     public boolean isAllReady() {

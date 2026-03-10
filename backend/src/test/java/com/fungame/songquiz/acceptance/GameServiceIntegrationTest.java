@@ -30,11 +30,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
-@SpringBootTest(properties = {
-    "spring.datasource.url=jdbc:h2:mem:testdb;MODE=MySQL",
-    "spring.datasource.driver-class-name=org.h2.Driver",
-    "spring.jpa.hibernate.ddl-auto=create-drop"
-})
+@SpringBootTest
 @ActiveProfiles("test")
 @Import(GameServiceIntegrationTest.TestEventCapture.class)
 public class GameServiceIntegrationTest {

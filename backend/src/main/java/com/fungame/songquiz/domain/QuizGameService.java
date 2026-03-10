@@ -99,11 +99,8 @@ public class QuizGameService implements GameService {
         timer.startAfter(roomId, 3, () -> {
             publisher.publishEvent(new GameResultEvent(roomId, gameSession.getPlayerRanks()));
 
-            timer.startAfter(roomId, 5, () -> {
-                publisher.publishEvent(new GameEndEvent(roomId));
-                sessionManager.endGameSession(roomId);
-                gameRoomManager.endGame(roomId);
-            });
+            sessionManager.endGameSession(roomId);
+            gameRoomManager.endGame(roomId);
         });
     }
 

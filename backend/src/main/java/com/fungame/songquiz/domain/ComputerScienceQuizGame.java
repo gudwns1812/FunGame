@@ -25,7 +25,7 @@ public class ComputerScienceQuizGame extends AbstractQuizGame {
 
     @Override
     public GameInfo getGameInfo() {
-        return new GameInfo("CS 문제 맞추기", "여러가지 CS 혼합", quizs.size());
+        return new GameInfo(getType().name(), "여러가지 CS 혼합", quizs.size());
     }
 
     @Override

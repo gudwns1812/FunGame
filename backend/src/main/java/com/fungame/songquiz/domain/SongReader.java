@@ -16,12 +16,9 @@ public class SongReader {
 
     public List<Song> findSongByCategoryWithCount(Category category, int count) {
         String jsonCategory = JSON_PREFIX + category.name() + JSON_SUFFIX;
-        List<SongEntity> songs = songRepository.findByCategory(jsonCategory);
-
-        Collections.shuffle(songs);
+        List<SongEntity> songs = songRepository.findRandomSongsByCategory(jsonCategory, count);
 
         return songs.stream()
-                .limit(count)
                 .map(SongEntity::toDomain)
                 .toList();
     }
@@ -42,5 +39,13 @@ public class SongReader {
                 entity.getPlaySeconds(),
                 entity.getAnswers()
         );
+    }
+
+    public List<Song> findSongWithCount(int songCount) {
+        List<SongEntity> findSongs = songRepository.findRandomSongs(songCount);;
+
+        return findSongs.stream()
+                .map(SongEntity::toDomain)
+                .toList();
     }
 }

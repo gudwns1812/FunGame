@@ -73,8 +73,12 @@ public class GameRoomService {
     }
 
     public void readyPlayer(Long roomId, String playerName) {
-        boolean isAllReady = gameRoomManager.readyPlayer(roomId, playerName);
+        GameRoomManager.ReadyResult result = gameRoomManager.readyPlayer(roomId, playerName);
 
-        applicationEventPublisher.publishEvent(new PlayerReadyEvent(roomId, playerName, isAllReady));
+        applicationEventPublisher.publishEvent(new PlayerReadyEvent(roomId, playerName, result.ready(), result.isAllReady()));
+    }
+
+    public void healthCheck(Long roomId) {
+        gameRoomManager.healthCheck(roomId);
     }
 }

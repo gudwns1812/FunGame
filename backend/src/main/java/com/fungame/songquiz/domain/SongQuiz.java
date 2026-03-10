@@ -28,7 +28,7 @@ public class SongQuiz extends AbstractQuizGame {
 
     @Override
     public GameInfo getGameInfo() {
-        return new GameInfo("노래 맞추기", gameCategory.name(), songs.size());
+        return new GameInfo(getType().name(), gameCategory.name(), songs.size());
     }
 
     @Override

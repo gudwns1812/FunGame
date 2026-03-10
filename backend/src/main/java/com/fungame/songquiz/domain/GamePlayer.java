@@ -13,7 +13,11 @@ public record GamePlayer(
         return new GamePlayer(name, false);
     }
 
-    public GamePlayer ready() {
-        return new GamePlayer(this.name, true);
+    public GamePlayer toggleReady() {
+        return new GamePlayer(this.name, !this.isReady);
+    }
+
+    public GamePlayer setReady(boolean ready) {
+        return new GamePlayer(this.name, ready);
     }
 }

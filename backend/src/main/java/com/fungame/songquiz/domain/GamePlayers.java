@@ -27,7 +27,7 @@ public class GamePlayers {
         
         // 방장은 항상 준비 상태여야 함
         if (this.players.containsKey(host)) {
-            this.players.put(host, this.players.get(host).ready());
+            this.players.put(host, this.players.get(host).setReady(true));
         }
     }
 
@@ -59,7 +59,7 @@ public class GamePlayers {
                     .name();
             
             // 새 방장도 즉시 준비 상태로 변경
-            players.put(host, players.get(host).ready());
+            players.put(host, players.get(host).setReady(true));
         }
     }
 
@@ -82,16 +82,22 @@ public class GamePlayers {
         return players.size();
     }
 
-    public void readyPlayer(String player) {
+    public boolean readyPlayer(String player) {
         if (!players.containsKey(player)) {
             throw new CoreException(ErrorType.PLAYER_NOT_FOUND);
         }
 
-        players.put(player, players.get(player).ready());
+        // 방장은 준비 해제 불가, 항상 true
+        if (player.equals(host)) {
+            players.put(player, players.get(player).setReady(true));
+        } else {
+            players.put(player, players.get(player).toggleReady());
+        }
+        
+        return players.get(player).isReady();
     }
 
     public boolean isAllReady() {
-        // 모든 인원이 isReady 상태여야 함 (방장은 생성/위임 시 항상 true로 보장됨)
         return players.values().stream()
                 .allMatch(GamePlayer::isReady);
     }
