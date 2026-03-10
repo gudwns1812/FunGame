@@ -23,6 +23,8 @@ function App() {
     roundEndInfo,
     currentRound,
     totalRound,
+    haliGaliStatus,
+    sendHaliGaliAction,
     isBootstrapping,
     isCreatingRoom,
     enterLobby,
@@ -143,6 +145,9 @@ function App() {
                 roundEndInfo={roundEndInfo}
                 currentRound={currentRound}
                 totalRound={totalRound}
+                haliGaliStatus={haliGaliStatus}
+                onHaliGaliAction={sendHaliGaliAction}
+                myNickname={nickname}
               />
             ) : (
               <Navigate to={currentPath} replace />
