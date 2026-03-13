@@ -15,5 +15,5 @@ public enum ErrorCode {
     G008,
     G009,
 
-    P001, P002;
+    P001, P002, G010;
 }

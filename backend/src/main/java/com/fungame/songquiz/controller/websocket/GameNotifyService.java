@@ -2,18 +2,7 @@ package com.fungame.songquiz.controller.websocket;
 
 import com.fungame.songquiz.domain.PlayerScore;
 import com.fungame.songquiz.domain.dto.GameInfo;
-import com.fungame.songquiz.domain.event.GameEndEvent;
-import com.fungame.songquiz.domain.event.GameResultEvent;
-import com.fungame.songquiz.domain.event.GameSkipEvent;
-import com.fungame.songquiz.domain.event.GameStartEvent;
-import com.fungame.songquiz.domain.event.HostChangeEvent;
-import com.fungame.songquiz.domain.event.PlayerJoinEvent;
-import com.fungame.songquiz.domain.event.PlayerLeaveEvent;
-import com.fungame.songquiz.domain.event.PlayerReadyEvent;
-import com.fungame.songquiz.domain.event.RoundEndEvent;
-import com.fungame.songquiz.domain.event.RoundStartEvent;
-import com.fungame.songquiz.domain.event.TimerTickEvent;
-import com.fungame.songquiz.domain.event.HaliGaliActionEvent;
+import com.fungame.songquiz.domain.event.*;
 import com.fungame.songquiz.support.response.ApiResponse;
 import java.util.List;
 import java.util.Map;
@@ -115,6 +104,18 @@ public class GameNotifyService {
                 "totalRound", event.totalRound(),
                 "content", event.content().toString()
         );
+        messagingTemplate.convertAndSend(destination, ApiResponse.success(payload));
+    }
+
+    @EventListener
+    public void handleGameHint(QuizGameHintEvent event) {
+        log.info("Broadcasting round hint in room {}", event.roomId());
+        String destination = "/subscribe/room/" + event.roomId();
+        Object payload = Map.of(
+                "type", "ROUND_HINT",
+                "hint", event.hint()
+        );
+
         messagingTemplate.convertAndSend(destination, ApiResponse.success(payload));
     }
 

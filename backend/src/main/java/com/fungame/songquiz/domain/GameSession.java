@@ -62,4 +62,8 @@ public class GameSession {
     public int getCurrentRound() {
         return game.getCurrentRound();
     }
+
+    public String getHint() {
+        return game.getHint();
+    }
 }

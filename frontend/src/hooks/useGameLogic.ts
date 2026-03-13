@@ -32,8 +32,10 @@ export const useGameLogic = () => {
   const [gameType, setGameType] = useState<string | null>(() => localStorage.getItem('ums_gameType'));
   const [roundEndInfo, setRoundEndInfo] = useState<RoundEndInfo | null>(null);
   const [roundIndex, setRoundIndex] = useState<number>(0);
+  const [isMusicStart, setIsMusicStart] = useState(false);
   const [currentRound, setCurrentRound] = useState<number>(0);
   const [totalRound, setTotalRound] = useState<number>(0);
+  const [hint, setHint] = useState<string>('');
   const [haliGaliStatus, setHaliGaliStatus] = useState<string[]>([]);
   const [lastHaliGaliAction, setLastHaliGaliAction] = useState<any>(null);
   const [isBootstrapping, setIsBootstrapping] = useState(true);
@@ -42,6 +44,8 @@ export const useGameLogic = () => {
     const saved = localStorage.getItem(PLAYER_COLOR_INDEX_KEY);
     return saved !== null ? Number(saved) : null;
   });
+
+  // 제목없는 음원으로 미디어 플레이어 제목 가리기
 
   const stompClient = useRef<Client | null>(null);
   const fetchRankRef = useRef<() => Promise<void>>(async () => {});
@@ -130,6 +134,7 @@ export const useGameLogic = () => {
 
         case 'GAME_START': {
           setStatus('PLAYING');
+          setHint('');
           const normalizedGameType =
             event.gameType === 'CS' ? 'CS' : event.gameType === 'HALLIGALLI' ? 'HALLIGALLI' : 'SONG';
           setGameType(normalizedGameType);
@@ -159,7 +164,8 @@ export const useGameLogic = () => {
 
         case 'ROUND_START':
           setStatus('PLAYING');
-          // content 필드에 퀴즈 내용(URL 또는 텍스트)이 오므로 그대로 저장
+          setHint('');
+
           setCurrentVideoId(event.content);
 
           setRoundEndInfo(null);
@@ -167,20 +173,18 @@ export const useGameLogic = () => {
           setRoundIndex(event.round);
           setCurrentRound(event.round);
           setTotalRound(event.totalRound);
-
-          // 라운드 시작 시 구분선 강화
           addLog(`================================================================================`);
-
-          setPlayers((prev) => {
-            const idx = prev.findIndex((p) => p.name === nickname);
-            setPlayerIndex(idx !== -1 ? idx + 1 : null);
-            return prev;
-          });
           break;
 
         case 'TIMER_TICK':
           setTimeLeft(event.remainingSeconds);
           setTotalTime(30);
+          break;
+
+        case 'ROUND_HINT':
+          if (event.hint && event.hint.trim() !== '') {
+            setHint(event.hint);
+          }
           break;
 
         case 'CORRECT_ANSWER':
@@ -191,12 +195,16 @@ export const useGameLogic = () => {
           break;
 
         case 'ROUND_END':
+          setHint('');
           setRoundEndInfo({ answer: event.answer, winner: event.winner });
+
           fetchRankRef.current();
           break;
 
         case 'GAME_RESULT': {
           setStatus('RESULT');
+          setIsMusicStart(false);
+          setHint('');
           setPlayerIndex(null);
           setGameStartInfo(null);
           setGameType(null);
@@ -215,6 +223,7 @@ export const useGameLogic = () => {
         }
 
         case 'GAME_END':
+          setHint('');
           break;
       }
     },
@@ -280,6 +289,7 @@ export const useGameLogic = () => {
     setPlayerIndex(null);
     setGameStartInfo(null);
     setRoundEndInfo(null);
+    setHint('');
     setCurrentVideoId(''); // 비디오 아이디 초기화
     localStorage.removeItem('ums_currentVideoId'); // 로컬 스토리지도 함께 삭제
     localStorage.removeItem(PLAYER_COLOR_INDEX_KEY);
@@ -297,6 +307,7 @@ export const useGameLogic = () => {
     setPlayerIndex(null);
     setGameStartInfo(null);
     setRoundEndInfo(null);
+    setHint('');
     setCurrentVideoId(''); // 비디오 아이디 초기화
     localStorage.removeItem('ums_currentVideoId'); // 로컬 스토리지도 함께 삭제
     localStorage.removeItem(PLAYER_COLOR_INDEX_KEY);
@@ -421,6 +432,7 @@ export const useGameLogic = () => {
           setIsHost(room.hostName === nickname);
           setStatus('WAITING');
           setCurrentVideoId(''); // 이전 비디오 아이디 초기화
+          setHint('');
           localStorage.removeItem('ums_currentVideoId');
           setPlayers([
             {
@@ -477,6 +489,7 @@ export const useGameLogic = () => {
           setIsHost(true);
           setStatus('WAITING');
           setCurrentVideoId(''); // 이전 비디오 아이디 초기화
+          setHint('');
           localStorage.removeItem('ums_currentVideoId');
           setPlayers([{ id: nickname, name: nickname, isHost: true, isReady: true, score: 0, colorIndex: 0 }]);
           connectWebSocket(newRoomId);
@@ -619,11 +632,13 @@ export const useGameLogic = () => {
     roundIndex,
     currentRound,
     totalRound,
+    hint,
     haliGaliStatus,
     lastHaliGaliAction,
     isBootstrapping,
     isCreatingRoom,
     myColorIndex,
+    isMusicStart,
     enterLobby,
     joinRoom,
     createRoom,

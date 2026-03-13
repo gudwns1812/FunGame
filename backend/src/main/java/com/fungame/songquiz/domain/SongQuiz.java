@@ -69,4 +69,12 @@ public class SongQuiz extends AbstractQuizGame {
     public int getTotalRound() {
         return songs.size();
     }
+
+    @Override
+    public String getHint() {
+        int songIdx = currentIdx.get();
+
+        Song song = songs.get(songIdx);
+        return song.getSinger() + " - " + song.getHint();
+    }
 }

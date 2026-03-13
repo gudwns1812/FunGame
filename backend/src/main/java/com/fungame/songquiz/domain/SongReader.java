@@ -37,7 +37,8 @@ public class SongReader {
                 entity.getReleaseDate(),
                 entity.getVideoLink(),
                 entity.getPlaySeconds(),
-                entity.getAnswers()
+                entity.getAnswers(),
+                entity.getHint()
         );
     }
 

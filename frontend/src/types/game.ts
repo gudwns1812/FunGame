@@ -28,6 +28,7 @@ export type GameEvent =
   | { type: 'GAME_START'; gameType: string; category: string; songCount: number; message: string }
   | { type: 'ROUND_START'; videoURL: string; roundIndex: number; currentRound: number; totalRound: number }
   | { type: 'TIMER_TICK'; remainingSeconds: number }
+  | { type: 'ROUND_HINT'; hint: string }
   | { type: 'CORRECT_ANSWER'; playerName: string; answer: string; score: number }
   | { type: 'ROUND_END'; answer: string; winner: string }
   | { type: 'GAME_RESULT'; rankings: string }

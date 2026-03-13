@@ -29,4 +29,6 @@ public interface Game {
     int getCurrentRound();
 
     int getTotalRound();
+
+    String getHint();
 }

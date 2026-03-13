@@ -23,7 +23,8 @@ public enum ErrorType {
     GAME_NOT_FOUND(HttpStatus.BAD_REQUEST, ErrorCode.G008 , "게임이 없습니다.", LogLevel.WARN),
     GAME_ROOM_NOT_ALL_READY(HttpStatus.BAD_REQUEST, ErrorCode.G009, "모든 플레이어가 준비되지 않았습니다.", LogLevel.DEBUG),
 
-    PLAYER_NOT_FOUND(HttpStatus.INTERNAL_SERVER_ERROR, ErrorCode.P002, "플레이어를 찾을 수 없습니다.", LogLevel.ERROR);
+    PLAYER_NOT_FOUND(HttpStatus.INTERNAL_SERVER_ERROR, ErrorCode.P002, "플레이어를 찾을 수 없습니다.", LogLevel.ERROR),
+    QUIZ_DUPLICATE_ERROR(HttpStatus.BAD_REQUEST,ErrorCode.G010 , "노래가 중복입니다.",LogLevel.DEBUG );
 
     private final HttpStatus status;
     private final ErrorCode code;

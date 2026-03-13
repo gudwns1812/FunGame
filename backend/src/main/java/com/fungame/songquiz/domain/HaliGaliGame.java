@@ -221,6 +221,11 @@ public class HaliGaliGame implements Game {
         return totalRounds;
     }
 
+    @Override
+    public String getHint() {
+        return "";
+    }
+
     // --- Test Helpers ---
     public int getPlayerDeckSize(String playerName) {
         return playerDecks.getOrDefault(playerName, new ArrayDeque<>()).size();

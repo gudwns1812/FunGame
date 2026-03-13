@@ -11,10 +11,8 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import java.time.LocalDate;
 import java.util.List;
-import lombok.AccessLevel;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
+
+import lombok.*;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
@@ -22,6 +20,7 @@ import org.hibernate.type.SqlTypes;
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
+@Builder
 public class SongEntity {
 
     @Id
@@ -50,7 +49,9 @@ public class SongEntity {
     @Convert(converter = StringListConverter.class)
     private List<String> answers;
 
+    private String hint;
+
     public Song toDomain() {
-        return Song.of(title, singer, categories, releaseDate, videoLink, playSeconds, answers);
+        return Song.of(title, singer, categories, releaseDate, videoLink, playSeconds, answers,hint);
     }
 }

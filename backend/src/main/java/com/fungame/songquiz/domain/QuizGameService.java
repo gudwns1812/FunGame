@@ -2,13 +2,7 @@ package com.fungame.songquiz.domain;
 
 import com.fungame.songquiz.domain.dto.GameInfo;
 import com.fungame.songquiz.domain.dto.GameSkipInfo;
-import com.fungame.songquiz.domain.event.GameEndEvent;
-import com.fungame.songquiz.domain.event.GameResultEvent;
-import com.fungame.songquiz.domain.event.GameSkipEvent;
-import com.fungame.songquiz.domain.event.GameStartEvent;
-import com.fungame.songquiz.domain.event.RoundEndEvent;
-import com.fungame.songquiz.domain.event.RoundStartEvent;
-import com.fungame.songquiz.domain.event.TimerTickEvent;
+import com.fungame.songquiz.domain.event.*;
 import com.fungame.songquiz.support.error.CoreException;
 import com.fungame.songquiz.support.error.ErrorType;
 import java.util.List;
@@ -54,6 +48,11 @@ public class QuizGameService implements GameService {
 
         timer.startCountDown(roomId, 30, remain -> {
             publisher.publishEvent(new TimerTickEvent(roomId, remain));
+
+            if (remain == 10) {
+                publisher.publishEvent(new QuizGameHintEvent(roomId,gameSession.getHint()));
+            }
+
             if (remain <= 0) {
                 endRound(roomId, null);
             }

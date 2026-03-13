@@ -65,4 +65,9 @@ public class ComputerScienceQuizGame extends AbstractQuizGame {
     public int getTotalRound() {
         return quizs.size();
     }
+
+    @Override
+    public String getHint() {
+        return "";
+    }
 }
