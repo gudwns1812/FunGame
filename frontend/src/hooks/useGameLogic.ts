@@ -8,6 +8,7 @@ import { PLAYER_COLOR_INDEX_KEY } from '../utils/playerColor';
 
 // Configure axios base URL
 axios.defaults.baseURL = import.meta.env.VITE_API_BASE_URL;
+axios.defaults.withCredentials = true; // 세션 인증을 위해 추가
 
 export const useGameLogic = () => {
   const [nickname, setNickname] = useState(() => localStorage.getItem('ums_nickname') || '');
@@ -61,9 +62,7 @@ export const useGameLogic = () => {
   const fetchRoomUsers = useCallback(
     async (targetRoomId: string) => {
       try {
-        const response = await axios.get(`/game/rooms/${targetRoomId}/users`, {
-          headers: nickname ? { playerName: encodeURIComponent(nickname) } : undefined,
-        });
+        const response = await axios.get(`/game/rooms/${targetRoomId}/users`);
 
         if (response.data?.result === 'SUCCESS' && response.data.data) {
           const playersData: any[] = response.data.data.players ?? [];
@@ -272,9 +271,7 @@ export const useGameLogic = () => {
   const leaveRoom = useCallback(async () => {
     if (roomId) {
       try {
-        await axios.post(`/game/rooms/${roomId}/leave`, null, {
-          headers: { playerName: encodeURIComponent(nickname) },
-        });
+        await axios.post(`/game/rooms/${roomId}/leave`);
       } catch (error) {
         console.error('Leave room failed:', error);
       }
@@ -417,9 +414,7 @@ export const useGameLogic = () => {
   const joinRoom = useCallback(
     async (room: Room) => {
       try {
-        const response = await axios.post(`/game/rooms/${room.id}/join`, null, {
-          headers: { playerName: encodeURIComponent(nickname) },
-        });
+        const response = await axios.post(`/game/rooms/${room.id}/join`);
         if (response.data.result === 'SUCCESS') {
           const slotIndex = typeof response.data.data === 'number' ? response.data.data : null;
           if (slotIndex !== null) {
@@ -474,7 +469,6 @@ export const useGameLogic = () => {
         const response = await axios.post('/game/rooms', {
           title,
           maxPlayers,
-          hostName: nickname,
           category,
           totalRound: songCount,
           gameType,
@@ -508,9 +502,7 @@ export const useGameLogic = () => {
   const toggleReady = useCallback(async () => {
     if (!roomId) return;
     try {
-      const response = await axios.post(`/game/rooms/${roomId}/ready`, null, {
-        headers: { playerName: encodeURIComponent(nickname) },
-      });
+      const response = await axios.post(`/game/rooms/${roomId}/ready`);
       if (response.data.result === 'SUCCESS') {
         setPlayers((prev) => prev.map((p) => (p.name === nickname ? { ...p, isReady: !p.isReady } : p)));
       }
@@ -524,9 +516,7 @@ export const useGameLogic = () => {
   const startGame = useCallback(async () => {
     if (!roomId || !isHost) return;
     try {
-      const response = await axios.post(`/game/rooms/${roomId}/start`, null, {
-        headers: { playerName: encodeURIComponent(nickname) },
-      });
+      const response = await axios.post(`/game/rooms/${roomId}/start`);
       if (response.data.result === 'FAIL') {
         window.alert(response.data.error.message);
       }
@@ -540,9 +530,7 @@ export const useGameLogic = () => {
   const skipRound = useCallback(async () => {
     if (!roomId) return;
     try {
-      await axios.post(`/game/rooms/${roomId}/skip`, null, {
-        headers: { playerName: encodeURIComponent(nickname) },
-      });
+      await axios.post(`/game/rooms/${roomId}/skip`);
     } catch (error) {
       console.error('Skip vote failed:', error);
     }
@@ -551,9 +539,7 @@ export const useGameLogic = () => {
   const fetchRank = useCallback(async () => {
     if (!roomId) return;
     try {
-      const response = await axios.get(`/game/rooms/${roomId}/play/rank`, {
-        headers: nickname ? { playerName: encodeURIComponent(nickname) } : undefined,
-      });
+      const response = await axios.get(`/game/rooms/${roomId}/play/rank`);
       if (response.data?.result === 'SUCCESS' && Array.isArray(response.data.data)) {
         const rankData: { player: string; score: number }[] = response.data.data;
         setPlayers((prev) => {
@@ -591,7 +577,8 @@ export const useGameLogic = () => {
       if (!roomId || !stompClient.current || !stompClient.current.connected) return;
       stompClient.current.publish({
         destination: `/publish/room/${roomId}/chat`,
-        headers: { playerName: nickname },
+        // WebSocket 헤더는 여전히 닉네임이 필요할 수 있으나, 현재 백엔드 로직에 맞춰 유지
+        headers: { playerName: nickname }, 
         body: message,
       });
     },

@@ -7,8 +7,6 @@ interface RoomListProps {
   onJoinRoom: (room: Room) => void;
   onCreateRoom: (title: string, maxPlayers: number, category: string, songCount: number, gameType: string) => void;
   onRefreshRooms: () => void;
-  onChangeNickname: (newName: string) => void;
-  nickname: string;
 }
 
 const RoomList: React.FC<RoomListProps> = ({
@@ -16,8 +14,6 @@ const RoomList: React.FC<RoomListProps> = ({
   onJoinRoom,
   onCreateRoom,
   onRefreshRooms,
-  onChangeNickname,
-  nickname,
 }) => {
   const [showCreate, setShowCreate] = useState(false);
   const [newRoomName, setNewRoomName] = useState('');
@@ -25,8 +21,6 @@ const RoomList: React.FC<RoomListProps> = ({
   const [songCount, setSongCount] = useState(10);
   const [category, setCategory] = useState('KPOP');
   const [gameType, setGameType] = useState('SONG');
-  const [showNicknameEdit, setShowNicknameEdit] = useState(false);
-  const [nicknameInput, setNicknameInput] = useState('');
 
   const categories = [
     { value: 'TOTAL', label: '전체' },
@@ -60,55 +54,6 @@ const RoomList: React.FC<RoomListProps> = ({
 
   return (
     <div className="w-full max-w-6xl flex flex-col gap-8">
-      {/* 닉네임 변경 모달 */}
-      {showNicknameEdit && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm"
-          onClick={() => setShowNicknameEdit(false)}>
-          <div
-            className="panel-border bg-background-dark/95 p-6 rounded-lg w-80 space-y-4"
-            onClick={(e) => e.stopPropagation()}>
-            <p className="text-sm font-bold uppercase tracking-widest text-primary flex items-center gap-2">
-              <span className="material-symbols-outlined">edit</span> 닉네임 수정
-            </p>
-            <input
-              autoFocus
-              type="text"
-              className="w-full bg-slate-900 border border-primary/30 rounded p-3 text-white focus:border-primary outline-none transition-colors"
-              value={nicknameInput}
-              onChange={(e) => setNicknameInput(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && nicknameInput.trim()) {
-                  onChangeNickname(nicknameInput.trim());
-                  setShowNicknameEdit(false);
-                } else if (e.key === 'Escape') {
-                  setShowNicknameEdit(false);
-                }
-              }}
-              maxLength={16}
-              placeholder="새 닉네임 입력"
-            />
-            <div className="flex gap-2 pt-2">
-              <button
-                className="flex-1 bg-primary text-background-dark font-bold py-2 rounded hover:bg-primary/80 transition-colors"
-                onClick={() => {
-                  if (nicknameInput.trim()) {
-                    onChangeNickname(nicknameInput.trim());
-                    setShowNicknameEdit(false);
-                  }
-                }}>
-                확인
-              </button>
-              <button
-                className="flex-1 border border-primary/30 text-primary font-bold py-2 rounded hover:bg-primary/10 transition-colors"
-                onClick={() => setShowNicknameEdit(false)}>
-                취소
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* 상단 컨트롤 패널 */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
         <div className="space-y-2">
@@ -117,15 +62,6 @@ const RoomList: React.FC<RoomListProps> = ({
           </div>
           <h2 className="text-3xl font-black text-white tracking-tighter uppercase flex items-center gap-3">
             게임 <span className="text-primary neon-glow">로비</span>
-            <button
-              onClick={() => {
-                setNicknameInput(nickname);
-                setShowNicknameEdit(true);
-              }}
-              className="text-slate-500 hover:text-primary transition-colors flex items-center"
-              title="닉네임 변경">
-              <span className="material-symbols-outlined text-xl">edit_square</span>
-            </button>
           </h2>
         </div>
 
