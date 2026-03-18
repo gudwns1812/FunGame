@@ -2,10 +2,10 @@ package com.fungame.songquiz.domain;
 
 import com.fungame.songquiz.storage.SongEntity;
 import com.fungame.songquiz.storage.SongRepository;
-import java.util.Collections;
-import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
+
+import java.util.List;
 
 @Component
 @RequiredArgsConstructor
@@ -43,7 +43,8 @@ public class SongReader {
     }
 
     public List<Song> findSongWithCount(int songCount) {
-        List<SongEntity> findSongs = songRepository.findRandomSongs(songCount);;
+        List<SongEntity> findSongs = songRepository.findRandomSongs(songCount);
+        ;
 
         return findSongs.stream()
                 .map(SongEntity::toDomain)

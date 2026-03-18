@@ -4,14 +4,15 @@ import com.fungame.songquiz.domain.PlayerScore;
 import com.fungame.songquiz.domain.dto.GameInfo;
 import com.fungame.songquiz.domain.event.*;
 import com.fungame.songquiz.support.response.ApiResponse;
-import java.util.List;
-import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.event.EventListener;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
+
+import java.util.List;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
@@ -24,7 +25,7 @@ public class GameNotifyService {
     public void handleHaliGaliAction(HaliGaliActionEvent event) {
         log.info("Broadcasting HaliGali action: {} in room {}", event.actionType(), event.roomId());
         String destination = "/subscribe/room/" + event.roomId();
-        
+
         Object payload = Map.of(
                 "type", "HALIGALI_ACTION",
                 "playerName", event.playerName(),
@@ -64,9 +65,9 @@ public class GameNotifyService {
         log.info("Broadcasting player ready: player {} is now {} in room {}", event.player(), event.ready(), event.roomId());
         String destination = "/subscribe/room/" + event.roomId();
         Object payload = Map.of(
-                "type", "PLAYER_READY", 
-                "player", event.player(), 
-                "ready", event.ready(), 
+                "type", "PLAYER_READY",
+                "player", event.player(),
+                "ready", event.ready(),
                 "isAllReady", event.isAllReady()
         );
         messagingTemplate.convertAndSend(destination, ApiResponse.success(payload));

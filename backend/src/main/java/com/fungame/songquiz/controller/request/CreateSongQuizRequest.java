@@ -1,5 +1,6 @@
 package com.fungame.songquiz.controller.request;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fungame.songquiz.domain.Category;
 import com.fungame.songquiz.domain.Song;
 import lombok.Data;
@@ -12,6 +13,8 @@ public class CreateSongQuizRequest {
     private String singer;
     private String title;
     private List<Category> categories;
+    
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd")
     private LocalDate releaseDate;
     private List<String> answers;
     private String hint;

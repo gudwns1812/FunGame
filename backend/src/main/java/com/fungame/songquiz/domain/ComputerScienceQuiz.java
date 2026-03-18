@@ -1,9 +1,10 @@
 package com.fungame.songquiz.domain;
 
+import lombok.Getter;
+
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import lombok.Getter;
 
 @Getter
 public class ComputerScienceQuiz {

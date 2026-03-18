@@ -1,6 +1,5 @@
 package com.fungame.songquiz.controller.api;
 
-import com.fungame.songquiz.controller.config.argumentresolver.NickNameDecoder;
 import com.fungame.songquiz.controller.request.CreateRoomRequest;
 import com.fungame.songquiz.domain.GameAction;
 import com.fungame.songquiz.domain.GameRoomService;
@@ -8,16 +7,14 @@ import com.fungame.songquiz.domain.GameService;
 import com.fungame.songquiz.domain.PlayerScore;
 import com.fungame.songquiz.domain.dto.PlayersInfo;
 import com.fungame.songquiz.domain.dto.RoomInfo;
+import com.fungame.songquiz.domain.member.MemberAdapter;
 import com.fungame.songquiz.support.response.ApiResponse;
-import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/game/rooms")
@@ -53,45 +50,57 @@ public class GameController {
     }
 
     @PostMapping
-    public ApiResponse<Long> createRoom(@RequestBody CreateRoomRequest request) {
+    public ApiResponse<Long> createRoom(
+            @RequestBody CreateRoomRequest request,
+            @AuthenticationPrincipal MemberAdapter memberAdapter) {
         log.info("category: {}", request.getCategory());
         Long roomId = gameRoomService.createRoom(
                 request.getGameType(),
                 request.getTitle(),
                 request.getMaxPlayers(),
-                request.getHostName(),
+                memberAdapter.getNickName(),
                 request.toGameInfo()
         );
         return ApiResponse.success(roomId);
     }
 
     @PostMapping("/{roomId}/join")
-    public ApiResponse<Integer> joinRoom(@PathVariable Long roomId, @NickNameDecoder String playerName) {
-        int playerSequence = gameRoomService.joinRoom(roomId, playerName);
+    public ApiResponse<Integer> joinRoom(
+            @PathVariable Long roomId,
+            @AuthenticationPrincipal MemberAdapter memberAdapter) {
+        int playerSequence = gameRoomService.joinRoom(roomId, memberAdapter.getNickName());
         return ApiResponse.success(playerSequence);
     }
 
     @PostMapping("/{roomId}/leave")
-    public ApiResponse<Void> leaveRoom(@PathVariable Long roomId, @NickNameDecoder String playerName) {
-        gameRoomService.leaveRoom(roomId, playerName);
+    public ApiResponse<Void> leaveRoom(
+            @PathVariable Long roomId,
+            @AuthenticationPrincipal MemberAdapter memberAdapter) {
+        gameRoomService.leaveRoom(roomId, memberAdapter.getNickName());
         return ApiResponse.success();
     }
 
     @PostMapping("/{roomId}/start")
-    public ApiResponse<Void> startGame(@PathVariable Long roomId, @NickNameDecoder String playerName) {
-        gameService.startGame(roomId, playerName);
+    public ApiResponse<Void> startGame(
+            @PathVariable Long roomId,
+            @AuthenticationPrincipal MemberAdapter memberAdapter) {
+        gameService.startGame(roomId, memberAdapter.getNickName());
         return ApiResponse.success();
     }
 
     @PostMapping("/{roomId}/skip")
-    public ApiResponse<Void> skipCurrentQuiz(@PathVariable Long roomId, @NickNameDecoder String playerName) {
-        gameService.increaseSkipVote(roomId, playerName);
+    public ApiResponse<Void> skipCurrentQuiz(
+            @PathVariable Long roomId,
+            @AuthenticationPrincipal MemberAdapter memberAdapter) {
+        gameService.increaseSkipVote(roomId, memberAdapter.getNickName());
         return ApiResponse.success();
     }
 
     @PostMapping("/{roomId}/ready")
-    public ApiResponse<Void> playerReady(@PathVariable Long roomId, @NickNameDecoder String playerName) {
-        gameRoomService.readyPlayer(roomId, playerName);
+    public ApiResponse<Void> playerReady(
+            @PathVariable Long roomId,
+            @AuthenticationPrincipal MemberAdapter memberAdapter) {
+        gameRoomService.readyPlayer(roomId, memberAdapter.getNickName());
         return ApiResponse.success();
     }
 

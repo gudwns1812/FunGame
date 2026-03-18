@@ -2,9 +2,11 @@ package com.fungame.songquiz.domain.dto;
 
 import com.fungame.songquiz.domain.ComputerScienceQuizGame;
 import com.fungame.songquiz.domain.Game;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+
 public record GameAnswerDto(
         Game game,
         List<String> data

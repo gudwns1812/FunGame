@@ -4,11 +4,7 @@ import com.fungame.songquiz.domain.CSQuizDifficulty;
 import com.fungame.songquiz.domain.ComputerScienceQuiz;
 import com.fungame.songquiz.storage.converter.StringListConverter;
 import jakarta.persistence.*;
-import lombok.AccessLevel;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 import java.util.List;
 

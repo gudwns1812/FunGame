@@ -1,11 +1,12 @@
 package com.fungame.songquiz.domain;
 
-import static org.assertj.core.api.Assertions.assertThat;
-
-import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+
+import java.util.List;
+
+import static org.assertj.core.api.Assertions.assertThat;
 
 class HaliGaliGameTest {
 
@@ -55,7 +56,7 @@ class HaliGaliGameTest {
         // 합이 5가 되도록 강제로 카드 설정 (테스트를 위한 모킹/상태 주입 필요)
         game.forceSetOpenCard("player1", "STRAWBERRY", 3);
         game.forceSetOpenCard("player2", "STRAWBERRY", 2);
-        
+
         int initialDeckSize = game.getPlayerDeckSize("player3");
         int expectedGain = 2; // 바닥에 있는 카드 수
 
@@ -74,7 +75,7 @@ class HaliGaliGameTest {
         // given
         game.forceSetOpenCard("player1", "STRAWBERRY", 3);
         game.forceSetOpenCard("player2", "STRAWBERRY", 1); // 합이 4
-        
+
         int initialDeckSize = game.getPlayerDeckSize("player3");
         int otherPlayer1Size = game.getPlayerDeckSize("player1");
 

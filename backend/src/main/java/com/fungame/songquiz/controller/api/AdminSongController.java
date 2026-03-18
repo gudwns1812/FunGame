@@ -10,9 +10,9 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/game/music")
+@RequestMapping("/api/admin/songs")
 @RequiredArgsConstructor
-public class MusicController {
+public class AdminSongController {
 
     private final SongService songService;
 

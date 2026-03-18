@@ -2,6 +2,7 @@ package com.fungame.songquiz.domain;
 
 import com.fungame.songquiz.domain.dto.GameAnswerDto;
 import com.fungame.songquiz.domain.dto.GameContentDto;
+
 import java.util.List;
 
 public class GameSession {

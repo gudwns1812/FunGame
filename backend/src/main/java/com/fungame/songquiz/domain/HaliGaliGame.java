@@ -3,6 +3,7 @@ package com.fungame.songquiz.domain;
 import com.fungame.songquiz.domain.dto.GameAnswerDto;
 import com.fungame.songquiz.domain.dto.GameContentDto;
 import com.fungame.songquiz.domain.dto.GameInfo;
+
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -14,7 +15,7 @@ public class HaliGaliGame implements Game {
     private final AtomicBoolean processing = new AtomicBoolean(false);
     private int currentRound = 1;
     private final int totalRounds = 1000;
-    
+
     // 종 위치 동기화를 위한 좌표
     private int bellX = 50;
     private int bellY = 50;
@@ -53,7 +54,7 @@ public class HaliGaliGame implements Game {
 
         int playerCount = players.size();
         if (playerCount == 0) return;
-        
+
         int cardsPerPlayer = allCards.size() / playerCount;
         for (int i = 0; i < playerCount; i++) {
             String player = players.get(i);
@@ -82,7 +83,7 @@ public class HaliGaliGame implements Game {
             case PRESS_BELL -> pressBell(action.playerName());
             default -> ActionResult.WRONG;
         };
-        
+
         // 액션이 발생할 때마다 종 위치를 랜덤하게 변경하여 동기화된 좌표 전송
         updateBellPosition();
         return result;
@@ -170,13 +171,13 @@ public class HaliGaliGame implements Game {
         statusData.add("TURN:" + getCurrentPlayer());
         statusData.add("ROUND:" + currentRound);
         statusData.add("BELL:" + bellX + ":" + bellY);
-        
+
         for (String player : players) {
             Card top = openCards.get(player).peekFirst();
             String cardInfo = (top != null) ? top.toString() : "NONE:0";
             statusData.add(player + ":" + cardInfo + ":" + playerDecks.get(player).size());
         }
-        
+
         return new GameContentDto(this, statusData);
     }
 

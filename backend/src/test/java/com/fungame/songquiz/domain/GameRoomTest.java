@@ -1,16 +1,17 @@
 package com.fungame.songquiz.domain;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-
 import com.fungame.songquiz.support.error.CoreException;
 import com.fungame.songquiz.support.error.ErrorType;
-import java.time.LocalDate;
-import java.util.ArrayList;
-import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+
+import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class GameRoomTest {
 
@@ -19,7 +20,7 @@ class GameRoomTest {
 
     @BeforeEach
     void setUp() {
-        var songs = List.of(Song.of("정답", "", List.of(Category.KPOP), LocalDate.of(2015, 1, 1), "", 30, List.of()));
+        var songs = List.of(Song.of("정답", "", List.of(Category.KPOP), LocalDate.of(2015, 1, 1), "", 30, List.of(), ""));
         game = new SongQuiz(songs, Category.KPOP);
         List<String> players = new ArrayList<>(List.of("host"));
         gameRoom = GameRoom.create("방제목", game, players, 2, "host");

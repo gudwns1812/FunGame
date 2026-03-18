@@ -1,8 +1,10 @@
 package com.fungame.songquiz.controller.request;
 
-import lombok.Data;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 
-@Data
+@Getter
+@NoArgsConstructor
 public class NicknameRequest {
-    private String nickName;
+    private String nickname;
 }

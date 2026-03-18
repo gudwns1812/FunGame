@@ -3,13 +3,12 @@ package com.fungame.songquiz.domain;
 import com.fungame.songquiz.domain.dto.GamePlayerInfo;
 import com.fungame.songquiz.support.error.CoreException;
 import com.fungame.songquiz.support.error.ErrorType;
-import java.util.ArrayList;
+import lombok.Getter;
+
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
-
-import lombok.Getter;
 
 public class GamePlayers {
     private final Map<String, GamePlayer> players;
@@ -21,10 +20,10 @@ public class GamePlayers {
     public GamePlayers(List<String> players, int maxPlayer, String host) {
         this.players = players.stream()
                 .map(GamePlayer::createNewPlayer)
-                .collect(Collectors.toMap(GamePlayer::name, player -> player , (existing, replacement) -> existing, LinkedHashMap::new));
+                .collect(Collectors.toMap(GamePlayer::name, player -> player, (existing, replacement) -> existing, LinkedHashMap::new));
         this.maxPlayer = maxPlayer;
         this.host = host;
-        
+
         // 방장은 항상 준비 상태여야 함
         if (this.players.containsKey(host)) {
             this.players.put(host, this.players.get(host).setReady(true));
@@ -57,7 +56,7 @@ public class GamePlayers {
                     .findFirst()
                     .orElseThrow(() -> new CoreException(ErrorType.GAME_ROOM_PLAYER_EMPTY))
                     .name();
-            
+
             // 새 방장도 즉시 준비 상태로 변경
             players.put(host, players.get(host).setReady(true));
         }
@@ -93,7 +92,7 @@ public class GamePlayers {
         } else {
             players.put(player, players.get(player).toggleReady());
         }
-        
+
         return players.get(player).isReady();
     }
 

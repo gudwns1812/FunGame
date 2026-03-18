@@ -2,10 +2,10 @@ package com.fungame.songquiz.domain;
 
 import com.fungame.songquiz.support.error.CoreException;
 import com.fungame.songquiz.support.error.ErrorType;
+import lombok.Getter;
 
 import java.time.Instant;
 import java.util.List;
-import lombok.Getter;
 
 @Getter
 public class GameRoom {

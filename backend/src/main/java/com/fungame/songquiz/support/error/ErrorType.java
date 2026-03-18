@@ -24,7 +24,14 @@ public enum ErrorType {
     GAME_ROOM_NOT_ALL_READY(HttpStatus.BAD_REQUEST, ErrorCode.G009, "모든 플레이어가 준비되지 않았습니다.", LogLevel.DEBUG),
 
     PLAYER_NOT_FOUND(HttpStatus.INTERNAL_SERVER_ERROR, ErrorCode.P002, "플레이어를 찾을 수 없습니다.", LogLevel.ERROR),
-    QUIZ_DUPLICATE_ERROR(HttpStatus.BAD_REQUEST,ErrorCode.G010 , "노래가 중복입니다.",LogLevel.DEBUG );
+    QUIZ_DUPLICATE_ERROR(HttpStatus.BAD_REQUEST,ErrorCode.G010 , "노래가 중복입니다.",LogLevel.DEBUG ),
+
+    MEMBER_NOT_FOUND(HttpStatus.NOT_FOUND, ErrorCode.M001, "해당 사용자를 찾을 수 없습니다.", LogLevel.WARN),
+    LOGIN_ID_DUPLICATED(HttpStatus.BAD_REQUEST, ErrorCode.M002, "이미 사용 중인 아이디입니다.", LogLevel.DEBUG),
+    NICKNAME_DUPLICATED(HttpStatus.BAD_REQUEST, ErrorCode.M003, "이미 사용 중인 닉네임입니다.", LogLevel.DEBUG),
+    PASSWORD_NOT_MATCH(HttpStatus.BAD_REQUEST, ErrorCode.M004, "비밀번호가 일치하지 않습니다.", LogLevel.DEBUG),
+    PROMOTION_ALREADY_PENDING(HttpStatus.BAD_REQUEST, ErrorCode.M005, "이미 진행 중인 승급 요청이 있습니다.", LogLevel.DEBUG),
+    PROMOTION_NOT_FOUND(HttpStatus.NOT_FOUND, ErrorCode.M006, "승급 요청을 찾을 수 없습니다.", LogLevel.WARN);
 
     private final HttpStatus status;
     private final ErrorCode code;

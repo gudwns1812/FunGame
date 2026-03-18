@@ -20,6 +20,6 @@ public class PlayerController {
     @PostMapping
     public ApiResponse<String> getUniqueNickName(@RequestBody NicknameRequest request) {
         Long key = service.getAutoKey();
-        return ApiResponse.success(request.getNickName() + DELIMITER + key);
+        return ApiResponse.success(request.getNickname() + DELIMITER + key);
     }
 }

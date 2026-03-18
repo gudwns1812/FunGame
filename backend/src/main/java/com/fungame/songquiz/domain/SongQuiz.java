@@ -3,9 +3,10 @@ package com.fungame.songquiz.domain;
 import com.fungame.songquiz.domain.dto.GameAnswerDto;
 import com.fungame.songquiz.domain.dto.GameContentDto;
 import com.fungame.songquiz.domain.dto.GameInfo;
+import lombok.extern.slf4j.Slf4j;
+
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
-import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class SongQuiz extends AbstractQuizGame {

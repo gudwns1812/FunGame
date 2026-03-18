@@ -1,9 +1,9 @@
 package com.fungame.songquiz.domain;
 
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.List;
 
 public abstract class AbstractQuizGame implements Game {
     protected final AtomicBoolean isRoundProcessing = new AtomicBoolean(false);

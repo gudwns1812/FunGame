@@ -20,8 +20,6 @@ public class HaliGaliGameTest {
     GameRoomManager roomManager;
     @Mock
     ApplicationEventPublisher publisher;
-    @Mock
-    GameTimer timer;
 
     GameSessionManager sessionManager;
 
@@ -30,7 +28,7 @@ public class HaliGaliGameTest {
     @BeforeEach
     void setUp() {
         sessionManager = new GameSessionManager();
-        gameService = new BoardGameService(roomManager, sessionManager, publisher, timer);
+        gameService = new BoardGameService(roomManager, sessionManager, publisher);
     }
 
     @Test
@@ -38,7 +36,7 @@ public class HaliGaliGameTest {
         //given
         Long roomId = 15L;
         String name = "테스터";
-        given(roomManager.startGame(roomId,name)).willReturn(GameRoom.create("1", new HaliGaliGame(), List.of(),2,""));
+        given(roomManager.startGame(roomId, name)).willReturn(GameRoom.create("1", new HaliGaliGame(), List.of(), 2, ""));
 
         //when
         gameService.startGame(roomId, name);

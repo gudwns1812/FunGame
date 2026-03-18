@@ -1,21 +1,11 @@
 package com.fungame.songquiz.acceptance;
 
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.BDDMockito.given;
-import static org.mockito.Mockito.verify;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
-
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fungame.songquiz.controller.ApiControllerAdvice;
 import com.fungame.songquiz.controller.api.GameController;
-import com.fungame.songquiz.controller.config.argumentresolver.NickNameDecodeResolver;
 import com.fungame.songquiz.domain.Category;
 import com.fungame.songquiz.domain.GameRoomService;
 import com.fungame.songquiz.domain.GameService;
-import java.util.HashMap;
-import java.util.Map;
-
 import com.fungame.songquiz.domain.GameType;
 import com.fungame.songquiz.domain.gamecreator.GameCreateInfo;
 import com.fungame.songquiz.domain.gamecreator.SongGameCreateInfo;
@@ -29,6 +19,15 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+
+import java.util.HashMap;
+import java.util.Map;
+
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.verify;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @ExtendWith(MockitoExtension.class)
 public class GameAcceptanceTest {
@@ -49,7 +48,6 @@ public class GameAcceptanceTest {
     @BeforeEach
     void setUp() {
         mockMvc = MockMvcBuilders.standaloneSetup(gameController)
-                .setCustomArgumentResolvers(new NickNameDecodeResolver())
                 .setControllerAdvice(new ApiControllerAdvice())
                 .build();
     }
@@ -66,7 +64,7 @@ public class GameAcceptanceTest {
         request.put("category", "KPOP");
         request.put("totalRound", 10);
 
-        given(gameRoomService.createRoom(eq(GameType.SONG),anyString(), anyInt(), anyString(), any(GameCreateInfo.class))).willReturn(
+        given(gameRoomService.createRoom(eq(GameType.SONG), anyString(), anyInt(), anyString(), any(GameCreateInfo.class))).willReturn(
                 1L);
 
         // when & then
@@ -75,7 +73,7 @@ public class GameAcceptanceTest {
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk());
 
-        verify(gameRoomService).createRoom(GameType.SONG,"테스트 방", 5, "방장", new SongGameCreateInfo(Category.KPOP,10));
+        verify(gameRoomService).createRoom(GameType.SONG, "테스트 방", 5, "방장", new SongGameCreateInfo(Category.KPOP, 10));
     }
 
     @Test

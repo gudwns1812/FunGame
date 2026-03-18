@@ -4,9 +4,8 @@ import com.fungame.songquiz.storage.SongEntity;
 import com.fungame.songquiz.storage.SongRepository;
 import com.fungame.songquiz.support.error.CoreException;
 import com.fungame.songquiz.support.error.ErrorType;
+import com.fungame.songquiz.support.extern.YoutubeScraper;
 import lombok.RequiredArgsConstructor;
-import org.jsoup.Jsoup;
-import org.jsoup.nodes.Document;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -19,6 +18,7 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class SongService {
 
+    private final YoutubeScraper scraper;
     private final SongRepository songRepository;
 
     public List<Long> getRandomSongIds(int count) {
@@ -35,7 +35,7 @@ public class SongService {
 
 
     public void createSongQuiz(Song song) {
-        String videoLink = getVideoId(song.getTitle(), song.getSinger());
+        String videoLink = scraper.getVideoId(song.getTitle(), song.getSinger());
 
         boolean exists = songRepository.existsBySingerAndTitle(song.getSinger(), song.getTitle());
         if (exists) {
@@ -54,28 +54,5 @@ public class SongService {
                 .build();
 
         songRepository.save(newSong);
-    }
-
-    private String getVideoId(String title, String singer) {
-        try {
-            String query = singer + " " + title + " Lyrics";
-            // 유튜브 검색 결과 페이지 주소
-            String url = "https://www.youtube.com/results?search_query=" + query.replace(" ", "+");
-
-            // 페이지 HTML 가져오기
-            Document doc = Jsoup.connect(url)
-                    .userAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
-                    .get();
-
-            String html = doc.html();
-            // HTML 내에서 "videoId":"xxxx" 형태를 찾아냄
-            int index = html.indexOf("\"videoId\":\"");
-            if (index != -1) {
-                return html.substring(index + 11, index + 22);
-            }
-        } catch (Exception e) {
-            return "Error: " + e.getMessage();
-        }
-        return "";
     }
 }

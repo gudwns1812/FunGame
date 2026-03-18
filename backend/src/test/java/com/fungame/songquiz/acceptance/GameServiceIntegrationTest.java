@@ -1,24 +1,11 @@
 package com.fungame.songquiz.acceptance;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.awaitility.Awaitility.await;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyInt;
-import static org.mockito.Mockito.doAnswer;
-
 import com.fungame.songquiz.domain.GameRoomService;
 import com.fungame.songquiz.domain.GameService;
 import com.fungame.songquiz.domain.GameTimer;
 import com.fungame.songquiz.domain.GameType;
-import com.fungame.songquiz.domain.event.GameEndEvent;
-import com.fungame.songquiz.domain.event.GameResultEvent;
-import com.fungame.songquiz.domain.event.GameStartEvent;
-import com.fungame.songquiz.domain.event.RoundEndEvent;
-import com.fungame.songquiz.domain.event.RoundStartEvent;
+import com.fungame.songquiz.domain.event.*;
 import com.fungame.songquiz.domain.gamecreator.CsQuizGameCreateInfo;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -29,6 +16,16 @@ import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.TimeUnit;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.awaitility.Awaitility.await;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.Mockito.doAnswer;
 
 @SpringBootTest
 @ActiveProfiles("test")
@@ -60,10 +57,10 @@ public class GameServiceIntegrationTest {
     @BeforeEach
     void setUp() {
         eventCapture.clear();
-        
+
         // 데이터 초기화
         counterRepository.save(new com.fungame.songquiz.storage.CounterEntity(null, "GAME_ROOM_COUNTER", 0L));
-        
+
         // CS 문제 데이터 추가 (정답을 명시적으로 알기 위해 고정)
         computerScienceRepository.save(com.fungame.songquiz.storage.ComputerScienceEntity.builder()
                 .field("OS")
@@ -82,10 +79,10 @@ public class GameServiceIntegrationTest {
 
         // 방 생성 및 입장
         roomId = gameRoomService.createRoom(
-                GameType.CS, 
-                "테스트 방", 
-                5, 
-                hostName, 
+                GameType.CS,
+                "테스트 방",
+                5,
+                hostName,
                 new CsQuizGameCreateInfo(2)
         );
         gameRoomService.joinRoom(roomId, player1);
@@ -96,7 +93,10 @@ public class GameServiceIntegrationTest {
             Runnable callback = invocation.getArgument(2);
             // 약간의 딜레이를 주어 스레드 경쟁이나 순서 꼬임 방지
             new Thread(() -> {
-                try { Thread.sleep(10); } catch (InterruptedException e) {}
+                try {
+                    Thread.sleep(10);
+                } catch (InterruptedException e) {
+                }
                 callback.run();
             }).start();
             return null;

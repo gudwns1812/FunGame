@@ -1,12 +1,13 @@
 package com.fungame.songquiz.domain;
 
+import com.fungame.songquiz.domain.dto.GameInfo;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Component;
+
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
-import com.fungame.songquiz.domain.dto.GameInfo;
-import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Component;
 
 @Component
 @RequiredArgsConstructor

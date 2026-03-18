@@ -3,18 +3,13 @@ package com.fungame.songquiz.storage;
 import com.fungame.songquiz.domain.Category;
 import com.fungame.songquiz.domain.Song;
 import com.fungame.songquiz.storage.converter.StringListConverter;
-import jakarta.persistence.Column;
-import jakarta.persistence.Convert;
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import java.time.LocalDate;
-import java.util.List;
-
+import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
+
+import java.time.LocalDate;
+import java.util.List;
 
 @Entity
 @Getter
@@ -52,6 +47,6 @@ public class SongEntity {
     private String hint;
 
     public Song toDomain() {
-        return Song.of(title, singer, categories, releaseDate, videoLink, playSeconds, answers,hint);
+        return Song.of(title, singer, categories, releaseDate, videoLink, playSeconds, answers, hint);
     }
 }

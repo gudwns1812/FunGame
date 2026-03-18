@@ -1,7 +1,6 @@
 package com.fungame.songquiz.domain;
 
 import com.fungame.songquiz.domain.dto.GameInfo;
-import com.fungame.songquiz.domain.event.GameEndEvent;
 import com.fungame.songquiz.domain.event.GameResultEvent;
 import com.fungame.songquiz.domain.event.GameStartEvent;
 import com.fungame.songquiz.domain.event.HaliGaliActionEvent;
@@ -34,7 +33,7 @@ public class BoardGameService implements GameService {
         GameInfo gameInfo = sessionManager.startGame(roomId, gameRoom.getGame(), gameRoom.getRoomPlayers());
 
         publisher.publishEvent(new GameStartEvent(roomId, gameInfo));
-        
+
         // 보드게임 시작 시, 아직 아무도 카드를 뒤집지 않은 초기 상태를 전파합니다.
         // 이 액션은 도메인 handleAction을 호출하지 않으므로 턴(라운드)이 넘어가지 않습니다.
         GameSession session = sessionManager.getGameSession(roomId);
@@ -77,7 +76,7 @@ public class BoardGameService implements GameService {
     private void endGame(Long roomId) {
         GameSession session = sessionManager.getGameSession(roomId);
         log.info("보드게임 종료: {}", roomId);
-        
+
         publisher.publishEvent(new GameResultEvent(roomId, session.getPlayerRanks()));
 
         sessionManager.endGameSession(roomId);

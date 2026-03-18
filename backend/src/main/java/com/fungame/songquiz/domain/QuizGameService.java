@@ -1,15 +1,15 @@
 package com.fungame.songquiz.domain;
 
 import com.fungame.songquiz.domain.dto.GameInfo;
-import com.fungame.songquiz.domain.dto.GameSkipInfo;
 import com.fungame.songquiz.domain.event.*;
 import com.fungame.songquiz.support.error.CoreException;
 import com.fungame.songquiz.support.error.ErrorType;
-import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
+
+import java.util.List;
 
 @Slf4j
 @Service("quizGameService")
@@ -50,7 +50,7 @@ public class QuizGameService implements GameService {
             publisher.publishEvent(new TimerTickEvent(roomId, remain));
 
             if (remain == 10) {
-                publisher.publishEvent(new QuizGameHintEvent(roomId,gameSession.getHint()));
+                publisher.publishEvent(new QuizGameHintEvent(roomId, gameSession.getHint()));
             }
 
             if (remain <= 0) {

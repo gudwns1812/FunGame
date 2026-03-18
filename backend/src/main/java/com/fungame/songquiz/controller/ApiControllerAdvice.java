@@ -18,9 +18,9 @@ public class ApiControllerAdvice {
     @ExceptionHandler(CoreException.class)
     public ResponseEntity<ApiResponse<Void>> handleCoreException(CoreException e) {
         switch (e.getType().getLogLevel()) {
-            case DEBUG -> log.debug(e.getMessage());
-            case WARN -> log.warn(e.getMessage());
-            case ERROR -> log.error(e.getMessage());
+            case DEBUG -> log.debug("문제가 발생했습니다.", e);
+            case WARN -> log.warn("경고가 발생했습니다.", e);
+            case ERROR -> log.error("에러가 발생했습니다.", e);
         }
 
         return new ResponseEntity<>(ApiResponse.fail(e.getType()), e.getType().getStatus());
