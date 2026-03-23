@@ -98,6 +98,7 @@ const Game: React.FC<GameProps> = ({
     const colonIdx = log.indexOf(':');
     if (colonIdx > 0) {
       const senderName = log.substring(0, colonIdx);
+
       const rest = log.substring(colonIdx + 1);
       const player = players.find((p) => stripTag(p.name) === senderName || p.name === senderName);
       const color = getPlayerColor(player?.colorIndex ?? null) || '#25c0f4';
@@ -252,9 +253,8 @@ const Game: React.FC<GameProps> = ({
               return (
                 <div
                   key={p.id}
-                  className={`flex justify-between items-center p-4 rounded-lg border-l-4 transition-all duration-300
-                    ${isFirst ? 'bg-primary/20 border-primary shadow-[inset_0_0_15px_rgba(37,192,244,0.2)]' : 'bg-slate-950/40 border-transparent hover:bg-slate-800/60'}`}
-                  style={!isFirst ? { borderLeftColor: color } : undefined}>
+                  className={`flex justify-between items-center p-4 rounded-lg transition-all duration-300
+                    ${isFirst ? 'bg-primary/20 shadow-[inset_0_0_15px_rgba(37,192,244,0.2)]' : 'bg-slate-950/40 hover:bg-slate-800/60'}`}>
                   <div className="flex items-center gap-4 min-w-0">
                     <span className="text-xs font-mono font-bold opacity-40 shrink-0">#{idx + 1}</span>
                     <span

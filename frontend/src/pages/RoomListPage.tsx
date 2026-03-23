@@ -8,7 +8,7 @@ interface RoomListPageProps {
   rooms: Room[];
   nickname: string;
   onJoinRoom: (room: Room) => void;
-  onCreateRoom: (title: string, maxPlayers: number, category: string, songCount: number, gameType: string) => void;
+  onCreateRoom: (title: string, maxPlayers: number, category: string, songCount: number, gameType: string, difficulty?: number) => void;
   onRefreshRooms: () => void;
   onChangeNickname: (newName: string) => void;
 }

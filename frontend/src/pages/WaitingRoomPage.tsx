@@ -9,6 +9,7 @@ interface WaitingRoomPageProps {
   onLeave: () => void;
   onToggleReady: () => void;
   onSendMessage: (message: string) => void;
+  maxPlayers: number;
 }
 
 const WaitingRoomPage: React.FC<WaitingRoomPageProps> = ({
@@ -19,6 +20,7 @@ const WaitingRoomPage: React.FC<WaitingRoomPageProps> = ({
   onLeave,
   onToggleReady,
   onSendMessage,
+  maxPlayers,
 }) => {
   return (
     <div className="relative flex flex-col min-h-screen">
@@ -55,6 +57,7 @@ const WaitingRoomPage: React.FC<WaitingRoomPageProps> = ({
           onLeave={onLeave}
           onToggleReady={onToggleReady}
           onSendMessage={onSendMessage}
+          maxPlayers={maxPlayers}
         />
       </main>
 

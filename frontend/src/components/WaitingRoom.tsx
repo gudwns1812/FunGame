@@ -11,6 +11,7 @@ interface WaitingRoomProps {
   isHost: boolean;
   logs: string[];
   onSendMessage: (message: string) => void;
+  maxPlayers: number;
 }
 
 const WaitingRoom: React.FC<WaitingRoomProps> = ({
@@ -21,11 +22,12 @@ const WaitingRoom: React.FC<WaitingRoomProps> = ({
   isHost,
   logs,
   onSendMessage,
+  maxPlayers,
 }) => {
   const [chatInput, setChatInput] = useState('');
   const logContainerRef = useRef<HTMLDivElement>(null);
   const chatInputRef = useRef<HTMLInputElement>(null);
-  const SLOTS = 8;
+  const SLOTS = maxPlayers || 12;
   const slotsArray = Array.from({ length: SLOTS }, (_, i) => players[i] || null);
 
   useEffect(() => {
@@ -163,11 +165,10 @@ const WaitingRoom: React.FC<WaitingRoomProps> = ({
 
                 return (
                   <button
-                    className={`flex-1 sm:flex-none px-8 py-3 border-2 font-black rounded-lg transition-all flex items-center justify-center gap-2 shadow-lg uppercase tracking-widest text-xs ${
-                      amIReady
+                    className={`flex-1 sm:flex-none px-8 py-3 border-2 font-black rounded-lg transition-all flex items-center justify-center gap-2 shadow-lg uppercase tracking-widest text-xs ${amIReady
                         ? 'bg-red-500/20 border-red-500/50 text-red-400 hover:bg-red-500/30'
                         : 'bg-primary/20 border-primary/50 text-primary hover:bg-primary/40'
-                    }`}
+                      }`}
                     onClick={onToggleReady}>
                     <span className="material-symbols-outlined text-sm">{amIReady ? 'cancel' : 'check_circle'}</span>
                     {amIReady ? '준비 취소' : '준비하기'}
@@ -188,7 +189,7 @@ const WaitingRoom: React.FC<WaitingRoomProps> = ({
         </div>
 
         {/* 슬롯 그리드 */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 flex-1">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 flex-1">
           {slotsArray.map((player, index) => {
             const color = player ? getPlayerColor(player.colorIndex ?? null) || '#25c0f4' : 'rgba(37, 192, 244, 0.1)';
             const isFilled = !!player;
@@ -197,58 +198,47 @@ const WaitingRoom: React.FC<WaitingRoomProps> = ({
             return (
               <div
                 key={index}
-                className={`panel-border rounded-2xl flex flex-col items-center justify-center p-6 relative overflow-hidden transition-all duration-500 ${isFilled ? 'bg-slate-800/80 shadow-[inset_0_0_20px_rgba(0,0,0,0.5)]' : 'bg-slate-900/30 border-dashed opacity-40'}`}>
+                className={`panel-border rounded-xl flex flex-col items-center justify-center p-4 relative overflow-hidden transition-all duration-500 ${isFilled ? 'bg-slate-800/80 shadow-[inset_0_0_20px_rgba(0,0,0,0.5)]' : 'bg-slate-900/30 border-dashed opacity-40'}`}>
                 {/* 준비 완료 상태 네온 효과 */}
                 {isFilled && isReady && <div className="absolute inset-0 bg-primary/5 animate-pulse"></div>}
 
                 <div
-                  className={`w-16 h-16 rounded-full flex items-center justify-center border-2 mb-4 z-10 transition-all duration-500`}
+                  className={`w-12 h-12 rounded-full flex items-center justify-center border-2 mb-3 z-10 transition-all duration-500`}
                   style={{
                     borderColor: isFilled ? (isReady ? '#25c0f4' : color) : 'rgba(37, 192, 244, 0.2)',
                     backgroundColor: isFilled ? 'rgba(16, 30, 34, 0.9)' : 'transparent',
-                    boxShadow: isFilled && isReady ? '0 0 20px rgba(37, 192, 244, 0.4)' : 'none',
+                    boxShadow: isFilled && isReady ? '0 0 15px rgba(37, 192, 244, 0.4)' : 'none',
                   }}>
                   <span
-                    className={`material-symbols-outlined text-3xl transition-all ${isFilled && isReady ? 'text-primary scale-110' : ''}`}
+                    className={`material-symbols-outlined text-2xl transition-all ${isFilled && isReady ? 'text-primary scale-110' : ''}`}
                     style={{ color: isFilled ? (isReady ? '#25c0f4' : color) : 'rgba(37, 192, 244, 0.2)' }}>
                     {isFilled ? (isReady ? 'verified' : 'person') : 'person_off'}
                   </span>
                 </div>
 
-                <div className="text-center z-10 w-full px-2">
+                <div className="text-center z-10 w-full px-1">
                   <span
-                    className={`block font-black text-sm truncate uppercase tracking-widest ${isFilled ? (isReady ? 'text-white' : 'text-slate-300') : 'text-primary/20'}`}
+                    className={`block font-black text-[11px] truncate uppercase tracking-widest ${isFilled ? (isReady ? 'text-white' : 'text-slate-300') : 'text-primary/20'}`}
                     style={isFilled && isReady ? { textShadow: '0 0 10px rgba(37, 192, 244, 0.8)' } : undefined}>
                     {isFilled ? stripTag(player.name) : 'EMPTY'}
                   </span>
 
                   {isFilled && (
                     <div
-                      className={`mt-3 inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-[0.2em] border transition-all
-                      ${
-                        player.isHost
-                          ? 'bg-primary/20 text-primary border-primary/50 shadow-[0_0_10px_rgba(37,192,244,0.2)]'
+                      className={`mt-2 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-widest border transition-all
+                      ${player.isHost
+                          ? 'bg-primary/20 text-primary border-primary/50'
                           : isReady
-                            ? 'bg-green-500/20 text-green-400 border-green-500/50 shadow-[0_0_10px_rgba(74,222,128,0.2)]'
+                            ? 'bg-green-500/20 text-green-400 border-green-500/50'
                             : 'bg-slate-900 text-slate-500 border-white/5'
-                      }`}>
-                      {player.isHost ? (
-                        <>
-                          <span className="material-symbols-outlined text-[10px]">stars</span> 방장
-                        </>
-                      ) : isReady ? (
-                        <>
-                          <span className="material-symbols-outlined text-[10px]">check_circle</span> 레디
-                        </>
-                      ) : (
-                        'Standby'
-                      )}
+                        }`}>
+                      {player.isHost ? '방장' : isReady ? '레디' : 'Wait'}
                     </div>
                   )}
                 </div>
 
-                <div className="absolute top-3 left-3 text-[8px] font-mono text-primary/30 font-black">
-                  SLOT_0{index + 1}
+                <div className="absolute top-2 left-2 text-[7px] font-mono text-primary/30 font-black">
+                  #{String(index + 1).padStart(2, '0')}
                 </div>
               </div>
             );

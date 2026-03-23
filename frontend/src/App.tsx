@@ -8,6 +8,8 @@ import UserManagementPage from './pages/UserManagementPage';
 import WaitingRoomPage from './pages/WaitingRoomPage';
 import GamePage from './pages/GamePage';
 import HaliGaliPage from './pages/HaliGaliPage';
+import HangmanPage from './pages/HangmanPage';
+import HangmanResultPage from './pages/HangmanResultPage';
 import ResultPage from './pages/ResultPage';
 import { useGameLogic } from './hooks/useGameLogic';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
@@ -47,13 +49,16 @@ function AppContent() {
     fetchRooms,
     fetchRank,
     changeNickname,
+    hangmanStatus,
+    sendHangmanAction,
+    roomMaxPlayers,
   } = useGameLogic();
 
   const { isAuthenticated, isInitialLoading, user } = useAuth();
 
   // 로그인한 사용자의 닉네임을 기존 게임 로직에 연동
   useEffect(() => {
-    if (isAuthenticated && user && !nickname) {
+    if (isAuthenticated && user && nickname !== user.nickname) {
       enterLobby(user.nickname);
     }
   }, [isAuthenticated, user, nickname, enterLobby]);
@@ -61,14 +66,17 @@ function AppContent() {
   const statusToPath = (s: typeof status) => {
     switch (s) {
       case 'LOBBY':
-        return '/rooms'; 
+        return '/rooms';
       case 'ROOM_LIST':
         return '/rooms';
       case 'WAITING':
         return '/waiting';
       case 'PLAYING':
-        return gameType === 'HALLIGALLI' ? '/haligali' : '/game';
+        if (gameType === 'HALLIGALLI') return '/haligali';
+        if (gameType === 'HANGMAN') return '/hangman';
+        return '/game';
       case 'RESULT':
+        if (gameType === 'HANGMAN') return '/hangman-result';
         return '/result';
       default:
         return '/rooms';
@@ -162,6 +170,7 @@ function AppContent() {
               onLeave={leaveRoom}
               onToggleReady={toggleReady}
               onSendMessage={sendMessage}
+              maxPlayers={roomMaxPlayers}
             />
           ) : (
             <Navigate to={isAuthenticated ? currentPath : "/login"} replace />
@@ -209,9 +218,36 @@ function AppContent() {
         }
       />
       <Route
+        path="/hangman"
+        element={
+          isAuthenticated && status === 'PLAYING' && gameType === 'HANGMAN' ? (
+            <HangmanPage
+              status={hangmanStatus}
+              onGuess={sendHangmanAction}
+              myNickname={nickname}
+              logs={logs}
+              players={players}
+              onSendMessage={sendMessage}
+            />
+          ) : (
+            <Navigate to={isAuthenticated ? currentPath : "/login"} replace />
+          )
+        }
+      />
+      <Route
+        path="/hangman-result"
+        element={
+          isAuthenticated && status === 'RESULT' && gameType === 'HANGMAN' ? (
+            <HangmanResultPage rankings={players} onBackToLobby={returnToLobby} />
+          ) : (
+            <Navigate to={isAuthenticated ? currentPath : "/login"} replace />
+          )
+        }
+      />
+      <Route
         path="/result"
         element={
-          isAuthenticated && status === 'RESULT' ? (
+          isAuthenticated && status === 'RESULT' && gameType !== 'HANGMAN' ? (
             <ResultPage rankings={players} onBackToLobby={returnToLobby} />
           ) : (
             <Navigate to={isAuthenticated ? currentPath : "/login"} replace />

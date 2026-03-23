@@ -1,0 +1,140 @@
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { MemoryRouter } from 'react-router-dom';
+import SignupPage from './SignupPage';
+import { useAuth } from '../contexts/AuthContext';
+
+// useAuth 훅 모킹
+vi.mock('../contexts/AuthContext', async () => {
+  const actual = await vi.importActual('../contexts/AuthContext');
+  return {
+    ...actual,
+    useAuth: vi.fn(),
+  };
+});
+
+// useNavigate 모킹
+const mockNavigate = vi.fn();
+vi.mock('react-router-dom', async () => {
+  const actual = await vi.importActual('react-router-dom');
+  return {
+    ...actual,
+    useNavigate: () => mockNavigate,
+  };
+});
+
+describe('SignupPage 닉네임 중복 확인 기능', () => {
+  const mockCheckNickname = vi.fn();
+  const mockCheckId = vi.fn();
+  const mockSignup = vi.fn();
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    (useAuth as any).mockReturnValue({
+      signup: mockSignup,
+      checkId: mockCheckId,
+      checkNickname: mockCheckNickname,
+      isAuthenticated: false,
+      isInitialLoading: false,
+      user: null,
+    });
+  });
+
+  const setup = () => {
+    return render(
+      <MemoryRouter>
+        <SignupPage />
+      </MemoryRouter>
+    );
+  };
+
+  it('닉네임 입력 후 중복 확인 버튼을 클릭하면 로딩 상태가 표시되고 API가 호출되어야 한다', async () => {
+    // Given
+    mockCheckNickname.mockImplementation(() => new Promise((resolve) => setTimeout(() => resolve(false), 100)));
+    setup();
+    const nicknameInput = screen.getByPlaceholderText(/닉네임 입력/);
+    const checkButton = screen.getByRole('button', { name: /중복 확인/ });
+
+    // When
+    fireEvent.change(nicknameInput, { target: { value: 'testUser' } });
+    fireEvent.click(checkButton);
+
+    // Then
+    expect(checkButton).toHaveTextContent('확인 중...');
+    expect(mockCheckNickname).toHaveBeenCalledWith('testUser');
+
+    await waitFor(() => {
+      expect(checkButton).not.toHaveTextContent('확인 중...');
+    });
+  });
+
+  it('중복된 닉네임인 경우 에러 메시지가 출력되고 가입 버튼이 비활성화 상태여야 한다', async () => {
+    // Given
+    mockCheckNickname.mockResolvedValue(true); // true means duplicated
+    setup();
+    const nicknameInput = screen.getByPlaceholderText(/닉네임 입력/);
+    const checkButton = screen.getByRole('button', { name: /중복 확인/ });
+    const signupButton = screen.getByRole('button', { name: /계정 생성하기/ });
+
+    // When
+    fireEvent.change(nicknameInput, { target: { value: 'duplicateNick' } });
+    fireEvent.click(checkButton);
+
+    // Then
+    await waitFor(() => {
+      expect(screen.getByText('이미 사용 중인 닉네임입니다.')).toBeInTheDocument();
+    });
+    expect(signupButton).toBeDisabled();
+  });
+
+  it('사용 가능한 닉네임인 경우 성공 메시지가 출력되고, 아이디 중복 확인도 완료되었다면 가입 버튼이 활성화되어야 한다', async () => {
+    // Given
+    mockCheckNickname.mockResolvedValue(false); // false means not duplicated (available)
+    mockCheckId.mockResolvedValue(false); // available
+    setup();
+    
+    const nicknameInput = screen.getByPlaceholderText(/닉네임 입력/);
+    const idInput = screen.getByPlaceholderText(/아이디 입력/);
+    const checkButtons = screen.getAllByRole('button', { name: /중복 확인/ });
+    const nicknameCheckButton = checkButtons[0];
+    const idCheckButton = checkButtons[1];
+    const signupButton = screen.getByRole('button', { name: /계정 생성하기/ });
+
+    // When & Then - 닉네임 중복 확인
+    fireEvent.change(nicknameInput, { target: { value: 'newNick' } });
+    fireEvent.click(nicknameCheckButton);
+    
+    await waitFor(() => {
+      expect(screen.getByText('사용 가능한 닉네임입니다.')).toBeInTheDocument();
+    });
+    expect(signupButton).toBeDisabled(); // ID check not done yet
+
+    // When & Then - 아이디 중복 확인
+    fireEvent.change(idInput, { target: { value: 'newId' } });
+    fireEvent.click(idCheckButton);
+    
+    await waitFor(() => {
+      expect(screen.getByText('사용 가능한 아이디입니다.')).toBeInTheDocument();
+    });
+
+    // 최종적으로 가입 버튼 활성화 확인 (비밀번호 입력 여부와 무관하게 버튼 활성화 여부만 체크)
+    expect(signupButton).not.toBeDisabled();
+  });
+
+  it('닉네임 중복 확인 API 호출 중 에러가 발생하면 에러 메시지를 출력해야 한다', async () => {
+    // Given
+    mockCheckNickname.mockRejectedValue(new Error('API Error'));
+    setup();
+    const nicknameInput = screen.getByPlaceholderText(/닉네임 입력/);
+    const checkButton = screen.getByRole('button', { name: /중복 확인/ });
+
+    // When
+    fireEvent.change(nicknameInput, { target: { value: 'errorUser' } });
+    fireEvent.click(checkButton);
+
+    // Then
+    await waitFor(() => {
+      expect(screen.getByText('닉네임 중복 확인 중 오류가 발생했습니다.')).toBeInTheDocument();
+    });
+  });
+});

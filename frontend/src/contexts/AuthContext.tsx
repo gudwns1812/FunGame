@@ -6,6 +6,7 @@ interface AuthContextType extends AuthState {
   login: (loginId: string, password: string) => Promise<void>;
   signup: (loginId: string, password: string, nickname: string) => Promise<void>;
   checkId: (loginId: string) => Promise<boolean>;
+  checkNickname: (nickname: string) => Promise<boolean>;
   logout: () => Promise<void>;
   updateNickname: (newNickname: string) => Promise<void>;
   refreshUser: () => Promise<void>;
@@ -114,6 +115,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const checkNickname = async (nickname: string): Promise<boolean> => {
+    try {
+      const response = await axios.get(`/api/auth/check-nickname?nickname=${encodeURIComponent(nickname)}`);
+      if (response.data.result === 'SUCCESS') {
+        return response.data.data; // true면 중복, false면 사용 가능
+      }
+      throw new Error('중복 확인에 실패했습니다.');
+    } catch (error: any) {
+      throw new Error(error.response?.data?.error?.message || '중복 확인에 실패했습니다.');
+    }
+  };
+
   const updateNickname = async (newNickname: string) => {
     try {
       const response = await axios.patch('/api/auth/nickname', { nickname: newNickname });
@@ -150,7 +163,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   return (
-    <AuthContext.Provider value={{ ...authState, login, signup, checkId, logout, updateNickname, refreshUser }}>
+    <AuthContext.Provider value={{ ...authState, login, signup, checkId, checkNickname, logout, updateNickname, refreshUser }}>
       {children}
     </AuthContext.Provider>
   );

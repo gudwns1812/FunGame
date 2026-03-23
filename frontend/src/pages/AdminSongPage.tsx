@@ -16,10 +16,14 @@ const AdminSongPage: React.FC = () => {
   const [message, setMessage] = useState({ text: '', type: '' });
   const navigate = useNavigate();
 
+  // Duplicate Check States
+  const [isCheckingDuplicate, setIsCheckingDuplicate] = useState(false);
+  const [duplicateStatus, setDuplicateStatus] = useState<'idle' | 'available' | 'duplicate'>('idle');
+
   const categories = [
     { value: 'KPOP', label: 'K-POP' },
     { value: 'POP', label: 'POP' },
-    { value: 'BALLADE', label: '발라드' },
+    { value: 'BALLAD', label: '발라드' },
     { value: 'RAP', label: '랩/힙합' },
     { value: 'OST', label: 'OST' },
   ];
@@ -50,6 +54,30 @@ const AdminSongPage: React.FC = () => {
     }));
   };
 
+  const handleCheckDuplicate = async () => {
+    if (!formData.title.trim() || !formData.releaseDate) return;
+    setIsCheckingDuplicate(true);
+    try {
+      const response = await axios.get('/api/admin/songs', {
+        params: {
+          title: formData.title,
+          releaseDate: formData.releaseDate,
+        },
+      });
+      // response.data.data가 실제 중복 여부를 나타내는 boolean 값입니다.
+      if (response.data.data === true) {
+        setDuplicateStatus('duplicate');
+      } else {
+        setDuplicateStatus('available');
+      }
+    } catch (err) {
+      console.error('Duplicate check failed', err);
+      setDuplicateStatus('idle');
+    } finally {
+      setIsCheckingDuplicate(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.title || !formData.singer || formData.categories.length === 0 || formData.answers.length === 0) {
@@ -72,6 +100,7 @@ const AdminSongPage: React.FC = () => {
           answers: [],
           hint: '',
         });
+        setDuplicateStatus('idle'); // Reset duplicate status after successful submission
       }
     } catch (err) {
       if (axios.isAxiosError(err)) {
@@ -81,12 +110,12 @@ const AdminSongPage: React.FC = () => {
           setMessage({ text: '이미 등록된 노래입니다.', type: 'error' });
         } else {
           setMessage({
-            text: err.response?.data?.error?.message || '노래 등록 중 오류가 발생했습니다.',
+            text: '이미 등록된 노래입니다.',
             type: 'error',
           });
         }
       } else {
-        setMessage({ text: '노래 등록 중 오류가 발생했습니다.', type: 'error' });
+        setMessage({ text: '이미 등록된 노래입니다.', type: 'error' });
       }
     } finally {
       setIsLoading(false);
@@ -115,7 +144,7 @@ const AdminSongPage: React.FC = () => {
 
           <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* 제목 */}
-            <div className="space-y-2">
+            <div className="md:col-span-2 space-y-2">
               <label className="text-[10px] font-bold text-primary/70 uppercase tracking-widest pl-1">
                 노래 제목 (필수)
               </label>
@@ -124,7 +153,10 @@ const AdminSongPage: React.FC = () => {
                 className="w-full bg-slate-950 border border-primary/20 rounded-xl py-3 px-4 text-white focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all"
                 placeholder="노래 제목 입력"
                 value={formData.title}
-                onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                onChange={(e) => {
+                  setFormData({ ...formData, title: e.target.value });
+                  setDuplicateStatus('idle');
+                }}
               />
             </div>
 
@@ -142,21 +174,66 @@ const AdminSongPage: React.FC = () => {
               />
             </div>
 
-            {/* 발매일 */}
+            {/* 발매일 (중복 확인 기능 이동) */}
             <div className="space-y-2">
               <label className="text-[10px] font-bold text-primary/70 uppercase tracking-widest pl-1">
                 발매일 (YYYY-MM-DD)
               </label>
-              <input
-                type="date"
-                className="w-full bg-slate-950 border border-primary/20 rounded-xl py-3 px-4 text-white focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all"
-                value={formData.releaseDate}
-                onChange={(e) => setFormData({ ...formData, releaseDate: e.target.value })}
-              />
+              <div className="flex gap-2">
+                <input
+                  type="date"
+                  max="9999-12-31"
+                  className="flex-1 bg-slate-950 border border-primary/20 rounded-xl py-3 px-4 text-white focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all"
+                  value={formData.releaseDate}
+                  onChange={(e) => {
+                    if (e.target.value.length > 10) return;
+                    setFormData({ ...formData, releaseDate: e.target.value });
+                    setDuplicateStatus('idle');
+                  }}
+                  onPaste={(e) => {
+                    const pastedData = e.clipboardData.getData('text');
+                    const match = pastedData.match(/(\d{4})[./-](\d{1,2})[./-](\d{1,2})/);
+                    if (match) {
+                      e.preventDefault();
+                      const year = match[1];
+                      const month = match[2].padStart(2, '0');
+                      const day = match[3].padStart(2, '0');
+                      setFormData({ ...formData, releaseDate: `${year}-${month}-${day}` });
+                      setDuplicateStatus('idle');
+                    }
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={handleCheckDuplicate}
+                  disabled={!formData.title.trim() || !formData.releaseDate || isCheckingDuplicate}
+                  className="px-6 bg-slate-800 border border-white/10 rounded-xl font-bold hover:bg-slate-700 transition-colors disabled:opacity-50 text-xs whitespace-nowrap min-w-[100px] flex items-center justify-center">
+                  {isCheckingDuplicate ? (
+                    <span className="flex items-center gap-1">
+                      <span className="w-2 h-2 bg-primary rounded-full animate-pulse"></span>
+                      확인 중
+                    </span>
+                  ) : (
+                    '중복 확인'
+                  )}
+                </button>
+              </div>
+              {duplicateStatus === 'duplicate' && (
+                <p className="text-[10px] text-red-400 font-bold pl-1 animate-fade-in flex items-center gap-1">
+                  <span className="material-symbols-outlined text-[12px]">error</span>
+                  이미 등록된 노래입니다.
+                </p>
+              )}
+              {duplicateStatus === 'available' && (
+                <p className="text-[10px] text-green-400 font-bold pl-1 animate-fade-in flex items-center gap-1">
+                  <span className="material-symbols-outlined text-[12px]">check_circle</span>
+                  등록 가능한 노래입니다.
+                </p>
+              )}
             </div>
 
             {/* 힌트 */}
-            <div className="space-y-2">
+            <div className="md:col-span-2 space-y-2">
               <label className="text-[10px] font-bold text-primary/70 uppercase tracking-widest pl-1">
                 초성 힌트 (또는 기타)
               </label>
@@ -180,11 +257,10 @@ const AdminSongPage: React.FC = () => {
                     key={cat.value}
                     type="button"
                     onClick={() => handleCategoryToggle(cat.value)}
-                    className={`px-4 py-2 rounded-lg text-xs font-black transition-all border ${
-                      formData.categories.includes(cat.value)
+                    className={`px-4 py-2 rounded-lg text-xs font-black transition-all border ${formData.categories.includes(cat.value)
                         ? 'bg-primary text-background-dark border-primary'
                         : 'bg-slate-800 text-slate-400 border-white/5 hover:border-primary/30'
-                    }`}>
+                      }`}>
                     {cat.label}
                   </button>
                 ))}
@@ -194,7 +270,7 @@ const AdminSongPage: React.FC = () => {
             {/* 정답 추가 */}
             <div className="md:col-span-2 space-y-2">
               <label className="text-[10px] font-bold text-primary/70 uppercase tracking-widest pl-1">
-                정답 리스트 (복수 입력 가능)
+                정답 리스트 (복수 입력 가능) 영어는 반드시 소문자로 입력할것. 모든 정답은 띄어쓰기 금지.
               </label>
               <div className="flex gap-2 mb-3">
                 <input
@@ -232,11 +308,10 @@ const AdminSongPage: React.FC = () => {
             <div className="md:col-span-2 pt-4">
               {message.text && (
                 <div
-                  className={`p-4 rounded-xl text-xs font-bold flex items-center gap-2 mb-4 ${
-                    message.type === 'success'
+                  className={`p-4 rounded-xl text-xs font-bold flex items-center gap-2 mb-4 ${message.type === 'success'
                       ? 'bg-green-500/10 text-green-400 border border-green-500/20'
                       : 'bg-red-500/10 text-red-400 border border-red-500/20'
-                  }`}>
+                    }`}>
                   <span className="material-symbols-outlined text-sm">
                     {message.type === 'success' ? 'check_circle' : 'error'}
                   </span>

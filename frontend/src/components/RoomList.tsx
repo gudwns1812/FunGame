@@ -5,28 +5,31 @@ import { stripTag } from '../utils/stringUtils';
 interface RoomListProps {
   rooms: Room[];
   onJoinRoom: (room: Room) => void;
-  onCreateRoom: (title: string, maxPlayers: number, category: string, songCount: number, gameType: string) => void;
+  onCreateRoom: (
+    title: string,
+    maxPlayers: number,
+    category: string,
+    songCount: number,
+    gameType: string,
+    difficulty?: number,
+  ) => void;
   onRefreshRooms: () => void;
 }
 
-const RoomList: React.FC<RoomListProps> = ({
-  rooms,
-  onJoinRoom,
-  onCreateRoom,
-  onRefreshRooms,
-}) => {
+const RoomList: React.FC<RoomListProps> = ({ rooms, onJoinRoom, onCreateRoom, onRefreshRooms }) => {
   const [showCreate, setShowCreate] = useState(false);
   const [newRoomName, setNewRoomName] = useState('');
   const [maxPlayers, setMaxPlayers] = useState(8);
   const [songCount, setSongCount] = useState(10);
   const [category, setCategory] = useState('KPOP');
   const [gameType, setGameType] = useState('SONG');
+  const [difficulty, setDifficulty] = useState(3);
 
   const categories = [
     { value: 'TOTAL', label: '전체' },
     { value: 'KPOP', label: 'K-POP' },
     { value: 'POP', label: 'POP' },
-    { value: 'BALLADE', label: '발라드' },
+    { value: 'BALLAD', label: '발라드' },
     { value: 'RAP', label: '랩/힙합' },
     { value: 'OST', label: 'OST' },
   ];
@@ -34,6 +37,7 @@ const RoomList: React.FC<RoomListProps> = ({
   const gameTypes = [
     { value: 'SONG', label: '음악 퀴즈' },
     { value: 'CS', label: 'CS 퀴즈' },
+    { value: 'HANGMAN', label: '행맨' },
   ];
 
   const songCountOptions = [10, 20, 30, 40, 50, 60, 70, 80, 90, 100];
@@ -43,18 +47,35 @@ const RoomList: React.FC<RoomListProps> = ({
     if (gameType === 'CS') {
       setCategory('DEFAULT');
       if (songCount > 50) setSongCount(50);
+    } else if (gameType === 'HANGMAN') {
+      setCategory('DEFAULT');
+      setSongCount(1);
+      if (maxPlayers > 6) setMaxPlayers(6);
+    } else if (gameType === 'HALLIGALLI') {
+      setCategory('DEFAULT');
+      setSongCount(1);
     } else {
-      if (category === 'DEFAULT') {
+      if (category === 'DEFAULT' || category === 'DEFAULT') {
         setCategory('KPOP');
       }
     }
-  }, [gameType]);
+  }, [gameType, category, songCount, maxPlayers]);
 
-  const filteredSongCountOptions = gameType === 'CS' ? songCountOptions.filter(n => n <= 50) : songCountOptions;
+  const filteredSongCountOptions =
+    gameType === 'CS'
+      ? songCountOptions.filter((n) => n <= 50)
+      : gameType === 'HANGMAN' || gameType === 'HALLIGALLI'
+        ? [1]
+        : songCountOptions;
+
+  const filteredMaxPlayerOptions =
+    gameType === 'HANGMAN'
+      ? [2, 3, 4, 5, 6]
+      : [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
 
   return (
     <div className="w-full max-w-6xl flex flex-col gap-8">
-      {/* 상단 컨트롤 패널 */}
+      {/* ... (상단 컨트롤 패널 생략) */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
         <div className="space-y-2">
           <div className="inline-block px-3 py-1 bg-primary/10 border border-primary/30 rounded text-[10px] font-bold text-primary tracking-widest uppercase">
@@ -115,18 +136,30 @@ const RoomList: React.FC<RoomListProps> = ({
 
             <div className="space-y-2">
               <label className="block text-[10px] font-bold text-primary/70 uppercase tracking-widest">
-                장르/카테고리
+                장르/난이도
               </label>
               {gameType === 'CS' ? (
                 <div className="w-full bg-slate-900/50 border border-primary/10 rounded-lg p-3 text-primary/50 font-bold">
                   CS 종합
                 </div>
+              ) : gameType === 'HANGMAN' ? (
+                <div className="flex items-center gap-3 bg-slate-950 border border-primary/30 rounded-lg p-2.5">
+                  <input
+                    type="range"
+                    min="1"
+                    max="4"
+                    step="1"
+                    value={difficulty}
+                    onChange={(e) => setDifficulty(parseInt(e.target.value))}
+                    className="flex-1 accent-primary h-1.5 rounded-lg appearance-none cursor-pointer bg-slate-800"
+                  />
+                  <span className="text-primary font-black min-w-[1.5rem] text-center">{difficulty}</span>
+                </div>
               ) : (
                 <select
                   className="w-full bg-slate-950 border border-primary/30 rounded-lg p-3 text-white focus:border-primary outline-none appearance-none"
                   value={category}
-                  onChange={(e) => setCategory(e.target.value)}
-                >
+                  onChange={(e) => setCategory(e.target.value)}>
                   {categories.map((cat) => (
                     <option key={cat.value} value={cat.value} className="bg-background-dark">
                       {cat.label}
@@ -142,7 +175,7 @@ const RoomList: React.FC<RoomListProps> = ({
                 className="w-full bg-slate-950 border border-primary/30 rounded-lg p-3 text-white focus:border-primary outline-none appearance-none"
                 value={maxPlayers}
                 onChange={(e) => setMaxPlayers(parseInt(e.target.value))}>
-                {[2, 3, 4, 5, 6, 7, 8].map((n) => (
+                {filteredMaxPlayerOptions.map((n) => (
                   <option key={n} value={n} className="bg-background-dark">
                     {n}명
                   </option>
@@ -151,14 +184,16 @@ const RoomList: React.FC<RoomListProps> = ({
             </div>
 
             <div className="space-y-2">
-              <label className="block text-[10px] font-bold text-primary/70 uppercase tracking-widest">퀴즈 수</label>
+              <label className="block text-[10px] font-bold text-primary/70 uppercase tracking-widest">
+                {gameType === 'HANGMAN' || gameType === 'HALLIGALLI' ? '게임 방식' : '퀴즈 수'}
+              </label>
               <select
                 className="w-full bg-slate-950 border border-primary/30 rounded-lg p-3 text-white focus:border-primary outline-none appearance-none"
                 value={songCount}
                 onChange={(e) => setSongCount(parseInt(e.target.value))}>
                 {filteredSongCountOptions.map((n) => (
                   <option key={n} value={n} className="bg-background-dark">
-                    {n}문제
+                    {gameType === 'HANGMAN' || gameType === 'HALLIGALLI' ? '단판' : `${n}문제`}
                   </option>
                 ))}
               </select>
@@ -175,7 +210,7 @@ const RoomList: React.FC<RoomListProps> = ({
               className="px-8 py-2 bg-primary text-background-dark font-black rounded hover:bg-primary/90 transition-colors flex items-center gap-2"
               onClick={() => {
                 if (newRoomName.trim()) {
-                  onCreateRoom(newRoomName.trim(), maxPlayers, category, songCount, gameType);
+                  onCreateRoom(newRoomName.trim(), maxPlayers, category, songCount, gameType, difficulty);
                   setShowCreate(false);
                   setNewRoomName('');
                 }

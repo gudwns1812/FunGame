@@ -12,9 +12,9 @@ export const PLAYER_COLORS = [
 export const PLAYER_COLOR_INDEX_KEY = 'ums_playerColorIndex';
 
 /** 슬롯 번호 → 색상 HEX */
-export const getPlayerColor = (index: number | null | undefined): string => {
+export const getPlayerColor = (index: number | null | undefined): string | null => {
     if (index === null || index === undefined || index < 0 || index >= PLAYER_COLORS.length) {
-        return '#FFFFFF';
+        return null;
     }
     return PLAYER_COLORS[index];
 };

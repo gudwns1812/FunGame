@@ -2,7 +2,7 @@ import { useState, useCallback, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { Client } from '@stomp/stompjs';
 import SockJS from 'sockjs-client';
-import type { Player, GameStatus, Room, GameStartInfo, RoundEndInfo } from '../types/game';
+import type { Player, GameStatus, Room, GameStartInfo, RoundEndInfo, HangmanStatus } from '../types/game';
 import { stripTag } from '../utils/stringUtils';
 import { PLAYER_COLOR_INDEX_KEY } from '../utils/playerColor';
 
@@ -30,7 +30,9 @@ export const useGameLogic = () => {
   const [isHost, setIsHost] = useState(false);
   const [playerIndex, setPlayerIndex] = useState<number | null>(null);
   const [gameStartInfo, setGameStartInfo] = useState<GameStartInfo | null>(null);
+  const [roomMaxPlayers, setRoomMaxPlayers] = useState<number>(12);
   const [gameType, setGameType] = useState<string | null>(() => localStorage.getItem('ums_gameType'));
+  const gameTypeRef = useRef<string | null>(gameType);
   const [roundEndInfo, setRoundEndInfo] = useState<RoundEndInfo | null>(null);
   const [roundIndex, setRoundIndex] = useState<number>(0);
   const [isMusicStart, setIsMusicStart] = useState(false);
@@ -38,6 +40,7 @@ export const useGameLogic = () => {
   const [totalRound, setTotalRound] = useState<number>(0);
   const [hint, setHint] = useState<string>('');
   const [haliGaliStatus, setHaliGaliStatus] = useState<string[]>([]);
+  const [hangmanStatus, setHangmanStatus] = useState<HangmanStatus | null>(null);
   const [lastHaliGaliAction, setLastHaliGaliAction] = useState<any>(null);
   const [isBootstrapping, setIsBootstrapping] = useState(true);
   const [isCreatingRoom, setIsCreatingRoom] = useState(false);
@@ -49,7 +52,7 @@ export const useGameLogic = () => {
   // 제목없는 음원으로 미디어 플레이어 제목 가리기
 
   const stompClient = useRef<Client | null>(null);
-  const fetchRankRef = useRef<() => Promise<void>>(async () => {});
+  const fetchRankRef = useRef<() => Promise<void>>(async () => { });
 
   const addLog = useCallback((msg: string) => {
     setLogs((prev) => [...prev.slice(-49), msg]);
@@ -127,22 +130,45 @@ export const useGameLogic = () => {
           }
           break;
 
-        case 'CHAT':
-          addLog(`${stripTag(event.playerName)}: ${event.message}`);
+        case 'CHAT': {
+          const sender = event.playerName || event.player || '알 수 없음';
+          const msg = event.message || '';
+          addLog(`${stripTag(sender)}: ${msg}`);
           break;
+        }
 
         case 'GAME_START': {
           setStatus('PLAYING');
           setHint('');
           const normalizedGameType =
-            event.gameType === 'CS' ? 'CS' : event.gameType === 'HALLIGALLI' ? 'HALLIGALLI' : 'SONG';
+            event.gameType === 'CS'
+              ? 'CS'
+              : event.gameType === 'HALLIGALLI'
+                ? 'HALLIGALLI'
+                : event.gameType === 'HANGMAN'
+                  ? 'HANGMAN'
+                  : 'SONG';
           setGameType(normalizedGameType);
+          gameTypeRef.current = normalizedGameType;
           setGameStartInfo({
             gameType: normalizedGameType,
             category: event.category,
             songCount: event.songCount,
             message: event.message,
           });
+
+          // 행맨인 경우 즉시 초기 상태 설정 (로딩창 방지)
+          if (normalizedGameType === 'HANGMAN') {
+            setHangmanStatus({
+              currentDisplay: '',
+              wrongLetters: [],
+              remainingTries: 6,
+              currentTurnPlayer: '대기 중...',
+              isGameOver: false,
+              isWin: false,
+            });
+          }
+
           setLogs([]);
           break;
         }
@@ -165,7 +191,23 @@ export const useGameLogic = () => {
           setStatus('PLAYING');
           setHint('');
 
-          setCurrentVideoId(event.content);
+          if (gameTypeRef.current === 'HANGMAN') {
+            setHangmanStatus((prev) => {
+              if (prev && prev.currentTurnPlayer !== '대기 중...' && prev.currentTurnPlayer !== '불러오는 중...') {
+                return prev;
+              }
+              return {
+                currentDisplay: event.content || '',
+                wrongLetters: [],
+                remainingTries: 6,
+                currentTurnPlayer: '불러오는 중...',
+                isGameOver: false,
+                isWin: false,
+              };
+            });
+          } else {
+            setCurrentVideoId(event.content);
+          }
 
           setRoundEndInfo(null);
           setGameStartInfo(null);
@@ -200,33 +242,50 @@ export const useGameLogic = () => {
           fetchRankRef.current();
           break;
 
+        case 'HANGMAN_ACTION': {
+          const s = event.status;
+          setHangmanStatus({
+            currentDisplay: s[0],
+            wrongLetters: s[1] ? s[1].split(',') : [],
+            remainingTries: parseInt(s[2], 10),
+            currentTurnPlayer: s[3],
+            isGameOver: s[4] === 'true',
+            isWin: s[5] === 'true',
+          });
+          break;
+        }
+
         case 'GAME_RESULT': {
           setStatus('RESULT');
           setIsMusicStart(false);
           setHint('');
           setPlayerIndex(null);
           setGameStartInfo(null);
-          setGameType(null);
           setRoundEndInfo(null);
-          const finalRankings: Player[] = event.rankings
-            .split('\n')
-            .filter((line: string) => line.trim() !== '')
-            .map((line: string) => {
-              const colonIdx = line.lastIndexOf(':');
-              const name = line.substring(0, colonIdx).trim();
-              const score = parseInt(line.substring(colonIdx + 1).trim(), 10) || 0;
-              return { id: name, name, score, isHost: false, isReady: false };
-            });
-          setPlayers(finalRankings);
+
+          if (event.answer && event.score !== undefined) {
+            // 행맨 결과 처리
+            addLog(`[게임 종료] 정답: ${event.answer}`);
+            addLog(`[게임 종료] 최종 점수(남은 기회): ${event.score}`);
+            setPlayers([{ id: nickname, name: nickname, score: event.score, isHost: false, isReady: false }]);
+          } else if (event.rankings) {
+            // 기존 퀴즈 결과 처리
+            const finalRankings: Player[] = event.rankings
+              .split('\n')
+              .filter((line: string) => line.trim() !== '')
+              .map((line: string) => {
+                const colonIdx = line.lastIndexOf(':');
+                const name = line.substring(0, colonIdx).trim();
+                const score = parseInt(line.substring(colonIdx + 1).trim(), 10) || 0;
+                return { id: name, name, score, isHost: false, isReady: false };
+              });
+            setPlayers(finalRankings);
+          }
           break;
         }
-
-        case 'GAME_END':
-          setHint('');
-          break;
       }
     },
-    [addLog, nickname, roomId, fetchRoomUsers],
+    [addLog, nickname, roomId, fetchRoomUsers, gameType, status],
   );
 
   const handleEventRef = useRef(handleEvent);
@@ -286,6 +345,8 @@ export const useGameLogic = () => {
     setPlayerIndex(null);
     setGameStartInfo(null);
     setRoundEndInfo(null);
+    setGameType(null);
+    gameTypeRef.current = null;
     setHint('');
     setCurrentVideoId(''); // 비디오 아이디 초기화
     localStorage.removeItem('ums_currentVideoId'); // 로컬 스토리지도 함께 삭제
@@ -304,6 +365,8 @@ export const useGameLogic = () => {
     setPlayerIndex(null);
     setGameStartInfo(null);
     setRoundEndInfo(null);
+    setGameType(null);
+    gameTypeRef.current = null;
     setHint('');
     setCurrentVideoId(''); // 비디오 아이디 초기화
     localStorage.removeItem('ums_currentVideoId'); // 로컬 스토리지도 함께 삭제
@@ -416,6 +479,7 @@ export const useGameLogic = () => {
       try {
         const response = await axios.post(`/game/rooms/${room.id}/join`);
         if (response.data.result === 'SUCCESS') {
+          setRoomMaxPlayers(room.maxPlayers);
           const slotIndex = typeof response.data.data === 'number' ? response.data.data : null;
           if (slotIndex !== null) {
             localStorage.setItem(PLAYER_COLOR_INDEX_KEY, String(slotIndex));
@@ -463,7 +527,14 @@ export const useGameLogic = () => {
   );
 
   const createRoom = useCallback(
-    async (title: string, maxPlayers: number, category: string, songCount: number, gameType: string) => {
+    async (
+      title: string,
+      maxPlayers: number,
+      category: string,
+      songCount: number,
+      gameType: string,
+      difficulty?: number,
+    ) => {
       setIsCreatingRoom(true);
       try {
         const response = await axios.post('/game/rooms', {
@@ -472,9 +543,11 @@ export const useGameLogic = () => {
           category,
           totalRound: songCount,
           gameType,
+          difficulty,
         });
         if (response.data.result === 'SUCCESS') {
           const newRoomId = response.data.data;
+          setRoomMaxPlayers(maxPlayers);
           localStorage.setItem(PLAYER_COLOR_INDEX_KEY, '0');
           setMyColorIndex(0);
           clearLogs();
@@ -549,6 +622,7 @@ export const useGameLogic = () => {
             name: player,
             isHost: prevMap.get(player)?.isHost ?? false,
             isReady: prevMap.get(player)?.isReady ?? false,
+            colorIndex: prevMap.get(player)?.colorIndex,
             score,
           }));
         });
@@ -577,10 +651,24 @@ export const useGameLogic = () => {
       if (!roomId || !stompClient.current || !stompClient.current.connected) return;
       stompClient.current.publish({
         destination: `/publish/room/${roomId}/chat`,
-        // WebSocket 헤더는 여전히 닉네임이 필요할 수 있으나, 현재 백엔드 로직에 맞춰 유지
-        headers: { playerName: nickname }, 
-        body: message,
+        body: JSON.stringify({ message }),
       });
+    },
+    [roomId],
+  );
+
+  const sendHangmanAction = useCallback(
+    async (letter: string) => {
+      if (!roomId) return;
+      try {
+        await axios.post(`/game/rooms/${roomId}/action`, {
+          playerName: nickname,
+          type: 'SUBMIT_ANSWER',
+          value: letter,
+        });
+      } catch (error) {
+        console.error('Hangman action failed:', error);
+      }
     },
     [roomId, nickname],
   );
@@ -642,5 +730,8 @@ export const useGameLogic = () => {
     changeNickname,
     fetchRooms,
     fetchRank,
+    hangmanStatus,
+    sendHangmanAction,
+    roomMaxPlayers,
   };
 };
