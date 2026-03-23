@@ -1,0 +1,104 @@
+package com.fungame.songquiz.domain;
+
+import com.fungame.songquiz.support.error.CoreException;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+
+import java.util.List;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
+class HangmanGameTest {
+
+    private HangmanGame game;
+    private List<String> players;
+
+    @BeforeEach
+    void setUp() {
+        players = List.of("player1", "player2");
+        game = HangmanGame.create("APPLE");
+        game.initPlayers(players);
+    }
+
+    @Test
+    @DisplayName("정답 단어에 포함된 글자를 맞추면 표시 상태가 업데이트된다.")
+    void guess_correct_letter() {
+        // Given: player1의 턴
+        // When
+        ActionResult result = game.guess("player1", 'A');
+
+        // Then
+        assertThat(result).isEqualTo(ActionResult.ACTION_SUCCESS);
+        assertThat(game.getCurrentDisplay()).isEqualTo("A _ _ _ _");
+        assertThat(game.getCurrentTurnIndex()).isEqualTo(1); // 턴이 넘어감
+    }
+
+    @Test
+    @DisplayName("틀린 글자를 입력하면 기회가 차감되고 틀린 글자 목록에 추가된다.")
+    void guess_wrong_letter() {
+        // When
+        ActionResult result = game.guess("player1", 'Z');
+
+        // Then
+        assertThat(result).isEqualTo(ActionResult.ACTION_SUCCESS);
+        assertThat(game.getRemainingTries()).isEqualTo(5);
+        assertThat(game.getWrongLetters()).contains('Z');
+        assertThat(game.getCurrentTurnIndex()).isEqualTo(1);
+    }
+
+    @Test
+    @DisplayName("자신의 차례가 아닌 플레이어가 시도하면 예외가 발생한다.")
+    void guess_not_turn() {
+        // Given: player1의 턴일 때 player2가 시도
+        // Then
+        assertThatThrownBy(() -> game.guess("player2", 'A'))
+                .isInstanceOf(CoreException.class);
+    }
+
+    @Test
+    @DisplayName("이미 시도한 글자를 다시 시도하면 예외가 발생한다.")
+    void guess_already_attempted() {
+        // Given
+        game.guess("player1", 'A');
+        
+        // Then
+        assertThatThrownBy(() -> game.guess("player2", 'A'))
+                .isInstanceOf(CoreException.class);
+    }
+
+    @Test
+    @DisplayName("단어를 모두 완성하면 승리(CORRECT) 처리된다.")
+    void win_game() {
+        // Given
+        game.guess("player1", 'A');
+        game.guess("player2", 'P');
+        game.guess("player1", 'L');
+        
+        // When: 마지막 글자 'E' 입력
+        ActionResult result = game.guess("player2", 'E');
+
+        // Then
+        assertThat(result).isEqualTo(ActionResult.CORRECT);
+        assertThat(game.isGameWon()).isTrue();
+    }
+
+    @Test
+    @DisplayName("기회를 모두 소진하면 패배(WRONG) 처리된다.")
+    void lose_game() {
+        // Given: 5번의 틀린 시도
+        game.guess("player1", 'Z');
+        game.guess("player2", 'Y');
+        game.guess("player1", 'X');
+        game.guess("player2", 'W');
+        game.guess("player1", 'V');
+
+        // When: 마지막 6번째 틀린 시도
+        ActionResult result = game.guess("player2", 'U');
+
+        // Then
+        assertThat(result).isEqualTo(ActionResult.WRONG);
+        assertThat(game.getRemainingTries()).isZero();
+    }
+}
