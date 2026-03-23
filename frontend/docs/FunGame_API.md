@@ -7,11 +7,13 @@
 ## 📐 공통 규칙
 
 ### Base URL
+
 ```
 http://{서버주소}
 ```
 
 ### 모든 HTTP 응답 구조
+
 모든 REST API는 아래 형식으로 응답합니다.
 
 ```json
@@ -42,6 +44,7 @@ http://{서버주소}
 - **Request Body**: 없음
 
 **Response `data`**:
+
 ```json
 [
   {
@@ -54,13 +57,13 @@ http://{서버주소}
 ]
 ```
 
-| 필드 | 타입 | 설명 |
-|------|------|------|
-| `roomId` | `String` | 방 고유 ID (다른 API에서 `{roomId}`로 사용) |
-| `title` | `String` | 방 제목 |
-| `hostName` | `String` | 방장 닉네임 |
-| `maxPlayers` | `int` | 최대 입장 가능 인원 |
-| `currentPlayers` | `int` | 현재 입장한 인원 수 |
+| 필드             | 타입     | 설명                                        |
+| ---------------- | -------- | ------------------------------------------- |
+| `roomId`         | `String` | 방 고유 ID (다른 API에서 `{roomId}`로 사용) |
+| `title`          | `String` | 방 제목                                     |
+| `hostName`       | `String` | 방장 닉네임                                 |
+| `maxPlayers`     | `int`    | 최대 입장 가능 인원                         |
+| `currentPlayers` | `int`    | 현재 입장한 인원 수                         |
 
 ---
 
@@ -73,6 +76,7 @@ http://{서버주소}
 - **Request Header**: `Content-Type: application/json`
 
 **Request Body**:
+
 ```json
 {
   "title": "방 제목",
@@ -82,21 +86,23 @@ http://{서버주소}
 }
 ```
 
-| 필드 | 타입 | 필수 | 설명 |
-|------|------|------|------|
-| `title` | `String` | ✅ | 방 제목 |
-| `maxPlayers` | `int` | ✅ | 최대 인원 (예: 2~8) |
-| `hostName` | `String` | ✅ | 방장 닉네임 |
-| `category` | `String` | ✅ | 음악 카테고리 (아래 참고) |
+| 필드         | 타입     | 필수 | 설명                      |
+| ------------ | -------- | ---- | ------------------------- |
+| `title`      | `String` | ✅   | 방 제목                   |
+| `maxPlayers` | `int`    | ✅   | 최대 인원 (예: 2~8)       |
+| `hostName`   | `String` | ✅   | 방장 닉네임               |
+| `category`   | `String` | ✅   | 음악 카테고리 (아래 참고) |
 
 **`category` 가능한 값**:
+
 - `KPOP` - K-POP
 - `POP` - 팝
-- `BALLADE` - 발라드
+- `BALLAD` - 발라드
 - `RAP` - 랩/힙합
 - `OST` - OST
 
 **Response `data`**: `String` - 생성된 방의 ID
+
 ```json
 {
   "result": "SUCCESS",
@@ -117,6 +123,7 @@ http://{서버주소}
 - **Request Body**: 없음
 
 **Response `data`**: `null` (성공 여부만 확인)
+
 ```json
 {
   "result": "SUCCESS",
@@ -173,6 +180,7 @@ Protocol: STOMP over SockJS
 ```
 
 **연결 예시 (JavaScript)**:
+
 ```javascript
 const socket = new SockJS('/ws-quiz');
 const stompClient = Stomp.over(socket);
@@ -199,12 +207,9 @@ stompClient.connect({}, () => {
 - **Payload**: `String` (채팅 내용 또는 정답)
 
 **전송 예시**:
+
 ```javascript
-stompClient.send(
-  `/publish/room/${roomId}/chat`,
-  { nickname: '내닉네임' },
-  '노래 제목 정답'
-);
+stompClient.send(`/publish/room/${roomId}/chat`, { nickname: '내닉네임' }, '노래 제목 정답');
 ```
 
 ---
@@ -217,17 +222,17 @@ stompClient.send(
 ```javascript
 stompClient.subscribe(`/subscribe/room/${roomId}`, (message) => {
   const event = JSON.parse(message.body);
-  
+
   switch (event.type) {
-    case 'PLAYER_JOIN':    // 플레이어 입장
-    case 'PLAYER_LEAVE':   // 플레이어 퇴장
-    case 'HOST_CHANGE':    // 방장 변경
-    case 'CHAT':           // 채팅 메시지
-    case 'GAME_START':     // 게임 시작
-    case 'TIMER_TICK':     // 타이머 카운트다운
+    case 'PLAYER_JOIN': // 플레이어 입장
+    case 'PLAYER_LEAVE': // 플레이어 퇴장
+    case 'HOST_CHANGE': // 방장 변경
+    case 'CHAT': // 채팅 메시지
+    case 'GAME_START': // 게임 시작
+    case 'TIMER_TICK': // 타이머 카운트다운
     case 'CORRECT_ANSWER': // 정답 맞힘
-    case 'ROUND_TIMEOUT':  // 라운드 종료
-    case 'GAME_END':       // 게임 최종 종료
+    case 'ROUND_TIMEOUT': // 라운드 종료
+    case 'GAME_END': // 게임 최종 종료
   }
 });
 ```
@@ -298,8 +303,8 @@ stompClient.subscribe(`/subscribe/room/${roomId}`, (message) => {
 }
 ```
 
-| 필드 | 타입 | 설명 |
-|------|------|------|
+| 필드        | 타입  | 설명                          |
+| ----------- | ----- | ----------------------------- |
 | `songCount` | `int` | 이번 게임에서 출제될 총 곡 수 |
 
 ---
@@ -315,8 +320,8 @@ stompClient.subscribe(`/subscribe/room/${roomId}`, (message) => {
 }
 ```
 
-| 필드 | 타입 | 설명 |
-|------|------|------|
+| 필드               | 타입  | 설명                |
+| ------------------ | ----- | ------------------- |
 | `remainingSeconds` | `int` | 현재 라운드 남은 초 |
 
 ---
@@ -334,11 +339,11 @@ stompClient.subscribe(`/subscribe/room/${roomId}`, (message) => {
 }
 ```
 
-| 필드 | 타입 | 설명 |
-|------|------|------|
+| 필드       | 타입     | 설명                        |
+| ---------- | -------- | --------------------------- |
 | `nickname` | `String` | 정답을 맞힌 플레이어 닉네임 |
-| `answer` | `String` | 정답 내용 (곡 제목 등) |
-| `score` | `int` | 해당 라운드에서 획득한 점수 |
+| `answer`   | `String` | 정답 내용 (곡 제목 등)      |
+| `score`    | `int`    | 해당 라운드에서 획득한 점수 |
 
 ---
 
@@ -353,8 +358,8 @@ stompClient.subscribe(`/subscribe/room/${roomId}`, (message) => {
 }
 ```
 
-| 필드 | 타입 | 설명 |
-|------|------|------|
+| 필드            | 타입  | 설명                                   |
+| --------------- | ----- | -------------------------------------- |
 | `nextSongIndex` | `int` | 다음에 재생될 곡의 인덱스 (0부터 시작) |
 
 > ℹ️ `nextSongIndex`가 `songCount`보다 크거나 같으면 `GAME_END` 이벤트가 뒤따라 옵니다.
@@ -376,25 +381,26 @@ stompClient.subscribe(`/subscribe/room/${roomId}`, (message) => {
 }
 ```
 
-| 필드 | 타입 | 설명 |
-|------|------|------|
+| 필드       | 타입                   | 설명                       |
+| ---------- | ---------------------- | -------------------------- |
 | `rankings` | `Map<String, Integer>` | 닉네임: 최종점수 쌍의 객체 |
 
 ---
 
 ## ❗ 에러 코드
 
-| 코드 | 설명 | HTTP 상태 | 발생 상황 |
-|------|------|-----------|-----------|
-| `G001` | 방 인원 초과 | 400 | 방 입장 시 최대 인원 초과 |
-| `G002` | 방을 찾을 수 없음 | 400 | 존재하지 않는 `roomId`로 요청 |
-| `G003` | 방이 비어있음 | 400 | 플레이어 없이 게임 시작 시도 |
-| `G004` | 방장 권한 없음 | 403 | 방장이 아닌 사람이 게임 시작 시도 |
-| `G005` | 분산 락 획득 실패 | 500 | 동시에 여러 요청이 몰렸을 때 (재시도 권장) |
-| `G006` | 이미 게임 진행 중 | 400 | 이미 시작된 게임을 다시 시작 시도 |
-| `E500` | 서버 내부 오류 | 500 | 서버 예외 상황 |
+| 코드   | 설명              | HTTP 상태 | 발생 상황                                  |
+| ------ | ----------------- | --------- | ------------------------------------------ |
+| `G001` | 방 인원 초과      | 400       | 방 입장 시 최대 인원 초과                  |
+| `G002` | 방을 찾을 수 없음 | 400       | 존재하지 않는 `roomId`로 요청              |
+| `G003` | 방이 비어있음     | 400       | 플레이어 없이 게임 시작 시도               |
+| `G004` | 방장 권한 없음    | 403       | 방장이 아닌 사람이 게임 시작 시도          |
+| `G005` | 분산 락 획득 실패 | 500       | 동시에 여러 요청이 몰렸을 때 (재시도 권장) |
+| `G006` | 이미 게임 진행 중 | 400       | 이미 시작된 게임을 다시 시작 시도          |
+| `E500` | 서버 내부 오류    | 500       | 서버 예외 상황                             |
 
 **에러 응답 예시**:
+
 ```json
 {
   "result": "FAIL",

@@ -1,32 +1,27 @@
-# 회원가입 및 로그인 시스템 구축 TODO 리스트
+# 행맨(Hangman) 게임 난이도(diff 1-5) API 연동 Todo 리스트
 
-## Phase 1: 백엔드 인프라 및 DB 설계
-- [x] `backend/build.gradle`에 Spring Security 및 Session JDBC 의존성 추가
-- [x] `Member` 엔티티 설계 (loginId, password, nickname, role 등)
-- [x] `Role` Enum 클래스 생성 (MASTER, ADMIN, USER)
-- [x] `MemberRepository` 인터페이스 및 JPA 설정
-- [x] Spring Session JDBC 테이블 생성을 위한 설정 및 스키마 확인 (`application.yml`)
+## 1단계: 백엔드 단어 공급 시스템 고도화 (담당: backend-dev)
+- [ ] `HangmanWordProvider` 인터페이스 수정: `getWord(int difficulty)` 추가
+- [ ] `HangmanRandomWordApiProvider` 구현 (신규)
+    - [ ] `random-word-api` 호출 로직 구현
+        - [ ] URL: `https://random-word-api.herokuapp.com/word?number=1&diff={difficulty}`
+        - [ ] `difficulty`는 사용자로부터 전달받은 1~5 사이의 값 적용
+    - [ ] API 응답(JSON Array) 파싱 및 단어 추출 로직 구현
+- [ ] `HangmanWordReader` 수정: 사용자가 선택한 난이도를 공급자에게 전달하도록 변경
 
-## Phase 2: Spring Security 및 인증 비즈니스 로직
-- [x] `SecurityConfig` 클래스 구현 (BCrypt 설정, 세션 관리, API 접근 제어)
-- [x] `UserDetailsService` 구현 (DB 연동 사용자 정보 로드)
-- [x] `AuthService` 구현 (회원가입 로직, 로그인 처리, 비밀번호 암호화)
-- [x] `AuthController` 구현 (Signup, Login, Logout, Me API)
-- [x] 인증 관련 커스텀 예외 정의 (`ErrorType`, `ErrorCode` 추가)
+## 2단계: 게임 생성 및 시작 로직 수정 (담당: backend-dev, backend-security)
+- [ ] `HangmanGameService.startGame` 수정: 
+    - [ ] 클라이언트로부터 난이도(1-5) 수신
+    - [ ] `ErrorType.INVALID_INPUT_VALUE`를 이용한 난이도 범위(1-5) 검증 추가
+- [ ] 행맨 게임 시작 시 필요한 DTO 업데이트 (난이도 정보 포함)
 
-## Phase 3: 기존 인증 로직 리팩토링 (백엔드)
-- [x] `PlayerInterceptor` 클래스 제거 및 `WebConfig`에서 등록 해제
-- [x] `NickNameDecodeResolver` 수정 또는 제거 (SecurityContext 활용 방식으로 변경)
-- [x] 기존 컨트롤러(방 생성, 입장 등)에서 `playerName` 헤더 의존성 제거
+## 3단계: 프론트엔드 UI/UX 확장 (담당: frontend-builder)
+- [ ] 대기실/방 생성 UI 수정
+    - [ ] 행맨 게임 선택 시 **난이도 선택 UI (1~5 단계)** 추가
+    - [ ] 선택된 난이도 값을 로컬 상태로 관리
+- [ ] 게임 시작 요청 시 서버로 선택된 난이도(`diff`)를 파라미터로 전송
 
-## Phase 4: 프론트엔드 인증 페이지 및 로직
-- [x] `SignupPage.tsx` 구현 (닉네임, 아이디, 비밀번호 필드 및 유효성 검사)
-- [x] `LoginPage.tsx` 구현 (로그인 연동 및 에러 처리)
-- [x] `useAuth` 훅 또는 Auth Context 구현 (로그인 상태 전역 관리)
-- [x] `App.tsx` 라우팅 수정 및 Route Guard(인증 가드) 적용
-
-## Phase 5: 통합 및 검증
-- [x] Axios Interceptor 수정 (401 에러 발생 시 로그인 페이지 리다이렉트)
-- [x] 기존 API 호출 시 `playerName` 헤더 전송 로직 제거
-- [x] 회원가입 -> 로그인 -> 로비 -> 게임 진행 전체 플로우 통합 테스트
-- [x] 권한(Role)별 접근 제어 동작 검증 (MASTER, ADMIN, USER)
+## 4단계: 테스트 및 검증 (담당: backend-tdd, frontend-verifier)
+- [ ] **API 연동 단위 테스트**: `diff` 파라미터가 1~5일 때 각각 올바른 URL로 요청이 가는지 검증 (MockRestServiceServer 활용)
+- [ ] 프론트엔드 난이도 선택 UI 컴포넌트 테스트
+- [ ] 전체 게임 루프 최종 확인

@@ -1,23 +1,22 @@
-# 오케스트레이터 에이전트(Orchestrator) 생성 계획 (plan.md)
+# 행맨 게임 시작 시 로딩창 멈춤 현상 해결 계획
 
-## 1. 목적
-- 사용자의 복잡한 요구사항이나 계획(`plan.md`)을 분석하여, 현재 프로젝트에 정의된 전문 에이전트들에게 적절한 작업을 배분하고 전체 공정을 관리함.
-- 프론트엔드/백엔드/스킬 빌더 등 파편화된 전문 영역을 유기적으로 연결하여 개발 효율성 극대화.
+## 문제 원인 분석
+- **초기 상태 수신 부재**: 행맨 게임 시작 시 백엔드에서 `GameStartEvent`만 보내고, 초기 단어 상태(`_ _ _ _`), 남은 기회, 첫 번째 턴 플레이어 정보를 담은 `HangmanActionEvent`를 보내지 않음.
+- **게임 화면 전환 지연**: 프론트엔드의 `useGameLogic.ts`가 `ROUND_START` 이벤트를 수신해야 `status`를 `PLAYING`으로 변경하고 페이지를 전환하는데, 행맨은 단판 게임으로 설계되어 이 이벤트가 누락됨.
+- **프론트엔드 렌더링 조건**: `HangmanPage.tsx`에서 `hangmanStatus`가 `null`일 경우 로딩창을 띄우고 있어, 첫 액션이 발생하기 전까지 무한 로딩에 빠짐.
 
-## 2. 에이전트 정의: `orchestrator`
-- **역할**: 프로젝트 매니저(PM) 및 시스템 아키텍트.
-- **주요 임무**:
-    - 요구사항 분석 및 구현 계획 수립.
-    - 백엔드(`dev`, `tdd`, `security`, `reviewer`)와 프론트엔드(`builder`, `tester`, `refactorer`, `verifier`) 에이전트 할당.
-    - 작업 간의 의존성 관리 (예: 백엔드 API 구현 후 프론트엔드 연동).
-    - 최종 결과물의 통합 검토 및 프로세스 완결성 확인.
+## 해결 전략
+1. **백엔드 수정 (`HangmanGameService.java`)**:
+   - `startGame` 메서드에서 `GameStartEvent` 발행 직후, 초기 라운드 시작 알림(`RoundStartEvent`)과 초기 행맨 상태(`HangmanActionEvent`)를 발행하도록 수정. (완료)
+2. **프론트엔드 수정 (`useGameLogic.ts`)**:
+   - `ROUND_START` 이벤트 수신 시 `gameType`이 `HANGMAN`이라면, 서버의 `event.content`가 단어 표시 정보를 포함하고 있을 것이므로 이를 활용해 `hangmanStatus`를 최소한의 데이터로 초기화하여 로딩창을 걷어냄.
+   - 서버의 `HANGMAN_ACTION` 이벤트가 늦게 오더라도 화면이 즉시 전환되도록 보장.
 
-## 3. 작업 상세
-- **파일 경로**: `.gemini/agents/orchestrator-agent.md`
-- **워크플로우**:
-    1. **요구사항 분석**: 사용자의 입력을 분석하여 백엔드/프론트엔드/스킬 작업 여부 판단.
-    2. **전략 수립**: `plan.md`를 작성하거나 기존 계획을 바탕으로 단계별 작업 정의.
-    3. **에이전트 매핑**: 각 단계에 가장 적합한 전문 에이전트를 명시하여 위임 준비.
-    4. **진행 관리**: 작업 순서(Dependency)에 따라 에이전트들이 차례대로 투입될 수 있도록 가이드.
+## 세부 작업 단계
+1. `backend/src/main/java/com/fungame/songquiz/domain/HangmanGameService.java` 수정: (기존 작업 유지)
+2. `frontend/src/hooks/useGameLogic.ts` 수정:
+   - `ROUND_START` 핸들러 내에 행맨 초기화 로직 추가.
 
-위 계획에 대해 승인해 주시면 에이전트 파일을 생성하겠습니다.
+## 검증 계획
+- 단위 테스트를 통해 `startGame` 호출 시 필요한 3가지 이벤트(`GameStartEvent`, `RoundStartEvent`, `HangmanActionEvent`)가 모두 발행되는지 확인.
+- 프론트엔드에서 `/hangman` 경로로 정상 진입하여 초기 단어 상태와 "누구 차례입니다" 메시지가 바로 뜨는지 확인 (사용자 피드백 기반).
