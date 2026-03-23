@@ -138,7 +138,6 @@ public class GameServiceIntegrationTest {
         await().atMost(5, TimeUnit.SECONDS).untilAsserted(() -> {
             assertThat(eventCapture.getEvents(RoundEndEvent.class)).hasSize(2);
             assertThat(eventCapture.getEvents(GameResultEvent.class)).hasSize(1);
-            assertThat(eventCapture.getEvents(GameEndEvent.class)).hasSize(1);
         });
     }
 

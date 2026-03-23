@@ -1,23 +1,37 @@
 package com.fungame.songquiz.controller.api;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fungame.songquiz.controller.request.CreateRoomRequest;
 import com.fungame.songquiz.domain.GameRoomService;
 import com.fungame.songquiz.domain.GameRoomStatus;
 import com.fungame.songquiz.domain.GameService;
 import com.fungame.songquiz.domain.GameType;
 import com.fungame.songquiz.domain.dto.RoomInfo;
-import com.fungame.songquiz.support.RestDocsSupport;
+import com.fungame.songquiz.domain.member.Member;
+import com.fungame.songquiz.domain.member.MemberAdapter;
+import com.fungame.songquiz.domain.member.Role;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.springframework.core.MethodParameter;
 import org.springframework.http.MediaType;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.restdocs.RestDocumentationContextProvider;
+import org.springframework.restdocs.RestDocumentationExtension;
+import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+import org.springframework.web.bind.support.WebDataBinderFactory;
+import org.springframework.web.context.request.NativeWebRequest;
+import org.springframework.web.method.support.HandlerMethodArgumentResolver;
+import org.springframework.web.method.support.ModelAndViewContainer;
 
 import java.util.List;
 
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.mock;
 import static org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.document;
+import static org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.documentationConfiguration;
 import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.get;
 import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.post;
 import static org.springframework.restdocs.operation.preprocess.Preprocessors.*;
@@ -25,14 +39,36 @@ import static org.springframework.restdocs.request.RequestDocumentation.paramete
 import static org.springframework.restdocs.request.RequestDocumentation.pathParameters;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@WebMvcTest(GameController.class)
-class GameControllerTest extends RestDocsSupport {
+@ExtendWith(RestDocumentationExtension.class)
+class GameControllerTest {
 
-    @MockitoBean
-    private GameRoomService gameRoomService;
+    private MockMvc mockMvc;
+    private final GameRoomService gameRoomService = mock(GameRoomService.class);
+    private final GameService gameService = mock(GameService.class);
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
-    @MockitoBean
-    private GameService gameService;
+    @BeforeEach
+    void setUp(RestDocumentationContextProvider restDocumentation) {
+        this.mockMvc = MockMvcBuilders.standaloneSetup(new GameController(gameRoomService, gameService))
+                .apply(documentationConfiguration(restDocumentation))
+                .setCustomArgumentResolvers(new HandlerMethodArgumentResolver() {
+                    @Override
+                    public boolean supportsParameter(MethodParameter parameter) {
+                        return parameter.getParameterType().isAssignableFrom(MemberAdapter.class);
+                    }
+
+                    @Override
+                    public Object resolveArgument(MethodParameter parameter, ModelAndViewContainer mavContainer, NativeWebRequest webRequest, WebDataBinderFactory binderFactory) {
+                        return new MemberAdapter(Member.builder()
+                                .loginId("testUser")
+                                .password("password")
+                                .nickname("테스트유저")
+                                .role(Role.USER)
+                                .build());
+                    }
+                })
+                .build();
+    }
 
     @Test
     @DisplayName("방 목록을 조회한다.")

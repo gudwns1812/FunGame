@@ -15,8 +15,6 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.HttpStatusEntryPoint;
 import org.springframework.security.web.authentication.logout.HttpStatusReturningLogoutSuccessHandler;
-import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
-import org.springframework.security.web.context.SecurityContextRepository;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
@@ -28,7 +26,7 @@ import java.util.Arrays;
 @RequiredArgsConstructor
 public class SecurityConfig {
 
-    @Value("${cors.allowed-origins}")
+    @Value("${cors.allowed-origins:*}")
     private String[] allowedOrigins;
 
     @Bean
@@ -41,12 +39,12 @@ public class SecurityConfig {
         http
                 .csrf(AbstractHttpConfigurer::disable)
                 .cors(cors -> cors.configurationSource(corsConfigurationSource())) // Security 필터에서 CORS 처리
-                .securityContext(context -> context.securityContextRepository(securityContextRepository())) // 세션 저장소 명시적 설정
+                .securityContext(sessionManager -> sessionManager.requireExplicitSave(false))
                 .authorizeHttpRequests(auth -> auth
-                    .requestMatchers("/api/auth/signup", "/api/auth/login", "/api/auth/check-id", "/game/rooms", "/ws-stomp/**").permitAll()
-                    .requestMatchers("/api/admin/**", "/admin/**").hasAnyRole("ADMIN", "MASTER")
-                    .requestMatchers("/api/master/**", "/master/**").hasRole("MASTER")
-                    .anyRequest().authenticated()
+                        .requestMatchers("/api/auth/signup", "/api/auth/login", "/api/auth/check-id", "/api/auth/check-nickname", "/game/rooms", "/ws-stomp/**").permitAll()
+                        .requestMatchers("/api/admin/**", "/admin/**").hasAnyRole("ADMIN", "MASTER")
+                        .requestMatchers("/api/master/**", "/master/**").hasRole("MASTER")
+                        .anyRequest().authenticated()
                 )
                 .exceptionHandling(handler -> handler
                         .authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED))
@@ -82,10 +80,5 @@ public class SecurityConfig {
     public AuthenticationManager authenticationManager(AuthenticationConfiguration authenticationConfiguration)
             throws Exception {
         return authenticationConfiguration.getAuthenticationManager();
-    }
-
-    @Bean
-    public SecurityContextRepository securityContextRepository() {
-        return new HttpSessionSecurityContextRepository();
     }
 }

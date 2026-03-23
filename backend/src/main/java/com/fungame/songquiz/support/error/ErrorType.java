@@ -31,7 +31,11 @@ public enum ErrorType {
     NICKNAME_DUPLICATED(HttpStatus.BAD_REQUEST, ErrorCode.M003, "이미 사용 중인 닉네임입니다.", LogLevel.DEBUG),
     PASSWORD_NOT_MATCH(HttpStatus.BAD_REQUEST, ErrorCode.M004, "비밀번호가 일치하지 않습니다.", LogLevel.DEBUG),
     PROMOTION_ALREADY_PENDING(HttpStatus.BAD_REQUEST, ErrorCode.M005, "이미 진행 중인 승급 요청이 있습니다.", LogLevel.DEBUG),
-    PROMOTION_NOT_FOUND(HttpStatus.NOT_FOUND, ErrorCode.M006, "승급 요청을 찾을 수 없습니다.", LogLevel.WARN);
+    PROMOTION_NOT_FOUND(HttpStatus.NOT_FOUND, ErrorCode.M006, "승급 요청을 찾을 수 없습니다.", LogLevel.WARN),
+
+    HANGMAN_WORD_FETCH_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, ErrorCode.H001, "행맨 단어를 가져오는데 실패했습니다.", LogLevel.ERROR),
+    HANGMAN_ANSWER_EMPTY(HttpStatus.BAD_REQUEST, ErrorCode.H002, "행맨 정답 단어는 비어있을 수 없습니다.", LogLevel.DEBUG),
+    HANGMAN_PLAYER_EMPTY(HttpStatus.BAD_REQUEST, ErrorCode.H003, "행맨 플레이어가 존재해야 합니다.", LogLevel.DEBUG);
 
     private final HttpStatus status;
     private final ErrorCode code;

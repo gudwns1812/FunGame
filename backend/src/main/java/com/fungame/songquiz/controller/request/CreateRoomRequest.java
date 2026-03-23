@@ -5,6 +5,7 @@ import com.fungame.songquiz.domain.GameType;
 import com.fungame.songquiz.domain.gamecreator.CsQuizGameCreateInfo;
 import com.fungame.songquiz.domain.gamecreator.GameCreateInfo;
 import com.fungame.songquiz.domain.gamecreator.HaliGaliGameCreateInfo;
+import com.fungame.songquiz.domain.gamecreator.HangmanGameCreateInfo;
 import com.fungame.songquiz.domain.gamecreator.SongGameCreateInfo;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -21,12 +22,14 @@ public class CreateRoomRequest {
     private int maxPlayers;
     private Category category;
     private int totalRound;
+    private int difficulty;
 
     public GameCreateInfo toGameInfo() {
         return switch (gameType) {
             case SONG -> new SongGameCreateInfo(category, totalRound);
             case CS -> new CsQuizGameCreateInfo(totalRound);
             case HALLIGALLI -> new HaliGaliGameCreateInfo(totalRound);
+            case HANGMAN -> new HangmanGameCreateInfo(difficulty);
             case NONE -> null;
         };
     }

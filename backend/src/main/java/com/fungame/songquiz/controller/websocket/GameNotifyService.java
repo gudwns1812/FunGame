@@ -37,6 +37,21 @@ public class GameNotifyService {
     }
 
     @EventListener
+    public void handleHangmanAction(HangmanActionEvent event) {
+        log.info("Broadcasting Hangman action: {} by {} in room {}", event.letter(), event.playerName(), event.roomId());
+        String destination = "/subscribe/room/" + event.roomId();
+
+        Object payload = Map.of(
+                "type", "HANGMAN_ACTION",
+                "playerName", event.playerName(),
+                "letter", String.valueOf(event.letter()),
+                "result", event.result().name(),
+                "status", event.status().data()
+        );
+        messagingTemplate.convertAndSend(destination, ApiResponse.success(payload));
+    }
+
+    @EventListener
     public void handlePlayerJoin(PlayerJoinEvent event) {
         log.info("Broadcasting player join: {} in room {}", event.playerName(), event.roomId());
         String destination = "/subscribe/room/" + event.roomId();
@@ -173,16 +188,6 @@ public class GameNotifyService {
                 "type", "GAME_RESULT",
                 "rankings", builder.toString(),
                 "message", "5초 뒤 게임이 종료됩니다."
-        );
-        messagingTemplate.convertAndSend(destination, ApiResponse.success(payload));
-    }
-
-    @EventListener
-    public void handleGameEnd(GameEndEvent event) {
-        String destination = "/subscribe/room/" + event.roomId();
-
-        Object payload = Map.of(
-                "type", "GAME_END"
         );
         messagingTemplate.convertAndSend(destination, ApiResponse.success(payload));
     }

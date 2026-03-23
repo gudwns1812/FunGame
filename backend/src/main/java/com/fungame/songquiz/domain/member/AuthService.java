@@ -26,6 +26,11 @@ public class AuthService {
         return memberRepository.existsByLoginId(loginId);
     }
 
+    @Transactional(readOnly = true)
+    public boolean checkNicknameDuplicate(String nickname) {
+        return memberRepository.existsByNickname(nickname);
+    }
+
     @Transactional
     public Long signup(String loginId, String password, String nickname) {
         if (memberRepository.existsByLoginId(loginId)) {
@@ -65,6 +70,15 @@ public class AuthService {
                 .orElseThrow(() -> new CoreException(ErrorType.MEMBER_NOT_FOUND));
 
         member.changeNickname(newNickname);
+
+        // 현재 세션의 인증 정보 갱신
+        MemberAdapter newAdapter = new MemberAdapter(member);
+        Authentication newAuth = new UsernamePasswordAuthenticationToken(
+                newAdapter,
+                member.getPassword(),
+                newAdapter.getAuthorities()
+        );
+        SecurityContextHolder.getContext().setAuthentication(newAuth);
     }
 
     @Transactional(readOnly = true)

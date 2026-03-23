@@ -63,10 +63,6 @@ public class GameRoom {
         }
     }
 
-    public void end() {
-        status = GameRoomStatus.WAITING;
-    }
-
     public boolean isEmpty() {
         return players.getCurrentCount() == 0;
     }
@@ -81,6 +77,10 @@ public class GameRoom {
 
     public boolean isAllReady() {
         return players.isAllReady();
+    }
+
+    public void end() {
+        this.status = GameRoomStatus.FINISHED;
     }
 
     public static GameRoom create(String title, Game game, List<String> initialPlayers, int maxPlayer, String host) {

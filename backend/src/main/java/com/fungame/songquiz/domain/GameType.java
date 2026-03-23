@@ -1,6 +1,6 @@
 package com.fungame.songquiz.domain;
 
 public enum GameType {
-    SONG, CS, HALLIGALLI, NONE
+    SONG, CS, HALLIGALLI, HANGMAN, NONE
 }
 

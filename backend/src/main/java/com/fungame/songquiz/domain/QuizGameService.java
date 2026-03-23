@@ -112,7 +112,7 @@ public class QuizGameService implements GameService {
     public void handleAction(Long roomId, GameAction action) {
         GameSession gameSession = sessionManager.getGameSession(roomId);
         if (gameSession == null) {
-            throw new CoreException(ErrorType.GAME_NOT_FOUND);
+            return;
         }
 
         ActionResult result = gameSession.handleAction(action);

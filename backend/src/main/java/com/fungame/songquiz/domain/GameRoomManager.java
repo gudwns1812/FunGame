@@ -33,6 +33,10 @@ public class GameRoomManager {
         return gameRoom;
     }
 
+    public GameRoom findRoom(Long roomId) {
+        return getRoom(roomId);
+    }
+
     public Map<Long, GameRoom> getRooms() {
         return Map.copyOf(gameRooms);
     }
@@ -82,7 +86,6 @@ public class GameRoomManager {
 
     public void endGame(Long roomId) {
         lockContext.processWithLockKey(roomId, () -> {
-            getRoom(roomId).end();
             deleteRoom(roomId);
         });
     }

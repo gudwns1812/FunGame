@@ -8,6 +8,7 @@ import com.fungame.songquiz.support.extern.YoutubeScraper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -54,5 +55,12 @@ public class SongService {
                 .build();
 
         songRepository.save(newSong);
+    }
+
+    public boolean existSongQuiz(String title, LocalDate releaseDate) {
+        if (releaseDate == null) {
+            return songRepository.existsByTitleContaining(title);
+        }
+        return songRepository.existsByTitleContainingAndReleaseDate(title, releaseDate);
     }
 }

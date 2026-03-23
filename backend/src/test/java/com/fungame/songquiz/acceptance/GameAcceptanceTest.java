@@ -9,6 +9,9 @@ import com.fungame.songquiz.domain.GameService;
 import com.fungame.songquiz.domain.GameType;
 import com.fungame.songquiz.domain.gamecreator.GameCreateInfo;
 import com.fungame.songquiz.domain.gamecreator.SongGameCreateInfo;
+import com.fungame.songquiz.domain.member.Member;
+import com.fungame.songquiz.domain.member.MemberAdapter;
+import com.fungame.songquiz.domain.member.Role;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -16,9 +19,14 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.core.MethodParameter;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+import org.springframework.web.bind.support.WebDataBinderFactory;
+import org.springframework.web.context.request.NativeWebRequest;
+import org.springframework.web.method.support.HandlerMethodArgumentResolver;
+import org.springframework.web.method.support.ModelAndViewContainer;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -49,6 +57,22 @@ public class GameAcceptanceTest {
     void setUp() {
         mockMvc = MockMvcBuilders.standaloneSetup(gameController)
                 .setControllerAdvice(new ApiControllerAdvice())
+                .setCustomArgumentResolvers(new HandlerMethodArgumentResolver() {
+                    @Override
+                    public boolean supportsParameter(MethodParameter parameter) {
+                        return parameter.getParameterType().isAssignableFrom(MemberAdapter.class);
+                    }
+
+                    @Override
+                    public Object resolveArgument(MethodParameter parameter, ModelAndViewContainer mavContainer, NativeWebRequest webRequest, WebDataBinderFactory binderFactory) {
+                        return new MemberAdapter(Member.builder()
+                                .loginId("testUser")
+                                .password("password")
+                                .nickname("방장")
+                                .role(Role.USER)
+                                .build());
+                    }
+                })
                 .build();
     }
 
@@ -60,7 +84,6 @@ public class GameAcceptanceTest {
         request.put("gameType", "SONG");
         request.put("title", "테스트 방");
         request.put("maxPlayers", 5);
-        request.put("hostName", "방장");
         request.put("category", "KPOP");
         request.put("totalRound", 10);
 
@@ -73,7 +96,7 @@ public class GameAcceptanceTest {
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk());
 
-        verify(gameRoomService).createRoom(GameType.SONG, "테스트 방", 5, "방장", new SongGameCreateInfo(Category.KPOP, 10));
+        verify(gameRoomService).createRoom(eq(GameType.SONG), eq("테스트 방"), eq(5), eq("방장"), any(SongGameCreateInfo.class));
     }
 
     @Test
@@ -81,11 +104,10 @@ public class GameAcceptanceTest {
     void joinRoomTest() throws Exception {
         // when & then
         mockMvc.perform(post("/game/rooms/1/join")
-                        .header("playerName", "플레이어2")
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk());
 
-        verify(gameRoomService).joinRoom(1L, "플레이어2");
+        verify(gameRoomService).joinRoom(1L, "방장");
     }
 
     @Test
@@ -93,11 +115,10 @@ public class GameAcceptanceTest {
     void leaveRoomTest() throws Exception {
         // when & then
         mockMvc.perform(post("/game/rooms/1/leave")
-                        .header("playerName", "플레이어2")
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk());
 
-        verify(gameRoomService).leaveRoom(1L, "플레이어2");
+        verify(gameRoomService).leaveRoom(1L, "방장");
     }
 
     @Test
