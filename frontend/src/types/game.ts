@@ -31,10 +31,20 @@ export type GameEvent =
   | { type: 'ROUND_HINT'; hint: string }
   | { type: 'CORRECT_ANSWER'; playerName: string; answer: string; score: number }
   | { type: 'ROUND_END'; answer: string; winner: string }
-  | { type: 'GAME_RESULT'; rankings: string }
-  | { type: 'HALIGALI_ACTION'; playerName: string; actionType: string; result: string; status: string[] };
+  | { type: 'GAME_RESULT'; rankings: string; answer?: string; score?: number }
+  | { type: 'HALIGALI_ACTION'; playerName: string; actionType: string; result: string; status: string[] }
+  | { type: 'HANGMAN_ACTION'; playerName: string; letter: string; result: string; status: string[] };
 
 export type GameStatus = 'LOBBY' | 'ROOM_LIST' | 'WAITING' | 'PLAYING' | 'RESULT';
+
+export interface HangmanStatus {
+  currentDisplay: string;
+  wrongLetters: string[];
+  remainingTries: number;
+  currentTurnPlayer: string;
+  isGameOver: boolean;
+  isWin: boolean;
+}
 
 export interface HaliGaliPlayerInfo {
   nickname: string;
