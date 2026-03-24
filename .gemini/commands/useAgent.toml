@@ -1,0 +1,5 @@
+description = "orchestrator 에이전트를 호출하여 프로젝트 개발 및 관리를 진행합니다."
+prompt = """
+다음 사용자 요청을 처리하기 위해 'orchestrator' 에이전트를 호출하여 개발 및 공정 관리를 진행해줘:
+{{args}}
+"""
