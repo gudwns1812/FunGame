@@ -1,15 +1,34 @@
-# 작업 계획: 플레이어 색상 확장 (최대 12명)
+# README.md 작성 계획
 
 ## 1. 개요
-현재 `frontend/src/utils/playerColor.ts` 파일의 `PLAYER_COLORS` 배열에는 8명 분의 색상만 정의되어 있습니다. 최대 참가 인원이 12명이므로 4가지의 추가 색상을 정의하여 확장합니다. 
+현재 프로젝트(`FunGame`)의 전반적인 구조, 기술 스택, 주요 기능 및 실행 방법을 정리한 `README.md` 파일을 작성합니다.
 
-## 2. 변경 내용 및 대상 파일
-- `frontend/src/utils/playerColor.ts`
+## 2. 상세 작업 내용
+`README.md`에 포함될 주요 섹션은 다음과 같습니다:
 
-### 3. 상세 수정 내용
-1. `PLAYER_COLORS` 배열에 4가지 새로운 색상(HEX)을 추가합니다.
-   - 기존(8명): 빨, 주, 노, 초, 파, 남, 보, 검(회색 배경 대응)
-   - 추가(4명): 핑크(Pink), 청록(Cyan), 옐로우그린(Yellow Green), 브라운(Brown) 등 뚜렷하게 구별 가능한 색상을 추가합니다.
-2. 기존 로직인 `getPlayerColor` 함수는 배열의 길이(`PLAYER_COLORS.length`)에 의존하므로, 추가적인 로직 변경 없이 배열 요소 확장만으로 문제 없이 12명까지 지원이 가능합니다.
+1.  **프로젝트 제목 및 소개**
+    *   실시간 멀티플레이어 게임 플랫폼 `FunGame` 소개.
+2.  **주요 기능**
+    *   실시간 방 생성 및 입장 시스템.
+    *   플레이어 준비(Ready) 상태 관리 및 게임 시작 로직.
+    *   WebSocket 기반의 실시간 데이터 동기화.
+    *   네트워크 불안정 시를 위한 재접속(Re-entry) 및 세션 유지 기능.
+    *   게임 종료 후 결과 화면 및 대기실 복귀 시스템.
+3.  **기술 스택**
+    *   **Backend:** Java 17+, Spring Boot, Gradle, Spring Rest Docs.
+    *   **Frontend:** React, TypeScript, Vite, Vanilla CSS.
+    *   **Communication:** WebSocket (STOMP).
+4.  **프로젝트 구조**
+    *   모노레포 구조 (`backend/`, `frontend/`, `api/`, `docs/`) 설명.
+5.  **실행 방법**
+    *   백엔드 및 프론트엔드 실행을 위한 기본 명령어 가이드.
+6.  **개발 가이드라인**
+    *   `GEMINI.md`, `BACKEND.md`, `FRONTEND.md` 참조 안내.
 
-이 계획으로 변경 작업을 진행해도 될지 확인 부탁드립니다.
+## 3. 일정 및 절차
+1.  (현재) `plan.md` 작성 및 승인 요청.
+2.  `README.md` 초안 작성.
+3.  프로젝트 루트에 `README.md` 파일 생성.
+
+---
+위 계획에 대해 승인해 주시면 작업을 시작하겠습니다.
