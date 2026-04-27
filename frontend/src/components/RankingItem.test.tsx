@@ -26,7 +26,6 @@ describe('RankingItem', () => {
       <RankingItem
         player={mockPlayer}
         rank={1}
-        isFirst={false}
         isWinner={false}
         color="#25c0f4"
       />
@@ -42,7 +41,6 @@ describe('RankingItem', () => {
       <RankingItem
         player={mockPlayer}
         rank={1}
-        isFirst={false}
         isWinner={true}
         color="#25c0f4"
       />
@@ -50,20 +48,5 @@ describe('RankingItem', () => {
 
     const rankingItem = container.firstChild;
     expect(rankingItem).toHaveClass('animate-shimmer');
-  });
-
-  it('isFirst가 true일 때 특수한 스타일이 적용된다', () => {
-    render(
-      <RankingItem
-        player={mockPlayer}
-        rank={1}
-        isFirst={true}
-        isWinner={false}
-        color="#25c0f4"
-      />
-    );
-
-    const nameElement = screen.getByText('Player 1');
-    expect(nameElement).toHaveStyle({ color: '#ffffff' });
   });
 });

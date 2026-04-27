@@ -38,7 +38,6 @@ const RankingList: React.FC<RankingListProps> = ({ players, roundEndInfo }) => {
             key={p.id}
             player={p}
             rank={idx + 1}
-            isFirst={isFirst}
             isWinner={isWinner}
             color={color}
           />

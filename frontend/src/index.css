@@ -31,13 +31,25 @@
   .animate-shimmer {
     position: relative;
     overflow: hidden;
-    animation: shimmer-glow 1s ease-out forwards;
+    animation: shimmer-glow 1.5s ease-out forwards;
   }
 
+  /* 배경 플래시: 정답 시 밝아졌다가 다시 투명해짐 */
   @keyframes shimmer-glow {
     0% { background-color: rgba(37, 192, 244, 0); }
-    20% { background-color: rgba(37, 192, 244, 0.15); }
-    100% { background-color: rgba(37, 192, 244, 0); }
+    30% { background-color: rgba(37, 192, 244, 0.2); box-shadow: inset 0 0 15px rgba(37, 192, 244, 0.2); }
+    100% { background-color: rgba(37, 192, 244, 0); box-shadow: none; }
+  }
+
+  /* 텍스트 글로우: 하얗게 빛났다가 다시 원래 색상(--p-color)으로 복귀 */
+  .animate-shimmer .name-text {
+    animation: name-glow 1.5s ease-out forwards;
+  }
+
+  @keyframes name-glow {
+    0% { color: var(--p-color); text-shadow: none; }
+    30% { color: #ffffff; text-shadow: 0 0 10px var(--p-color); }
+    100% { color: var(--p-color); text-shadow: none; }
   }
 
   .animate-shimmer::after {
