@@ -3,6 +3,9 @@ import ReactPlayer from 'react-player';
 import type { Player, GameStartInfo, RoundEndInfo } from '../types/game';
 import { stripTag } from '../utils/stringUtils';
 import { getPlayerColor } from '../utils/playerColor';
+import RankingList from './RankingList';
+
+const CS_BACKGROUND_VIDEO_ID = 'U34kLXjdw90';
 
 interface GameProps {
   players: Player[];
@@ -42,6 +45,7 @@ const Game: React.FC<GameProps> = ({
   const logContainerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const progressPercent = Math.max(0, Math.min(100, (timeLeft / totalTime) * 100));
+  const playbackVideoId = gameType === 'CS' ? CS_BACKGROUND_VIDEO_ID : gameType === 'SONG' ? currentVideoId : '';
 
   useEffect(() => {
     onFetchRank();
@@ -74,8 +78,6 @@ const Game: React.FC<GameProps> = ({
       setAnswer('');
     }
   };
-
-  const sortedPlayers = [...players].sort((a, b) => b.score - a.score);
 
   const renderChatLog = (log: string, i: number) => {
     if (log.startsWith('[시스템]') || log.startsWith('[오류]')) {
@@ -120,24 +122,40 @@ const Game: React.FC<GameProps> = ({
 
   const renderSongPanel = () => {
     if (roundEndInfo) {
+      const explanation = roundEndInfo.explanation?.trim();
+      const shouldSplitRoundEnd = gameType === 'CS' && Boolean(explanation);
+
       return (
-        <div className="flex flex-col items-center justify-center gap-8 h-full p-12 text-center animate-in fade-in duration-500">
+        <div className="flex flex-col items-center justify-center gap-5 h-full px-12 pt-10 pb-28 text-center overflow-y-auto custom-scrollbar animate-in fade-in duration-500">
           <span className="material-symbols-outlined text-8xl text-green-400 drop-shadow-[0_0_20px_rgba(74,222,128,0.6)]">
             check_circle
           </span>
-          <div className="space-y-4">
+          <div className="w-full max-w-5xl space-y-4">
             <p className="text-sm text-green-400 uppercase tracking-[0.3em] font-bold">TARGET_IDENTIFIED</p>
-            <p className="text-4xl md:text-2xl font-semibold text-white tracking-tight uppercase drop-shadow-lg">
-              {roundEndInfo.answer}
-            </p>
+            <div className="grid gap-4 text-left">
+              <div className="rounded-3xl border border-green-400/30 bg-green-400/10 p-6 shadow-[0_0_25px_rgba(74,222,128,0.12)]">
+                <p className="text-xs font-bold uppercase tracking-[0.3em] text-green-300">정답</p>
+                <p className="mt-3 text-3xl font-semibold text-white tracking-tight break-keep whitespace-pre-wrap">
+                  {roundEndInfo.answer}
+                </p>
+              </div>
+              {shouldSplitRoundEnd ? (
+                <div className="rounded-3xl border border-sky-400/30 bg-sky-400/10 p-6 shadow-[0_0_25px_rgba(56,189,248,0.12)]">
+                  <p className="text-xs font-bold uppercase tracking-[0.3em] text-sky-300">해설</p>
+                  <p className="mt-3 text-base leading-7 text-slate-100 break-keep whitespace-pre-wrap">
+                    {explanation}
+                  </p>
+                </div>
+              ) : null}
+            </div>
           </div>
           {roundEndInfo.winner && roundEndInfo.winner !== '없음' ? (
-            <div className="mt-6 inline-flex items-center gap-4 bg-primary/10 border border-primary/30 px-8 py-4 rounded-full">
+            <div className="mt-2 inline-flex items-center gap-4 bg-primary/10 border border-primary/30 px-8 py-4 rounded-full">
               <span className="text-xs text-primary uppercase tracking-widest font-bold">맞춘 사람</span>
               <span className="text-2xl font-black text-white uppercase">{stripTag(roundEndInfo.winner)}</span>
             </div>
           ) : (
-            <div className="mt-6 inline-flex items-center gap-3 bg-red-500/10 border border-red-500/30 px-8 py-4 rounded-full">
+            <div className="mt-2 inline-flex items-center gap-3 bg-red-500/10 border border-red-500/30 px-8 py-4 rounded-full">
               <span className="text-sm font-bold text-red-400 uppercase tracking-widest">정답자 없음</span>
             </div>
           )}
@@ -246,31 +264,7 @@ const Game: React.FC<GameProps> = ({
             </div>
           </div>
 
-          <div className="flex-1 overflow-y-auto p-3 space-y-2 custom-scrollbar">
-            {sortedPlayers.map((p, idx) => {
-              const color = getPlayerColor(p.colorIndex ?? null) || '#25c0f4';
-              const isFirst = idx === 0 && p.score > 0;
-              return (
-                <div
-                  key={p.id}
-                  className={`flex justify-between items-center p-4 rounded-lg transition-all duration-300
-                    ${isFirst ? 'bg-primary/20 shadow-[inset_0_0_15px_rgba(37,192,244,0.2)]' : 'bg-slate-950/40 hover:bg-slate-800/60'}`}>
-                  <div className="flex items-center gap-4 min-w-0">
-                    <span className="text-xs font-mono font-bold opacity-40 shrink-0">#{idx + 1}</span>
-                    <span
-                      className="font-bold truncate uppercase text-sm"
-                      style={{
-                        color: isFirst ? '#ffffff' : color,
-                        textShadow: isFirst ? `0 0 10px ${color}` : 'none',
-                      }}>
-                      {stripTag(p.name)}
-                    </span>
-                  </div>
-                  <span className="font-mono font-bold text-white text-base shrink-0">{p.score}</span>
-                </div>
-              );
-            })}
-          </div>
+          <RankingList players={players} roundEndInfo={roundEndInfo} />
         </div>
       </div>
 
@@ -300,10 +294,10 @@ const Game: React.FC<GameProps> = ({
 
           {/* ✅ 단순화된 ReactPlayer: 가시성 문제 해결 및 기본 동작 확인 */}
           <div className="hidden">
-            {gameType === 'SONG' && (
+            {playbackVideoId && (
               <ReactPlayer
-                key={currentVideoId}
-                src={currentVideoId ? `https://www.youtube.com/watch?v=${currentVideoId}` : ''}
+                key={playbackVideoId}
+                src={`https://www.youtube.com/watch?v=${playbackVideoId}`}
                 playing={true}
                 controls={false}
                 width={0}
