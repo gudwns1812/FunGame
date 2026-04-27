@@ -31,6 +31,13 @@
   .animate-shimmer {
     position: relative;
     overflow: hidden;
+    animation: shimmer-glow 1s ease-out forwards;
+  }
+
+  @keyframes shimmer-glow {
+    0% { background-color: rgba(37, 192, 244, 0); }
+    20% { background-color: rgba(37, 192, 244, 0.15); }
+    100% { background-color: rgba(37, 192, 244, 0); }
   }
 
   .animate-shimmer::after {

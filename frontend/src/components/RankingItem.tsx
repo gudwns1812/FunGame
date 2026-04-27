@@ -20,7 +20,7 @@ const RankingItem: React.FC<RankingItemProps> = ({
   return (
     <div
       className={`flex justify-between items-center p-4 rounded-lg transition-all duration-300
-        ${isFirst ? 'bg-primary/20 shadow-[inset_0_0_15px_rgba(37,192,244,0.2)]' : 'bg-slate-950/40 hover:bg-slate-800/60'}
+        ${isFirst ? 'bg-slate-900/60' : 'bg-slate-950/40 hover:bg-slate-800/60'}
         ${isWinner ? 'animate-shimmer' : ''}`}
     >
       <div className="flex items-center gap-4 min-w-0">
