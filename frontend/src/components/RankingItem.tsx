@@ -29,7 +29,6 @@ const RankingItem: React.FC<RankingItemProps> = ({
           className="font-bold truncate uppercase text-sm"
           style={{
             color: isFirst ? '#ffffff' : color,
-            textShadow: isFirst ? `0 0 10px ${color}` : 'none',
           }}
         >
           {stripTag(player.name)}
