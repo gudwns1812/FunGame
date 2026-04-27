@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { Player, RoundEndInfo } from '../types/game';
+import type { Player, RoundEndInfo } from '../types/game';
 import RankingItem from './RankingItem';
 import { getPlayerColor } from '../utils/playerColor';
 import { stripTag } from '../utils/stringUtils';

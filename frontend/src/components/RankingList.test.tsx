@@ -5,7 +5,7 @@ import { render, screen, cleanup } from '@testing-library/react';
 import { describe, it, expect, afterEach } from 'vitest';
 import '@testing-library/jest-dom/vitest';
 import RankingList from './RankingList';
-import { Player, RoundEndInfo } from '../types/game';
+import type { Player, RoundEndInfo } from '../types/game';
 
 describe('RankingList', () => {
   afterEach(() => {

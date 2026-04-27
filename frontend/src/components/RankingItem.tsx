@@ -1,5 +1,5 @@
 import React from 'react';
-import { Player } from '../types/game';
+import type { Player } from '../types/game';
 import { stripTag } from '../utils/stringUtils';
 
 interface RankingItemProps {
