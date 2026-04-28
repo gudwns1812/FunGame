@@ -1,34 +1,36 @@
-# README.md 작성 계획
+# 랭킹 화면 뱃지 이미지 추가 계획
 
-## 1. 개요
-현재 프로젝트(`FunGame`)의 전반적인 구조, 기술 스택, 주요 기능 및 실행 방법을 정리한 `README.md` 파일을 작성합니다.
+## 1. 목표 (Goal)
+게임 결과 랭킹 리스트에서 1, 2, 3위 플레이어에게 각각 금, 은, 동 뱃지 이미지를 표시하여 시각적 효과를 강화합니다.
 
-## 2. 상세 작업 내용
-`README.md`에 포함될 주요 섹션은 다음과 같습니다:
+## 2. 배경 및 문맥 (Context)
+- 현재 랭킹 리스트(`RankingItem`)는 순위를 `#1`, `#2`와 같은 텍스트로만 표시하고 있습니다.
+- `frontend/src/images/` 디렉토리에 `first.png`, `second.png`, `third.png` 이미지가 준비되어 있습니다.
 
-1.  **프로젝트 제목 및 소개**
-    *   실시간 멀티플레이어 게임 플랫폼 `FunGame` 소개.
-2.  **주요 기능**
-    *   실시간 방 생성 및 입장 시스템.
-    *   플레이어 준비(Ready) 상태 관리 및 게임 시작 로직.
-    *   WebSocket 기반의 실시간 데이터 동기화.
-    *   네트워크 불안정 시를 위한 재접속(Re-entry) 및 세션 유지 기능.
-    *   게임 종료 후 결과 화면 및 대기실 복귀 시스템.
-3.  **기술 스택**
-    *   **Backend:** Java 17+, Spring Boot, Gradle, Spring Rest Docs.
-    *   **Frontend:** React, TypeScript, Vite, Vanilla CSS.
-    *   **Communication:** WebSocket (STOMP).
-4.  **프로젝트 구조**
-    *   모노레포 구조 (`backend/`, `frontend/`, `api/`, `docs/`) 설명.
-5.  **실행 방법**
-    *   백엔드 및 프론트엔드 실행을 위한 기본 명령어 가이드.
-6.  **개발 가이드라인**
-    *   `GEMINI.md`, `BACKEND.md`, `FRONTEND.md` 참조 안내.
+## 3. 핵심 변경 파일 (Key Files)
+- `frontend/src/components/RankingItem.tsx`: 순위에 따른 이미지 렌더링 로직 추가.
+- `frontend/src/components/RankingItem.test.tsx`: 뱃지 이미지 렌더링 여부를 검증하는 테스트 코드 추가.
 
-## 3. 일정 및 절차
-1.  (현재) `plan.md` 작성 및 승인 요청.
-2.  `README.md` 초안 작성.
-3.  프로젝트 루트에 `README.md` 파일 생성.
+## 4. 설계 및 아키텍처 결정 사항 (Design Decisions)
+- 순위(`rank` prop)가 1, 2, 3인 경우에만 해당 이미지를 렌더링합니다.
+- 이미지는 순위 텍스트(#rank) 대신 또는 옆에 표시하며, 적절한 크기(예: 24x24 또는 32x32)로 조정합니다.
+- `img` 태그의 `alt` 속성을 통해 접근성을 보장합니다.
 
----
-위 계획에 대해 승인해 주시면 작업을 시작하겠습니다.
+## 5. 테스트 전략 (Testing Strategy)
+- **TDD 실천**: 실제 구현 전, `RankingItem.test.tsx`에 1, 2, 3위일 때 이미지가 존재하는지 확인하는 테스트 케이스를 먼저 작성합니다.
+- `vitest`와 `React Testing Library`를 사용하여 DOM에 `img` 태그가 올바른 `src`와 함께 존재하는지 검증합니다.
+
+## 6. 구현 단계 (Implementation Steps)
+
+### 1단계: 테스트 코드 작성 (Red)
+1. `RankingItem.test.tsx`에 1위, 2위, 3위 플레이어 렌더링 시 이미지가 포함되는지 확인하는 테스트 추가.
+2. 테스트 실행 및 실패 확인.
+
+### 2단계: 기능 구현 (Green)
+1. `RankingItem.tsx`에서 이미지 파일들을 import.
+2. `rank` 값에 따라 이미지를 조건부 렌더링하는 로직 추가.
+3. CSS를 통한 레이아웃 조정.
+
+### 3단계: 검증 및 리팩토링 (Refactor)
+1. 테스트 재실행 및 통과 확인.
+2. 코드 가독성 및 스타일 최적화.
