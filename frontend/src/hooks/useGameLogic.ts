@@ -237,7 +237,12 @@ export const useGameLogic = () => {
 
         case 'ROUND_END':
           setHint('');
-          setRoundEndInfo({ answer: event.answer, winner: event.winner });
+          const isCsRound = gameTypeRef.current === 'CS';
+          setRoundEndInfo({
+            answer: event.answer,
+            explanation: isCsRound && event.explanation?.trim() ? event.explanation : null,
+            winner: event.winner,
+          });
 
           fetchRankRef.current();
           break;
@@ -461,6 +466,42 @@ export const useGameLogic = () => {
       console.error('Failed to fetch rooms:', error);
     }
   }, []);
+
+  // SSE 연결 및 방 목록 실시간 업데이트 로직
+  useEffect(() => {
+    if (status !== 'ROOM_LIST') return;
+
+    let debounceTimer: NodeJS.Timeout;
+    const debouncedFetchRooms = () => {
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => {
+        fetchRooms();
+      }, 300);
+    };
+
+    const sseUrl = `${import.meta.env.VITE_API_BASE_URL}/api/sse/rooms/subscribe`;
+    const eventSource = new EventSource(sseUrl, { withCredentials: true });
+
+    eventSource.addEventListener('room-update', (event) => {
+      if (event.data === 'REFRESH') {
+        debouncedFetchRooms();
+      }
+    });
+
+    eventSource.onopen = () => {
+      console.log('SSE connection opened');
+    };
+
+    eventSource.onerror = (error) => {
+      console.error('SSE connection failed:', error);
+      eventSource.close();
+    };
+
+    return () => {
+      eventSource.close();
+      clearTimeout(debounceTimer);
+    };
+  }, [status, fetchRooms]);
 
   useEffect(() => {
     if (status === 'ROOM_LIST') {

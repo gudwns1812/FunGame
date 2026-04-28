@@ -30,7 +30,7 @@ export type GameEvent =
   | { type: 'TIMER_TICK'; remainingSeconds: number }
   | { type: 'ROUND_HINT'; hint: string }
   | { type: 'CORRECT_ANSWER'; playerName: string; answer: string; score: number }
-  | { type: 'ROUND_END'; answer: string; winner: string }
+  | { type: 'ROUND_END'; answer: string; explanation?: string; winner: string }
   | { type: 'GAME_RESULT'; rankings: string; answer?: string; score?: number }
   | { type: 'HALIGALI_ACTION'; playerName: string; actionType: string; result: string; status: string[] }
   | { type: 'HANGMAN_ACTION'; playerName: string; letter: string; result: string; status: string[] };
@@ -64,5 +64,6 @@ export interface GameStartInfo {
 
 export interface RoundEndInfo {
   answer: string;
+  explanation?: string | null;
   winner: string | null;
 }
