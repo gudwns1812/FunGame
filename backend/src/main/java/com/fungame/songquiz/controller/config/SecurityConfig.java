@@ -41,7 +41,7 @@ public class SecurityConfig {
                 .cors(cors -> cors.configurationSource(corsConfigurationSource())) // Security 필터에서 CORS 처리
                 .securityContext(sessionManager -> sessionManager.requireExplicitSave(false))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/auth/signup", "/api/auth/login", "/api/auth/check-id", "/api/auth/check-nickname", "/ws-stomp/**").permitAll()
+                        .requestMatchers("/api/auth/signup", "/api/auth/login", "/api/auth/check-id", "/api/auth/check-nickname", "/ws-stomp/**", "/api/sse/rooms/**").permitAll()
                         .requestMatchers("/api/admin/**", "/admin/**").hasAnyRole("ADMIN", "MASTER")
                         .requestMatchers("/api/master/**", "/master/**").hasRole("MASTER")
                         .anyRequest().authenticated()

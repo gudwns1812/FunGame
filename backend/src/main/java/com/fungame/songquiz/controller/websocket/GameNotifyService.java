@@ -157,7 +157,8 @@ public class GameNotifyService {
 
         Object payload = Map.of(
                 "type", "ROUND_END",
-                "answer", event.answer().toString(),
+                "answer", event.answer().getAnswer(),
+                "explanation", event.answer().explanation(),
                 "winner", winnerName
         );
         messagingTemplate.convertAndSend(destination, ApiResponse.success(payload));

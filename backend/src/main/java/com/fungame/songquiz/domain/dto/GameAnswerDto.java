@@ -17,10 +17,16 @@ public record GameAnswerDto(
         return new GameAnswerDto(game, data);
     }
 
-    @Override
-    public String toString() {
+    public String explanation() {
+        if (data.size() <= 1) {
+            return "";
+        }
+        return String.join(" ", data.subList(1, data.size()));
+    }
+
+    public String getAnswer() {
         return switch (game) {
-            case ComputerScienceQuizGame cs -> String.join(", ", data);
+            case ComputerScienceQuizGame cs -> data.getFirst();
             default -> String.join(" ", data);
         };
     }

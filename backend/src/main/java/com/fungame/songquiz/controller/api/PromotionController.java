@@ -20,7 +20,7 @@ public class PromotionController {
 
     @PostMapping
     public ApiResponse<Void> requestPromotion(@AuthenticationPrincipal MemberAdapter user) {
-        promotionService.createPromotionRequest(user.getUsername());
+        promotionService.createPromotionRequest(user.getLoginId());
         return ApiResponse.success();
     }
 

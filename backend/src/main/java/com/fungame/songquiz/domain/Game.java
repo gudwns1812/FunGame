@@ -23,7 +23,7 @@ public interface Game {
 
     GameAnswerDto getAnswer();
 
-    void nextRound();
+    void startRound();
 
     boolean isLast();
 

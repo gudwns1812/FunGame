@@ -89,7 +89,6 @@ public class QuizGameService implements GameService {
         }
 
         log.info("라운드 종료");
-        gameSession.endRound();
         timer.startAfter(roomId, 3, () -> startRound(roomId));
     }
 

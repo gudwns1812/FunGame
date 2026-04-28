@@ -96,13 +96,13 @@ public class HaliGaliGame implements Game {
 
         Deque<Card> deck = playerDecks.get(playerName);
         if (deck.isEmpty()) {
-            nextRound();
+            startRound();
             return ActionResult.WRONG;
         }
 
         Card card = deck.pollFirst();
         openCards.get(playerName).addFirst(card);
-        nextRound();
+        startRound();
         return ActionResult.CORRECT;
     }
 
@@ -111,7 +111,7 @@ public class HaliGaliGame implements Game {
     }
 
     @Override
-    public void nextRound() {
+    public void startRound() {
         resetRoundState();
         int initialRound = currentRound;
         do {

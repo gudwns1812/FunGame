@@ -5,6 +5,7 @@ import com.fungame.songquiz.domain.dto.RoomInfo;
 import com.fungame.songquiz.domain.event.PlayerJoinEvent;
 import com.fungame.songquiz.domain.event.PlayerLeaveEvent;
 import com.fungame.songquiz.domain.event.PlayerReadyEvent;
+import com.fungame.songquiz.domain.event.RoomChangedEvent;
 import com.fungame.songquiz.domain.gamecreator.GameCreateInfo;
 import com.fungame.songquiz.storage.CounterEntity;
 import com.fungame.songquiz.storage.CounterRepository;
@@ -42,6 +43,7 @@ public class GameRoomService {
         counter.increment();
 
         gameRoomManager.createGameRoom(counter.getCount(), title, game, hostName, maxPlayers);
+        applicationEventPublisher.publishEvent(new RoomChangedEvent());
         return counter.getCount();
     }
 

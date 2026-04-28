@@ -35,11 +35,6 @@ public class GameSession {
         return game.startProcessing();
     }
 
-    public void endRound() {
-        game.nextRound();
-        game.resetRoundState();
-    }
-
     public GameContentDto getContent() {
         return game.getStatus();
     }
@@ -49,6 +44,7 @@ public class GameSession {
     }
 
     public void startRound() {
+        game.startRound();
         game.resetRoundState();
     }
 

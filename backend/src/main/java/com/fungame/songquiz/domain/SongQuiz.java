@@ -13,7 +13,7 @@ public class SongQuiz extends AbstractQuizGame {
 
     private final List<Song> songs;
     private final Category gameCategory;
-    private final AtomicInteger currentIdx = new AtomicInteger(0);
+    private final AtomicInteger currentIdx = new AtomicInteger(-1);
 
     public SongQuiz(List<Song> songs, Category gameCategory) {
         super(null);
@@ -52,7 +52,7 @@ public class SongQuiz extends AbstractQuizGame {
     }
 
     @Override
-    public void nextRound() {
+    public void startRound() {
         currentIdx.incrementAndGet();
     }
 

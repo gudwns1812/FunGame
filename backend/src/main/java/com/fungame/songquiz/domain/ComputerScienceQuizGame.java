@@ -10,7 +10,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class ComputerScienceQuizGame extends AbstractQuizGame {
 
     private final List<ComputerScienceQuiz> quizs;
-    private final AtomicInteger currentIdx = new AtomicInteger(0);
+    private final AtomicInteger currentIdx = new AtomicInteger(-1);
 
     public ComputerScienceQuizGame(List<ComputerScienceQuiz> quizs) {
         super(null);
@@ -48,7 +48,7 @@ public class ComputerScienceQuizGame extends AbstractQuizGame {
     }
 
     @Override
-    public void nextRound() {
+    public void startRound() {
         currentIdx.incrementAndGet();
     }
 

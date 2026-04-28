@@ -1,11 +1,13 @@
 package com.fungame.songquiz.domain;
 
 import com.fungame.songquiz.domain.dto.PlayersInfo;
+import com.fungame.songquiz.domain.event.RoomChangedEvent;
 import com.fungame.songquiz.support.error.CoreException;
 import com.fungame.songquiz.support.error.ErrorType;
 import com.fungame.songquiz.support.lock.LockContext;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
@@ -21,6 +23,7 @@ import java.util.concurrent.ConcurrentHashMap;
 public class GameRoomManager {
     private final Map<Long, GameRoom> gameRooms = new ConcurrentHashMap<>();
     private final LockContext lockContext;
+    private final ApplicationEventPublisher applicationEventPublisher;
 
     private static final long MAX_IDLE_MINUTES = 30;
 
@@ -74,6 +77,7 @@ public class GameRoomManager {
     private void deleteRoom(Long roomId) {
         gameRooms.remove(roomId);
         lockContext.deleteLock(roomId);
+        applicationEventPublisher.publishEvent(new RoomChangedEvent());
     }
 
     public GameRoom startGame(Long roomId, String nickname) {

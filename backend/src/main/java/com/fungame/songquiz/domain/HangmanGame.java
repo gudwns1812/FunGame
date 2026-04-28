@@ -3,7 +3,6 @@ package com.fungame.songquiz.domain;
 import com.fungame.songquiz.domain.dto.GameAnswerDto;
 import com.fungame.songquiz.domain.dto.GameContentDto;
 import com.fungame.songquiz.domain.dto.GameInfo;
-import com.fungame.songquiz.domain.dto.HangmanStatusDto;
 import com.fungame.songquiz.support.error.CoreException;
 import com.fungame.songquiz.support.error.ErrorType;
 import lombok.Getter;
@@ -153,13 +152,14 @@ public class HangmanGame extends AbstractQuizGame {
     public GameInfo getGameInfo() {
         return new GameInfo(getType().name(), "Hangman", DEFAULT_TRIES);
     }
+
     @Override
     public GameAnswerDto getAnswer() {
         return new GameAnswerDto(this, List.of(answer));
     }
 
     @Override
-    public void nextRound() {
+    public void startRound() {
         // 단판 게임이므로 별도 구현 없음
     }
 

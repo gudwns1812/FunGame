@@ -40,7 +40,7 @@ public class PromotionService {
     public void approveRequest(Long requestId) {
         PromotionRequest request = promotionRequestRepository.findById(requestId)
                 .orElseThrow(() -> new CoreException(ErrorType.PROMOTION_NOT_FOUND));
-        
+
         request.approve();
     }
 
@@ -48,7 +48,7 @@ public class PromotionService {
     public void rejectRequest(Long requestId) {
         PromotionRequest request = promotionRequestRepository.findById(requestId)
                 .orElseThrow(() -> new CoreException(ErrorType.PROMOTION_NOT_FOUND));
-        
+
         request.reject();
     }
 
@@ -56,7 +56,7 @@ public class PromotionService {
     public PromotionStatus getCurrentStatus(String loginId) {
         Member member = memberRepository.findByLoginId(loginId)
                 .orElseThrow(() -> new CoreException(ErrorType.MEMBER_NOT_FOUND));
-        
+
         return promotionRequestRepository.findTopByMemberOrderByCreatedAtDesc(member)
                 .map(PromotionRequest::getStatus)
                 .orElse(null);
