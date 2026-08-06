@@ -31,6 +31,7 @@ export const useGameLogic = () => {
   const [playerIndex, setPlayerIndex] = useState<number | null>(null);
   const [gameStartInfo, setGameStartInfo] = useState<GameStartInfo | null>(null);
   const [roomMaxPlayers, setRoomMaxPlayers] = useState<number>(12);
+  const [roomName, setRoomName] = useState<string>(() => localStorage.getItem('ums_roomName') || '');
   const [gameType, setGameType] = useState<string | null>(() => localStorage.getItem('ums_gameType'));
   const gameTypeRef = useRef<string | null>(gameType);
   const [roundEndInfo, setRoundEndInfo] = useState<RoundEndInfo | null>(null);
@@ -344,6 +345,7 @@ export const useGameLogic = () => {
       stompClient.current.deactivate();
     }
     setRoomId(null);
+    setRoomName('');
     setStatus('ROOM_LIST');
     setPlayers([]);
     setIsHost(false);
@@ -364,6 +366,7 @@ export const useGameLogic = () => {
       stompClient.current.deactivate();
     }
     setRoomId(null);
+    setRoomName('');
     setStatus('ROOM_LIST');
     setPlayers([]);
     setIsHost(false);
@@ -386,7 +389,12 @@ export const useGameLogic = () => {
     } else {
       localStorage.removeItem('ums_roomId');
     }
-  }, [status, roomId]);
+    if (roomName) {
+      localStorage.setItem('ums_roomName', roomName);
+    } else {
+      localStorage.removeItem('ums_roomName');
+    }
+  }, [status, roomId, roomName]);
 
   useEffect(() => {
     const bootstrap = async () => {
@@ -521,6 +529,7 @@ export const useGameLogic = () => {
         const response = await axios.post(`/game/rooms/${room.id}/join`);
         if (response.data.result === 'SUCCESS') {
           setRoomMaxPlayers(room.maxPlayers);
+          setRoomName(room.name);
           const slotIndex = typeof response.data.data === 'number' ? response.data.data : null;
           if (slotIndex !== null) {
             localStorage.setItem(PLAYER_COLOR_INDEX_KEY, String(slotIndex));
@@ -554,6 +563,7 @@ export const useGameLogic = () => {
         const redirectRoomId = error?.response?.data?.data?.redirectRoomId ?? error?.response?.data?.redirectRoomId;
         if (httpStatus === 409 && redirectRoomId) {
           setRoomId(redirectRoomId);
+          setRoomName('');
           setIsHost(false);
           setStatus('PLAYING');
           setPlayers([{ id: nickname, name: nickname, isHost: false, isReady: false, score: 0 }]);
@@ -589,6 +599,7 @@ export const useGameLogic = () => {
         if (response.data.result === 'SUCCESS') {
           const newRoomId = response.data.data;
           setRoomMaxPlayers(maxPlayers);
+          setRoomName(title);
           localStorage.setItem(PLAYER_COLOR_INDEX_KEY, '0');
           setMyColorIndex(0);
           clearLogs();
@@ -774,5 +785,6 @@ export const useGameLogic = () => {
     hangmanStatus,
     sendHangmanAction,
     roomMaxPlayers,
+    roomName,
   };
 };

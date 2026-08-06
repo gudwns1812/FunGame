@@ -70,6 +70,7 @@ function AppContent() {
     hangmanStatus,
     sendHangmanAction,
     roomMaxPlayers,
+    roomName,
   } = useGameLogic();
 
   const { isAuthenticated, isInitialLoading, user } = useAuth();
@@ -177,6 +178,7 @@ function AppContent() {
               onToggleReady={toggleReady}
               onSendMessage={sendMessage}
               maxPlayers={roomMaxPlayers}
+              roomName={roomName}
             />
           ) : (
             <Navigate to={isAuthenticated ? currentPath : "/login"} replace />
