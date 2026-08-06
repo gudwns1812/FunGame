@@ -25,6 +25,22 @@ interface GameProps {
   logs: string[];
 }
 
+/**
+ * 해설이 길면 라운드 사이에 읽히지 않으므로 마침표 기준 앞 1~2문장만 보여준다.
+ * (숫자 소수점을 자르지 않도록 마침표 뒤 공백이 있을 때만 문장으로 끊는다)
+ */
+const summarizeExplanation = (text: string, maxSentences = 2) => {
+  const sentences = text
+    .split(/(?<=[.!?])\s+/)
+    .map((s) => s.trim())
+    .filter(Boolean);
+
+  return {
+    text: sentences.slice(0, maxSentences).join(' '),
+    omitted: sentences.length > maxSentences,
+  };
+};
+
 /** 노래 재생 중 표시용 이퀄라이저 */
 const Equalizer: React.FC = () => (
   <div className="flex items-end gap-2 h-20">
@@ -98,34 +114,66 @@ const Game: React.FC<GameProps> = ({
     if (roundEndInfo) {
       const explanation = roundEndInfo.explanation?.trim();
       const shouldSplitRoundEnd = gameType === 'CS' && Boolean(explanation);
+      const summary = explanation ? summarizeExplanation(explanation) : null;
 
+      // CS는 서버가 허용 정답 여러 개를 쉼표로 이어 보내므로(ComputerScienceQuiz.getAnswer) 나눠서 표시한다
+      const answerList =
+        gameType === 'CS'
+          ? roundEndInfo.answer
+              .split(',')
+              .map((a) => a.trim())
+              .filter(Boolean)
+          : [roundEndInfo.answer];
+      const [mainAnswer, ...otherAnswers] = answerList.length > 0 ? answerList : [roundEndInfo.answer];
+
+      // justify-center 로 중앙정렬하면 넘친 콘텐츠의 위쪽이 스크롤로도 접근이 안 되므로 m-auto 로 중앙정렬한다
       return (
-        <div className="h-full scroll-y custom-scrollbar p-5 sm:p-7 flex flex-col items-center justify-center gap-4 text-center animate-pop">
-          <span className="px-chip px-chip-grass text-xs">정답 공개</span>
+        <div className="h-full scroll-y custom-scrollbar p-4 sm:p-5 flex flex-col animate-pop">
+          <div className="m-auto flex flex-col items-center gap-3 text-center w-full">
+            <span className="px-chip px-chip-grass text-xs">정답 공개</span>
 
-          <div className="w-full max-w-3xl space-y-3">
-            <div className="px-inset p-4">
-              <p className="px-label mb-2">정답</p>
-              <p className="px-title text-2xl sm:text-3xl break-keep whitespace-pre-wrap leading-snug">
-                {roundEndInfo.answer}
-              </p>
-            </div>
+            {/* 넓은 화면에서는 정답과 해설을 좌우로 나눠 높이를 아낀다 */}
+            <div className="w-full max-w-4xl flex flex-col lg:flex-row gap-3">
+              {/* 정답: 체리레드로 강조해 해설과 확실히 구분 */}
+              <div
+                className={`border-2 border-cherry bg-[#ffeceb] p-4 ${
+                  shouldSplitRoundEnd ? 'lg:w-[38%] lg:shrink-0' : 'mx-auto w-full max-w-lg'
+                }`}>
+                <p className="px-label text-cherry mb-2">정답</p>
+                <p className="px-title text-2xl sm:text-3xl break-keep whitespace-pre-wrap leading-snug">
+                  {mainAnswer}
+                </p>
 
-            {shouldSplitRoundEnd ? (
-              <div className="px-inset p-4 text-left">
-                <p className="px-label mb-2">해설</p>
-                <p className="text-sm leading-6 break-keep whitespace-pre-wrap">{explanation}</p>
+                {otherAnswers.length > 0 && (
+                  <div className="mt-3 flex flex-wrap justify-center gap-1.5">
+                    {otherAnswers.map((alt) => (
+                      <span key={alt} className="px-chip text-[11px]">
+                        {alt}
+                      </span>
+                    ))}
+                  </div>
+                )}
               </div>
-            ) : null}
-          </div>
 
-          {roundEndInfo.winner && roundEndInfo.winner !== '없음' ? (
-            <div className="px-chip px-chip-cherry gap-2 px-3 py-1.5 text-xs">
-              맞춘 사람 <span className="px-title text-sm text-white">{stripTag(roundEndInfo.winner)}</span>
+              {shouldSplitRoundEnd && summary ? (
+                <div className="px-inset p-4 text-left flex-1 min-w-0">
+                  <p className="px-label mb-2">해설</p>
+                  <p className="text-sm leading-6 break-keep whitespace-pre-wrap text-ink-soft">
+                    {summary.text}
+                    {summary.omitted ? ' …' : ''}
+                  </p>
+                </div>
+              ) : null}
             </div>
-          ) : (
-            <div className="px-chip gap-2 px-3 py-1.5 text-xs">정답자 없음</div>
-          )}
+
+            {roundEndInfo.winner && roundEndInfo.winner !== '없음' ? (
+              <div className="px-chip px-chip-cherry gap-2 px-3 py-1.5 text-xs">
+                맞춘 사람 <span className="px-title text-sm text-white">{stripTag(roundEndInfo.winner)}</span>
+              </div>
+            ) : (
+              <div className="px-chip gap-2 px-3 py-1.5 text-xs">정답자 없음</div>
+            )}
+          </div>
         </div>
       );
     }
@@ -133,11 +181,13 @@ const Game: React.FC<GameProps> = ({
     /* CS 퀴즈: 문제 텍스트 */
     if (gameType === 'CS' && currentVideoId) {
       return (
-        <div className="h-full scroll-y custom-scrollbar p-6 sm:p-10 flex flex-col items-center justify-center gap-4 text-center">
-          <span className="px-chip px-chip-sea text-xs">CS 퀴즈</span>
-          <p className="px-title text-xl sm:text-2xl leading-relaxed max-w-3xl break-keep whitespace-pre-wrap">
-            {currentVideoId}
-          </p>
+        <div className="h-full scroll-y custom-scrollbar p-6 sm:p-8 flex flex-col">
+          <div className="m-auto flex flex-col items-center gap-4 text-center">
+            <span className="px-chip px-chip-sea text-xs">CS 퀴즈</span>
+            <p className="px-title text-xl sm:text-2xl leading-relaxed max-w-3xl break-keep whitespace-pre-wrap">
+              {currentVideoId}
+            </p>
+          </div>
         </div>
       );
     }
@@ -215,8 +265,8 @@ const Game: React.FC<GameProps> = ({
         </span>
       </div>
 
-      {/* 문제 영역 + 순위 */}
-      <div className="flex-1 min-h-0 flex gap-3">
+      {/* 문제 영역 + 순위: 화면 높이의 일부만 쓰고 남은 공간은 로그에 넘긴다 (작은 노트북 대응) */}
+      <div className="shrink-0 flex gap-3 h-[38vh] min-h-[190px] max-h-[560px]">
         {/* h-[550px]는 기존 테스트가 참조하는 클래스라 유지하고, 실제 높이는 부모(행) 높이를 따르게 한다 */}
         <div className="px-card flex-1 min-w-0 h-[550px] min-h-full max-h-full relative overflow-hidden">
           {renderSongPanel()}
@@ -268,7 +318,7 @@ const Game: React.FC<GameProps> = ({
         </div>
 
         {/* 실시간 순위 */}
-        <div className="px-card w-[190px] sm:w-[230px] shrink-0 flex flex-col overflow-hidden">
+        <div className="px-card w-[150px] sm:w-[230px] shrink-0 flex flex-col overflow-hidden">
           <div className="px-head shrink-0">
             <span>순위</span>
             <span className="num text-ink-soft">{players.length}명</span>
@@ -277,8 +327,8 @@ const Game: React.FC<GameProps> = ({
         </div>
       </div>
 
-      {/* 로그 + 정답 입력 (주관식) */}
-      <div className="px-card shrink-0 h-[28vh] min-h-[150px] flex flex-col overflow-hidden">
+      {/* 로그 + 정답 입력 (주관식) — 남은 높이를 모두 차지한다 */}
+      <div className="px-card flex-1 min-h-[130px] flex flex-col overflow-hidden">
         <div className="px-head shrink-0">
           <span>진행 로그</span>
           <span className="px-label text-[10px]">엔터로 바로 입력</span>
