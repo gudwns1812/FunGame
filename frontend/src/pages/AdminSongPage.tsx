@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import TopBar from '../components/layout/TopBar';
 
 const AdminSongPage: React.FC = () => {
   const [formData, setFormData] = useState({
@@ -123,212 +124,180 @@ const AdminSongPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background-dark text-white p-6 relative overflow-hidden">
-      <div className="absolute inset-0 grid-overlay opacity-10 pointer-events-none"></div>
+    <div className="app-frame">
+      <TopBar
+        title="노래 추가"
+        onLogoClick={() => navigate('/rooms')}
+        right={
+          <button onClick={() => navigate('/rooms')} className="px-btn px-btn-sm px-btn-paper">
+            ◀ 로비
+          </button>
+        }
+      />
 
-      <div className="max-w-3xl mx-auto relative z-10 animate-fade-in">
-        <button
-          onClick={() => navigate('/rooms')}
-          className="flex items-center gap-2 text-primary hover:text-primary/80 transition-colors mb-8 font-bold uppercase tracking-widest text-xs">
-          <span className="material-symbols-outlined text-sm">arrow_back</span>
-          로비로 돌아가기
-        </button>
-
-        <div className="panel-border bg-slate-900/80 backdrop-blur-xl p-8 md:p-10 rounded-3xl shadow-2xl space-y-8">
-          <div className="border-b border-white/10 pb-6">
-            <h1 className="text-3xl font-black tracking-tighter uppercase mb-1">
-              <span className="text-primary">노래 추가</span>
-            </h1>
-            <p className="text-slate-400 text-sm font-medium uppercase tracking-widest">새로운 노래 퀴즈 추가</p>
-          </div>
-
-          <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* 제목 */}
-            <div className="md:col-span-2 space-y-2">
-              <label className="text-[10px] font-bold text-primary/70 uppercase tracking-widest pl-1">
-                노래 제목 (필수)
-              </label>
-              <input
-                type="text"
-                className="w-full bg-slate-950 border border-primary/20 rounded-xl py-3 px-4 text-white focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all"
-                placeholder="노래 제목 입력"
-                value={formData.title}
-                onChange={(e) => {
-                  setFormData({ ...formData, title: e.target.value });
-                  setDuplicateStatus('idle');
-                }}
-              />
+      <main className="flex-1 min-h-0 scroll-y custom-scrollbar p-4 sm:p-6">
+        <form onSubmit={handleSubmit} className="w-full max-w-3xl mx-auto flex flex-col gap-4 animate-pop">
+          {/* 기본 정보 */}
+          <div className="px-card">
+            <div className="px-head">
+              <span>노래 정보</span>
             </div>
 
-            {/* 가수 */}
-            <div className="space-y-2">
-              <label className="text-[10px] font-bold text-primary/70 uppercase tracking-widest pl-1">
-                가수 명 (필수)
-              </label>
-              <input
-                type="text"
-                className="w-full bg-slate-950 border border-primary/20 rounded-xl py-3 px-4 text-white focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all"
-                placeholder="가수 이름 입력"
-                value={formData.singer}
-                onChange={(e) => setFormData({ ...formData, singer: e.target.value })}
-              />
-            </div>
-
-            {/* 발매일 (중복 확인 기능 이동) */}
-            <div className="space-y-2">
-              <label className="text-[10px] font-bold text-primary/70 uppercase tracking-widest pl-1">
-                발매일 (YYYY-MM-DD)
-              </label>
-              <div className="flex gap-2">
-                <input
-                  type="date"
-                  max="9999-12-31"
-                  className="flex-1 bg-slate-950 border border-primary/20 rounded-xl py-3 px-4 text-white focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all"
-                  value={formData.releaseDate}
-                  onChange={(e) => {
-                    if (e.target.value.length > 10) return;
-                    setFormData({ ...formData, releaseDate: e.target.value });
-                    setDuplicateStatus('idle');
-                  }}
-                  onPaste={(e) => {
-                    const pastedData = e.clipboardData.getData('text');
-                    const match = pastedData.match(/(\d{4})[./-](\d{1,2})[./-](\d{1,2})/);
-                    if (match) {
-                      e.preventDefault();
-                      const year = match[1];
-                      const month = match[2].padStart(2, '0');
-                      const day = match[3].padStart(2, '0');
-                      setFormData({ ...formData, releaseDate: `${year}-${month}-${day}` });
-                      setDuplicateStatus('idle');
-                    }
-                  }}
-                />
-                <button
-                  type="button"
-                  onClick={handleCheckDuplicate}
-                  disabled={!formData.title.trim() || !formData.releaseDate || isCheckingDuplicate}
-                  className="px-6 bg-slate-800 border border-white/10 rounded-xl font-bold hover:bg-slate-700 transition-colors disabled:opacity-50 text-xs whitespace-nowrap min-w-[100px] flex items-center justify-center">
-                  {isCheckingDuplicate ? (
-                    <span className="flex items-center gap-1">
-                      <span className="w-2 h-2 bg-primary rounded-full animate-pulse"></span>
-                      확인 중
-                    </span>
-                  ) : (
-                    '중복 확인'
-                  )}
-                </button>
-              </div>
-              {duplicateStatus === 'duplicate' && (
-                <p className="text-[10px] text-red-400 font-bold pl-1 animate-fade-in flex items-center gap-1">
-                  <span className="material-symbols-outlined text-[12px]">error</span>
-                  이미 등록된 노래입니다.
-                </p>
-              )}
-              {duplicateStatus === 'available' && (
-                <p className="text-[10px] text-green-400 font-bold pl-1 animate-fade-in flex items-center gap-1">
-                  <span className="material-symbols-outlined text-[12px]">check_circle</span>
-                  등록 가능한 노래입니다.
-                </p>
-              )}
-            </div>
-
-            {/* 힌트 */}
-            <div className="md:col-span-2 space-y-2">
-              <label className="text-[10px] font-bold text-primary/70 uppercase tracking-widest pl-1">
-                초성 힌트 (또는 기타)
-              </label>
-              <input
-                type="text"
-                className="w-full bg-slate-950 border border-primary/20 rounded-xl py-3 px-4 text-white focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all"
-                placeholder="예: ㄴㄹㅈㅅ"
-                value={formData.hint}
-                onChange={(e) => setFormData({ ...formData, hint: e.target.value })}
-              />
-            </div>
-
-            {/* 카테고리 선택 */}
-            <div className="md:col-span-2 space-y-2">
-              <label className="text-[10px] font-bold text-primary/70 uppercase tracking-widest pl-1">
-                카테고리 (필수 선택)
-              </label>
-              <div className="flex flex-wrap gap-2">
-                {categories.map((cat) => (
-                  <button
-                    key={cat.value}
-                    type="button"
-                    onClick={() => handleCategoryToggle(cat.value)}
-                    className={`px-4 py-2 rounded-lg text-xs font-black transition-all border ${formData.categories.includes(cat.value)
-                        ? 'bg-primary text-background-dark border-primary'
-                        : 'bg-slate-800 text-slate-400 border-white/5 hover:border-primary/30'
-                      }`}>
-                    {cat.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* 정답 추가 */}
-            <div className="md:col-span-2 space-y-2">
-              <label className="text-[10px] font-bold text-primary/70 uppercase tracking-widest pl-1">
-                정답 리스트 (복수 입력 가능) 영어는 반드시 소문자로 입력할것. 모든 정답은 띄어쓰기 금지.
-              </label>
-              <div className="flex gap-2 mb-3">
+            <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div className="md:col-span-2">
+                <label className="px-label block mb-1.5">노래 제목 (필수)</label>
                 <input
                   type="text"
-                  className="flex-1 bg-slate-950 border border-primary/20 rounded-xl py-3 px-4 text-white focus:border-primary outline-none transition-all"
+                  className="px-input"
+                  placeholder="노래 제목 입력"
+                  value={formData.title}
+                  onChange={(e) => {
+                    setFormData({ ...formData, title: e.target.value });
+                    setDuplicateStatus('idle');
+                  }}
+                />
+              </div>
+
+              <div>
+                <label className="px-label block mb-1.5">가수 명 (필수)</label>
+                <input
+                  type="text"
+                  className="px-input"
+                  placeholder="가수 이름 입력"
+                  value={formData.singer}
+                  onChange={(e) => setFormData({ ...formData, singer: e.target.value })}
+                />
+              </div>
+
+              <div>
+                <label className="px-label block mb-1.5">발매일 (YYYY-MM-DD)</label>
+                <div className="flex gap-2">
+                  <input
+                    type="date"
+                    max="9999-12-31"
+                    className="px-input flex-1"
+                    value={formData.releaseDate}
+                    onChange={(e) => {
+                      if (e.target.value.length > 10) return;
+                      setFormData({ ...formData, releaseDate: e.target.value });
+                      setDuplicateStatus('idle');
+                    }}
+                    onPaste={(e) => {
+                      const pastedData = e.clipboardData.getData('text');
+                      const match = pastedData.match(/(\d{4})[./-](\d{1,2})[./-](\d{1,2})/);
+                      if (match) {
+                        e.preventDefault();
+                        const year = match[1];
+                        const month = match[2].padStart(2, '0');
+                        const day = match[3].padStart(2, '0');
+                        setFormData({ ...formData, releaseDate: `${year}-${month}-${day}` });
+                        setDuplicateStatus('idle');
+                      }
+                    }}
+                  />
+                  <button
+                    type="button"
+                    onClick={handleCheckDuplicate}
+                    disabled={!formData.title.trim() || !formData.releaseDate || isCheckingDuplicate}
+                    className="px-btn px-btn-sm px-btn-paper shrink-0">
+                    {isCheckingDuplicate ? '확인 중' : '중복 확인'}
+                  </button>
+                </div>
+
+                {duplicateStatus === 'duplicate' && (
+                  <p className="px-label text-cherry mt-1.5">이미 등록된 노래입니다.</p>
+                )}
+                {duplicateStatus === 'available' && (
+                  <p className="px-label text-grass mt-1.5">등록 가능한 노래입니다.</p>
+                )}
+              </div>
+
+              <div className="md:col-span-2">
+                <label className="px-label block mb-1.5">초성 힌트 (또는 기타)</label>
+                <input
+                  type="text"
+                  className="px-input"
+                  placeholder="예: ㄴㄹㅈㅅ"
+                  value={formData.hint}
+                  onChange={(e) => setFormData({ ...formData, hint: e.target.value })}
+                />
+              </div>
+
+              <div className="md:col-span-2">
+                <label className="px-label block mb-1.5">카테고리 (필수 선택)</label>
+                <div className="flex flex-wrap gap-2">
+                  {categories.map((cat) => (
+                    <button
+                      key={cat.value}
+                      type="button"
+                      onClick={() => handleCategoryToggle(cat.value)}
+                      className={`px-btn px-btn-sm ${
+                        formData.categories.includes(cat.value) ? 'px-btn-sea' : 'px-btn-paper'
+                      }`}>
+                      {cat.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* 정답 리스트 */}
+          <div className="px-card">
+            <div className="px-head">
+              <span>정답 리스트</span>
+              <span className="px-label text-[10px]">복수 입력 가능</span>
+            </div>
+
+            <div className="p-4 space-y-3">
+              <p className="px-label leading-5">영어는 반드시 소문자로 입력할 것. 모든 정답은 띄어쓰기 금지.</p>
+
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  className="px-input flex-1"
                   placeholder="추가할 정답 입력"
                   value={currentAnswer}
                   onChange={(e) => setCurrentAnswer(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddAnswer())}
                 />
-                <button
-                  type="button"
-                  onClick={handleAddAnswer}
-                  className="px-6 bg-slate-800 border border-white/10 rounded-xl font-bold hover:bg-slate-700 transition-colors">
+                <button type="button" onClick={handleAddAnswer} className="px-btn px-btn-sm px-btn-sea shrink-0">
                   추가
                 </button>
               </div>
-              <div className="flex flex-wrap gap-2 min-h-[40px] p-3 bg-slate-950/50 rounded-xl border border-white/5">
-                {formData.answers.length === 0 && (
-                  <span className="text-xs text-slate-600 italic">등록된 정답이 없습니다.</span>
-                )}
+
+              <div className="px-inset flex flex-wrap gap-2 min-h-[48px] p-2.5">
+                {formData.answers.length === 0 && <span className="px-label">등록된 정답이 없습니다.</span>}
                 {formData.answers.map((ans, idx) => (
-                  <span
-                    key={idx}
-                    className="inline-flex items-center gap-2 px-3 py-1 bg-primary/10 border border-primary/30 rounded-full text-xs font-bold text-primary">
+                  <span key={idx} className="px-chip gap-2">
                     {ans}
-                    <button type="button" onClick={() => handleRemoveAnswer(idx)} className="hover:text-white">
-                      <span className="material-symbols-outlined text-sm">close</span>
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveAnswer(idx)}
+                      className="text-cherry leading-none"
+                      aria-label="정답 삭제">
+                      ✕
                     </button>
                   </span>
                 ))}
               </div>
             </div>
+          </div>
 
-            <div className="md:col-span-2 pt-4">
-              {message.text && (
-                <div
-                  className={`p-4 rounded-xl text-xs font-bold flex items-center gap-2 mb-4 ${message.type === 'success'
-                      ? 'bg-green-500/10 text-green-400 border border-green-500/20'
-                      : 'bg-red-500/10 text-red-400 border border-red-500/20'
-                    }`}>
-                  <span className="material-symbols-outlined text-sm">
-                    {message.type === 'success' ? 'check_circle' : 'error'}
-                  </span>
-                  {message.text}
-                </div>
-              )}
-
-              <button
-                type="submit"
-                disabled={isLoading}
-                className="w-full bg-primary hover:bg-primary/90 text-background-dark font-black py-4 rounded-xl transition-all transform hover:scale-[1.01] shadow-[0_0_20px_rgba(37,192,244,0.3)] disabled:opacity-30 flex items-center justify-center gap-2 uppercase tracking-tighter">
-                {isLoading ? '등록 중...' : '시스템에 노래 추가'}
-              </button>
+          {message.text && (
+            <div
+              className={`border-[3px] border-ink px-3 py-2.5 text-xs font-display ${
+                message.type === 'success' ? 'bg-grass text-white' : 'bg-cherry text-white'
+              }`}>
+              {message.text}
             </div>
-          </form>
-        </div>
-      </div>
+          )}
+
+          <button type="submit" disabled={isLoading} className="px-btn px-btn-primary w-full py-3">
+            {isLoading ? '등록 중...' : '노래 등록'}
+          </button>
+        </form>
+      </main>
     </div>
   );
 };
