@@ -19,13 +19,15 @@ describe('RankingList', () => {
   ];
 
   it('플레이어를 점수 내림차순으로 정렬하여 렌더링한다', () => {
-    render(<RankingList players={mockPlayers} roundEndInfo={null} />);
-    
-    const items = screen.getAllByText(/#/);
-    expect(items[0]).toHaveTextContent('#1'); // Bob (200)
-    expect(items[1]).toHaveTextContent('#2'); // Charlie (150)
-    expect(items[2]).toHaveTextContent('#3'); // Alice (100)
-    
+    const { container } = render(<RankingList players={mockPlayers} roundEndInfo={null} />);
+
+    // 1~3위는 순위 숫자 대신 메달 이미지로 표시되므로 렌더 순서로 정렬을 검증한다
+    expect(container.textContent).toMatch(/Bob[\s\S]*Charlie[\s\S]*Alice/);
+
+    expect(screen.getByAltText('1st Badge')).toBeInTheDocument(); // Bob (200)
+    expect(screen.getByAltText('2nd Badge')).toBeInTheDocument(); // Charlie (150)
+    expect(screen.getByAltText('3rd Badge')).toBeInTheDocument(); // Alice (100)
+
     expect(screen.getByText('Bob')).toBeInTheDocument();
     expect(screen.getByText('Charlie')).toBeInTheDocument();
     expect(screen.getByText('Alice')).toBeInTheDocument();

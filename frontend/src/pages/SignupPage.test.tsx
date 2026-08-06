@@ -53,7 +53,8 @@ describe('SignupPage 닉네임 중복 확인 기능', () => {
     mockCheckNickname.mockImplementation(() => new Promise((resolve) => setTimeout(() => resolve(false), 100)));
     setup();
     const nicknameInput = screen.getByPlaceholderText(/닉네임 입력/);
-    const checkButton = screen.getByRole('button', { name: /중복 확인/ });
+    // '중복 확인' 버튼은 닉네임용/아이디용 두 개이므로 첫 번째(닉네임)를 사용한다
+    const [checkButton] = screen.getAllByRole('button', { name: /중복 확인/ });
 
     // When
     fireEvent.change(nicknameInput, { target: { value: 'testUser' } });
@@ -73,7 +74,7 @@ describe('SignupPage 닉네임 중복 확인 기능', () => {
     mockCheckNickname.mockResolvedValue(true); // true means duplicated
     setup();
     const nicknameInput = screen.getByPlaceholderText(/닉네임 입력/);
-    const checkButton = screen.getByRole('button', { name: /중복 확인/ });
+    const [checkButton] = screen.getAllByRole('button', { name: /중복 확인/ });
     const signupButton = screen.getByRole('button', { name: /계정 생성하기/ });
 
     // When
@@ -126,15 +127,16 @@ describe('SignupPage 닉네임 중복 확인 기능', () => {
     mockCheckNickname.mockRejectedValue(new Error('API Error'));
     setup();
     const nicknameInput = screen.getByPlaceholderText(/닉네임 입력/);
-    const checkButton = screen.getByRole('button', { name: /중복 확인/ });
+    const [checkButton] = screen.getAllByRole('button', { name: /중복 확인/ });
 
     // When
     fireEvent.change(nicknameInput, { target: { value: 'errorUser' } });
     fireEvent.click(checkButton);
 
     // Then
+    // 컴포넌트는 예외의 message를 그대로 노출하고, 없을 때만 기본 문구로 대체한다
     await waitFor(() => {
-      expect(screen.getByText('닉네임 중복 확인 중 오류가 발생했습니다.')).toBeInTheDocument();
+      expect(screen.getByText('API Error')).toBeInTheDocument();
     });
   });
 });
