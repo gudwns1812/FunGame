@@ -1,7 +1,7 @@
 import React from 'react';
 
 interface AlphabetKeyboardProps {
-  onGuess: (letter: char) => void;
+  onGuess: (letter: string) => void;
   disabled: boolean;
   wrongLetters: string[];
   currentDisplay: string;

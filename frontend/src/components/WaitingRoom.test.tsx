@@ -9,6 +9,7 @@ describe('WaitingRoom 키보드 인터랙션', () => {
         onLeave: vi.fn(),
         onToggleReady: vi.fn(),
         isHost: false,
+        maxPlayers: 12,
         logs: [],
         onSendMessage: vi.fn()
     };

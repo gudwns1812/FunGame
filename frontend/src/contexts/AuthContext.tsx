@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
-import type { MemberInfo, AuthState } from '../types/auth';
+import type { AuthState } from '../types/auth';
 
 interface AuthContextType extends AuthState {
   login: (loginId: string, password: string) => Promise<void>;

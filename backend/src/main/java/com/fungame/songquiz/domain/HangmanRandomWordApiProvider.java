@@ -7,8 +7,11 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Component;
 
+import java.io.BufferedReader;
 import java.io.IOException;
-import java.nio.file.Files;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -29,13 +32,23 @@ public class HangmanRandomWordApiProvider implements HangmanWordProvider {
         for (int i = 1; i < 5; i++) {
             try {
                 ClassPathResource resource = new ClassPathResource("words/difficulty_" + i + ".txt");
-                List<String> words = Files.readAllLines(resource.getFile().toPath());
+                List<String> words = readWords(resource);
                 wordsByDifficulty.put(i, words);
                 log.info("난이도 {} 단어 {}개 로드 완료", i, words.size());
             } catch (IOException e) {
                 log.error("난이도 {} 단어 파일 로드 실패", i, e);
                 throw new RuntimeException("단어 파일 로드 실패: difficulty_" + i + ".txt");
             }
+        }
+    }
+
+    private List<String> readWords(ClassPathResource resource) throws IOException {
+        try (InputStream inputStream = resource.getInputStream();
+             BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream, StandardCharsets.UTF_8))) {
+            return reader.lines()
+                    .map(String::trim)
+                    .filter(word -> !word.isEmpty())
+                    .toList();
         }
     }
 
