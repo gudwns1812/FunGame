@@ -471,7 +471,7 @@ export const useGameLogic = () => {
   useEffect(() => {
     if (status !== 'ROOM_LIST') return;
 
-    let debounceTimer: NodeJS.Timeout;
+    let debounceTimer: ReturnType<typeof setTimeout>;
     const debouncedFetchRooms = () => {
       clearTimeout(debounceTimer);
       debounceTimer = setTimeout(() => {

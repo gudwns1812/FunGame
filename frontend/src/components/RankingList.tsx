@@ -30,7 +30,6 @@ const RankingList: React.FC<RankingListProps> = ({ players, roundEndInfo }) => {
     <div className="flex-1 overflow-y-auto p-3 space-y-2 custom-scrollbar">
       {sortedPlayers.map((p, idx) => {
         const color = getPlayerColor(p.colorIndex ?? null) || '#25c0f4';
-        const isFirst = idx === 0 && p.score > 0;
         const isWinner = winnerNames.has(stripTag(p.name));
 
         return (

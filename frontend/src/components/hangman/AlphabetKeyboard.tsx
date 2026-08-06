@@ -19,7 +19,7 @@ const AlphabetKeyboard: React.FC<AlphabetKeyboardProps> = ({ onGuess, disabled, 
       {ALPHABETS.map((letter) => (
         <button
           key={letter}
-          onClick={() => onGuess(letter as any)}
+          onClick={() => onGuess(letter)}
           disabled={disabled || isGuessed(letter)}
           className={`h-12 rounded-lg font-bold transition-all ${
             isGuessed(letter)
