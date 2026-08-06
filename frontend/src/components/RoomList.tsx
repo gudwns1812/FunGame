@@ -16,6 +16,9 @@ interface RoomListProps {
   onRefreshRooms: () => void;
 }
 
+/** 방 제목 최대 길이 (헤더 칩에 잘리지 않고 들어가는 길이 기준) */
+const ROOM_NAME_MAX = 20;
+
 const RoomList: React.FC<RoomListProps> = ({ rooms, onJoinRoom, onCreateRoom, onRefreshRooms }) => {
   const [showCreate, setShowCreate] = useState(false);
   const [newRoomName, setNewRoomName] = useState('');
@@ -101,12 +104,18 @@ const RoomList: React.FC<RoomListProps> = ({ rooms, onJoinRoom, onCreateRoom, on
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div className="md:col-span-2">
-              <label className="px-label block mb-1.5">방 제목</label>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="px-label">방 제목</label>
+                <span className={`px-label num ${newRoomName.length >= ROOM_NAME_MAX ? 'text-cherry' : ''}`}>
+                  {newRoomName.length} / {ROOM_NAME_MAX}
+                </span>
+              </div>
               <input
                 className="px-input"
                 placeholder="방 제목을 입력하세요"
                 value={newRoomName}
                 onChange={(e) => setNewRoomName(e.target.value)}
+                maxLength={ROOM_NAME_MAX}
                 autoFocus
               />
             </div>
