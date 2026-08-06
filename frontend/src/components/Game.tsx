@@ -116,16 +116,6 @@ const Game: React.FC<GameProps> = ({
       const shouldSplitRoundEnd = gameType === 'CS' && Boolean(explanation);
       const summary = explanation ? summarizeExplanation(explanation) : null;
 
-      // CS는 서버가 허용 정답 여러 개를 쉼표로 이어 보내므로(ComputerScienceQuiz.getAnswer) 나눠서 표시한다
-      const answerList =
-        gameType === 'CS'
-          ? roundEndInfo.answer
-              .split(',')
-              .map((a) => a.trim())
-              .filter(Boolean)
-          : [roundEndInfo.answer];
-      const [mainAnswer, ...otherAnswers] = answerList.length > 0 ? answerList : [roundEndInfo.answer];
-
       // justify-center 로 중앙정렬하면 넘친 콘텐츠의 위쪽이 스크롤로도 접근이 안 되므로 m-auto 로 중앙정렬한다
       return (
         <div className="h-full scroll-y custom-scrollbar p-4 sm:p-5 flex flex-col animate-pop">
@@ -141,18 +131,8 @@ const Game: React.FC<GameProps> = ({
                 }`}>
                 <p className="px-label text-cherry mb-2">정답</p>
                 <p className="px-title text-2xl sm:text-3xl break-keep whitespace-pre-wrap leading-snug">
-                  {mainAnswer}
+                  {roundEndInfo.answer}
                 </p>
-
-                {otherAnswers.length > 0 && (
-                  <div className="mt-3 flex flex-wrap justify-center gap-1.5">
-                    {otherAnswers.map((alt) => (
-                      <span key={alt} className="px-chip text-[11px]">
-                        {alt}
-                      </span>
-                    ))}
-                  </div>
-                )}
               </div>
 
               {shouldSplitRoundEnd && summary ? (
