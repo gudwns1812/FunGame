@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" shape-rendering="crispEdges">
+  <!-- 좌우 장식 -->
+  <path d="M1 9h3v6H1z" fill="#E8A400" stroke="#1a1a1a" stroke-width="1" />
+  <path d="M20 9h3v6h-3z" fill="#E8A400" stroke="#1a1a1a" stroke-width="1" />
+
+  <!-- 메달 본체 -->
+  <polygon points="12,2 20,6 20,15 12,22 4,15 4,6" fill="#E8A400" stroke="#1a1a1a" stroke-width="2" />
+
+  <!-- 젬 파셋 -->
+  <polygon points="12,5 17,8 17,14 12,19 7,14 7,8" fill="#FFD44D" />
+  <polygon points="12,5 7,8 7,14 12,19" fill="#E8A400" />
+
+  <!-- 숫자 1 (픽셀 글리프) -->
+  <g fill="#1a1a1a">
+    <rect x="11" y="7" width="2" height="2" />
+    <rect x="9" y="9" width="2" height="2" />
+    <rect x="11" y="9" width="2" height="2" />
+    <rect x="11" y="11" width="2" height="2" />
+    <rect x="11" y="13" width="2" height="2" />
+    <rect x="9" y="15" width="2" height="2" />
+    <rect x="11" y="15" width="2" height="2" />
+    <rect x="13" y="15" width="2" height="2" />
+  </g>
+
+  <!-- 반짝임 -->
+  <g fill="#FFF4C2">
+    <rect x="18" y="2" width="2" height="2" />
+    <rect x="4" y="3" width="1" height="1" />
+  </g>
+</svg>

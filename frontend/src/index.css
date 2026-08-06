@@ -1,104 +1,368 @@
 @import "tailwindcss";
 
-@theme {
-  --font-display: "Space Grotesk", sans-serif;
-  --color-primary: #25c0f4;
-  --color-background-light: #f5f8f8;
-  --color-background-dark: #101e22;
-  
-  @keyframes fade-in {
-    from { opacity: 0; transform: translateY(10px); }
-    to { opacity: 1; transform: translateY(0); }
-  }
+/* ──────────────────────────────────────────────────────────────
+   레트로 아케이드 디자인 시스템
+   - docs/design/DESIGN.md 기반: 굵은 검정 테두리 + 하드 섀도 + 각진 모서리
+   - 팔레트: 스카이블루 배경 / 크림 서피스 / 체리레드 주액션
+   - 블러·글로우·라운드 없음. 깊이는 오프셋 그림자로만 표현
+   - 한글 가독성: 제목·라벨은 픽셀체(Galmuri), 본문은 Pretendard
+   ────────────────────────────────────────────────────────────── */
 
-  @keyframes shimmer {
-    0% { transform: translateX(-100%) skewX(-20deg); }
-    100% { transform: translateX(200%) skewX(-20deg); }
-  }
+@theme {
+  --font-display: "Galmuri11", "Pretendard Variable", Pretendard, system-ui, sans-serif;
+  --font-body: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, system-ui,
+    "Apple SD Gothic Neo", sans-serif;
+
+  /* 배경 / 서피스 */
+  --color-sky: #8ed6f5;
+  --color-sky-deep: #5cbde8;
+  --color-paper: #fcf9f8;
+  --color-paper-2: #f0eded;
+  --color-paper-3: #e5e2e1;
+
+  /* 잉크 */
+  --color-ink: #1a1a1a;
+  --color-ink-soft: #6b6363;
+
+  /* 액션 */
+  --color-cherry: #d32f2f;
+  --color-cherry-dark: #af101a;
+  --color-sea: #0c6780;
+  --color-grass: #168128;
+  --color-gold: #e0a300;
+
+  /* 미개편 화면(마이페이지·관리자) 호환용 별칭 */
+  --color-primary: #d32f2f;
+  --color-background-dark: #101e22;
+  --color-background-light: #fcf9f8;
 }
 
 @layer base {
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+
   body {
-    @apply font-display;
+    @apply bg-sky text-ink;
+    font-family: var(--font-body);
+    -webkit-font-smoothing: antialiased;
+    background-image:
+      repeating-linear-gradient(180deg, rgba(255, 255, 255, 0.16) 0 2px, transparent 2px 6px),
+      linear-gradient(180deg, #9adcf7 0%, #8ed6f5 45%, #bde9fb 100%);
+    background-attachment: fixed;
+    overscroll-behavior: none;
+  }
+
+  input,
+  button,
+  select,
+  textarea {
+    font: inherit;
+  }
+
+  ::selection {
+    background: #ffd7d4;
+  }
+}
+
+/* ── 키프레임 ── */
+@keyframes px-pop {
+  0% { opacity: 0; transform: translateY(6px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes px-blink {
+  0%, 60% { opacity: 1; }
+  61%, 100% { opacity: 0.25; }
+}
+
+@keyframes px-float {
+  0%, 100% { transform: translateY(0) rotate(var(--px-rot, 0deg)); }
+  50% { transform: translateY(-14px) rotate(var(--px-rot, 0deg)); }
+}
+
+/* 타이머 숫자: 1초마다 통통 튀는 효과 */
+@keyframes px-tick {
+  0% { transform: translateY(0) scale(1); }
+  25% { transform: translateY(-5px) scale(1.18); }
+  55% { transform: translateY(0) scale(0.96); }
+  100% { transform: translateY(0) scale(1); }
+}
+
+/* 10초 미만: 더 크게 튀고 색이 강조됨 */
+@keyframes px-tick-urgent {
+  0% { transform: translateY(0) scale(1); }
+  20% { transform: translateY(-8px) scale(1.32); }
+  50% { transform: translateY(0) scale(0.94); }
+  75% { transform: translateY(-2px) scale(1.06); }
+  100% { transform: translateY(0) scale(1); }
+}
+
+@keyframes px-note {
+  0%, 100% { transform: scaleY(0.35); }
+  50% { transform: scaleY(1); }
+}
+
+@keyframes px-row-flash {
+  0% { background-color: rgba(211, 47, 47, 0); }
+  25% { background-color: #ffd7d4; }
+  100% { background-color: rgba(211, 47, 47, 0); }
+}
+
+@keyframes px-name-glow {
+  0% { color: var(--p-color); }
+  25% { color: #d32f2f; }
+  100% { color: var(--p-color); }
+}
+
+/* 컴포넌트 클래스는 components 레이어 → 사용처에서 유틸리티로 덮어쓸 수 있다 */
+@layer components {
+  /* ── 서피스 ── */
+  .px-card {
+    @apply bg-paper border-[3px] border-ink;
+    box-shadow: 5px 5px 0 0 var(--color-ink);
+  }
+
+  .px-card-sm {
+    @apply bg-paper border-2 border-ink;
+    box-shadow: 3px 3px 0 0 var(--color-ink);
+  }
+
+  .px-inset {
+    @apply bg-paper-2 border-2 border-ink;
+  }
+
+  .px-tap {
+    @apply transition-transform duration-100;
+  }
+  .px-tap:hover {
+    transform: translate(-2px, -2px);
+    box-shadow: 7px 7px 0 0 var(--color-ink);
+  }
+  .px-tap:active {
+    transform: translate(2px, 2px);
+    box-shadow: 2px 2px 0 0 var(--color-ink);
+  }
+
+  /* ── 타이포 ── */
+  .px-title {
+    font-family: var(--font-display);
+    @apply font-bold tracking-tight text-ink;
+  }
+
+  .px-label {
+    font-family: var(--font-display);
+    @apply text-[11px] text-ink-soft;
+  }
+
+  /* ── 버튼 ── */
+  .px-btn {
+    font-family: var(--font-display);
+    @apply inline-flex items-center justify-center gap-1.5 border-[3px] border-ink px-4 py-2.5 text-sm whitespace-nowrap;
+    box-shadow: 4px 4px 0 0 var(--color-ink);
+  }
+  .px-btn:active:not(:disabled) {
+    transform: translate(4px, 4px);
+    box-shadow: 0 0 0 0 var(--color-ink);
+  }
+  .px-btn:disabled {
+    @apply opacity-45;
+  }
+  .px-btn-primary {
+    @apply bg-cherry text-white;
+  }
+  .px-btn-primary:hover:not(:disabled) {
+    @apply bg-cherry-dark;
+  }
+  .px-btn-sea {
+    @apply bg-sea text-white;
+  }
+  .px-btn-grass {
+    @apply bg-grass text-white;
+  }
+  .px-btn-paper {
+    @apply bg-paper text-ink;
+  }
+  .px-btn-paper:hover:not(:disabled) {
+    @apply bg-paper-2;
+  }
+  .px-btn-sm {
+    @apply px-3 py-2 text-xs border-2;
+    box-shadow: 3px 3px 0 0 var(--color-ink);
+  }
+  .px-btn-sm:active:not(:disabled) {
+    transform: translate(3px, 3px);
+  }
+  .px-btn-icon {
+    @apply px-2.5 py-2.5;
+  }
+
+  /* ── 칩 ── */
+  .px-chip {
+    font-family: var(--font-display);
+    @apply inline-flex items-center gap-1.5 border-2 border-ink bg-paper px-2 py-1 text-[11px] text-ink;
+  }
+  .px-chip-cherry {
+    @apply bg-cherry text-white;
+  }
+  .px-chip-sea {
+    @apply bg-sea text-white;
+  }
+  .px-chip-grass {
+    @apply bg-grass text-white;
+  }
+  .px-chip-gold {
+    @apply bg-gold text-ink;
+  }
+
+  /* ── 폼 ── */
+  .px-input {
+    @apply w-full border-[3px] border-ink bg-white px-3.5 py-3 text-sm text-ink outline-none;
+  }
+  .px-input::placeholder {
+    color: #a89f9f;
+  }
+  .px-input:focus {
+    @apply border-cherry;
+  }
+
+  /* ── 진행 바 (분절형) ── */
+  .px-bar {
+    @apply border-2 border-ink bg-paper-2 overflow-hidden;
+  }
+  .px-bar-fill {
+    @apply h-full transition-[width] duration-1000 ease-linear;
+    background-image: repeating-linear-gradient(90deg, currentColor 0 8px, rgba(0, 0, 0, 0.2) 8px 12px);
+  }
+
+  /* ── 패널 헤더 ── */
+  .px-head {
+    font-family: var(--font-display);
+    @apply flex items-center justify-between gap-2 border-b-[3px] border-ink px-3 py-2 text-xs;
   }
 }
 
 @layer utilities {
-  .animate-fade-in {
-    animation: fade-in 0.3s ease-out forwards;
-  }
-
-  .animate-shimmer {
-    position: relative;
+  /* 화면이 뷰포트를 넘지 않게: 스크롤은 내부 패널에서만 */
+  .app-frame {
+    height: 100dvh;
+    display: flex;
+    flex-direction: column;
     overflow: hidden;
-    animation: shimmer-glow 1.5s ease-out forwards;
+    position: relative;
+    z-index: 1;
   }
 
-  /* 배경 플래시: 정답 시 밝아졌다가 다시 투명해짐 */
-  @keyframes shimmer-glow {
-    0% { background-color: rgba(37, 192, 244, 0); }
-    30% { background-color: rgba(37, 192, 244, 0.2); box-shadow: inset 0 0 15px rgba(37, 192, 244, 0.2); }
-    100% { background-color: rgba(37, 192, 244, 0); box-shadow: none; }
+  .font-display {
+    font-family: var(--font-display);
   }
 
-  /* 텍스트 글로우: 하얗게 빛났다가 다시 원래 색상(--p-color)으로 복귀 */
+  .num {
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum";
+  }
+
+  /* 로그의 ==== 구분선을 픽셀 룰로 표현 */
+  .px-rule {
+    height: 0;
+    border-top: 3px double var(--color-ink);
+    opacity: 0.4;
+  }
+
+  /* ── 스크롤바 ── */
+  .scroll-y {
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+  .custom-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-ink) transparent;
+  }
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: var(--color-paper-2);
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: var(--color-ink);
+    border: 2px solid var(--color-paper-2);
+  }
+
+  /* ── 모션 ── */
+  .animate-pop,
+  .animate-scale-up,
+  .animate-fade-in {
+    animation: px-pop 0.18s steps(3, end) both;
+  }
+  .animate-blink {
+    animation: px-blink 1s steps(1, end) infinite;
+  }
+  .animate-tick {
+    display: inline-block;
+    transform-origin: center bottom;
+    animation: px-tick 0.42s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  }
+  .animate-tick-urgent {
+    display: inline-block;
+    transform-origin: center bottom;
+    animation: px-tick-urgent 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  }
+  .px-eq-bar {
+    transform-origin: bottom center;
+    animation: px-note 0.9s steps(4, end) infinite;
+  }
+
+  /* 정답자 하이라이트 (RankingItem) */
+  .animate-shimmer {
+    animation: px-row-flash 1.2s steps(6, end) forwards;
+  }
   .animate-shimmer .name-text {
-    animation: name-glow 1.5s ease-out forwards;
-  }
-
-  @keyframes name-glow {
-    0% { color: var(--p-color); text-shadow: none; }
-    30% { color: #ffffff; text-shadow: 0 0 10px var(--p-color); }
-    100% { color: var(--p-color); text-shadow: none; }
-  }
-
-  .animate-shimmer::after {
-    content: "";
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 30%;
-    height: 100%;
-    background: linear-gradient(
-      to right,
-      transparent,
-      rgba(255, 255, 255, 0.2) 50%,
-      transparent
-    );
-    animation: shimmer 1s cubic-bezier(0.4, 0, 0.2, 1) forwards;
-    pointer-events: none;
+    animation: px-name-glow 1.2s steps(6, end) forwards;
   }
 
   @media (prefers-reduced-motion: reduce) {
-    .animate-shimmer::after {
+    .animate-shimmer,
+    .animate-shimmer .name-text,
+    .px-eq-bar,
+    .animate-blink,
+    .animate-tick,
+    .animate-tick-urgent {
       animation: none;
     }
   }
 
-  .grid-overlay {
-    background-image: linear-gradient(to right, rgba(37, 192, 244, 0.05) 1px, transparent 1px),
-                      linear-gradient(to bottom, rgba(37, 192, 244, 0.05) 1px, transparent 1px);
-    background-size: 40px 40px;
+  /* 배경 장식 아이콘 레이어 */
+  .px-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    overflow: hidden;
   }
-  
-  .scanner-line {
-    background: linear-gradient(to bottom, transparent, rgba(37, 192, 244, 0.2), transparent);
-    height: 100px;
-    width: 100%;
+  .px-backdrop > * {
     position: absolute;
-    top: -100px;
-  }
-  
-  .panel-border {
-    border: 1px solid rgba(37, 192, 244, 0.3);
-    box-shadow: inset 0 0 15px rgba(37, 192, 244, 0.1), 0 0 10px rgba(0,0,0,0.5);
-  }
-  
-  .neon-glow {
-    text-shadow: 0 0 10px rgba(37, 192, 244, 0.8);
+    animation: px-float 7s ease-in-out infinite;
   }
 
+  /* ── 레거시 클래스(미개편 화면 호환) ── */
+  .panel-border {
+    border: 3px solid var(--color-ink);
+    box-shadow: 5px 5px 0 0 var(--color-ink);
+  }
+  .neon-glow,
+  .neon-glow-subtle,
   .neon-box-glow {
-    box-shadow: 0 0 15px rgba(37, 192, 244, 0.4);
+    text-shadow: none;
+    box-shadow: none;
+  }
+  .grid-overlay {
+    background-image: none;
+  }
+  .drop-shadow-neon {
+    filter: none;
   }
 }

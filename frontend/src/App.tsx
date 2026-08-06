@@ -15,6 +15,24 @@ import { useGameLogic } from './hooks/useGameLogic';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { useEffect } from 'react';
 
+/** 부트스트랩 · 방 생성 대기 화면 */
+function LoadingScreen({ label }: { label: string }) {
+  return (
+    <div className="min-h-[100dvh] relative z-[1] flex flex-col items-center justify-center gap-4">
+      <div className="flex items-end gap-1.5 h-10">
+        {[0, 1, 2, 3].map((i) => (
+          <span
+            key={i}
+            className="px-eq-bar w-3 h-full border-2 border-ink bg-cherry"
+            style={{ animationDelay: `${i * 0.12}s` }}
+          />
+        ))}
+      </div>
+      <p className="px-title text-sm">{label}</p>
+    </div>
+  );
+}
+
 function AppContent() {
   const {
     status,
@@ -86,14 +104,7 @@ function AppContent() {
   const currentPath = statusToPath(status);
 
   if (isInitialLoading || isBootstrapping) {
-    return (
-      <div className="w-full min-h-screen flex flex-col items-center justify-center gap-4 bg-black">
-        <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
-        <p className="text-primary text-xs font-mono uppercase tracking-widest animate-pulse">
-          시스템 초기화 중...
-        </p>
-      </div>
-    );
+    return <LoadingScreen label="불러오는 중..." />;
   }
 
   const isAdmin = user?.role === 'ADMIN' || user?.role === 'MASTER';
@@ -117,12 +128,7 @@ function AppContent() {
         element={
           isAuthenticated ? (
             isCreatingRoom ? (
-              <div className="w-full min-h-screen flex flex-col items-center justify-center gap-4 bg-black">
-                <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
-                <p className="text-primary text-xs font-mono uppercase tracking-widest animate-pulse">
-                  방 생성 중...
-                </p>
-              </div>
+              <LoadingScreen label="방 생성 중..." />
             ) : status === 'ROOM_LIST' || status === 'LOBBY' ? (
               <RoomListPage
                 rooms={rooms}

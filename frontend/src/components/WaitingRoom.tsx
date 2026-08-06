@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import type { Player } from '../types/game';
 import { stripTag } from '../utils/stringUtils';
 import { getPlayerColor } from '../utils/playerColor';
+import LogList from './LogList';
 
 interface WaitingRoomProps {
   players: Player[];
@@ -57,193 +58,126 @@ const WaitingRoom: React.FC<WaitingRoomProps> = ({
     }
   };
 
-  const renderLog = (log: string, i: number) => {
-    if (log.startsWith('[시스템]') || log.startsWith('[오류]')) {
-      return (
-        <p
-          key={i}
-          className={`font-mono text-xs py-0.5 ${log.startsWith('[오류]') ? 'text-red-400' : 'text-slate-400'}`}>
-          {log}
-        </p>
-      );
-    }
-    const colonIdx = log.indexOf(':');
-    if (colonIdx > 0) {
-      const senderName = log.substring(0, colonIdx);
-      const rest = log.substring(colonIdx + 1);
-      const player = players.find((p) => stripTag(p.name) === senderName || p.name === senderName);
-      const color = getPlayerColor(player?.colorIndex ?? null) || '#25c0f4';
-      return (
-        <p key={i} className="font-mono text-xs text-slate-200">
-          <span style={{ color }} className="font-bold">
-            {senderName}
-          </span>
-          <span className="opacity-50">:</span> {rest}
-        </p>
-      );
-    }
-    return (
-      <p key={i} className="font-mono text-xs text-slate-200">
-        {log}
-      </p>
-    );
-  };
+  const readyCount = players.filter((p) => p.isReady || p.isHost).length;
 
   return (
-    <div className="w-full max-w-6xl grid grid-cols-1 lg:grid-cols-3 gap-6">
-      {/* 왼쪽: 채팅 터미널 */}
-      <div className="lg:col-span-1 panel-border bg-slate-900/60 rounded-xl flex flex-col h-[600px] overflow-hidden">
-        <div className="bg-primary/10 border-b border-primary/30 p-3 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <span className="material-symbols-outlined text-primary text-sm">terminal</span>
-            <h3 className="text-xs font-bold text-primary tracking-widest uppercase">채팅</h3>
-          </div>
-          <span className="flex h-2 w-2 relative">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
-            <span className="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
+    <div className="h-full min-h-0 max-w-5xl w-full mx-auto flex flex-col gap-3">
+      {/* 상단: 인원 · 준비 현황 + 액션 */}
+      <div className="px-card shrink-0 px-3 py-2.5 flex flex-wrap items-center justify-between gap-2">
+        <div className="flex items-center gap-2">
+          <span className="px-chip px-chip-sea">
+            인원 <span className="num">{players.length}</span> / <span className="num">{SLOTS}</span>
+          </span>
+          <span className={`px-chip ${readyCount === players.length && players.length > 0 ? 'px-chip-grass' : ''}`}>
+            준비 <span className="num">{readyCount}</span>
           </span>
         </div>
 
-        <div ref={logContainerRef} className="flex-1 overflow-y-auto p-4 flex flex-col gap-1 space-y-1 bg-black/20">
-          <div className="text-xs font-mono text-primary/50 mb-4 border-b border-primary/20 pb-2 uppercase tracking-widest font-bold">
-            채팅 내역
-            <br />
-          </div>
-          {logs.map((log, i) => renderLog(log, i))}
-        </div>
-
-        <form onSubmit={handleChatSubmit} className="p-3 border-t border-primary/30 bg-slate-950 flex gap-2">
-          <div className="flex-1 relative">
-            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-primary/50 font-mono text-sm">{'>'}</span>
-            <input
-              ref={chatInputRef}
-              type="text"
-              className="w-full bg-slate-900 border border-primary/30 rounded pl-8 pr-3 py-2 text-sm text-white focus:border-primary outline-none font-mono transition-colors"
-              placeholder="메시지 입력..."
-              value={chatInput}
-              onChange={(e) => setChatInput(e.target.value)}
-              autoFocus
-            />
-          </div>
-          <button
-            type="submit"
-            className="bg-primary/20 hover:bg-primary/40 text-primary border border-primary/50 rounded px-4 transition-colors">
-            <span className="material-symbols-outlined text-sm">send</span>
+        <div className="flex items-center gap-2">
+          <button className="px-btn px-btn-sm px-btn-paper" onClick={onLeave}>
+            나가기
           </button>
-        </form>
+
+          {!isHost &&
+            (() => {
+              const me = players.find(
+                (p) =>
+                  stripTag(p.name) === localStorage.getItem('ums_nickname') ||
+                  p.name === localStorage.getItem('ums_nickname'),
+              );
+              const amIReady = me?.isReady || false;
+
+              return (
+                <button
+                  className={`px-btn px-btn-sm ${amIReady ? 'px-btn-paper' : 'px-btn-grass'}`}
+                  onClick={onToggleReady}>
+                  {amIReady ? '준비 취소' : '준비 완료'}
+                </button>
+              );
+            })()}
+
+          {isHost && (
+            <button className="px-btn px-btn-sm px-btn-primary" onClick={onStart} disabled={players.length < 1}>
+              게임 시작 ▶
+            </button>
+          )}
+        </div>
       </div>
 
-      {/* 오른쪽: 플레이어 슬롯 및 컨트롤 */}
-      <div className="lg:col-span-2 flex flex-col gap-6">
-        {/* 상단 컨트롤 */}
-        <div className="panel-border bg-slate-900/60 rounded-xl p-6 flex flex-col sm:flex-row justify-between items-center gap-4">
-          <div className="space-y-1 text-center sm:text-left">
-            <h2 className="text-2xl font-black text-white tracking-tighter uppercase flex items-center justify-center sm:justify-start gap-2">
-              <span className="material-symbols-outlined text-primary text-3xl">meeting_room</span>
-              게임 <span className="text-primary neon-glow">대기실</span>
-            </h2>
-            <p className="text-xs text-slate-400 font-mono uppercase tracking-widest">
-              방 인원수: {players.length} / {SLOTS}
-            </p>
-          </div>
-
-          <div className="flex gap-3 w-full sm:w-auto">
-            <button
-              className="flex-1 sm:flex-none px-6 py-3 border border-red-500/50 text-red-400 font-bold rounded-lg hover:bg-red-500/10 transition-colors flex items-center justify-center gap-2 uppercase tracking-widest text-xs"
-              onClick={onLeave}>
-              <span className="material-symbols-outlined text-sm">logout</span>방 나가기
-            </button>
-
-            {!isHost &&
-              (() => {
-                const me = players.find(
-                  (p) =>
-                    stripTag(p.name) === localStorage.getItem('ums_nickname') ||
-                    p.name === localStorage.getItem('ums_nickname'),
-                );
-                const amIReady = me?.isReady || false;
-
-                return (
-                  <button
-                    className={`flex-1 sm:flex-none px-8 py-3 border-2 font-black rounded-lg transition-all flex items-center justify-center gap-2 shadow-lg uppercase tracking-widest text-xs ${amIReady
-                        ? 'bg-red-500/20 border-red-500/50 text-red-400 hover:bg-red-500/30'
-                        : 'bg-primary/20 border-primary/50 text-primary hover:bg-primary/40'
-                      }`}
-                    onClick={onToggleReady}>
-                    <span className="material-symbols-outlined text-sm">{amIReady ? 'cancel' : 'check_circle'}</span>
-                    {amIReady ? '준비 취소' : '준비하기'}
-                  </button>
-                );
-              })()}
-
-            {isHost && (
-              <button
-                className="flex-1 sm:flex-none px-10 py-3 bg-primary text-background-dark font-black rounded-lg hover:bg-primary/90 transition-all transform hover:scale-105 flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(37,192,244,0.4)] disabled:opacity-50 disabled:cursor-not-allowed uppercase tracking-widest text-xs"
-                onClick={onStart}
-                disabled={players.length < 1}>
-                <span className="material-symbols-outlined text-sm">play_arrow</span>
-                게임 시작
-              </button>
-            )}
-          </div>
-        </div>
-
-        {/* 슬롯 그리드 */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 flex-1">
+      {/* 참가자 슬롯 */}
+      <div className="px-card shrink-0 max-h-[42vh] scroll-y custom-scrollbar p-2.5">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2.5">
           {slotsArray.map((player, index) => {
-            const color = player ? getPlayerColor(player.colorIndex ?? null) || '#25c0f4' : 'rgba(37, 192, 244, 0.1)';
+            const color = player ? getPlayerColor(player.colorIndex ?? null) || '#0c6780' : '#a89f9f';
             const isFilled = !!player;
             const isReady = player?.isReady || player?.isHost;
 
-            return (
-              <div
-                key={index}
-                className={`panel-border rounded-xl flex flex-col items-center justify-center p-4 relative overflow-hidden transition-all duration-500 ${isFilled ? 'bg-slate-800/80 shadow-[inset_0_0_20px_rgba(0,0,0,0.5)]' : 'bg-slate-900/30 border-dashed opacity-40'}`}>
-                {/* 준비 완료 상태 네온 효과 */}
-                {isFilled && isReady && <div className="absolute inset-0 bg-primary/5 animate-pulse"></div>}
-
+            if (!isFilled) {
+              return (
                 <div
-                  className={`w-12 h-12 rounded-full flex items-center justify-center border-2 mb-3 z-10 transition-all duration-500`}
-                  style={{
-                    borderColor: isFilled ? (isReady ? '#25c0f4' : color) : 'rgba(37, 192, 244, 0.2)',
-                    backgroundColor: isFilled ? 'rgba(16, 30, 34, 0.9)' : 'transparent',
-                    boxShadow: isFilled && isReady ? '0 0 15px rgba(37, 192, 244, 0.4)' : 'none',
-                  }}>
-                  <span
-                    className={`material-symbols-outlined text-2xl transition-all ${isFilled && isReady ? 'text-primary scale-110' : ''}`}
-                    style={{ color: isFilled ? (isReady ? '#25c0f4' : color) : 'rgba(37, 192, 244, 0.2)' }}>
-                    {isFilled ? (isReady ? 'verified' : 'person') : 'person_off'}
-                  </span>
+                  key={index}
+                  className="h-[72px] border-2 border-dashed border-ink/35 bg-white/30 flex items-center justify-center">
+                  <span className="px-label text-[10px]">빈 자리</span>
                 </div>
+              );
+            }
 
-                <div className="text-center z-10 w-full px-1">
+            return (
+              <div key={index} className="px-card-sm h-[72px] px-2.5 flex items-center gap-2.5 animate-pop relative">
+                <span className="absolute top-0 left-0 px-label text-[9px] bg-ink text-paper px-1 leading-4">
+                  {String(index + 1).padStart(2, '0')}
+                </span>
+
+                <span
+                  className="w-9 h-9 shrink-0 border-2 border-ink flex items-center justify-center font-display text-sm text-white"
+                  style={{ background: color }}>
+                  {stripTag(player.name).slice(0, 1)}
+                </span>
+
+                <div className="min-w-0 flex-1 pt-1">
+                  <p className="px-title text-[13px] truncate">{stripTag(player.name)}</p>
                   <span
-                    className={`block font-black text-[11px] truncate uppercase tracking-widest ${isFilled ? (isReady ? 'text-white' : 'text-slate-300') : 'text-primary/20'}`}
-                    style={isFilled && isReady ? { textShadow: '0 0 10px rgba(37, 192, 244, 0.8)' } : undefined}>
-                    {isFilled ? stripTag(player.name) : 'EMPTY'}
+                    className={`px-chip mt-0.5 px-1.5 py-0 text-[10px] ${
+                      player.isHost ? 'px-chip-gold' : isReady ? 'px-chip-grass' : ''
+                    }`}>
+                    {player.isHost ? '방장' : isReady ? '준비' : '대기'}
                   </span>
-
-                  {isFilled && (
-                    <div
-                      className={`mt-2 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-widest border transition-all
-                      ${player.isHost
-                          ? 'bg-primary/20 text-primary border-primary/50'
-                          : isReady
-                            ? 'bg-green-500/20 text-green-400 border-green-500/50'
-                            : 'bg-slate-900 text-slate-500 border-white/5'
-                        }`}>
-                      {player.isHost ? '방장' : isReady ? '레디' : 'Wait'}
-                    </div>
-                  )}
-                </div>
-
-                <div className="absolute top-2 left-2 text-[7px] font-mono text-primary/30 font-black">
-                  #{String(index + 1).padStart(2, '0')}
                 </div>
               </div>
             );
           })}
         </div>
+      </div>
+
+      {/* 로그 + 채팅 입력 */}
+      <div className="px-card flex-1 min-h-0 flex flex-col overflow-hidden">
+        <div className="px-head shrink-0">
+          <span>채팅</span>
+          <span className="w-2 h-2 bg-grass animate-blink" />
+        </div>
+
+        <LogList
+          logs={logs}
+          players={players}
+          containerRef={logContainerRef}
+          className="flex-1 min-h-0"
+          emptyText="게임 시작 전에 인사라도 한마디"
+        />
+
+        <form onSubmit={handleChatSubmit} className="shrink-0 border-t-[3px] border-ink p-2 flex gap-2 bg-paper-2">
+          <input
+            ref={chatInputRef}
+            type="text"
+            className="px-input flex-1 py-2 border-2"
+            placeholder="메시지 입력..."
+            value={chatInput}
+            onChange={(e) => setChatInput(e.target.value)}
+            autoFocus
+          />
+          <button type="submit" className="px-btn px-btn-sm px-btn-sea">
+            전송
+          </button>
+        </form>
       </div>
     </div>
   );

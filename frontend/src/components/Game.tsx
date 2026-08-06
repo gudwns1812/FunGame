@@ -2,8 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import ReactPlayer from 'react-player';
 import type { Player, GameStartInfo, RoundEndInfo } from '../types/game';
 import { stripTag } from '../utils/stringUtils';
-import { getPlayerColor } from '../utils/playerColor';
 import RankingList from './RankingList';
+import LogList from './LogList';
 
 const CS_BACKGROUND_VIDEO_ID = 'U34kLXjdw90';
 
@@ -25,6 +25,19 @@ interface GameProps {
   logs: string[];
 }
 
+/** 노래 재생 중 표시용 이퀄라이저 */
+const Equalizer: React.FC = () => (
+  <div className="flex items-end gap-2 h-20">
+    {[0, 1, 2, 3, 4, 5, 6, 7].map((i) => (
+      <span
+        key={i}
+        className="px-eq-bar w-3.5 h-full border-2 border-ink bg-cherry"
+        style={{ animationDelay: `${i * 0.11}s`, animationDuration: `${0.8 + (i % 3) * 0.2}s` }}
+      />
+    ))}
+  </div>
+);
+
 const Game: React.FC<GameProps> = ({
   players,
   timeLeft,
@@ -45,6 +58,7 @@ const Game: React.FC<GameProps> = ({
   const logContainerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const progressPercent = Math.max(0, Math.min(100, (timeLeft / totalTime) * 100));
+  const isUrgent = timeLeft < 10;
   const playbackVideoId = gameType === 'CS' ? CS_BACKGROUND_VIDEO_ID : gameType === 'SONG' ? currentVideoId : '';
 
   useEffect(() => {
@@ -79,220 +93,135 @@ const Game: React.FC<GameProps> = ({
     }
   };
 
-  const renderChatLog = (log: string, i: number) => {
-    if (log.startsWith('[시스템]') || log.startsWith('[오류]')) {
-      return (
-        <p key={i} className={`font-mono text-xs py-1 ${log.startsWith('[오류]') ? 'text-red-400' : 'text-slate-400'}`}>
-          <span className="opacity-50">
-            [
-            {new Date().toLocaleTimeString('en-US', {
-              hour12: false,
-              hour: '2-digit',
-              minute: '2-digit',
-              second: '2-digit',
-            })}
-            ]
-          </span>{' '}
-          {log}
-        </p>
-      );
-    }
-    const colonIdx = log.indexOf(':');
-    if (colonIdx > 0) {
-      const senderName = log.substring(0, colonIdx);
-
-      const rest = log.substring(colonIdx + 1);
-      const player = players.find((p) => stripTag(p.name) === senderName || p.name === senderName);
-      const color = getPlayerColor(player?.colorIndex ?? null) || '#25c0f4';
-      return (
-        <p key={i} className="font-mono text-sm py-1.5 text-slate-200 border-b border-white/5 last:border-0">
-          <span style={{ color }} className="font-bold">
-            {senderName}
-          </span>
-          <span className="opacity-50 mx-1">:</span> {rest}
-        </p>
-      );
-    }
-    return (
-      <p key={i} className="font-mono text-sm py-1 text-slate-200">
-        {log}
-      </p>
-    );
-  };
-
   const renderSongPanel = () => {
+    /* 라운드 종료: 정답 공개 */
     if (roundEndInfo) {
       const explanation = roundEndInfo.explanation?.trim();
       const shouldSplitRoundEnd = gameType === 'CS' && Boolean(explanation);
 
       return (
-        <div className="flex flex-col items-center justify-center gap-5 h-full px-12 pt-10 pb-28 text-center overflow-y-auto custom-scrollbar animate-in fade-in duration-500">
-          <span className="material-symbols-outlined text-8xl text-green-400 drop-shadow-[0_0_20px_rgba(74,222,128,0.6)]">
-            check_circle
-          </span>
-          <div className="w-full max-w-5xl space-y-4">
-            <p className="text-sm text-green-400 uppercase tracking-[0.3em] font-bold">TARGET_IDENTIFIED</p>
-            <div className="grid gap-4 text-left">
-              <div className="rounded-3xl border border-green-400/30 bg-green-400/10 p-6 shadow-[0_0_25px_rgba(74,222,128,0.12)]">
-                <p className="text-xs font-bold uppercase tracking-[0.3em] text-green-300">정답</p>
-                <p className="mt-3 text-3xl font-semibold text-white tracking-tight break-keep whitespace-pre-wrap">
-                  {roundEndInfo.answer}
-                </p>
-              </div>
-              {shouldSplitRoundEnd ? (
-                <div className="rounded-3xl border border-sky-400/30 bg-sky-400/10 p-6 shadow-[0_0_25px_rgba(56,189,248,0.12)]">
-                  <p className="text-xs font-bold uppercase tracking-[0.3em] text-sky-300">해설</p>
-                  <p className="mt-3 text-base leading-7 text-slate-100 break-keep whitespace-pre-wrap">
-                    {explanation}
-                  </p>
-                </div>
-              ) : null}
+        <div className="h-full scroll-y custom-scrollbar p-5 sm:p-7 flex flex-col items-center justify-center gap-4 text-center animate-pop">
+          <span className="px-chip px-chip-grass text-xs">정답 공개</span>
+
+          <div className="w-full max-w-3xl space-y-3">
+            <div className="px-inset p-4">
+              <p className="px-label mb-2">정답</p>
+              <p className="px-title text-2xl sm:text-3xl break-keep whitespace-pre-wrap leading-snug">
+                {roundEndInfo.answer}
+              </p>
             </div>
+
+            {shouldSplitRoundEnd ? (
+              <div className="px-inset p-4 text-left">
+                <p className="px-label mb-2">해설</p>
+                <p className="text-sm leading-6 break-keep whitespace-pre-wrap">{explanation}</p>
+              </div>
+            ) : null}
           </div>
+
           {roundEndInfo.winner && roundEndInfo.winner !== '없음' ? (
-            <div className="mt-2 inline-flex items-center gap-4 bg-primary/10 border border-primary/30 px-8 py-4 rounded-full">
-              <span className="text-xs text-primary uppercase tracking-widest font-bold">맞춘 사람</span>
-              <span className="text-2xl font-black text-white uppercase">{stripTag(roundEndInfo.winner)}</span>
+            <div className="px-chip px-chip-cherry gap-2 px-3 py-1.5 text-xs">
+              맞춘 사람 <span className="px-title text-sm text-white">{stripTag(roundEndInfo.winner)}</span>
             </div>
           ) : (
-            <div className="mt-2 inline-flex items-center gap-3 bg-red-500/10 border border-red-500/30 px-8 py-4 rounded-full">
-              <span className="text-sm font-bold text-red-400 uppercase tracking-widest">정답자 없음</span>
-            </div>
+            <div className="px-chip gap-2 px-3 py-1.5 text-xs">정답자 없음</div>
           )}
         </div>
       );
     }
 
+    /* CS 퀴즈: 문제 텍스트 */
     if (gameType === 'CS' && currentVideoId) {
       return (
-        <div className="flex flex-col items-center justify-center gap-4 h-full p-8 overflow-y-auto custom-scrollbar text-center w-full">
-          <p className="text-[10px] text-primary uppercase tracking-[0.3em] font-normal shrink-0">CS QUIZ</p>
-          <div className="text-2xl md:text-xl font-black text-slate-300 leading-relaxed max-w-4xl break-keep whitespace-pre-wrap">
+        <div className="h-full scroll-y custom-scrollbar p-6 sm:p-10 flex flex-col items-center justify-center gap-4 text-center">
+          <span className="px-chip px-chip-sea text-xs">CS 퀴즈</span>
+          <p className="px-title text-xl sm:text-2xl leading-relaxed max-w-3xl break-keep whitespace-pre-wrap">
             {currentVideoId}
-          </div>
-        </div>
-      );
-    }
-
-    if (gameStartInfo) {
-      return (
-        <div className="flex flex-col items-center justify-center gap-10 h-full p-12 text-center animate-in fade-in duration-1000">
-          <span className="material-symbols-outlined text-7xl text-primary animate-pulse neon-glow">graphic_eq</span>
-          <div className="max-w-3xl">
-            <p className="text-3xl font-black text-white tracking-widest uppercase leading-tight neon-glow">
-              {gameStartInfo.message}
-            </p>
-          </div>
-          <div className="grid grid-cols-3 gap-12 text-center mt-10 w-full max-w-2xl border-t border-primary/20 pt-10">
-            <div className="flex flex-col gap-2">
-              <p className="text-xs text-primary/60 uppercase tracking-widest font-bold">카테고리</p>
-              <p className="text-2xl font-black text-primary">{gameStartInfo.category || '전체'}</p>
-            </div>
-            <div className="flex flex-col gap-2 border-x border-primary/20 px-4">
-              <p className="text-xs text-primary/60 uppercase tracking-widest font-bold">총 문제 수</p>
-              <p className="text-2xl font-black text-primary">{gameStartInfo.songCount}문항</p>
-            </div>
-            <div className="flex flex-col gap-2">
-              <p className="text-xs text-primary/60 uppercase tracking-widest font-bold">게임 모드</p>
-              <p className="text-2xl font-black text-primary">{gameStartInfo.gameType === 'SONG' ? '음악' : 'CS'}</p>
-            </div>
-          </div>
-        </div>
-      );
-    }
-
-    if (gameType === 'SONG' && hint && !roundEndInfo) {
-      return (
-        <div className="flex flex-col items-center justify-center gap-8 h-full p-12 text-center animate-in fade-in zoom-in duration-500">
-          <span className="material-symbols-outlined text-8xl text-yellow-400 drop-shadow-[0_0_20px_rgba(250,204,21,0.6)] animate-bounce">
-            lightbulb
-          </span>
-          <div className="space-y-4">
-            <p className="text-sm text-yellow-400 uppercase tracking-[0.3em] font-bold">HINT_ACQUIRED</p>
-            <p className="text-4xl md:text-2xl font-semibold text-white tracking-tight uppercase drop-shadow-lg bg-yellow-400/10 px-8 py-4 rounded-2xl border border-yellow-400/30">
-              {hint}
-            </p>
-          </div>
-        </div>
-      );
-    }
-
-    return (
-      <div className="flex flex-col items-center justify-center gap-6 h-full relative w-full overflow-hidden group">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(37,192,244,0.15)_0%,transparent_70%)] opacity-50 group-hover:opacity-100 transition-opacity duration-1000 pointer-events-none"></div>
-        <div className="relative z-10 flex flex-col items-center">
-          <span className="material-symbols-outlined text-9xl text-primary/20 mb-6 animate-pulse">music_note</span>
-          <p className="text-primary/30 text-3xl font-mono tracking-[0.6em] font-black uppercase">
-            Analyzing signal...
           </p>
         </div>
+      );
+    }
+
+    /* 게임 시작 안내 */
+    if (gameStartInfo) {
+      return (
+        <div className="h-full p-6 flex flex-col items-center justify-center gap-5 text-center animate-pop">
+          <p className="px-title text-xl sm:text-2xl break-keep max-w-xl leading-snug">{gameStartInfo.message}</p>
+
+          <div className="grid grid-cols-3 gap-2 w-full max-w-md">
+            <div className="px-inset py-3">
+              <p className="px-label">카테고리</p>
+              <p className="px-title text-sm mt-1">{gameStartInfo.category || '전체'}</p>
+            </div>
+            <div className="px-inset py-3">
+              <p className="px-label">총 문제 수</p>
+              <p className="px-title text-sm mt-1 num">{gameStartInfo.songCount}문항</p>
+            </div>
+            <div className="px-inset py-3">
+              <p className="px-label">게임 모드</p>
+              <p className="px-title text-sm mt-1">{gameStartInfo.gameType === 'SONG' ? '음악' : 'CS'}</p>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    /* 힌트 공개 */
+    if (gameType === 'SONG' && hint && !roundEndInfo) {
+      return (
+        <div className="h-full p-6 flex flex-col items-center justify-center gap-4 text-center animate-pop">
+          <span className="px-chip px-chip-gold text-xs">힌트</span>
+          <p className="px-title text-2xl sm:text-3xl break-keep tracking-wide">{hint}</p>
+        </div>
+      );
+    }
+
+    /* 기본: 노래 재생 중 */
+    return (
+      <div className="h-full flex flex-col items-center justify-center gap-6">
+        <Equalizer />
+        <p className="px-title text-sm text-ink-soft">노래를 듣고 정답을 입력하세요</p>
       </div>
     );
   };
 
   return (
-    <div className="w-full max-w-7xl mx-auto h-full flex flex-col lg:flex-row gap-6 overflow-hidden">
-      {/* ── 좌측: 랭킹 및 정보 패널 ── */}
-      <div className="lg:w-80 shrink-0 flex flex-col gap-6 h-full">
-        <div className="panel-border bg-slate-900/80 rounded-xl p-6 flex flex-col gap-4">
-          <div className="flex justify-between items-center">
-            <h2 className="text-xs font-bold text-primary uppercase tracking-widest flex items-center gap-2">
-              <span className="material-symbols-outlined text-sm">timer</span> 시스템 카운트다운
-            </h2>
-            <span
-              className={`text-2xl font-mono font-black ${timeLeft <= 5 ? 'text-red-500 animate-pulse' : 'text-white'}`}>
-              {timeLeft}s
-            </span>
-          </div>
-          <div className="w-full h-3 bg-slate-800 rounded-full overflow-hidden border border-white/5">
-            <div
-              className={`h-full transition-all duration-1000 ease-linear ${progressPercent < 30 ? 'bg-red-500 shadow-[0_0_12px_rgba(239,68,68,0.8)]' : 'bg-primary shadow-[0_0_12px_rgba(37,192,244,0.8)]'}`}
-              style={{ width: `${progressPercent}%` }}
-            />
-          </div>
-          <div className="flex justify-between items-center mt-1">
-            <span className="text-[10px] font-mono text-slate-500 uppercase tracking-widest">Sys_Readiness</span>
-            <span className="text-[10px] font-mono text-slate-500">{progressPercent.toFixed(1)}%</span>
-          </div>
+    <div className="h-full min-h-0 w-full max-w-6xl mx-auto flex flex-col gap-3">
+      {/* 라운드 · 남은 시간 */}
+      <div className="px-card shrink-0 px-3 py-2 flex items-center gap-3">
+        <span className="px-chip px-chip-cherry shrink-0">
+          {currentRound > 0 ? (
+            <>
+              <span className="num">{currentRound}</span> / <span className="num">{totalRound}</span>
+            </>
+          ) : (
+            '준비 중'
+          )}
+        </span>
+
+        <div className="px-bar flex-1 h-5">
+          <div
+            className={`px-bar-fill ${isUrgent ? 'text-cherry' : 'text-sea'}`}
+            style={{ width: `${progressPercent}%`, backgroundColor: 'currentColor' }}
+          />
         </div>
 
-        <div className="panel-border bg-slate-900/60 rounded-xl flex flex-col flex-1 overflow-hidden min-h-0">
-          <div className="bg-primary/10 border-b border-primary/30 p-5 flex items-center justify-between shrink-0">
-            <div className="flex items-center gap-2">
-              <span className="material-symbols-outlined text-primary text-sm">leaderboard</span>
-              <h3 className="text-xs font-bold text-primary tracking-widest uppercase">실시간 랭킹</h3>
-            </div>
-          </div>
-
-          <RankingList players={players} roundEndInfo={roundEndInfo} />
-        </div>
+        {/* 남은 시간: 1초마다 통통 튀고, 10초 미만이면 빨갛게 강조 */}
+        <span className={`px-title text-lg shrink-0 num ${isUrgent ? 'text-cherry' : ''}`}>
+          <span key={timeLeft} className={isUrgent ? 'animate-tick-urgent' : 'animate-tick'}>
+            {timeLeft}
+          </span>
+          초
+        </span>
       </div>
 
-      {/* ── 우측: 메인 디스플레이 & 채팅 ── */}
-      <div className="flex-1 flex flex-col gap-6 min-w-0 h-full overflow-hidden">
-        <div className="panel-border bg-slate-950 rounded-2xl relative flex flex-col overflow-hidden h-[550px] shrink-0 shadow-[0_0_40px_rgba(0,0,0,0.7)]">
-          <div className="absolute top-0 left-0 w-16 h-16 border-l-2 border-t-2 border-primary/40 m-6"></div>
-          <div className="absolute top-0 right-0 w-16 h-16 border-r-2 border-t-2 border-primary/40 m-6"></div>
-          <div className="absolute bottom-0 left-0 w-16 h-16 border-l-2 border-b-2 border-primary/40 m-6"></div>
-          <div className="absolute bottom-0 right-0 w-16 h-16 border-r-2 border-b-2 border-primary/40 m-6"></div>
+      {/* 문제 영역 + 순위 */}
+      <div className="flex-1 min-h-0 flex gap-3">
+        {/* h-[550px]는 기존 테스트가 참조하는 클래스라 유지하고, 실제 높이는 부모(행) 높이를 따르게 한다 */}
+        <div className="px-card flex-1 min-w-0 h-[550px] min-h-full max-h-full relative overflow-hidden">
+          {renderSongPanel()}
 
-          <div className="flex-1 relative z-10">{renderSongPanel()}</div>
-
-          <div className="absolute bottom-0 w-full bg-slate-900/95 border-t border-primary/30 p-4 flex justify-between items-center px-10 z-20">
-            <div className="flex items-center gap-4">
-              <span className="w-3 h-3 rounded-full bg-red-500 animate-pulse shadow-[0_0_8px_rgba(239,68,68,0.8)]"></span>
-              <span className="text-xs font-mono text-slate-400 uppercase tracking-[0.3em] font-black">
-                Signal Decoder: ONLINE
-              </span>
-            </div>
-            {currentRound > 0 && (
-              <span className="text-sm font-black text-primary tracking-widest uppercase neon-glow">
-                TARGET {currentRound} <span className="opacity-40">/ {totalRound}</span>
-              </span>
-            )}
-          </div>
-
-          {/* ✅ 단순화된 ReactPlayer: 가시성 문제 해결 및 기본 동작 확인 */}
+          {/* 오디오만 사용하는 숨김 플레이어 */}
           <div className="hidden">
             {playbackVideoId && (
               <ReactPlayer
@@ -338,62 +267,48 @@ const Game: React.FC<GameProps> = ({
           </div>
         </div>
 
-        {/* 채팅 터미널 */}
-        <div className="panel-border bg-slate-900/60 rounded-xl flex flex-col h-[500px] shrink-0 overflow-hidden">
-          <div className="bg-primary/10 border-b border-primary/30 p-4 flex items-center justify-between shrink-0">
-            <div className="flex items-center gap-2">
-              <span className="material-symbols-outlined text-primary text-base">terminal</span>
-              <h3 className="text-xs font-bold text-primary tracking-widest uppercase"> 채팅 로그</h3>
-            </div>
-            <span className="text-[10px] font-mono text-primary/40 uppercase font-bold tracking-widest">
-              Secure Link Active
-            </span>
+        {/* 실시간 순위 */}
+        <div className="px-card w-[190px] sm:w-[230px] shrink-0 flex flex-col overflow-hidden">
+          <div className="px-head shrink-0">
+            <span>순위</span>
+            <span className="num text-ink-soft">{players.length}명</span>
           </div>
-
-          <div
-            ref={logContainerRef}
-            className="flex-1 overflow-y-auto p-6 flex flex-col gap-1 bg-black/50 custom-scrollbar">
-            {logs.map((log, i) => renderChatLog(log, i))}
-            {logs.length === 0 && (
-              <div className="flex flex-col items-center justify-center h-full opacity-20">
-                <span className="material-symbols-outlined text-5xl mb-4">sensors</span>
-                <p className="italic uppercase tracking-[0.4em] text-xs font-bold">신호를 기다리는 중...</p>
-              </div>
-            )}
-          </div>
-
-          <form
-            onSubmit={handleSubmit}
-            className="p-4 border-t border-primary/30 bg-slate-950 flex gap-4 shrink-0 shadow-[0_-10px_30px_rgba(0,0,0,0.5)]">
-            <button
-              type="button"
-              onClick={onSkipRound}
-              className="px-6 border-2 border-primary/30 text-primary hover:bg-primary/10 rounded-xl font-bold transition-all flex items-center gap-2 shrink-0 group"
-              title="문제 건너뛰기 투표">
-              <span className="material-symbols-outlined group-hover:rotate-12 transition-transform">skip_next</span>
-              스킵
-            </button>
-            <div className="flex-1 relative">
-              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-primary/50 font-mono text-lg font-bold">
-                {'>'}
-              </span>
-              <input
-                ref={inputRef}
-                type="text"
-                className="w-full bg-slate-900 border-2 border-primary/30 rounded-xl pl-10 pr-4 py-4 text-base text-white focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none font-mono transition-all placeholder:text-slate-700"
-                placeholder="코드나 정답을 입력하세요..."
-                value={answer}
-                onChange={(e) => setAnswer(e.target.value)}
-                autoFocus
-              />
-            </div>
-            <button
-              type="submit"
-              className="bg-primary hover:bg-primary/80 text-background-dark font-black px-10 rounded-xl transition-all transform hover:scale-[1.02] shadow-[0_0_20px_rgba(37,192,244,0.4)] tracking-[0.2em] text-lg">
-              입력
-            </button>
-          </form>
+          <RankingList players={players} roundEndInfo={roundEndInfo} />
         </div>
+      </div>
+
+      {/* 로그 + 정답 입력 (주관식) */}
+      <div className="px-card shrink-0 h-[28vh] min-h-[150px] flex flex-col overflow-hidden">
+        <div className="px-head shrink-0">
+          <span>진행 로그</span>
+          <span className="px-label text-[10px]">엔터로 바로 입력</span>
+        </div>
+
+        <LogList
+          logs={logs}
+          players={players}
+          containerRef={logContainerRef}
+          className="flex-1 min-h-0"
+          emptyText="첫 문제를 기다리는 중"
+        />
+
+        <form onSubmit={handleSubmit} className="shrink-0 border-t-[3px] border-ink bg-paper-2 p-2 flex gap-2">
+          <input
+            ref={inputRef}
+            type="text"
+            className="px-input flex-1 py-2 border-2"
+            placeholder="정답을 입력하세요"
+            value={answer}
+            onChange={(e) => setAnswer(e.target.value)}
+            autoFocus
+          />
+          <button type="submit" className="px-btn px-btn-sm px-btn-primary">
+            입력
+          </button>
+          <button type="button" onClick={onSkipRound} className="px-btn px-btn-sm px-btn-paper" title="문제 건너뛰기 투표">
+            스킵
+          </button>
+        </form>
       </div>
     </div>
   );

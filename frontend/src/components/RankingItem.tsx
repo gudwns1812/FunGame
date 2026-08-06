@@ -2,10 +2,10 @@ import React from 'react';
 import type { Player } from '../types/game';
 import { stripTag } from '../utils/stringUtils';
 
-// 이미지 import
-import firstBadge from '../images/first.png';
-import secondBadge from '../images/second.png';
-import thirdBadge from '../images/third.png';
+// 이미지 import (레트로 톤에 맞춘 픽셀 메달, 배경 투명)
+import firstBadge from '../images/medal-first.svg';
+import secondBadge from '../images/medal-second.svg';
+import thirdBadge from '../images/medal-third.svg';
 
 interface RankingItemProps {
   player: Player;
@@ -14,45 +14,44 @@ interface RankingItemProps {
   color: string;
 }
 
-const RankingItem: React.FC<RankingItemProps> = ({
-  player,
-  rank,
-  isWinner,
-  color,
-}) => {
+const BadgeTile: React.FC<{ src: string; alt: string }> = ({ src, alt }) => (
+  <img src={src} alt={alt} className="w-9 h-9 shrink-0 object-contain" />
+);
+
+const RankingItem: React.FC<RankingItemProps> = ({ player, rank, isWinner, color }) => {
   const getBadge = () => {
     switch (rank) {
       case 1:
-        return <img src={firstBadge} alt="1st Badge" className="w-10 h-10 object-contain drop-shadow-[0_0_8px_rgba(255,215,0,0.5)]" />;
+        return <BadgeTile src={firstBadge} alt="1st Badge" />;
       case 2:
-        return <img src={secondBadge} alt="2nd Badge" className="w-10 h-10 object-contain drop-shadow-[0_0_8px_rgba(192,192,192,0.5)]" />;
+        return <BadgeTile src={secondBadge} alt="2nd Badge" />;
       case 3:
-        return <img src={thirdBadge} alt="3rd Badge" className="w-10 h-10 object-contain drop-shadow-[0_0_8px_rgba(205,127,50,0.5)]" />;
+        return <BadgeTile src={thirdBadge} alt="3rd Badge" />;
       default:
-        return <span className="text-xs font-mono font-bold opacity-40 shrink-0">#{rank}</span>;
+        return <span className="px-label text-[10px] num shrink-0">#{rank}</span>;
     }
   };
 
   return (
     <div
-      className={`flex justify-between items-center p-4 rounded-lg transition-all duration-300 bg-slate-950/40 hover:bg-slate-800/60
-        ${isWinner ? 'animate-shimmer' : ''}`}
-    >
-      <div className="flex items-center gap-4 min-w-0">
-        <div className="w-12 flex justify-center shrink-0">
-          {getBadge()}
-        </div>
-        <span
-          className="font-bold truncate uppercase text-sm name-text"
-          style={{
+      className={`flex items-center gap-2 border-2 border-ink bg-white px-2 py-1.5
+        ${isWinner ? 'animate-shimmer' : ''}`}>
+      <div className="w-9 flex justify-center shrink-0">{getBadge()}</div>
+
+      <span className="w-2.5 h-2.5 shrink-0 border border-ink" style={{ background: color }} />
+
+      <span
+        className="name-text font-display flex-1 min-w-0 truncate text-[13px]"
+        style={
+          {
             color: color,
             '--p-color': color,
-          } as React.CSSProperties}
-        >
-          {stripTag(player.name)}
-        </span>
-      </div>
-      <span className="font-mono font-bold text-white text-base shrink-0">{player.score}</span>
+          } as React.CSSProperties
+        }>
+        {stripTag(player.name)}
+      </span>
+
+      <span className="px-title text-sm shrink-0 num">{player.score}</span>
     </div>
   );
 };

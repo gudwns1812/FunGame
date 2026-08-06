@@ -7,7 +7,7 @@ const LoginPage: React.FC = () => {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  
+
   const { login } = useAuth();
   const navigate = useNavigate();
 
@@ -33,89 +33,59 @@ const LoginPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background-dark p-6 overflow-hidden relative">
-      {/* 배경 장식 */}
-      <div className="absolute inset-0 grid-overlay opacity-20 pointer-events-none"></div>
-      <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-primary/10 rounded-full blur-[100px] pointer-events-none"></div>
-      <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-primary/5 rounded-full blur-[120px] pointer-events-none"></div>
-
-      <div className="w-full max-w-md z-10 animate-fade-in">
-        <div className="panel-border bg-slate-900/80 backdrop-blur-xl p-10 rounded-3xl shadow-2xl space-y-8">
-          <div className="text-center space-y-2">
-            <div className="inline-flex items-center justify-center p-3 bg-primary/10 rounded-2xl mb-4">
-              <span className="material-symbols-outlined text-4xl text-primary neon-glow">rocket_launch</span>
-            </div>
-            <h1 className="text-4xl font-black text-white tracking-tighter uppercase">
-              FunGame <span className="text-primary neon-glow">Login</span>
-            </h1>
-            <p className="text-slate-400 text-sm font-medium tracking-wide">계정에 로그인하여 게임을 즐기세요.</p>
-          </div>
-
-          <form onSubmit={handleSubmit} className="space-y-5">
-            <div className="space-y-2">
-              <label className="text-[10px] font-bold text-primary/70 uppercase tracking-widest pl-1">아이디</label>
-              <div className="relative group">
-                <span className="absolute left-4 top-1/2 -translate-y-1/2 material-symbols-outlined text-primary/40 group-focus-within:text-primary transition-colors">
-                  person
-                </span>
-                <input
-                  type="text"
-                  className="w-full bg-slate-950 border border-primary/20 rounded-xl py-4 pl-12 pr-4 text-white focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all"
-                  placeholder="아이디 입력"
-                  value={loginId}
-                  onChange={(e) => setLoginId(e.target.value)}
-                  autoFocus
-                />
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-[10px] font-bold text-primary/70 uppercase tracking-widest pl-1">비밀번호</label>
-              <div className="relative group">
-                <span className="absolute left-4 top-1/2 -translate-y-1/2 material-symbols-outlined text-primary/40 group-focus-within:text-primary transition-colors">
-                  lock
-                </span>
-                <input
-                  type="password"
-                  className="w-full bg-slate-950 border border-primary/20 rounded-xl py-4 pl-12 pr-4 text-white focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all"
-                  placeholder="비밀번호 입력"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                />
-              </div>
-            </div>
-
-            {error && (
-              <div className="flex items-center gap-2 text-red-400 text-xs font-bold bg-red-400/10 p-3 rounded-lg border border-red-400/20">
-                <span className="material-symbols-outlined text-sm">error</span>
-                {error}
-              </div>
-            )}
-
-            <button
-              type="submit"
-              disabled={isLoading}
-              className="w-full bg-primary hover:bg-primary/90 text-background-dark font-black py-4 rounded-xl transition-all transform hover:scale-[1.02] shadow-[0_0_20px_rgba(37,192,244,0.3)] disabled:opacity-50 disabled:scale-100 flex items-center justify-center gap-2">
-              {isLoading ? (
-                <div className="w-5 h-5 border-2 border-background-dark border-t-transparent rounded-full animate-spin"></div>
-              ) : (
-                <>
-                  <span className="material-symbols-outlined text-sm">login</span>
-                  로그인
-                </>
-              )}
-            </button>
-          </form>
-
-          <div className="pt-4 text-center space-y-4">
-            <p className="text-slate-500 text-xs font-medium">
-              계정이 없으신가요?{' '}
-              <Link to="/signup" className="text-primary hover:underline font-bold">
-                회원가입
-              </Link>
-            </p>
-          </div>
+    <div className="min-h-[100dvh] relative z-[1] flex items-center justify-center p-5">
+      <div className="w-full max-w-sm animate-pop">
+        {/* 로고 */}
+        <div className="flex flex-col items-center gap-2 mb-6">
+          <span className="w-16 h-16 bg-cherry border-[3px] border-ink flex items-center justify-center shadow-[5px_5px_0_0_#1a1a1a]">
+            <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.8">
+              <circle cx="8" cy="18" r="3" />
+              <circle cx="18" cy="15" r="3" />
+              <path d="M11 18V6l10-2v11" />
+            </svg>
+          </span>
+          <h1 className="px-title text-3xl">펀게임</h1>
         </div>
+
+        <form onSubmit={handleSubmit} className="px-card p-5 space-y-4">
+          <div>
+            <label className="px-label block mb-1.5">아이디</label>
+            <input
+              type="text"
+              className="px-input"
+              placeholder="아이디 입력"
+              value={loginId}
+              onChange={(e) => setLoginId(e.target.value)}
+              autoFocus
+            />
+          </div>
+
+          <div>
+            <label className="px-label block mb-1.5">비밀번호</label>
+            <input
+              type="password"
+              className="px-input"
+              placeholder="비밀번호 입력"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+            />
+          </div>
+
+          {error && (
+            <div className="border-2 border-ink bg-cherry text-white px-3 py-2 text-xs font-display">{error}</div>
+          )}
+
+          <button type="submit" disabled={isLoading} className="px-btn px-btn-primary w-full py-3">
+            {isLoading ? '로그인 중...' : '로그인 ▶'}
+          </button>
+
+          <p className="px-label text-center">
+            계정이 없으신가요?{' '}
+            <Link to="/signup" className="text-cherry underline">
+              회원가입
+            </Link>
+          </p>
+        </form>
       </div>
     </div>
   );

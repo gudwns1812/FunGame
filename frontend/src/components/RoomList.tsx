@@ -73,77 +73,61 @@ const RoomList: React.FC<RoomListProps> = ({ rooms, onJoinRoom, onCreateRoom, on
       ? [2, 3, 4, 5, 6]
       : [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
 
+  const isSingleRound = gameType === 'HANGMAN' || gameType === 'HALLIGALLI';
+
   return (
-    <div className="w-full max-w-6xl flex flex-col gap-8">
-      {/* ... (상단 컨트롤 패널 생략) */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
-        <div className="space-y-2">
-          <div className="inline-block px-3 py-1 bg-primary/10 border border-primary/30 rounded text-[10px] font-bold text-primary tracking-widest uppercase">
-            활성화된 게임 방: {rooms.length}
-          </div>
-          <h2 className="text-3xl font-black text-white tracking-tighter uppercase flex items-center gap-3">
-            게임 <span className="text-primary neon-glow">로비</span>
-          </h2>
+    <div className="w-full max-w-5xl mx-auto flex flex-col gap-4">
+      {/* 상단: 제목 + 액션 */}
+      <div className="flex items-center justify-between gap-3 flex-wrap">
+        <div className="flex items-center gap-2.5">
+          <h2 className="px-title text-2xl">게임 방</h2>
+          <span className="px-chip num">{rooms.length}</span>
         </div>
 
-        <div className="flex gap-3 w-full md:w-auto">
-          <button
-            onClick={onRefreshRooms}
-            className="flex-1 md:flex-none flex items-center justify-center gap-2 px-4 py-2 border border-primary/30 rounded text-primary hover:bg-primary/10 transition-colors font-bold text-sm tracking-wider">
-            <span className="material-symbols-outlined text-lg">refresh</span> 새로고침
+        <div className="flex gap-2">
+          <button onClick={onRefreshRooms} className="px-btn px-btn-sm px-btn-paper">
+            새로고침
           </button>
-          <button
-            onClick={() => setShowCreate(true)}
-            className="flex-1 md:flex-none flex items-center justify-center gap-2 px-5 py-2 bg-primary text-background-dark rounded hover:bg-primary/90 transition-all transform hover:scale-105 font-black text-sm tracking-wider shadow-[0_0_15px_rgba(37,192,244,0.3)]">
-            <span className="material-symbols-outlined text-lg">add_circle</span> 방 만들기
+          <button onClick={() => setShowCreate(true)} className="px-btn px-btn-sm px-btn-primary">
+            방 만들기 +
           </button>
         </div>
       </div>
 
       {/* 방 생성 폼 */}
       {showCreate && (
-        <div className="panel-border bg-slate-900/50 p-6 rounded-xl space-y-6">
-          <div className="flex items-center gap-2 border-b border-primary/20 pb-3">
-            <span className="material-symbols-outlined text-primary">add_box</span>
-            <h3 className="text-lg font-bold text-white uppercase tracking-widest">새 게임 방 설정</h3>
-          </div>
+        <div className="px-card p-4 space-y-3.5 animate-pop">
+          <h3 className="px-title text-base border-b-[3px] border-ink pb-2">새 방 만들기</h3>
 
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
-            <div className="md:col-span-2 space-y-2">
-              <label className="block text-[10px] font-bold text-primary/70 uppercase tracking-widest">방 제목</label>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div className="md:col-span-2">
+              <label className="px-label block mb-1.5">방 제목</label>
               <input
-                className="w-full bg-slate-950 border border-primary/30 rounded-lg p-3 text-white focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all"
-                placeholder="방 제목을 입력하세요..."
+                className="px-input"
+                placeholder="방 제목을 입력하세요"
                 value={newRoomName}
                 onChange={(e) => setNewRoomName(e.target.value)}
                 autoFocus
               />
             </div>
 
-            <div className="space-y-2">
-              <label className="block text-[10px] font-bold text-primary/70 uppercase tracking-widest">게임 모드</label>
-              <select
-                className="w-full bg-slate-950 border border-primary/30 rounded-lg p-3 text-white focus:border-primary outline-none appearance-none"
-                value={gameType}
-                onChange={(e) => setGameType(e.target.value)}>
+            <div>
+              <label className="px-label block mb-1.5">게임 모드</label>
+              <select className="px-input" value={gameType} onChange={(e) => setGameType(e.target.value)}>
                 {gameTypes.map((type) => (
-                  <option key={type.value} value={type.value} className="bg-background-dark">
+                  <option key={type.value} value={type.value}>
                     {type.label}
                   </option>
                 ))}
               </select>
             </div>
 
-            <div className="space-y-2">
-              <label className="block text-[10px] font-bold text-primary/70 uppercase tracking-widest">
-                장르/난이도
-              </label>
+            <div>
+              <label className="px-label block mb-1.5">{gameType === 'HANGMAN' ? '난이도' : '장르'}</label>
               {gameType === 'CS' ? (
-                <div className="w-full bg-slate-900/50 border border-primary/10 rounded-lg p-3 text-primary/50 font-bold">
-                  CS 종합
-                </div>
+                <div className="px-input bg-paper-2 text-ink-soft">CS 종합</div>
               ) : gameType === 'HANGMAN' ? (
-                <div className="flex items-center gap-3 bg-slate-950 border border-primary/30 rounded-lg p-2.5">
+                <div className="px-input flex items-center gap-3 py-2.5">
                   <input
                     type="range"
                     min="1"
@@ -151,17 +135,14 @@ const RoomList: React.FC<RoomListProps> = ({ rooms, onJoinRoom, onCreateRoom, on
                     step="1"
                     value={difficulty}
                     onChange={(e) => setDifficulty(parseInt(e.target.value))}
-                    className="flex-1 accent-primary h-1.5 rounded-lg appearance-none cursor-pointer bg-slate-800"
+                    className="flex-1 accent-cherry h-1.5 cursor-pointer"
                   />
-                  <span className="text-primary font-black min-w-[1.5rem] text-center">{difficulty}</span>
+                  <span className="px-title text-sm w-4 text-center num">{difficulty}</span>
                 </div>
               ) : (
-                <select
-                  className="w-full bg-slate-950 border border-primary/30 rounded-lg p-3 text-white focus:border-primary outline-none appearance-none"
-                  value={category}
-                  onChange={(e) => setCategory(e.target.value)}>
+                <select className="px-input" value={category} onChange={(e) => setCategory(e.target.value)}>
                   {categories.map((cat) => (
-                    <option key={cat.value} value={cat.value} className="bg-background-dark">
+                    <option key={cat.value} value={cat.value}>
                       {cat.label}
                     </option>
                   ))}
@@ -169,45 +150,38 @@ const RoomList: React.FC<RoomListProps> = ({ rooms, onJoinRoom, onCreateRoom, on
               )}
             </div>
 
-            <div className="space-y-2">
-              <label className="block text-[10px] font-bold text-primary/70 uppercase tracking-widest">최대 인원</label>
+            <div>
+              <label className="px-label block mb-1.5">최대 인원</label>
               <select
-                className="w-full bg-slate-950 border border-primary/30 rounded-lg p-3 text-white focus:border-primary outline-none appearance-none"
+                className="px-input"
                 value={maxPlayers}
                 onChange={(e) => setMaxPlayers(parseInt(e.target.value))}>
                 {filteredMaxPlayerOptions.map((n) => (
-                  <option key={n} value={n} className="bg-background-dark">
+                  <option key={n} value={n}>
                     {n}명
                   </option>
                 ))}
               </select>
             </div>
 
-            <div className="space-y-2">
-              <label className="block text-[10px] font-bold text-primary/70 uppercase tracking-widest">
-                {gameType === 'HANGMAN' || gameType === 'HALLIGALLI' ? '게임 방식' : '퀴즈 수'}
-              </label>
-              <select
-                className="w-full bg-slate-950 border border-primary/30 rounded-lg p-3 text-white focus:border-primary outline-none appearance-none"
-                value={songCount}
-                onChange={(e) => setSongCount(parseInt(e.target.value))}>
+            <div>
+              <label className="px-label block mb-1.5">{isSingleRound ? '게임 방식' : '퀴즈 수'}</label>
+              <select className="px-input" value={songCount} onChange={(e) => setSongCount(parseInt(e.target.value))}>
                 {filteredSongCountOptions.map((n) => (
-                  <option key={n} value={n} className="bg-background-dark">
-                    {gameType === 'HANGMAN' || gameType === 'HALLIGALLI' ? '단판' : `${n}문제`}
+                  <option key={n} value={n}>
+                    {isSingleRound ? '단판' : `${n}문제`}
                   </option>
                 ))}
               </select>
             </div>
           </div>
 
-          <div className="flex justify-end gap-3 pt-2">
-            <button
-              className="px-6 py-2 border border-primary/30 text-primary font-bold rounded hover:bg-primary/10 transition-colors"
-              onClick={() => setShowCreate(false)}>
+          <div className="flex justify-end gap-2 pt-1">
+            <button className="px-btn px-btn-sm px-btn-paper" onClick={() => setShowCreate(false)}>
               취소
             </button>
             <button
-              className="px-8 py-2 bg-primary text-background-dark font-black rounded hover:bg-primary/90 transition-colors flex items-center gap-2"
+              className="px-btn px-btn-sm px-btn-primary"
               onClick={() => {
                 if (newRoomName.trim()) {
                   onCreateRoom(newRoomName.trim(), maxPlayers, category, songCount, gameType, difficulty);
@@ -215,58 +189,55 @@ const RoomList: React.FC<RoomListProps> = ({ rooms, onJoinRoom, onCreateRoom, on
                   setNewRoomName('');
                 }
               }}>
-              <span className="material-symbols-outlined text-sm">check_circle</span>방 생성
+              방 생성
             </button>
           </div>
         </div>
       )}
 
-      {/* 방 목록 그리드 */}
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+      {/* 방 목록 */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
         {rooms.length === 0 ? (
-          <div className="col-span-full panel-border bg-slate-900/30 flex flex-col items-center justify-center py-20 rounded-xl opacity-60">
-            <span className="material-symbols-outlined text-6xl text-primary/50 mb-4">search_off</span>
-            <p className="uppercase tracking-widest text-primary/70 font-bold">현재 생성된 방이 없습니다.</p>
-            <p className="text-xs text-slate-500 mt-2">새로운 방을 만들어 게임을 시작해보세요.</p>
+          <div className="col-span-full px-card py-14 flex flex-col items-center gap-2">
+            <p className="px-title text-sm">현재 생성된 방이 없습니다.</p>
+            <p className="px-label">새 방을 만들어 게임을 시작해보세요</p>
           </div>
         ) : (
           rooms.map((room) => {
             const isPlaying = room.status === 'PLAYING';
+            const isFull = room.playerCount >= room.maxPlayers;
+
             return (
               <div
                 key={room.id}
-                className={`panel-border bg-slate-900/60 rounded-xl p-5 flex flex-col gap-4 group transition-all duration-300 ${isPlaying ? 'opacity-50 grayscale' : 'hover:bg-slate-800/80 hover:-translate-y-1 cursor-pointer hover:shadow-[0_5px_20px_rgba(37,192,244,0.15)]'}`}
+                className={`px-card flex flex-col ${isPlaying ? 'opacity-55' : 'px-tap cursor-pointer'}`}
                 onClick={() => !isPlaying && onJoinRoom(room)}>
-                <div className="flex justify-between items-start gap-2">
-                  <div className="flex flex-col gap-1 min-w-0">
-                    <h3 className="text-lg font-bold text-white uppercase truncate group-hover:text-primary transition-colors">
-                      {room.name}
-                    </h3>
-                    {isPlaying && (
-                      <span className="inline-block px-2 py-0.5 bg-red-500/20 border border-red-500/50 text-red-400 text-[10px] font-bold tracking-wider rounded w-fit">
-                        게임 진행 중
-                      </span>
-                    )}
-                  </div>
-                  <div className="flex items-center gap-1 text-xs font-bold text-primary bg-primary/10 border border-primary/30 px-2 py-1 rounded shrink-0">
-                    <span className="material-symbols-outlined text-sm">groups</span>
-                    {room.playerCount} / {room.maxPlayers}
-                  </div>
+                {/* 카드 헤더 */}
+                <div className="flex items-center justify-between border-b-[3px] border-ink px-3 py-2 bg-sky-deep">
+                  <span className="w-7 h-7 border-2 border-ink bg-paper flex items-center justify-center">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" strokeWidth="2.6">
+                      <circle cx="8" cy="18" r="3" />
+                      <circle cx="18" cy="15" r="3" />
+                      <path d="M11 18V6l10-2v11" />
+                    </svg>
+                  </span>
+
+                  {isPlaying ? (
+                    <span className="px-chip px-chip-cherry">게임 진행 중</span>
+                  ) : (
+                    <span className={`px-chip num ${isFull ? 'px-chip-cherry' : ''}`}>
+                      {room.playerCount} / {room.maxPlayers}
+                    </span>
+                  )}
                 </div>
 
-                <div className="mt-auto border-t border-primary/10 pt-3 flex justify-between items-center">
-                  <div className="flex items-center gap-2 text-slate-400">
-                    <span className="material-symbols-outlined text-sm">account_circle</span>
-                    <span className="text-[10px] uppercase font-bold tracking-wider truncate max-w-[120px]">
-                      {stripTag(room.hostName)}
-                    </span>
-                  </div>
+                <div className="p-3 flex flex-col gap-2 flex-1">
+                  <h3 className="px-title text-base leading-snug break-keep">{room.name}</h3>
 
-                  {!isPlaying && (
-                    <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1 text-primary text-[10px] font-bold tracking-widest">
-                      입장하기 <span className="material-symbols-outlined text-sm">arrow_forward</span>
-                    </div>
-                  )}
+                  <div className="mt-auto flex items-center justify-between gap-2">
+                    <span className="px-label truncate">방장 {stripTag(room.hostName)}</span>
+                    {!isPlaying && <span className="px-chip px-chip-cherry">입장 ▶</span>}
+                  </div>
                 </div>
               </div>
             );
