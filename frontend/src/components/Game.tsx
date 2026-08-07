@@ -25,22 +25,6 @@ interface GameProps {
   logs: string[];
 }
 
-/**
- * 해설이 길면 라운드 사이에 읽히지 않으므로 마침표 기준 앞 1~2문장만 보여준다.
- * (숫자 소수점을 자르지 않도록 마침표 뒤 공백이 있을 때만 문장으로 끊는다)
- */
-const summarizeExplanation = (text: string, maxSentences = 2) => {
-  const sentences = text
-    .split(/(?<=[.!?])\s+/)
-    .map((s) => s.trim())
-    .filter(Boolean);
-
-  return {
-    text: sentences.slice(0, maxSentences).join(' '),
-    omitted: sentences.length > maxSentences,
-  };
-};
-
 /** 노래 재생 중 표시용 이퀄라이저 */
 const Equalizer: React.FC = () => (
   <div className="flex items-end gap-2 h-20">
@@ -114,45 +98,42 @@ const Game: React.FC<GameProps> = ({
     if (roundEndInfo) {
       const explanation = roundEndInfo.explanation?.trim();
       const shouldSplitRoundEnd = gameType === 'CS' && Boolean(explanation);
-      const summary = explanation ? summarizeExplanation(explanation) : null;
 
-      // justify-center 로 중앙정렬하면 넘친 콘텐츠의 위쪽이 스크롤로도 접근이 안 되므로 m-auto 로 중앙정렬한다
       return (
-        <div className="h-full scroll-y custom-scrollbar p-4 sm:p-5 flex flex-col animate-pop">
-          <div className="m-auto flex flex-col items-center gap-3 text-center w-full">
+        <div className="h-full p-3.5 sm:p-4 flex flex-col gap-2.5 animate-pop">
+          {/* 상태 칩은 한 줄로 모아 세로 공간을 아낀다 */}
+          <div className="shrink-0 flex items-center justify-center gap-2 flex-wrap">
             <span className="px-chip px-chip-grass text-xs">정답 공개</span>
+            {roundEndInfo.winner && roundEndInfo.winner !== '없음' ? (
+              <span className="px-chip px-chip-cherry text-xs gap-1.5">
+                맞춘 사람 <span className="px-title text-xs text-white">{stripTag(roundEndInfo.winner)}</span>
+              </span>
+            ) : (
+              <span className="px-chip text-xs">정답자 없음</span>
+            )}
+          </div>
 
-            {/* 넓은 화면에서는 정답과 해설을 좌우로 나눠 높이를 아낀다 */}
-            <div className="w-full max-w-4xl flex flex-col lg:flex-row gap-3">
-              {/* 정답: 체리레드로 강조해 해설과 확실히 구분 */}
-              <div
-                className={`border-2 border-cherry bg-[#ffeceb] p-4 ${
-                  shouldSplitRoundEnd ? 'lg:w-[38%] lg:shrink-0' : 'mx-auto w-full max-w-lg'
-                }`}>
-                <p className="px-label text-cherry mb-2">정답</p>
-                <p className="px-title text-2xl sm:text-3xl break-keep whitespace-pre-wrap leading-snug">
-                  {roundEndInfo.answer}
-                </p>
-              </div>
-
-              {shouldSplitRoundEnd && summary ? (
-                <div className="px-inset p-4 text-left flex-1 min-w-0">
-                  <p className="px-label mb-2">해설</p>
-                  <p className="text-sm leading-6 break-keep whitespace-pre-wrap text-ink-soft">
-                    {summary.text}
-                    {summary.omitted ? ' …' : ''}
-                  </p>
-                </div>
-              ) : null}
+          {/* 정답·해설 박스가 패널 높이를 채우고, 넓은 화면에서는 좌우로 나눈다 */}
+          <div className="flex-1 min-h-0 flex flex-col md:flex-row gap-2.5">
+            <div
+              className={`border-2 border-cherry bg-[#ffeceb] px-4 py-3 flex flex-col justify-center text-center ${
+                shouldSplitRoundEnd ? 'md:w-[32%] md:shrink-0' : 'mx-auto w-full max-w-xl'
+              }`}>
+              <p className="px-label text-cherry mb-1.5">정답</p>
+              <p className="px-title text-lg sm:text-xl break-keep whitespace-pre-wrap leading-snug">
+                {roundEndInfo.answer}
+              </p>
             </div>
 
-            {roundEndInfo.winner && roundEndInfo.winner !== '없음' ? (
-              <div className="px-chip px-chip-cherry gap-2 px-3 py-1.5 text-xs">
-                맞춘 사람 <span className="px-title text-sm text-white">{stripTag(roundEndInfo.winner)}</span>
+            {shouldSplitRoundEnd ? (
+              <div className="px-inset px-4 py-3 text-left flex-1 min-w-0 flex flex-col">
+                <p className="px-label mb-1.5 shrink-0">해설</p>
+                {/* 해설은 자르지 않고 그대로 보여주고, 박스를 넘칠 때만 내부에서 스크롤된다 */}
+                <div className="flex-1 min-h-0 scroll-y custom-scrollbar">
+                  <p className="text-[13px] leading-5 break-keep whitespace-pre-wrap text-ink-soft">{explanation}</p>
+                </div>
               </div>
-            ) : (
-              <div className="px-chip gap-2 px-3 py-1.5 text-xs">정답자 없음</div>
-            )}
+            ) : null}
           </div>
         </div>
       );
