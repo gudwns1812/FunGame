@@ -35,6 +35,16 @@ public abstract class AbstractQuizGame implements Game {
         skipVotes.remove(playerName);
     }
 
+    @Override
+    public void restorePlayer(String playerName) {
+        if (players == null || players.contains(playerName)) {
+            return;
+        }
+
+        players.add(playerName);
+        skipVotes.put(playerName, false);
+    }
+
     private void initSkipVotes() {
         skipVotes.clear();
         players.forEach(player -> skipVotes.put(player, false));

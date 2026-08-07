@@ -131,6 +131,16 @@ public class HangmanGame extends AbstractQuizGame {
         currentTurnIndex %= playerOrder.size();
     }
 
+    @Override
+    public void restorePlayer(String playerName) {
+        super.restorePlayer(playerName);
+
+        if (!playerOrder.contains(playerName)) {
+            // 맨 뒤에 붙이면 앞쪽 인덱스가 밀리지 않아 진행 중인 차례가 유지된다.
+            playerOrder.add(playerName);
+        }
+    }
+
     public boolean isGameWon() {
         return !currentDisplay.contains("_");
     }

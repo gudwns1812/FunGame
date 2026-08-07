@@ -1,5 +1,6 @@
 package com.fungame.songquiz.domain;
 
+import com.fungame.songquiz.domain.dto.GameStateDto;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Component;
@@ -65,6 +66,11 @@ public class GameServiceRouter implements GameService {
     @Override
     public void handlePlayerLeave(Long roomId, String playerName) {
         getService(roomId).handlePlayerLeave(roomId, playerName);
+    }
+
+    @Override
+    public GameStateDto getPlayState(Long roomId) {
+        return getService(roomId).getPlayState(roomId);
     }
 
     @Override
