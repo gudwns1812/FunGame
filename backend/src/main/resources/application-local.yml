@@ -1,0 +1,42 @@
+# 로컬 개발용 프로파일. 외부 DB 없이 인메모리 H2 로 단독 기동합니다.
+#
+#   ./gradlew :backend:bootRun --args='--spring.profiles.active=local'
+#
+# 프론트엔드는 frontend 디렉터리에서 `npm run dev:local` 로 띄우면
+# 아래 CORS 설정과 맞는 포트(5199)로 붙습니다.
+
+cors:
+  allowed-origins: "http://localhost:5199,http://127.0.0.1:5199"
+
+server:
+  port: 8080
+  servlet:
+    session:
+      cookie:
+        # http 로컬 개발에서는 Secure 쿠키가 전달되지 않으므로 반드시 false 여야 합니다.
+        secure: false
+        same-site: lax
+
+spring:
+  datasource:
+    url: jdbc:h2:mem:songquiz;DB_CLOSE_DELAY=-1;MODE=MySQL
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: ""
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    # 스키마 생성 후에 시드 SQL 이 실행되도록 미룹니다.
+    defer-datasource-initialization: true
+  sql:
+    init:
+      mode: always
+      # 파일명을 data.sql 로 두면 모든 프로파일에서 자동 실행되므로 경로를 명시합니다.
+      data-locations: classpath:db/local-seed.sql
+  session:
+    jdbc:
+      initialize-schema: always
+
+logging:
+  level:
+    com.fungame.songquiz: DEBUG
