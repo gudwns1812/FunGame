@@ -52,6 +52,7 @@ export const useGameLogic = () => {
 
   const stompClient = useRef<Client | null>(null);
   const fetchRankRef = useRef<() => Promise<void>>(async () => { });
+  const hasBootstrapped = useRef(false);
 
   const addLog = useCallback((msg: string) => {
     setLogs((prev) => [...prev.slice(-49), msg]);
@@ -467,6 +468,12 @@ export const useGameLogic = () => {
       }
       setIsBootstrapping(false);
     };
+
+    // StrictMode 는 개발 모드에서 마운트 이펙트를 두 번 실행한다.
+    // 재참가와 상태 복원이 중복으로 돌지 않도록 한 번만 수행한다.
+    if (hasBootstrapped.current) return;
+    hasBootstrapped.current = true;
+
     bootstrap();
   }, []); // Run once on mount
 
