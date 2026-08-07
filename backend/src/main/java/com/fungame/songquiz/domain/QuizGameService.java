@@ -42,6 +42,9 @@ public class QuizGameService implements GameService {
             return;
         }
 
+        // 라운드 진행 자체를 활동으로 인정한다. 채팅이 없는 게임이 유휴 청소에 삭제되는 것을 막는다.
+        gameRoomManager.touch(roomId);
+
         gameSession.startRound();
         publisher.publishEvent(new RoundStartEvent(roomId, gameSession.getContent(), gameSession.getCurrentRound(),
                 gameSession.getTotalRound()));

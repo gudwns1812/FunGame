@@ -2,6 +2,7 @@ package com.fungame.songquiz.domain;
 
 import com.fungame.songquiz.domain.dto.GameContentDto;
 import com.fungame.songquiz.domain.dto.GameInfo;
+import com.fungame.songquiz.domain.event.GameResultEvent;
 import com.fungame.songquiz.domain.event.GameStartEvent;
 import com.fungame.songquiz.domain.event.HangmanActionEvent;
 import org.junit.jupiter.api.DisplayName;
@@ -77,7 +78,7 @@ class HangmanGameServiceTest {
     }
 
     @Test
-    @DisplayName("게임이 승리 상태로 종료되면 방을 종료 처리한다.")
+    @DisplayName("게임이 승리 상태로 종료되면 방과 게임 세션을 정리하고 결과를 발행한다.")
     void handleAction_win_ends_room() {
         // Given
         Long roomId = 1L;
@@ -94,7 +95,9 @@ class HangmanGameServiceTest {
         hangmanGameService.handleAction(roomId, action);
 
         // Then
-        verify(mockRoom).end();
+        verify(gameRoomManager).endGame(roomId);
+        verify(gameSessionManager).endGameSession(roomId);
         verify(eventPublisher).publishEvent(any(HangmanActionEvent.class));
+        verify(eventPublisher).publishEvent(any(GameResultEvent.class));
     }
 }
