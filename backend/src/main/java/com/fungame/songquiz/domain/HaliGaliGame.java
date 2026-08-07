@@ -41,6 +41,47 @@ public class HaliGaliGame implements Game {
         distributeCards();
     }
 
+    @Override
+    public void removePlayer(String playerName) {
+        int leaverIndex = players.indexOf(playerName);
+        if (leaverIndex < 0) {
+            return;
+        }
+
+        // 턴은 currentRound 로부터 유도되므로, 제거 전에 "이후 차례가 될 사람"을 이름으로 붙잡아 둔다.
+        String nextTurnPlayer = resolveTurnOwnerAfterRemovalOf(leaverIndex);
+
+        players.remove(leaverIndex);
+        // 이탈자의 카드는 회수하지 않고 폐기한다. 남은 카드만으로 승패를 가린다.
+        playerDecks.remove(playerName);
+        openCards.remove(playerName);
+
+        if (players.isEmpty()) {
+            currentRound = 1;
+            return;
+        }
+
+        alignRoundTo(players.indexOf(nextTurnPlayer));
+    }
+
+    private String resolveTurnOwnerAfterRemovalOf(int leaverIndex) {
+        int currentIndex = (currentRound - 1) % players.size();
+
+        if (leaverIndex != currentIndex) {
+            return players.get(currentIndex);
+        }
+
+        // 이탈자가 현재 차례였다면 다음 사람에게 턴을 넘긴다.
+        return players.get((currentIndex + 1) % players.size());
+    }
+
+    /**
+     * currentRound 를 되돌리지 않으면서 지정한 인덱스가 현재 차례가 되도록 라운드를 앞으로만 보정한다.
+     */
+    private void alignRoundTo(int targetIndex) {
+        currentRound += Math.floorMod(targetIndex - (currentRound - 1), players.size());
+    }
+
     private void distributeCards() {
         List<Card> allCards = new ArrayList<>();
         for (Fruit fruit : Fruit.values()) {

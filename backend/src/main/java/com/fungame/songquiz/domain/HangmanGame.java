@@ -107,6 +107,30 @@ public class HangmanGame extends AbstractQuizGame {
         currentTurnIndex = (currentTurnIndex + 1) % playerOrder.size();
     }
 
+    @Override
+    public void removePlayer(String playerName) {
+        super.removePlayer(playerName);
+
+        int leaverIndex = playerOrder.indexOf(playerName);
+        if (leaverIndex < 0) {
+            return;
+        }
+
+        playerOrder.remove(leaverIndex);
+
+        if (playerOrder.isEmpty()) {
+            currentTurnIndex = 0;
+            return;
+        }
+
+        // 이탈자가 현재 차례보다 앞이었다면 인덱스를 당겨 현재 차례를 유지한다.
+        // 이탈자가 현재 차례였다면 인덱스는 그대로 다음 사람을 가리키게 되며, 끝을 넘어가면 처음으로 돌린다.
+        if (leaverIndex < currentTurnIndex) {
+            currentTurnIndex--;
+        }
+        currentTurnIndex %= playerOrder.size();
+    }
+
     public boolean isGameWon() {
         return !currentDisplay.contains("_");
     }

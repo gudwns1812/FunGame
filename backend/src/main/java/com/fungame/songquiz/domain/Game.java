@@ -21,6 +21,12 @@ public interface Game {
 
     void setPlayers(List<String> players);
 
+    /**
+     * 게임 도중 이탈한 플레이어를 게임 진행 상태에서 제거한다.
+     * 턴제 게임은 이 시점에 턴 순서도 함께 보정해야 한다.
+     */
+    void removePlayer(String playerName);
+
     GameAnswerDto getAnswer();
 
     void startRound();

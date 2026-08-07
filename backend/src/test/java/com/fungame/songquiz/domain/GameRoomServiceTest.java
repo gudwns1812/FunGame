@@ -1,5 +1,6 @@
 package com.fungame.songquiz.domain;
 
+import com.fungame.songquiz.domain.event.PlayerLeaveEvent;
 import com.fungame.songquiz.domain.gamecreator.SongGameCreateInfo;
 import com.fungame.songquiz.domain.gamecreator.SongGameFactory;
 import com.fungame.songquiz.storage.CounterEntity;
@@ -18,6 +19,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
 @ExtendWith(MockitoExtension.class)
@@ -33,6 +35,9 @@ class GameRoomServiceTest {
     GameRoomManager gameRoomManager;
 
     @Mock
+    GameService gameService;
+
+    @Mock
     ApplicationEventPublisher applicationEventPublisher;
 
     GameRoomService service;
@@ -45,6 +50,7 @@ class GameRoomServiceTest {
                 counterRepository,
                 List.of(gameFactory),
                 gameRoomManager,
+                gameService,
                 applicationEventPublisher
         );
     }
@@ -75,5 +81,47 @@ class GameRoomServiceTest {
                 eq("방장"),
                 eq(8)
         );
+    }
+
+    @Test
+    void 게임_진행_중_이탈이면_게임별_이탈_처리를_위임한다() {
+        // given
+        given(gameRoomManager.leaveRoom(1L, "이탈자"))
+                .willReturn(new GameRoomManager.LeaveResult(false, true));
+
+        // when
+        service.leaveRoom(1L, "이탈자");
+
+        // then
+        verify(gameService).handlePlayerLeave(1L, "이탈자");
+        verify(applicationEventPublisher).publishEvent(any(PlayerLeaveEvent.class));
+    }
+
+    @Test
+    void 대기_중_이탈이면_게임_이탈_처리를_하지_않는다() {
+        // given
+        given(gameRoomManager.leaveRoom(1L, "이탈자"))
+                .willReturn(new GameRoomManager.LeaveResult(false, false));
+
+        // when
+        service.leaveRoom(1L, "이탈자");
+
+        // then
+        verify(gameService, never()).handlePlayerLeave(any(), any());
+        verify(applicationEventPublisher).publishEvent(any(PlayerLeaveEvent.class));
+    }
+
+    @Test
+    void 마지막_인원이_나가_방이_사라지면_이탈_이벤트를_발행하지_않는다() {
+        // given
+        given(gameRoomManager.leaveRoom(1L, "이탈자"))
+                .willReturn(new GameRoomManager.LeaveResult(true, true));
+
+        // when
+        service.leaveRoom(1L, "이탈자");
+
+        // then
+        verify(gameService, never()).handlePlayerLeave(any(), any());
+        verify(applicationEventPublisher, never()).publishEvent(any(PlayerLeaveEvent.class));
     }
 }

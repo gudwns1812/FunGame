@@ -101,4 +101,49 @@ class HangmanGameTest {
         assertThat(result).isEqualTo(ActionResult.WRONG);
         assertThat(game.getRemainingTries()).isZero();
     }
+
+    @Test
+    @DisplayName("자기 차례인 플레이어가 이탈하면 턴이 다음 사람에게 넘어간다.")
+    void removePlayer_current_turn_moves_on() {
+        // given: player1, player2, player3 중 player1 차례
+        game = HangmanGame.create("APPLE");
+        game.initPlayers(List.of("player1", "player2", "player3"));
+
+        // when
+        game.removePlayer("player1");
+
+        // then
+        assertThat(game.getPlayerOrder()).containsExactly("player2", "player3");
+        assertThat(game.getCurrentTurnPlayer()).isEqualTo("player2");
+    }
+
+    @Test
+    @DisplayName("앞 순번 플레이어가 이탈해도 현재 차례인 사람은 그대로 유지된다.")
+    void removePlayer_before_current_keeps_turn() {
+        // given: player1, player2, player3 에서 player2 차례로 진행
+        game = HangmanGame.create("APPLE");
+        game.initPlayers(List.of("player1", "player2", "player3"));
+        game.guess("player1", 'A');
+        assertThat(game.getCurrentTurnPlayer()).isEqualTo("player2");
+
+        // when
+        game.removePlayer("player1");
+
+        // then
+        assertThat(game.getCurrentTurnPlayer()).isEqualTo("player2");
+    }
+
+    @Test
+    @DisplayName("마지막 순번 플레이어가 자기 차례에 이탈하면 턴이 처음으로 돌아간다.")
+    void removePlayer_last_index_wraps() {
+        // given: player1, player2 에서 player2 차례
+        game.guess("player1", 'A');
+        assertThat(game.getCurrentTurnPlayer()).isEqualTo("player2");
+
+        // when
+        game.removePlayer("player2");
+
+        // then
+        assertThat(game.getCurrentTurnPlayer()).isEqualTo("player1");
+    }
 }

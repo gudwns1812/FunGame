@@ -67,6 +67,14 @@ public class GameRoom {
         return players.getCurrentCount() == 0;
     }
 
+    public boolean isPlaying() {
+        return status == GameRoomStatus.PLAYING;
+    }
+
+    public int getPlayerCount() {
+        return players.getCurrentCount();
+    }
+
     public boolean hasHostName(String name) {
         return players.getHost().equals(name);
     }

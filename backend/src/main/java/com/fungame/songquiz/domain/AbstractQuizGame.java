@@ -1,5 +1,6 @@
 package com.fungame.songquiz.domain;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -11,16 +12,27 @@ public abstract class AbstractQuizGame implements Game {
     protected List<String> players;
 
     protected AbstractQuizGame(List<String> players) {
-        this.players = players;
         if (players != null) {
+            // 이탈 처리를 위해 항상 가변 리스트로 보관한다.
+            this.players = new ArrayList<>(players);
             initSkipVotes();
         }
     }
 
     @Override
     public void setPlayers(List<String> players) {
-        this.players = players;
+        this.players = new ArrayList<>(players);
         initSkipVotes();
+    }
+
+    @Override
+    public void removePlayer(String playerName) {
+        if (players == null) {
+            return;
+        }
+
+        players.remove(playerName);
+        skipVotes.remove(playerName);
     }
 
     private void initSkipVotes() {

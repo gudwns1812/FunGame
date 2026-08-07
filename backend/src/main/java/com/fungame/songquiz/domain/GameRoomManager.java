@@ -61,18 +61,27 @@ public class GameRoomManager {
         });
     }
 
-    public boolean leaveRoom(Long roomId, String playerName) {
+    /**
+     * @param destroyed 마지막 인원이 나가 방이 삭제되었는지
+     * @param wasPlaying 이탈 시점에 게임이 진행 중이었는지
+     */
+    public record LeaveResult(boolean destroyed, boolean wasPlaying) {
+    }
+
+    public LeaveResult leaveRoom(Long roomId, String playerName) {
         return lockContext.processWithLockKey(roomId, () -> {
             GameRoom gameRoom = getRoom(roomId);
+            boolean wasPlaying = gameRoom.isPlaying();
+
             gameRoom.leave(playerName);
             gameRoom.touch();
 
             if (gameRoom.isEmpty()) {
                 deleteRoom(roomId);
-                return true;
+                return new LeaveResult(true, wasPlaying);
             }
 
-            return false;
+            return new LeaveResult(false, wasPlaying);
         });
     }
 

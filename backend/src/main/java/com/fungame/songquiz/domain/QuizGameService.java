@@ -139,4 +139,16 @@ public class QuizGameService implements GameService {
     public void increaseSkipVote(Long roomId, String playerName) {
         handleAction(roomId, GameAction.skipVote(playerName));
     }
+
+    @Override
+    public void handlePlayerLeave(Long roomId, String playerName) {
+        GameSession gameSession = sessionManager.getGameSession(roomId);
+        if (gameSession == null) {
+            return;
+        }
+
+        // 랭킹과 스킵 정족수에서 이탈자를 빼준다. 라운드 진행은 남은 인원으로 그대로 이어간다.
+        gameSession.removePlayer(playerName);
+        log.info("게임 중 이탈: room {}, player {}", roomId, playerName);
+    }
 }
