@@ -54,10 +54,11 @@ class GameRoomManagerTest {
         gameRoomManager.startGame(ROOM_ID, HOST);
 
         // when
-        boolean destroyed = gameRoomManager.leaveRoom(ROOM_ID, HOST);
+        GameRoomManager.LeaveResult result = gameRoomManager.leaveRoom(ROOM_ID, HOST);
 
         // then
-        assertThat(destroyed).isTrue();
+        assertThat(result.destroyed()).isTrue();
+        assertThat(result.wasPlaying()).isTrue();
         verify(gameTimer).stop(ROOM_ID);
         verify(gameSessionManager).endGameSession(ROOM_ID);
         assertThatThrownBy(() -> gameRoomManager.findRoom(ROOM_ID))
@@ -71,10 +72,11 @@ class GameRoomManagerTest {
         gameRoomManager.joinRoom(ROOM_ID, "참가자");
 
         // when
-        boolean destroyed = gameRoomManager.leaveRoom(ROOM_ID, HOST);
+        GameRoomManager.LeaveResult result = gameRoomManager.leaveRoom(ROOM_ID, HOST);
 
         // then
-        assertThat(destroyed).isFalse();
+        assertThat(result.destroyed()).isFalse();
+        assertThat(result.wasPlaying()).isFalse();
         verify(gameTimer, never()).stop(ROOM_ID);
         verify(gameSessionManager, never()).endGameSession(ROOM_ID);
     }

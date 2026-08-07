@@ -23,6 +23,11 @@ public class GameSession {
         rank.updatePoint(player);
     }
 
+    public void removePlayer(String player) {
+        game.removePlayer(player);
+        rank.removePlayer(player);
+    }
+
     public List<PlayerScore> getPlayerRanks() {
         return rank.getPlayerScores();
     }

@@ -89,6 +89,32 @@ public class BoardGameService implements GameService {
     }
 
     @Override
+    public void handlePlayerLeave(Long roomId, String playerName) {
+        GameSession session = sessionManager.getGameSession(roomId);
+        if (session == null) {
+            return;
+        }
+
+        // 턴이 이탈자에게 고정되어 게임이 멈추지 않도록 진행 상태에서 제거한다.
+        session.removePlayer(playerName);
+        log.info("보드게임 중 이탈: room {}, player {}", roomId, playerName);
+
+        // 남은 인원이 1명 이하면 더 진행할 수 없으므로 결과를 확정한다.
+        if (session.isLastRound()) {
+            endGame(roomId);
+            return;
+        }
+
+        publisher.publishEvent(new HaliGaliActionEvent(
+                roomId,
+                playerName,
+                ActionType.GAME_INIT,
+                ActionResult.ACTION_SUCCESS,
+                session.getContent()
+        ));
+    }
+
+    @Override
     public List<PlayerScore> getPlayerRanks(Long roomId) {
         GameSession session = sessionManager.getGameSession(roomId);
         return session != null ? session.getPlayerRanks() : List.of();

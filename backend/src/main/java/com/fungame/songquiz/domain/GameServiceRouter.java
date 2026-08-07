@@ -63,6 +63,11 @@ public class GameServiceRouter implements GameService {
     }
 
     @Override
+    public void handlePlayerLeave(Long roomId, String playerName) {
+        getService(roomId).handlePlayerLeave(roomId, playerName);
+    }
+
+    @Override
     public List<GameType> getSupportTypes() {
         return List.of(GameType.NONE);
     }

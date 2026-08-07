@@ -97,4 +97,23 @@ public class HangmanGameService implements GameService {
     public void startRound(Long roomId) {
         // 단판 게임이므로 별도 구현 없음
     }
+
+    @Override
+    public void handlePlayerLeave(Long roomId, String playerName) {
+        GameSession session = gameSessionManager.getGameSession(roomId);
+        if (session == null) {
+            return;
+        }
+
+        // 이탈자에게 턴이 걸려 게임이 멈추지 않도록 순서에서 제거한다.
+        session.removePlayer(playerName);
+
+        GameRoom room = gameRoomManager.findRoom(roomId);
+        if (!(room.getGame() instanceof HangmanGame hangmanGame)) {
+            return;
+        }
+
+        eventPublisher.publishEvent(new HangmanActionEvent(
+                roomId, playerName, ' ', ActionResult.ACTION_SUCCESS, hangmanGame.getStatus()));
+    }
 }

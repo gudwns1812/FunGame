@@ -9,6 +9,9 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.context.ApplicationEventPublisher;
 
+import java.util.List;
+
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
@@ -49,6 +52,37 @@ class QuizGameServiceTest {
         verify(gameRoomManager).touch(ROOM_ID);
         verify(session).startRound();
         verify(timer).startCountDown(eq(ROOM_ID), anyInt(), any());
+    }
+
+    @Test
+    @DisplayName("게임 중 이탈자는 랭킹과 스킵 정족수에서 제외된다.")
+    void handlePlayerLeave_removes_player_from_session() {
+        // given
+        SongQuiz game = new SongQuiz(List.of(mock(Song.class)), Category.KPOP);
+        GameSession session = new GameSession(game, List.of("p1", "p2", "p3"));
+        given(sessionManager.getGameSession(ROOM_ID)).willReturn(session);
+
+        // when
+        quizGameService.handlePlayerLeave(ROOM_ID, "p2");
+
+        // then
+        assertThat(session.getPlayerRanks())
+                .extracting(PlayerScore::player)
+                .containsExactlyInAnyOrder("p1", "p3");
+
+        // 남은 2명 중 1명만 스킵해도 정족수(max(1, n-1) = 1)를 채운다
+        assertThat(session.handleAction(GameAction.skipVote("p1")))
+                .isEqualTo(ActionResult.SKIP_VOTE_SUCCESS);
+    }
+
+    @Test
+    @DisplayName("세션이 이미 정리된 방의 이탈은 무시한다.")
+    void handlePlayerLeave_ignores_missing_session() {
+        // given
+        given(sessionManager.getGameSession(ROOM_ID)).willReturn(null);
+
+        // when & then: 예외 없이 통과
+        quizGameService.handlePlayerLeave(ROOM_ID, "p1");
     }
 
     @Test

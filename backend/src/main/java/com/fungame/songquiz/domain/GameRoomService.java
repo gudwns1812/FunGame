@@ -27,11 +27,13 @@ public class GameRoomService {
     private final CounterRepository counterRepository;
     private final Map<GameType, GameFactory> creators;
     private final GameRoomManager gameRoomManager;
+    private final GameService gameService;
     private final ApplicationEventPublisher applicationEventPublisher;
 
-    public GameRoomService(CounterRepository counterRepository, List<GameFactory> creators, GameRoomManager gameRoomManager, ApplicationEventPublisher applicationEventPublisher) {
+    public GameRoomService(CounterRepository counterRepository, List<GameFactory> creators, GameRoomManager gameRoomManager, GameService gameService, ApplicationEventPublisher applicationEventPublisher) {
         this.counterRepository = counterRepository;
         this.gameRoomManager = gameRoomManager;
+        this.gameService = gameService;
         this.applicationEventPublisher = applicationEventPublisher;
         this.creators = creators.stream().collect(Collectors.toMap(GameFactory::getSupportedType, creator -> creator));
     }
@@ -56,11 +58,17 @@ public class GameRoomService {
     }
 
     public void leaveRoom(Long roomId, String playerName) {
-        boolean isDestroy = gameRoomManager.leaveRoom(roomId, playerName);
+        GameRoomManager.LeaveResult result = gameRoomManager.leaveRoom(roomId, playerName);
 
-        if (!isDestroy) {
-            applicationEventPublisher.publishEvent(new PlayerLeaveEvent(roomId, playerName));
+        if (result.destroyed()) {
+            return;
         }
+
+        if (result.wasPlaying()) {
+            gameService.handlePlayerLeave(roomId, playerName);
+        }
+
+        applicationEventPublisher.publishEvent(new PlayerLeaveEvent(roomId, playerName));
     }
 
     public List<RoomInfo> findAllRooms() {

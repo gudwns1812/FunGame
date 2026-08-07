@@ -87,4 +87,63 @@ class HaliGaliGameTest {
         assertThat(game.getPlayerDeckSize("player3")).isEqualTo(initialDeckSize - 3); // 3명에게 줌
         assertThat(game.getPlayerDeckSize("player1")).isEqualTo(otherPlayer1Size + 1);
     }
+
+    @Test
+    @DisplayName("현재 차례가 아닌 플레이어가 이탈해도 차례는 그대로 유지된다")
+    void removePlayer_keeps_current_turn() {
+        // given
+        String currentPlayer = game.getCurrentPlayer();
+        String leaver = players.stream().filter(p -> !p.equals(currentPlayer)).findFirst().orElseThrow();
+
+        // when
+        game.removePlayer(leaver);
+
+        // then
+        assertThat(game.getCurrentPlayer()).isEqualTo(currentPlayer);
+        assertThat(game.getPlayerDeckSize(leaver)).isZero();
+    }
+
+    @Test
+    @DisplayName("현재 차례인 플레이어가 이탈하면 다음 사람에게 차례가 넘어간다")
+    void removePlayer_current_turn_moves_to_next() {
+        // given
+        String currentPlayer = game.getCurrentPlayer();
+        int currentIndex = players.indexOf(currentPlayer);
+        String expectedNext = players.get((currentIndex + 1) % players.size());
+
+        // when
+        game.removePlayer(currentPlayer);
+
+        // then
+        assertThat(game.getCurrentPlayer()).isEqualTo(expectedNext);
+    }
+
+    @Test
+    @DisplayName("이탈이 반복돼 남은 인원이 1명이 되면 게임 종료 조건을 만족한다")
+    void removePlayer_until_one_left_ends_game() {
+        // given & when
+        game.removePlayer("player2");
+        game.removePlayer("player3");
+        game.removePlayer("player4");
+
+        // then
+        assertThat(game.isLast()).isTrue();
+        assertThat(game.getCurrentPlayer()).isEqualTo("player1");
+    }
+
+    @Test
+    @DisplayName("이탈 후에도 라운드 번호는 뒤로 되돌아가지 않는다")
+    void removePlayer_never_rewinds_round() {
+        // given: 몇 턴 진행
+        for (int i = 0; i < 3; i++) {
+            game.handleAction(new GameAction(game.getCurrentPlayer(), ActionType.FLIP_CARD, null));
+        }
+        int roundBefore = game.getCurrentRound();
+
+        // when
+        game.removePlayer(game.getCurrentPlayer());
+
+        // then
+        assertThat(game.getCurrentRound()).isGreaterThanOrEqualTo(roundBefore);
+    }
 }
