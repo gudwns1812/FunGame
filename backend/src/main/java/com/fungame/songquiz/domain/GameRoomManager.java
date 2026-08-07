@@ -24,6 +24,8 @@ public class GameRoomManager {
     private final Map<Long, GameRoom> gameRooms = new ConcurrentHashMap<>();
     private final LockContext lockContext;
     private final ApplicationEventPublisher applicationEventPublisher;
+    private final GameTimer gameTimer;
+    private final GameSessionManager gameSessionManager;
 
     private static final long MAX_IDLE_MINUTES = 30;
 
@@ -74,8 +76,18 @@ public class GameRoomManager {
         });
     }
 
+    /**
+     * 방 삭제의 유일한 통로. 방과 함께 진행 중이던 게임 상태(타이머, 세션)도 반드시 같이 정리한다.
+     * 이 정리가 빠지면 아무도 없는 방의 라운드 타이머가 계속 돌거나 GameSession 이 영구히 남는다.
+     */
     private void deleteRoom(Long roomId) {
-        gameRooms.remove(roomId);
+        if (gameRooms.remove(roomId) == null) {
+            // 이미 정리된 방이면 중복 이벤트를 발행하지 않는다.
+            return;
+        }
+
+        gameTimer.stop(roomId);
+        gameSessionManager.endGameSession(roomId);
         lockContext.deleteLock(roomId);
         applicationEventPublisher.publishEvent(new RoomChangedEvent());
     }
@@ -98,9 +110,16 @@ public class GameRoomManager {
     public void cleanupIdleRooms() {
         Instant threshold = Instant.now().minus(MAX_IDLE_MINUTES, ChronoUnit.MINUTES);
 
-        gameRooms.entrySet().stream()
+        // 삭제 대상을 먼저 확정한 뒤, 다른 참가 흐름과 경합하지 않도록 방별 락 안에서 정리한다.
+        List<Long> idleRoomIds = gameRooms.entrySet().stream()
                 .filter(entry -> entry.getValue().isIdle(threshold))
-                .forEach(entry -> deleteRoom(entry.getKey()));
+                .map(Map.Entry::getKey)
+                .toList();
+
+        idleRoomIds.forEach(roomId -> lockContext.processWithLockKey(roomId, () -> {
+            log.info("유휴 방 정리: {}", roomId);
+            deleteRoom(roomId);
+        }));
     }
 
     public PlayersInfo findRoomUsers(Long roomId) {
@@ -116,7 +135,7 @@ public class GameRoomManager {
 
     public ReadyResult readyPlayer(Long roomId, String playerName) {
         return lockContext.processWithLockKey(roomId, () -> {
-            GameRoom gameRoom = gameRooms.get(roomId);
+            GameRoom gameRoom = getRoom(roomId);
             gameRoom.touch();
 
             boolean ready = gameRoom.readyPlayer(playerName);
@@ -125,9 +144,7 @@ public class GameRoomManager {
     }
 
     public void touch(Long roomId) {
-        GameRoom gameRoom = gameRooms.get(roomId);
-
-        gameRoom.touch();
+        getRoom(roomId).touch();
     }
 
     public GameType getGameType(Long roomId) {
