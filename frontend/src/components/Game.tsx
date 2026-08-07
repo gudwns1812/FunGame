@@ -130,7 +130,9 @@ const Game: React.FC<GameProps> = ({
                 <p className="px-label mb-1.5 shrink-0">해설</p>
                 {/* 해설은 자르지 않고 그대로 보여주고, 박스를 넘칠 때만 내부에서 스크롤된다 */}
                 <div className="flex-1 min-h-0 scroll-y custom-scrollbar">
-                  <p className="text-[13px] leading-5 break-keep whitespace-pre-wrap text-ink-soft">{explanation}</p>
+                  <p className="text-sm leading-6 font-semibold break-keep whitespace-pre-wrap text-ink">
+                    {explanation}
+                  </p>
                 </div>
               </div>
             ) : null}
