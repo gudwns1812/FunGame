@@ -9,9 +9,10 @@ bin/
 .settings/
 
 # Spring Boot Config (Sensitive Data)
+# 프로필별 설정에는 DB 접속정보 등 비밀값이 들어가므로 계속 추적하지 않습니다.
+# application.yml 은 비밀값 없는 공통 설정만 두고 버전 관리합니다.
 application-*.yml
 application-*.properties
-application.yml
 
 # Testing
 /src/test/resources/application-test.yml

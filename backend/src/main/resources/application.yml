@@ -1,0 +1,25 @@
+# 비밀값이 없는 공통 설정만 둡니다. 이 파일은 버전 관리 대상이고 이미지에도 포함됩니다.
+# DB 접속정보 같은 비밀값은 application-prod.yml 에 두세요. 그쪽은 계속 gitignore 대상입니다.
+#
+# 설정 우선순위: application-prod.yml > application.yml
+# 즉 서버의 application-prod.yml 에 아래와 같은 키가 남아 있으면 그 값이 이깁니다.
+# 도메인을 옮긴 뒤에는 그쪽의 예전 cors 설정을 지워야 여기 값이 적용됩니다.
+
+cors:
+  # 프론트엔드 오리진. 쉼표로 여러 개 지정할 수 있습니다.
+  allowed-origins: https://www.fun-game.club,https://fun-game.club
+
+server:
+  servlet:
+    session:
+      cookie:
+        http-only: true
+        secure: true
+        # www.fun-game.club 과 api.fun-game.club 은 등록 가능 도메인(fun-game.club)이
+        # 같아서 same-site 요청으로 취급되므로 lax 로도 쿠키가 전달됩니다.
+        # 이 앱은 CSRF 보호가 꺼져 있어(SecurityConfig) lax 가 사실상 주요 CSRF 방어선입니다.
+        #
+        # 참고: secure: true 라서 http://localhost 로 로컬 개발할 때는 브라우저가
+        #      쿠키를 저장하지 않습니다. 로컬에서 인증을 태워야 하면 실행 인자로
+        #      --server.servlet.session.cookie.secure=false 를 넘기세요.
+        same-site: lax
