@@ -8,6 +8,7 @@ import com.fungame.songquiz.domain.member.AuthService;
 import com.fungame.songquiz.domain.member.Member;
 import com.fungame.songquiz.domain.member.MemberAdapter;
 import com.fungame.songquiz.support.response.ApiResponse;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
@@ -40,9 +41,18 @@ public class AuthController {
 
     @PostMapping("/login")
     public ApiResponse<MemberInfo> login(
-            @RequestBody LoginRequest request) {
+            @RequestBody LoginRequest request,
+            HttpServletRequest httpRequest) {
 
         authService.login(request.getLoginId(), request.getPassword());
+
+        // 세션 고정(Session Fixation) 공격 방지를 위해 인증 성공 직후 세션 ID를 교체한다.
+        // 필터가 아닌 컨트롤러에서 직접 인증하므로 Spring Security의 SessionAuthenticationStrategy가
+        // 동작하지 않아, 로그인 전 익명 세션 ID가 그대로 유지되는 문제가 있었다.
+        // 세션이 아직 없다면 인증 정보 저장 시점에 새 세션이 만들어지므로 교체할 필요가 없다.
+        if (httpRequest.getSession(false) != null) {
+            httpRequest.changeSessionId();
+        }
 
         Member member = authService.getMyInfo(request.getLoginId());
         return ApiResponse.success(MemberInfo.from(member));

@@ -53,11 +53,16 @@ public class SecurityConfig {
                 )
                 .formLogin(AbstractHttpConfigurer::disable)
                 .httpBasic(AbstractHttpConfigurer::disable)
+                // 쿠키 삭제는 별도로 하지 않는다.
+                // spring-session-jdbc를 쓰므로 쿠키 이름은 JSESSIONID가 아니라 SESSION이고,
+                // deleteCookies()가 내보내는 Set-Cookie에는 Secure/SameSite 속성이 빠져 있어
+                // 크로스 사이트 환경에서는 브라우저가 무시한다.
+                // invalidateHttpSession(true)로 세션이 만료되면 Spring Session이
+                // 설정된 속성 그대로 쿠키를 만료시켜 준다.
                 .logout(logout -> logout
                         .logoutUrl("/api/auth/logout")
                         .logoutSuccessHandler(new HttpStatusReturningLogoutSuccessHandler(HttpStatus.OK))
                         .invalidateHttpSession(true)
-                        .deleteCookies("JSESSIONID")
                 );
 
         return http.build();
