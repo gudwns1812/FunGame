@@ -497,12 +497,16 @@ export const useGameLogic = () => {
     });
 
     eventSource.onopen = () => {
-      console.log('SSE connection opened');
+      // 끊겨 있던 동안의 방 변경을 보정한다 (SSE는 REFRESH 신호만 보내므로 목록을 다시 받아야 함)
+      debouncedFetchRooms();
     };
 
-    eventSource.onerror = (error) => {
-      console.error('SSE connection failed:', error);
-      eventSource.close();
+    // close() 를 호출하면 EventSource 의 자동 재연결이 영구히 꺼진다.
+    // 서버 emitter 는 5분마다 정상 종료되므로, 여기서는 닫지 않고 브라우저 재연결에 맡긴다.
+    eventSource.onerror = () => {
+      if (eventSource.readyState === EventSource.CLOSED) {
+        console.warn('SSE 연결이 종료되었습니다.');
+      }
     };
 
     return () => {
