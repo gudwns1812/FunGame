@@ -10,6 +10,13 @@
 Thumbs.db
 desktop.ini
 
+# 환경변수 (비밀값)
+# 설정 파일의 ${ENV_VAR} 에 주입되는 실제 값이 들어 있으므로 절대 커밋하지 않습니다.
+# frontend/.env.development 는 비밀값이 없어 추적 대상으로 남겨둡니다.
+.env
+.env.local
+.env.*.local
+
 # Gradle
 .gradle/
 !gradle/wrapper/gradle-wrapper.jar
