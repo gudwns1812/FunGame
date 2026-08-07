@@ -1,6 +1,7 @@
 package com.fungame.songquiz.domain;
 
 import com.fungame.songquiz.domain.dto.GameInfo;
+import com.fungame.songquiz.domain.dto.GameStateDto;
 import com.fungame.songquiz.domain.event.GameResultEvent;
 import com.fungame.songquiz.domain.event.GameStartEvent;
 import com.fungame.songquiz.domain.event.HangmanActionEvent;
@@ -96,6 +97,26 @@ public class HangmanGameService implements GameService {
     @Override
     public void startRound(Long roomId) {
         // 단판 게임이므로 별도 구현 없음
+    }
+
+    @Override
+    public GameStateDto getPlayState(Long roomId) {
+        GameRoom room = gameRoomManager.findRoom(roomId);
+
+        if (!(room.getGame() instanceof HangmanGame hangmanGame)) {
+            throw new CoreException(ErrorType.GAME_NOT_FOUND);
+        }
+
+        GameInfo gameInfo = hangmanGame.getGameInfo();
+        return new GameStateDto(
+                gameInfo.gameType(),
+                gameInfo.category(),
+                gameInfo.totalCount(),
+                1,
+                1,
+                null,
+                hangmanGame.getStatus().data()
+        );
     }
 
     @Override

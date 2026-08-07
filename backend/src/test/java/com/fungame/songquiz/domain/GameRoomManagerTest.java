@@ -15,6 +15,7 @@ import java.time.temporal.ChronoUnit;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -109,6 +110,57 @@ class GameRoomManagerTest {
         // then
         verify(gameTimer, times(1)).stop(ROOM_ID);
         verify(gameSessionManager, times(1)).endGameSession(ROOM_ID);
+    }
+
+    @Test
+    void 진행_중인_방에는_이_게임의_참가자였던_사람만_재입장할_수_있다() {
+        // given: 게임 중이고 HOST 가 이탈한 상태
+        gameRoomManager.createGameRoom(ROOM_ID, "방", mock(Game.class), HOST, 8);
+        gameRoomManager.joinRoom(ROOM_ID, "참가자");
+        gameRoomManager.readyPlayer(ROOM_ID, "참가자");
+        gameRoomManager.startGame(ROOM_ID, HOST);
+        gameRoomManager.leaveRoom(ROOM_ID, HOST);
+
+        GameSession session = mock(GameSession.class);
+        given(gameSessionManager.getGameSession(ROOM_ID)).willReturn(session);
+        given(session.canRejoin(HOST)).willReturn(true);
+
+        // when
+        int playerCount = gameRoomManager.joinRoom(ROOM_ID, HOST);
+
+        // then
+        assertThat(playerCount).isEqualTo(2);
+        verify(session).restorePlayer(HOST);
+        assertThat(gameRoomManager.findRoom(ROOM_ID).getRoomPlayers()).contains(HOST);
+    }
+
+    @Test
+    void 참가자가_아니었던_사람은_진행_중인_방에_들어올_수_없다() {
+        // given
+        gameRoomManager.createGameRoom(ROOM_ID, "방", mock(Game.class), HOST, 8);
+        gameRoomManager.startGame(ROOM_ID, HOST);
+
+        GameSession session = mock(GameSession.class);
+        given(gameSessionManager.getGameSession(ROOM_ID)).willReturn(session);
+        given(session.canRejoin("난입자")).willReturn(false);
+
+        // when & then
+        assertThatThrownBy(() -> gameRoomManager.joinRoom(ROOM_ID, "난입자"))
+                .isInstanceOf(CoreException.class);
+    }
+
+    @Test
+    void 아직_이탈_처리되지_않은_플레이어의_재입장은_그대로_통과한다() {
+        // given: 새로고침이 이탈 유예보다 빨랐던 경우
+        gameRoomManager.createGameRoom(ROOM_ID, "방", mock(Game.class), HOST, 8);
+        gameRoomManager.startGame(ROOM_ID, HOST);
+
+        // when
+        int playerCount = gameRoomManager.joinRoom(ROOM_ID, HOST);
+
+        // then: 세션을 건드리지 않는다
+        assertThat(playerCount).isEqualTo(1);
+        verify(gameSessionManager, never()).getGameSession(ROOM_ID);
     }
 
     @Test

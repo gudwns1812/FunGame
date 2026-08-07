@@ -2,6 +2,7 @@ package com.fungame.songquiz.domain;
 
 import com.fungame.songquiz.domain.dto.GameAnswerDto;
 import com.fungame.songquiz.domain.dto.GameContentDto;
+import com.fungame.songquiz.domain.dto.GameInfo;
 
 import java.util.List;
 
@@ -25,7 +26,23 @@ public class GameSession {
 
     public void removePlayer(String player) {
         game.removePlayer(player);
-        rank.removePlayer(player);
+        rank.deactivate(player);
+    }
+
+    /**
+     * 이 게임에 참가했다가 이탈한 사람인지 여부. 진행 중인 방의 재입장 허용 판정에 쓰인다.
+     */
+    public boolean canRejoin(String player) {
+        return rank.hasParticipant(player) && !rank.hasPlayer(player);
+    }
+
+    public void restorePlayer(String player) {
+        game.restorePlayer(player);
+        rank.activate(player);
+    }
+
+    public GameInfo getGameInfo() {
+        return game.getGameInfo();
     }
 
     public List<PlayerScore> getPlayerRanks() {

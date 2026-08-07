@@ -360,6 +360,60 @@ export const useGameLogic = () => {
     setMyColorIndex(null);
   }, []);
 
+  /**
+   * 진행 중인 게임에 재입장했을 때, 놓친 라운드 상태를 서버 스냅샷으로 복원한다.
+   * 웹소켓만 다시 붙으면 다음 라운드까지 화면이 비어 있게 되므로 반드시 선행돼야 한다.
+   */
+  const restorePlayState = useCallback(async (targetRoomId: string) => {
+    const response = await axios.get(`/game/rooms/${targetRoomId}/play/state`);
+    if (response.data?.result !== 'SUCCESS' || !response.data.data) return;
+
+    const state = response.data.data;
+    const restoredGameType =
+      state.gameType === 'CS' ? 'CS' : state.gameType === 'HANGMAN' ? 'HANGMAN' : 'SONG';
+
+    setGameType(restoredGameType);
+    gameTypeRef.current = restoredGameType;
+    setGameStartInfo(null);
+    setRoundEndInfo(null);
+    setHint('');
+    setCurrentRound(state.currentRound);
+    setRoundIndex(state.currentRound);
+    setTotalRound(state.totalRound);
+
+    if (restoredGameType === 'HANGMAN') {
+      const data: string[] = state.statusData ?? [];
+      setHangmanStatus({
+        currentDisplay: data[0] ?? '',
+        wrongLetters: data[1] ? data[1].split(',') : [],
+        remainingTries: parseInt(data[2] ?? '6', 10),
+        currentTurnPlayer: data[3] ?? '대기 중...',
+        isGameOver: data[4] === 'true',
+        isWin: data[5] === 'true',
+      });
+    } else if (state.content) {
+      setCurrentVideoId(state.content);
+    }
+
+    // 재입장자는 이전 점수를 그대로 이어받으므로 현재 순위도 함께 복원한다.
+    const rankResponse = await axios.get(`/game/rooms/${targetRoomId}/play/rank`);
+    const rankData: { player: string; score: number }[] = rankResponse.data?.data ?? [];
+    if (rankData.length > 0) {
+      setPlayers(
+        rankData.map(({ player, score }) => ({
+          id: player,
+          name: player,
+          isHost: false,
+          isReady: false,
+          score,
+        })),
+      );
+    }
+
+    setStatus('PLAYING');
+    addLog('[알림] 진행 중인 게임에 다시 입장했습니다.');
+  }, [addLog]);
+
   useEffect(() => {
     localStorage.setItem('ums_status', status);
     if (roomId) {
@@ -382,6 +436,14 @@ export const useGameLogic = () => {
             // 헬스 체크 수행
             const healthRes = await axios.get(`/game/rooms/${roomId}/health`);
             if (healthRes.data?.result === 'SUCCESS' && healthRes.data.data === 'ok') {
+              // 새로고침이나 탭 종료로 웹소켓이 끊기면 서버가 방에서 내보내므로 항상 다시 참가한다.
+              // 진행 중인 방이면 이 게임의 참가자였던 경우에만 서버가 재입장을 허용한다.
+              await axios.post(`/game/rooms/${roomId}/join`);
+
+              if (status === 'PLAYING') {
+                await restorePlayState(roomId);
+              }
+
               connectWebSocket(roomId);
               await fetchRoomUsers(roomId);
               if (nickname) {
@@ -396,7 +458,7 @@ export const useGameLogic = () => {
               throw new Error('Room health check failed');
             }
           } catch (error) {
-            console.warn('Health check failed, returning to lobby:', error);
+            console.warn('Rejoin failed, returning to lobby:', error);
             returnToLobby();
           }
         } else {
@@ -521,22 +583,29 @@ export const useGameLogic = () => {
           localStorage.removeItem('ums_logs');
           setRoomId(room.id);
           setIsHost(room.hostName === nickname);
-          setStatus('WAITING');
-          setCurrentVideoId(''); // 이전 비디오 아이디 초기화
-          setHint('');
-          localStorage.removeItem('ums_currentVideoId');
-          setPlayers([
-            {
-              id: nickname,
-              name: nickname,
-              isHost: room.hostName === nickname,
-              isReady: room.hostName === nickname,
-              score: 0,
-              colorIndex: slotIndex ?? undefined,
-            },
-          ]);
+
+          if (room.status === 'PLAYING') {
+            // 서버가 재입장을 허용한 경우에만 여기까지 온다. 진행 중인 라운드 상태를 복원한다.
+            await restorePlayState(room.id);
+          } else {
+            setStatus('WAITING');
+            setCurrentVideoId(''); // 이전 비디오 아이디 초기화
+            setHint('');
+            localStorage.removeItem('ums_currentVideoId');
+            setPlayers([
+              {
+                id: nickname,
+                name: nickname,
+                isHost: room.hostName === nickname,
+                isReady: room.hostName === nickname,
+                score: 0,
+                colorIndex: slotIndex ?? undefined,
+              },
+            ]);
+            addLog(`[시스템] ${room.name} 방에 입장했습니다.`);
+          }
+
           connectWebSocket(room.id);
-          addLog(`[시스템] ${room.name} 방에 입장했습니다.`);
           window.history.pushState({ room: room.id }, '');
         }
       } catch (error: any) {
@@ -556,7 +625,7 @@ export const useGameLogic = () => {
         window.alert(message);
       }
     },
-    [nickname, connectWebSocket, clearLogs, addLog],
+    [nickname, connectWebSocket, clearLogs, addLog, restorePlayState],
   );
 
   const createRoom = useCallback(

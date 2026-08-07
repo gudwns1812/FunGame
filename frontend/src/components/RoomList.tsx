@@ -216,8 +216,8 @@ const RoomList: React.FC<RoomListProps> = ({ rooms, onJoinRoom, onCreateRoom, on
             return (
               <div
                 key={room.id}
-                className={`px-card flex flex-col ${isPlaying ? 'opacity-55' : 'px-tap cursor-pointer'}`}
-                onClick={() => !isPlaying && onJoinRoom(room)}>
+                className="px-card flex flex-col px-tap cursor-pointer"
+                onClick={() => onJoinRoom(room)}>
                 {/* 카드 헤더 */}
                 <div className="flex items-center justify-between border-b-[3px] border-ink px-3 py-2 bg-sky-deep">
                   <span className="w-7 h-7 border-2 border-ink bg-paper flex items-center justify-center">
@@ -242,7 +242,7 @@ const RoomList: React.FC<RoomListProps> = ({ rooms, onJoinRoom, onCreateRoom, on
 
                   <div className="mt-auto flex items-center justify-between gap-2">
                     <span className="px-label truncate">방장 {stripTag(room.hostName)}</span>
-                    {!isPlaying && <span className="px-chip px-chip-cherry">입장 ▶</span>}
+                    <span className="px-chip px-chip-cherry">{isPlaying ? '재입장 ▶' : '입장 ▶'}</span>
                   </div>
                 </div>
               </div>

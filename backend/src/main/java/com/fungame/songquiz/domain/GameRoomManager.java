@@ -57,8 +57,35 @@ public class GameRoomManager {
         return lockContext.processWithLockKey(roomId, () -> {
             GameRoom gameRoom = getRoom(roomId);
             gameRoom.touch();
-            return gameRoom.join(playerName);
+
+            if (!gameRoom.isPlaying()) {
+                return gameRoom.join(playerName);
+            }
+
+            return rejoinPlayingRoom(roomId, gameRoom, playerName);
         });
+    }
+
+    /**
+     * 진행 중인 방에는 이 게임의 참가자였던 사람만 다시 들어올 수 있다.
+     * 새로고침이나 순간적인 연결 끊김으로 빠졌던 플레이어의 복귀 경로다.
+     */
+    private int rejoinPlayingRoom(Long roomId, GameRoom gameRoom, String playerName) {
+        if (gameRoom.hasPlayer(playerName)) {
+            // 아직 이탈 처리가 되지 않은 상태라면 그대로 인정한다.
+            return gameRoom.getPlayerCount();
+        }
+
+        GameSession gameSession = gameSessionManager.getGameSession(roomId);
+        if (gameSession == null || !gameSession.canRejoin(playerName)) {
+            throw new CoreException(ErrorType.GAME_ALREADY_PLAYING);
+        }
+
+        int playerCount = gameRoom.rejoin(playerName);
+        gameSession.restorePlayer(playerName);
+        log.info("게임 재입장: room {}, player {}", roomId, playerName);
+
+        return playerCount;
     }
 
     /**

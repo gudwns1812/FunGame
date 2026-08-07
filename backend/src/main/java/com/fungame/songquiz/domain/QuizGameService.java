@@ -1,6 +1,7 @@
 package com.fungame.songquiz.domain;
 
 import com.fungame.songquiz.domain.dto.GameInfo;
+import com.fungame.songquiz.domain.dto.GameStateDto;
 import com.fungame.songquiz.domain.event.*;
 import com.fungame.songquiz.support.error.CoreException;
 import com.fungame.songquiz.support.error.ErrorType;
@@ -150,5 +151,29 @@ public class QuizGameService implements GameService {
         // 랭킹과 스킵 정족수에서 이탈자를 빼준다. 라운드 진행은 남은 인원으로 그대로 이어간다.
         gameSession.removePlayer(playerName);
         log.info("게임 중 이탈: room {}, player {}", roomId, playerName);
+    }
+
+    @Override
+    public GameStateDto getPlayState(Long roomId) {
+        GameSession gameSession = sessionManager.getGameSession(roomId);
+        if (gameSession == null) {
+            throw new CoreException(ErrorType.GAME_NOT_FOUND);
+        }
+
+        GameInfo gameInfo = gameSession.getGameInfo();
+        int currentRound = gameSession.getCurrentRound();
+
+        // 게임 시작 직후 첫 라운드 전에는 보여줄 문제가 아직 없다.
+        String content = currentRound >= 1 ? gameSession.getContent().toString() : null;
+
+        return new GameStateDto(
+                gameInfo.gameType(),
+                gameInfo.category(),
+                gameInfo.totalCount(),
+                currentRound,
+                gameSession.getTotalRound(),
+                content,
+                null
+        );
     }
 }

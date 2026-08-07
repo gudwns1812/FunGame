@@ -27,6 +27,12 @@ public interface Game {
      */
     void removePlayer(String playerName);
 
+    /**
+     * 이탈했던 플레이어를 게임 진행에 복귀시킨다.
+     * 턴제 게임은 진행 중인 차례가 흐트러지지 않는 위치에 넣어야 한다.
+     */
+    void restorePlayer(String playerName);
+
     GameAnswerDto getAnswer();
 
     void startRound();

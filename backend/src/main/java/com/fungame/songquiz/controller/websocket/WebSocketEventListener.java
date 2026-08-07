@@ -16,6 +16,9 @@ import org.springframework.web.socket.messaging.SessionSubscribeEvent;
 import java.security.Principal;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
 
 @Component
 @RequiredArgsConstructor
@@ -24,8 +27,17 @@ public class WebSocketEventListener {
 
     private static final String ROOM_DESTINATION_PREFIX = "/subscribe/room/";
 
+    /**
+     * 연결이 끊긴 뒤 이탈로 확정하기까지 기다리는 시간.
+     * 새로고침은 "종료 → 재연결"로 나타나므로, 이 유예 없이는 새로고침한 사람이 방에서 쫓겨난다.
+     */
+    private static final long LEAVE_GRACE_SECONDS = 5;
+
     private final GameRoomService gameRoomService;
+    private final ScheduledExecutorService scheduler;
+
     private final Map<String, UserSession> sessionMap = new ConcurrentHashMap<>();
+    private final Map<String, ScheduledFuture<?>> pendingLeaves = new ConcurrentHashMap<>();
 
     @EventListener
     public void handleWebSocketConnectListener(SessionConnectEvent event) {
@@ -55,7 +67,10 @@ public class WebSocketEventListener {
             return;
         }
 
-        sessionMap.put(sessionId, new UserSession(roomId, nickname));
+        UserSession userSession = new UserSession(roomId, nickname);
+        sessionMap.put(sessionId, userSession);
+        cancelPendingLeave(userSession);
+
         log.info("User {} subscribed to room {}", nickname, roomId);
     }
 
@@ -69,13 +84,45 @@ public class WebSocketEventListener {
             return;
         }
 
-        log.info("User {} disconnected from room {}", userSession.nickname(), userSession.roomId());
+        log.info("User {} disconnected from room {}, {}초 뒤 이탈 처리 예정",
+                userSession.nickname(), userSession.roomId(), LEAVE_GRACE_SECONDS);
+
+        pendingLeaves.compute(userSession.key(), (key, previous) -> {
+            if (previous != null) {
+                previous.cancel(false);
+            }
+            return scheduler.schedule(() -> leaveAfterGrace(userSession), LEAVE_GRACE_SECONDS, TimeUnit.SECONDS);
+        });
+    }
+
+    private void cancelPendingLeave(UserSession userSession) {
+        pendingLeaves.computeIfPresent(userSession.key(), (key, task) -> {
+            task.cancel(false);
+            log.info("재접속 확인으로 {} 의 이탈 처리를 취소한다", userSession.nickname());
+            return null;
+        });
+    }
+
+    private void leaveAfterGrace(UserSession userSession) {
+        pendingLeaves.remove(userSession.key());
+
+        // 취소가 경합에 밀렸을 수 있으므로, 실제로 살아있는 세션이 없는지 마지막으로 확인한다.
+        if (hasLiveSession(userSession)) {
+            return;
+        }
+
         try {
             gameRoomService.leaveRoom(userSession.roomId(), userSession.nickname());
         } catch (CoreException e) {
             // 이미 정리된 방이면 무시한다.
             log.info("Room {} already gone on disconnect of {}", userSession.roomId(), userSession.nickname());
+        } catch (Exception e) {
+            log.error("이탈 처리 실패: room {}, player {}", userSession.roomId(), userSession.nickname(), e);
         }
+    }
+
+    private boolean hasLiveSession(UserSession userSession) {
+        return sessionMap.containsValue(userSession);
     }
 
     private Long parseRoomId(String rawRoomId) {
@@ -97,5 +144,8 @@ public class WebSocketEventListener {
     }
 
     private record UserSession(Long roomId, String nickname) {
+        String key() {
+            return roomId + ":" + nickname;
+        }
     }
 }

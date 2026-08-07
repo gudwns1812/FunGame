@@ -5,6 +5,7 @@ import com.fungame.songquiz.domain.GameAction;
 import com.fungame.songquiz.domain.GameRoomService;
 import com.fungame.songquiz.domain.GameService;
 import com.fungame.songquiz.domain.PlayerScore;
+import com.fungame.songquiz.domain.dto.GameStateDto;
 import com.fungame.songquiz.domain.dto.PlayersInfo;
 import com.fungame.songquiz.domain.dto.RoomInfo;
 import com.fungame.songquiz.domain.member.MemberAdapter;
@@ -41,6 +42,11 @@ public class GameController {
     public ApiResponse<String> healthCheck(@PathVariable Long roomId) {
         gameRoomService.findUsers(roomId); // 방이 존재하지 않으면 예외 발생
         return ApiResponse.success("ok");
+    }
+
+    @GetMapping("/{roomId}/play/state")
+    public ApiResponse<GameStateDto> findPlayState(@PathVariable Long roomId) {
+        return ApiResponse.success(gameService.getPlayState(roomId));
     }
 
     @GetMapping("/{roomId}/play/rank")
