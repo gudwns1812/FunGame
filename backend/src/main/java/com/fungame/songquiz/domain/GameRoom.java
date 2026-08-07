@@ -99,10 +99,6 @@ public class GameRoom {
         return players.isAllReady();
     }
 
-    public void end() {
-        this.status = GameRoomStatus.FINISHED;
-    }
-
     public static GameRoom create(String title, Game game, List<String> initialPlayers, int maxPlayer, String host) {
         return new GameRoom(title, game, new GamePlayers(initialPlayers, maxPlayer, host));
     }

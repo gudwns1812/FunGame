@@ -6,7 +6,6 @@ import org.springframework.stereotype.Component;
 
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
 
 @Component
@@ -25,13 +24,5 @@ public class GameSessionManager {
 
     public void endGameSession(Long roomId) {
         manager.remove(roomId);
-    }
-
-    public Long getGameRoomIdByPlayer(String playerName) {
-        return manager.entrySet().stream()
-                .filter(entry -> entry.getValue().hasPlayer(playerName))
-                .map(Entry::getKey)
-                .findAny()
-                .orElse(null);
     }
 }
