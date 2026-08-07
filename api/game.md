@@ -48,7 +48,7 @@
 | 필드 | 타입 | 설명 |
 | :--- | :--- | :--- |
 | **`playerName`** | `String` | 액션을 수행하는 플레이어 닉네임. |
-| **`type`** | `String` | 액션 종류 (`FLIP_CARD`, `PRESS_BELL`, `SUBMIT_ANSWER`, `SKIP_VOTE`). |
+| **`type`** | `String` | 액션 종류 (`SUBMIT_ANSWER`, `SKIP_VOTE`). |
 | **`value`** | `String` | 액션에 필요한 추가 값 (필요 시). |
 
 - **Response Data (data 필드)**: `null` (성공 시 200 OK)

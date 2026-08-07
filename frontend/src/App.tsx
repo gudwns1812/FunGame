@@ -7,7 +7,6 @@ import AdminSongPage from './pages/AdminSongPage';
 import UserManagementPage from './pages/UserManagementPage';
 import WaitingRoomPage from './pages/WaitingRoomPage';
 import GamePage from './pages/GamePage';
-import HaliGaliPage from './pages/HaliGaliPage';
 import HangmanPage from './pages/HangmanPage';
 import HangmanResultPage from './pages/HangmanResultPage';
 import ResultPage from './pages/ResultPage';
@@ -51,8 +50,6 @@ function AppContent() {
     currentRound,
     totalRound,
     hint,
-    haliGaliStatus,
-    sendHaliGaliAction,
     isBootstrapping,
     isCreatingRoom,
     enterLobby,
@@ -91,7 +88,6 @@ function AppContent() {
       case 'WAITING':
         return '/waiting';
       case 'PLAYING':
-        if (gameType === 'HALLIGALLI') return '/haligali';
         if (gameType === 'HANGMAN') return '/hangman';
         return '/game';
       case 'RESULT':
@@ -188,7 +184,7 @@ function AppContent() {
       <Route
         path="/game"
         element={
-          isAuthenticated && status === 'PLAYING' && gameType !== 'HALLIGALLI' ? (
+          isAuthenticated && status === 'PLAYING' && gameType !== 'HANGMAN' ? (
             <GamePage
               players={players}
               roomId={roomId || ''}
@@ -205,20 +201,6 @@ function AppContent() {
               currentRound={currentRound}
               totalRound={totalRound}
               hint={hint}
-            />
-          ) : (
-            <Navigate to={isAuthenticated ? currentPath : "/login"} replace />
-          )
-        }
-      />
-      <Route
-        path="/haligali"
-        element={
-          isAuthenticated && status === 'PLAYING' && gameType === 'HALLIGALLI' ? (
-            <HaliGaliPage
-              haliGaliStatus={haliGaliStatus}
-              onHaliGaliAction={sendHaliGaliAction}
-              myNickname={nickname}
             />
           ) : (
             <Navigate to={isAuthenticated ? currentPath : "/login"} replace />
