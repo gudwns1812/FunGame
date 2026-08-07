@@ -46,7 +46,6 @@
 | **`ROUND_SKIP`** | 스킵 투표 현황 | `{ "skipCount": 2, "totalCount": 5 }` |
 | **`ROUND_HINT`** | 퀴즈 힌트 제공 | `{ "hint": "가수 - 초성힌트" }` |
 | **`ROUND_END`** | 라운드 종료/정답 | `{ "answer": "정답문구", "winner": "승자닉네임" }` |
-| **`HALIGALI_ACTION`** | 할리갈리 액션 결과 | `{ "playerName": "닉네임", "actionType": "FLIP_CARD", "result": "CORRECT", "status": ["TURN:닉네임", "ROUND:1", "플레이어:과일:숫자:덱수", ...] }` |
 | **`GAME_RESULT`** | 최종 게임 결과 | `{ "rankings": "유저1:150\n유저2:100\n", "message": "종료 알림" }` |
 | **`GAME_END`** | 세션 종료 | `{ "type": "GAME_END" }` |
 

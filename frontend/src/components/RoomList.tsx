@@ -54,9 +54,6 @@ const RoomList: React.FC<RoomListProps> = ({ rooms, onJoinRoom, onCreateRoom, on
       setCategory('DEFAULT');
       setSongCount(1);
       if (maxPlayers > 6) setMaxPlayers(6);
-    } else if (gameType === 'HALLIGALLI') {
-      setCategory('DEFAULT');
-      setSongCount(1);
     } else {
       if (category === 'DEFAULT' || category === 'DEFAULT') {
         setCategory('KPOP');
@@ -67,7 +64,7 @@ const RoomList: React.FC<RoomListProps> = ({ rooms, onJoinRoom, onCreateRoom, on
   const filteredSongCountOptions =
     gameType === 'CS'
       ? songCountOptions.filter((n) => n <= 50)
-      : gameType === 'HANGMAN' || gameType === 'HALLIGALLI'
+      : gameType === 'HANGMAN'
         ? [1]
         : songCountOptions;
 
@@ -76,7 +73,7 @@ const RoomList: React.FC<RoomListProps> = ({ rooms, onJoinRoom, onCreateRoom, on
       ? [2, 3, 4, 5, 6]
       : [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
 
-  const isSingleRound = gameType === 'HANGMAN' || gameType === 'HALLIGALLI';
+  const isSingleRound = gameType === 'HANGMAN';
 
   return (
     <div className="w-full max-w-5xl mx-auto flex flex-col gap-4">

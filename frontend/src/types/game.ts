@@ -1,6 +1,3 @@
-// HaliGali Update: Forced refresh
-export type FruitType = 'STRAWBERRY' | 'BANANA' | 'LIME' | 'GRAPE' | 'NONE';
-
 export interface Player {
   id: string; // nickname as id for now as per API
   name: string;
@@ -32,7 +29,6 @@ export type GameEvent =
   | { type: 'CORRECT_ANSWER'; playerName: string; answer: string; score: number }
   | { type: 'ROUND_END'; answer: string; explanation?: string; winner: string }
   | { type: 'GAME_RESULT'; rankings: string; answer?: string; score?: number }
-  | { type: 'HALIGALI_ACTION'; playerName: string; actionType: string; result: string; status: string[] }
   | { type: 'HANGMAN_ACTION'; playerName: string; letter: string; result: string; status: string[] };
 
 export type GameStatus = 'LOBBY' | 'ROOM_LIST' | 'WAITING' | 'PLAYING' | 'RESULT';
@@ -44,15 +40,6 @@ export interface HangmanStatus {
   currentTurnPlayer: string;
   isGameOver: boolean;
   isWin: boolean;
-}
-
-export interface HaliGaliPlayerInfo {
-  nickname: string;
-  fruit: FruitType;
-  count: number;
-  deckSize: number;
-  isTurn: boolean;
-  position: 'BOTTOM' | 'TOP' | 'LEFT' | 'RIGHT';
 }
 
 export interface GameStartInfo {

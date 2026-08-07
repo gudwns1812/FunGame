@@ -22,21 +22,6 @@ public class GameNotifyService {
     private final SimpMessagingTemplate messagingTemplate;
 
     @EventListener
-    public void handleHaliGaliAction(HaliGaliActionEvent event) {
-        log.info("Broadcasting HaliGali action: {} in room {}", event.actionType(), event.roomId());
-        String destination = "/subscribe/room/" + event.roomId();
-
-        Object payload = Map.of(
-                "type", "HALIGALI_ACTION",
-                "playerName", event.playerName(),
-                "actionType", event.actionType().name(),
-                "result", event.result().name(),
-                "status", event.status().data()
-        );
-        messagingTemplate.convertAndSend(destination, ApiResponse.success(payload));
-    }
-
-    @EventListener
     public void handleHangmanAction(HangmanActionEvent event) {
         log.info("Broadcasting Hangman action: {} by {} in room {}", event.letter(), event.playerName(), event.roomId());
         String destination = "/subscribe/room/" + event.roomId();

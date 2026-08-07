@@ -40,9 +40,7 @@ export const useGameLogic = () => {
   const [currentRound, setCurrentRound] = useState<number>(0);
   const [totalRound, setTotalRound] = useState<number>(0);
   const [hint, setHint] = useState<string>('');
-  const [haliGaliStatus, setHaliGaliStatus] = useState<string[]>([]);
   const [hangmanStatus, setHangmanStatus] = useState<HangmanStatus | null>(null);
-  const [lastHaliGaliAction, setLastHaliGaliAction] = useState<any>(null);
   const [isBootstrapping, setIsBootstrapping] = useState(true);
   const [isCreatingRoom, setIsCreatingRoom] = useState(false);
   const [myColorIndex, setMyColorIndex] = useState<number | null>(() => {
@@ -142,13 +140,7 @@ export const useGameLogic = () => {
           setStatus('PLAYING');
           setHint('');
           const normalizedGameType =
-            event.gameType === 'CS'
-              ? 'CS'
-              : event.gameType === 'HALLIGALLI'
-                ? 'HALLIGALLI'
-                : event.gameType === 'HANGMAN'
-                  ? 'HANGMAN'
-                  : 'SONG';
+            event.gameType === 'CS' ? 'CS' : event.gameType === 'HANGMAN' ? 'HANGMAN' : 'SONG';
           setGameType(normalizedGameType);
           gameTypeRef.current = normalizedGameType;
           setGameStartInfo({
@@ -173,20 +165,6 @@ export const useGameLogic = () => {
           setLogs([]);
           break;
         }
-
-        case 'HALIGALI_ACTION':
-          setHaliGaliStatus(event.status);
-          setLastHaliGaliAction({
-            playerName: event.playerName,
-            actionType: event.actionType,
-            result: event.result,
-          });
-          if (event.actionType === 'PRESS_BELL' && event.result === 'CORRECT') {
-            addLog(`[알림] ${stripTag(event.playerName)}님이 종을 울려 카드를 획득했습니다!`);
-          } else if (event.actionType === 'PRESS_BELL' && event.result === 'WRONG') {
-            addLog(`[실패] ${stripTag(event.playerName)}님이 종을 잘못 울려 패널티를 받았습니다.`);
-          }
-          break;
 
         case 'ROUND_START':
           setStatus('PLAYING');
@@ -729,22 +707,6 @@ export const useGameLogic = () => {
     [roomId, nickname],
   );
 
-  const sendHaliGaliAction = useCallback(
-    async (actionType: 'FLIP_CARD' | 'PRESS_BELL') => {
-      if (!roomId) return;
-      try {
-        await axios.post(`/game/rooms/${roomId}/action`, {
-          playerName: nickname,
-          type: actionType,
-          value: '',
-        });
-      } catch (error) {
-        console.error('HaliGali action failed:', error);
-      }
-    },
-    [roomId, nickname],
-  );
-
   return {
     status,
     nickname,
@@ -764,8 +726,6 @@ export const useGameLogic = () => {
     currentRound,
     totalRound,
     hint,
-    haliGaliStatus,
-    lastHaliGaliAction,
     isBootstrapping,
     isCreatingRoom,
     myColorIndex,
@@ -779,7 +739,6 @@ export const useGameLogic = () => {
     toggleReady,
     skipRound,
     sendMessage,
-    sendHaliGaliAction,
     setStatus,
     addLog,
     clearLogs,
