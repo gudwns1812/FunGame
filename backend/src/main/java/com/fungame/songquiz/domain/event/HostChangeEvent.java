@@ -1,6 +1,6 @@
 package com.fungame.songquiz.domain.event;
 
 public record HostChangeEvent(
-        String roomId, String newHost
+        Long roomId, String newHost
 ){
 }
