@@ -6,6 +6,8 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.messaging.handler.invocation.HandlerMethodArgumentResolver;
 import org.springframework.messaging.simp.config.ChannelRegistration;
 import org.springframework.messaging.simp.config.MessageBrokerRegistry;
+import org.springframework.scheduling.TaskScheduler;
+import org.springframework.scheduling.concurrent.ConcurrentTaskScheduler;
 import org.springframework.security.messaging.context.AuthenticationPrincipalArgumentResolver;
 import org.springframework.security.messaging.context.SecurityContextChannelInterceptor;
 import org.springframework.web.socket.config.annotation.EnableWebSocketMessageBroker;
@@ -14,13 +16,22 @@ import org.springframework.web.socket.config.annotation.WebSocketMessageBrokerCo
 import org.springframework.web.socket.server.support.HttpSessionHandshakeInterceptor;
 
 import java.util.List;
+import java.util.concurrent.ScheduledExecutorService;
 
 @Configuration
 @EnableWebSocketMessageBroker
 public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
+    private static final long[] HEARTBEAT_MILLIS = {10_000, 10_000};
+
     @Value("${cors.allowed-origins:*}")
     private String allowedOrigins;
+
+    private final TaskScheduler heartbeatScheduler;
+
+    public WebSocketConfig(ScheduledExecutorService scheduledExecutorService) {
+        this.heartbeatScheduler = new ConcurrentTaskScheduler(scheduledExecutorService);
+    }
 
     @Override
     public void registerStompEndpoints(StompEndpointRegistry registry) {
@@ -32,7 +43,9 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     @Override
     public void configureMessageBroker(MessageBrokerRegistry registry) {
-        registry.enableSimpleBroker(StompDestination.BROKER_PREFIX);
+        registry.enableSimpleBroker(StompDestination.BROKER_PREFIX)
+                .setHeartbeatValue(HEARTBEAT_MILLIS)
+                .setTaskScheduler(heartbeatScheduler);
         registry.setApplicationDestinationPrefixes(StompDestination.APPLICATION_PREFIX);
     }
 

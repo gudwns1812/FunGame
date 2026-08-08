@@ -282,6 +282,8 @@ export const useGameLogic = () => {
       const client = new Client({
         webSocketFactory: () => new SockJS(import.meta.env.VITE_WS_URL),
         reconnectDelay: 5000,
+        heartbeatIncoming: 10000,
+        heartbeatOutgoing: 10000,
         onConnect: () => {
           client.subscribe(roomTopic(targetRoomId), (message) => {
             const response = JSON.parse(message.body);
