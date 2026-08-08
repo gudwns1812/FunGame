@@ -1,7 +1,7 @@
 package com.fungame.songquiz.controller.config;
 
 import com.fungame.songquiz.controller.websocket.StompDestination;
-import org.springframework.beans.factory.annotation.Qualifier;
+import com.fungame.songquiz.domain.config.AppTaskScheduler;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.messaging.handler.invocation.HandlerMethodArgumentResolver;
@@ -28,7 +28,7 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     private final TaskScheduler taskScheduler;
 
-    public WebSocketConfig(@Qualifier("taskScheduler") TaskScheduler taskScheduler) {
+    public WebSocketConfig(@AppTaskScheduler TaskScheduler taskScheduler) {
         this.taskScheduler = taskScheduler;
     }
 
