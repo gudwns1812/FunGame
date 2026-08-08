@@ -116,11 +116,12 @@ const Game: React.FC<GameProps> = ({
           {/* 정답·해설 박스가 패널 높이를 채우고, 넓은 화면에서는 좌우로 나눈다 */}
           <div className="flex-1 min-h-0 flex flex-col md:flex-row gap-2.5">
             <div
-              className={`border-2 border-cherry bg-[#ffeceb] px-4 py-3 flex flex-col justify-center text-center ${
+              className={`border-2 border-cherry bg-[#ffeceb] px-4 py-3 min-w-0 flex flex-col justify-center text-center ${
                 shouldSplitRoundEnd ? 'md:w-[32%] md:shrink-0' : 'mx-auto w-full max-w-xl'
               }`}>
               <p className="px-label text-cherry mb-1.5">정답</p>
-              <p className="px-title text-lg sm:text-xl break-keep whitespace-pre-wrap leading-snug">
+              {/* 정답이 여러 개거나 긴 영문 한 덩어리일 때 박스 밖으로 뻗지 않도록 강제 줄바꿈을 허용한다 */}
+              <p className="px-title text-lg sm:text-xl break-keep wrap-anywhere whitespace-pre-wrap leading-snug">
                 {roundEndInfo.answer}
               </p>
             </div>
@@ -130,7 +131,7 @@ const Game: React.FC<GameProps> = ({
                 <p className="px-label mb-1.5 shrink-0">해설</p>
                 {/* 해설은 자르지 않고 그대로 보여주고, 박스를 넘칠 때만 내부에서 스크롤된다 */}
                 <div className="flex-1 min-h-0 scroll-y custom-scrollbar">
-                  <p className="text-sm leading-6 font-semibold break-keep whitespace-pre-wrap text-ink">
+                  <p className="text-sm leading-6 font-semibold break-keep wrap-anywhere whitespace-pre-wrap text-ink">
                     {explanation}
                   </p>
                 </div>
@@ -147,7 +148,7 @@ const Game: React.FC<GameProps> = ({
         <div className="h-full scroll-y custom-scrollbar p-6 sm:p-8 flex flex-col">
           <div className="m-auto flex flex-col items-center gap-4 text-center">
             <span className="px-chip px-chip-sea text-xs">CS 퀴즈</span>
-            <p className="px-title text-xl sm:text-2xl leading-relaxed max-w-3xl break-keep whitespace-pre-wrap">
+            <p className="px-title text-xl sm:text-2xl leading-relaxed max-w-3xl break-keep wrap-anywhere whitespace-pre-wrap">
               {currentVideoId}
             </p>
           </div>

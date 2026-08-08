@@ -2,7 +2,7 @@ package com.fungame.songquiz.domain;
 
 import lombok.Getter;
 
-import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -24,8 +24,9 @@ public class ComputerScienceQuiz {
         this.difficulty = difficulty;
     }
 
+    /** 정답이 여러 개면 콤마 뒤에 공백을 둔다. 공백이 없으면 화면에서 줄바꿈되지 않고 한 줄로 뻗는다. */
     public String getAnswer() {
-        return String.join(",", answers);
+        return String.join(", ", answers);
     }
 
     public boolean isCorrect(String answer) {
@@ -34,6 +35,6 @@ public class ComputerScienceQuiz {
 
     public static ComputerScienceQuiz of(String field, String question, List<String> answers, String explain,
                                          CSQuizDifficulty difficulty) {
-        return new ComputerScienceQuiz(field, question, new HashSet<>(answers), explain, difficulty);
+        return new ComputerScienceQuiz(field, question, new LinkedHashSet<>(answers), explain, difficulty);
     }
 }
