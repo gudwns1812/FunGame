@@ -31,6 +31,9 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-web'
     implementation 'org.springframework.boot:spring-boot-starter-security'
     implementation 'org.springframework.boot:spring-boot-starter-websocket'
+    // @MessageMapping 핸들러에서 @AuthenticationPrincipal 을 쓰기 위한 모듈.
+    // starter-security 에는 포함되지 않는다.
+    implementation 'org.springframework.security:spring-security-messaging'
     implementation 'org.springframework.session:spring-session-jdbc'
     implementation 'org.jsoup:jsoup:1.16.1'
     implementation "io.github.openfeign.querydsl:querydsl-jpa:${queryDslVersion}"

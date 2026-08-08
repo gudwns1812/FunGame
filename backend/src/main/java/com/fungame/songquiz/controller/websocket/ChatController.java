@@ -13,10 +13,9 @@ import org.springframework.messaging.handler.annotation.DestinationVariable;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
-import org.springframework.security.core.Authentication;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.stereotype.Controller;
 
-import java.security.Principal;
 import java.util.Map;
 
 @Controller
@@ -29,8 +28,8 @@ public class ChatController {
     private final GameService gameService;
 
     @MessageMapping("/room/{roomId}/chat")
-    public void chat(@DestinationVariable Long roomId, Principal principal, @Payload ChatRequest request) {
-        MemberAdapter user = (MemberAdapter) ((Authentication) principal).getPrincipal();
+    public void chat(@DestinationVariable Long roomId, @AuthenticationPrincipal MemberAdapter user,
+                     @Payload ChatRequest request) {
         log.info("Chat in room {}: {} - {}", roomId, user.getNickName(), request.message());
         Object payload = Map.of(
                 "type", "CHAT",
@@ -49,8 +48,8 @@ public class ChatController {
     }
 
     @MessageMapping("/room/{roomId}/action")
-    public void handleAction(@DestinationVariable Long roomId, Principal principal, GameAction action) {
-        MemberAdapter user = (MemberAdapter) ((Authentication) principal).getPrincipal();
+    public void handleAction(@DestinationVariable Long roomId, @AuthenticationPrincipal MemberAdapter user,
+                            GameAction action) {
         log.info("Action in room {}: {} - {}", roomId, user.getNickName(), action);
 
         try {
