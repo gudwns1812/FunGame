@@ -7,21 +7,21 @@
 - **Endpoint**: `/ws-quiz`
 - **Protocol**: SockJS 지원
 - **Message Broker**:
-    - **구독 경로(Subscribe)**: `/subscribe/room/{roomId}`
-    - **발행 경로(Publish)**: `/publish/room/{roomId}/chat`
+    - **구독 경로(Subscribe)**: `/topic/room/{roomId}`
+    - **발행 경로(Publish)**: `/app/room/{roomId}/chat`
 
 ## 2. 클라이언트 송신 (Client to Server)
 
 ### 채팅 및 정답 입력
 유저가 입력한 텍스트를 서버로 전송합니다. 일반 채팅 메시지이거나 퀴즈의 정답 후보일 수 있습니다.
 
-- **Destination**: `/publish/room/{roomId}/chat`
+- **Destination**: `/app/room/{roomId}/chat`
 - **Header**: `playerName: 닉네임` (필수)
 - **Payload (String)**: 유저가 입력한 메시지 내용.
 
 ## 3. 서버 브로드캐스트 이벤트 (Server to Client)
 
-서버는 특정 방에서 발생하는 모든 이벤트를 `/subscribe/room/{roomId}`를 구독 중인 모든 클라이언트에게 전송합니다.
+서버는 특정 방에서 발생하는 모든 이벤트를 `/topic/room/{roomId}`를 구독 중인 모든 클라이언트에게 전송합니다.
 
 ### 공통 메시지 구조
 ```json

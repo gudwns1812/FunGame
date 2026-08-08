@@ -5,9 +5,9 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public final class StompDestination {
 
-    public static final String BROKER_PREFIX = "/subscribe";
+    public static final String BROKER_PREFIX = "/topic";
 
-    public static final String APPLICATION_PREFIX = "/publish";
+    public static final String APPLICATION_PREFIX = "/app";
 
     private static final String ROOM_PREFIX = BROKER_PREFIX + "/room/";
 
