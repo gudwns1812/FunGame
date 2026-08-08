@@ -37,7 +37,7 @@ public class ChatController {
                 "message", request.message()
         );
 
-        messagingTemplate.convertAndSend("/subscribe/room/" + roomId, ApiResponse.success(payload));
+        messagingTemplate.convertAndSend(StompDestination.room(roomId), ApiResponse.success(payload));
 
         try {
             gameRoomManager.touch(roomId);

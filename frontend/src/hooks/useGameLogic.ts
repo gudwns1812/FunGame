@@ -5,6 +5,7 @@ import SockJS from 'sockjs-client';
 import type { Player, GameStatus, Room, GameStartInfo, RoundEndInfo, HangmanStatus } from '../types/game';
 import { stripTag } from '../utils/stringUtils';
 import { PLAYER_COLOR_INDEX_KEY } from '../utils/playerColor';
+import { roomChat, roomTopic } from '../utils/stompDestination';
 
 // Configure axios base URL
 axios.defaults.baseURL = import.meta.env.VITE_API_BASE_URL;
@@ -293,7 +294,7 @@ export const useGameLogic = () => {
         webSocketFactory: () => new SockJS(import.meta.env.VITE_WS_URL),
         reconnectDelay: 5000,
         onConnect: () => {
-          client.subscribe(`/subscribe/room/${targetRoomId}`, (message) => {
+          client.subscribe(roomTopic(targetRoomId), (message) => {
             const response = JSON.parse(message.body);
             if (response.result === 'SUCCESS' && response.data) {
               handleEventRef.current(response.data);
@@ -760,7 +761,7 @@ export const useGameLogic = () => {
     (message: string) => {
       if (!roomId || !stompClient.current || !stompClient.current.connected) return;
       stompClient.current.publish({
-        destination: `/publish/room/${roomId}/chat`,
+        destination: roomChat(roomId),
         body: JSON.stringify({ message }),
       });
     },

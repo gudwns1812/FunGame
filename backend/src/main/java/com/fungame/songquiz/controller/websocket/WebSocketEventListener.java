@@ -25,8 +25,6 @@ import java.util.concurrent.TimeUnit;
 @Slf4j
 public class WebSocketEventListener {
 
-    private static final String ROOM_DESTINATION_PREFIX = "/subscribe/room/";
-
     /**
      * 연결이 끊긴 뒤 이탈로 확정하기까지 기다리는 시간.
      * 새로고침은 "종료 → 재연결"로 나타나므로, 이 유예 없이는 새로고침한 사람이 방에서 쫓겨난다.
@@ -50,11 +48,7 @@ public class WebSocketEventListener {
         String sessionId = headerAccessor.getSessionId();
         String destination = headerAccessor.getDestination();
 
-        if (destination == null || !destination.startsWith(ROOM_DESTINATION_PREFIX)) {
-            return;
-        }
-
-        Long roomId = parseRoomId(destination.substring(ROOM_DESTINATION_PREFIX.length()));
+        Long roomId = StompDestination.roomIdOf(destination);
         if (roomId == null) {
             return;
         }
@@ -121,15 +115,6 @@ public class WebSocketEventListener {
 
     private boolean hasLiveSession(UserSession userSession) {
         return sessionMap.containsValue(userSession);
-    }
-
-    private Long parseRoomId(String rawRoomId) {
-        try {
-            return Long.parseLong(rawRoomId);
-        } catch (NumberFormatException e) {
-            log.warn("Invalid room id in subscribe destination: {}", rawRoomId);
-            return null;
-        }
     }
 
     /**
