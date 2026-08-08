@@ -1,7 +1,7 @@
 package com.fungame.songquiz.controller.config;
 
 import com.fungame.songquiz.controller.websocket.StompDestination;
-import com.fungame.songquiz.domain.config.AppTaskScheduler;
+import com.fungame.songquiz.support.config.AppTaskScheduler;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.messaging.handler.invocation.HandlerMethodArgumentResolver;

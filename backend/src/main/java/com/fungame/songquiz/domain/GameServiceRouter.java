@@ -1,7 +1,6 @@
 package com.fungame.songquiz.domain;
 
 import com.fungame.songquiz.domain.dto.GameStateDto;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Component;
 
@@ -16,7 +15,6 @@ public class GameServiceRouter implements GameService {
     private final Map<GameType, GameService> services;
     private final GameRoomManager roomManager;
 
-    @Autowired
     public GameServiceRouter(List<GameService> services, GameRoomManager roomManager) {
         this.services = new HashMap<>();
         services.stream()

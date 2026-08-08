@@ -1,4 +1,4 @@
-package com.fungame.songquiz.domain.config;
+package com.fungame.songquiz.support.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
