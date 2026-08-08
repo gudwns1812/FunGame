@@ -17,6 +17,7 @@ public class AppConfig {
     }
 
     @Bean
+    @AppTaskScheduler
     public TaskScheduler taskScheduler(ScheduledExecutorService scheduledExecutorService) {
         return new ConcurrentTaskScheduler(scheduledExecutorService);
     }
