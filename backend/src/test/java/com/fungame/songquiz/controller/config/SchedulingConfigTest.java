@@ -2,7 +2,7 @@ package com.fungame.songquiz.controller.config;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import com.fungame.songquiz.domain.config.AppTaskScheduler;
+import com.fungame.songquiz.support.config.AppTaskScheduler;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.ApplicationContext;
