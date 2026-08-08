@@ -29,9 +29,6 @@ public class GameSession {
         rank.deactivate(player);
     }
 
-    /**
-     * 이 게임에 참가했다가 이탈한 사람인지 여부. 진행 중인 방의 재입장 허용 판정에 쓰인다.
-     */
     public boolean canRejoin(String player) {
         return rank.hasParticipant(player) && !rank.hasPlayer(player);
     }

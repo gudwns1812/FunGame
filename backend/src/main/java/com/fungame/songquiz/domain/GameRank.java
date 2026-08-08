@@ -33,17 +33,10 @@ public class GameRank {
         activePlayers.add(player);
     }
 
-    /**
-     * 이탈 처리. 점수는 남겨두고 순위에서만 제외한다.
-     * 재입장했을 때 이전 점수를 그대로 이어받기 위함이다.
-     */
     public void deactivate(String player) {
         activePlayers.remove(player);
     }
 
-    /**
-     * 재입장 처리. 이 게임의 참가자였던 경우에만 순위에 다시 노출한다.
-     */
     public void activate(String player) {
         if (scores.containsKey(player)) {
             activePlayers.add(player);
@@ -54,9 +47,6 @@ public class GameRank {
         return activePlayers.contains(player);
     }
 
-    /**
-     * 지금 접속 중인지와 무관하게, 이 게임에 참가했던 사람인지 여부.
-     */
     public boolean hasParticipant(String player) {
         return scores.containsKey(player);
     }

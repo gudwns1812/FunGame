@@ -66,13 +66,8 @@ public class GameRoomManager {
         });
     }
 
-    /**
-     * 진행 중인 방에는 이 게임의 참가자였던 사람만 다시 들어올 수 있다.
-     * 새로고침이나 순간적인 연결 끊김으로 빠졌던 플레이어의 복귀 경로다.
-     */
     private int rejoinPlayingRoom(Long roomId, GameRoom gameRoom, String playerName) {
         if (gameRoom.hasPlayer(playerName)) {
-            // 아직 이탈 처리가 되지 않은 상태라면 그대로 인정한다.
             return gameRoom.getPlayerCount();
         }
 
@@ -88,10 +83,6 @@ public class GameRoomManager {
         return playerCount;
     }
 
-    /**
-     * @param destroyed 마지막 인원이 나가 방이 삭제되었는지
-     * @param wasPlaying 이탈 시점에 게임이 진행 중이었는지
-     */
     public record LeaveResult(boolean destroyed, boolean wasPlaying) {
     }
 
@@ -112,13 +103,8 @@ public class GameRoomManager {
         });
     }
 
-    /**
-     * 방 삭제의 유일한 통로. 방과 함께 진행 중이던 게임 상태(타이머, 세션)도 반드시 같이 정리한다.
-     * 이 정리가 빠지면 아무도 없는 방의 라운드 타이머가 계속 돌거나 GameSession 이 영구히 남는다.
-     */
     private void deleteRoom(Long roomId) {
         if (gameRooms.remove(roomId) == null) {
-            // 이미 정리된 방이면 중복 이벤트를 발행하지 않는다.
             return;
         }
 
@@ -146,7 +132,6 @@ public class GameRoomManager {
     public void cleanupIdleRooms() {
         Instant threshold = Instant.now().minus(MAX_IDLE_MINUTES, ChronoUnit.MINUTES);
 
-        // 삭제 대상을 먼저 확정한 뒤, 다른 참가 흐름과 경합하지 않도록 방별 락 안에서 정리한다.
         List<Long> idleRoomIds = gameRooms.entrySet().stream()
                 .filter(entry -> entry.getValue().isIdle(threshold))
                 .map(Map.Entry::getKey)

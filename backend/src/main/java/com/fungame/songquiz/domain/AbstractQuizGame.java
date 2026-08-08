@@ -13,7 +13,6 @@ public abstract class AbstractQuizGame implements Game {
 
     protected AbstractQuizGame(List<String> players) {
         if (players != null) {
-            // 이탈 처리를 위해 항상 가변 리스트로 보관한다.
             this.players = new ArrayList<>(players);
             initSkipVotes();
         }

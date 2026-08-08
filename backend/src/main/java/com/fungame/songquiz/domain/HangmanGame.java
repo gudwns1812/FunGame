@@ -123,8 +123,6 @@ public class HangmanGame extends AbstractQuizGame {
             return;
         }
 
-        // 이탈자가 현재 차례보다 앞이었다면 인덱스를 당겨 현재 차례를 유지한다.
-        // 이탈자가 현재 차례였다면 인덱스는 그대로 다음 사람을 가리키게 되며, 끝을 넘어가면 처음으로 돌린다.
         if (leaverIndex < currentTurnIndex) {
             currentTurnIndex--;
         }
@@ -136,7 +134,6 @@ public class HangmanGame extends AbstractQuizGame {
         super.restorePlayer(playerName);
 
         if (!playerOrder.contains(playerName)) {
-            // 맨 뒤에 붙이면 앞쪽 인덱스가 밀리지 않아 진행 중인 차례가 유지된다.
             playerOrder.add(playerName);
         }
     }
@@ -155,7 +152,6 @@ public class HangmanGame extends AbstractQuizGame {
 
     @Override
     protected ActionResult processAnswer(String playerName, String answer) {
-        // 단어 전체 정답 제출 시 처리
         if (this.answer.equalsIgnoreCase(answer.trim())) {
             this.currentDisplay = this.answer.chars()
                     .mapToObj(c -> String.valueOf((char) c))
@@ -194,7 +190,6 @@ public class HangmanGame extends AbstractQuizGame {
 
     @Override
     public void startRound() {
-        // 단판 게임이므로 별도 구현 없음
     }
 
     @Override

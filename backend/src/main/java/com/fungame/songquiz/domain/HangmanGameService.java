@@ -37,10 +37,8 @@ public class HangmanGameService implements GameService {
             GameInfo gameInfo = gameSessionManager.startGame(roomId, hangmanGame, gameRoom.getRoomPlayers());
             eventPublisher.publishEvent(new GameStartEvent(roomId, gameInfo));
 
-            // 초기 라운드 시작 이벤트 발행 (프론트엔드 상태 전환용)
             eventPublisher.publishEvent(new RoundStartEvent(roomId, hangmanGame.getStatus(), 1, 1));
 
-            // 초기 행맨 상태 이벤트 발행 (프론트엔드 hangmanStatus 초기화용)
             eventPublisher.publishEvent(new HangmanActionEvent(roomId, nickname, ' ', ActionResult.ACTION_SUCCESS, hangmanGame.getStatus()));
         }
     }
@@ -62,7 +60,6 @@ public class HangmanGameService implements GameService {
         char letter = payload.charAt(0);
         ActionResult result = hangmanGame.guess(action.playerName(), letter);
 
-        // 행맨 액션 이벤트 발행
         eventPublisher.publishEvent(new HangmanActionEvent(roomId, action.playerName(), letter, result, hangmanGame.getStatus()));
 
         if (result == ActionResult.CORRECT || result == ActionResult.WRONG) {
@@ -86,7 +83,6 @@ public class HangmanGameService implements GameService {
 
     @Override
     public void increaseSkipVote(Long roomId, String playerName) {
-        // 행맨 전용 스킵 로직 필요시 구현
     }
 
     @Override
@@ -96,7 +92,6 @@ public class HangmanGameService implements GameService {
 
     @Override
     public void startRound(Long roomId) {
-        // 단판 게임이므로 별도 구현 없음
     }
 
     @Override
@@ -126,7 +121,6 @@ public class HangmanGameService implements GameService {
             return;
         }
 
-        // 이탈자에게 턴이 걸려 게임이 멈추지 않도록 순서에서 제거한다.
         session.removePlayer(playerName);
 
         GameRoom room = gameRoomManager.findRoom(roomId);

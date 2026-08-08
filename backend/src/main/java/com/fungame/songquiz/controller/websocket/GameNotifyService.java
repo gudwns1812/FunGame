@@ -53,14 +53,6 @@ public class GameNotifyService {
     }
 
     @EventListener
-    public void handleHostChange(HostChangeEvent event) {
-        log.info("Broadcasting host change: new host {} in room {}", event.newHost(), event.roomId());
-        String destination = StompDestination.room(event.roomId());
-        Object payload = Map.of("type", "HOST_CHANGE", "newHost", event.newHost());
-        messagingTemplate.convertAndSend(destination, ApiResponse.success(payload));
-    }
-
-    @EventListener
     public void handlePlayerReady(PlayerReadyEvent event) {
         log.info("Broadcasting player ready: player {} is now {} in room {}", event.player(), event.ready(), event.roomId());
         String destination = StompDestination.room(event.roomId());
