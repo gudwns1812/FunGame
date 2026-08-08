@@ -20,7 +20,6 @@ export type GameEvent =
   | { type: 'PLAYER_JOIN'; player: string }
   | { type: 'PLAYER_LEAVE'; player: string }
   | { type: 'PLAYER_READY'; player: string; ready: boolean }
-  | { type: 'HOST_CHANGE'; newHost: string }
   | { type: 'CHAT'; playerName: string; message: string }
   | { type: 'GAME_START'; gameType: string; category: string; songCount: number; message: string }
   | { type: 'ROUND_START'; videoURL: string; roundIndex: number; currentRound: number; totalRound: number }

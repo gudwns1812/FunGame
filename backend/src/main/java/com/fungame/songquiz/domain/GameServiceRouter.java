@@ -18,7 +18,6 @@ public class GameServiceRouter implements GameService {
 
     @Autowired
     public GameServiceRouter(List<GameService> services, GameRoomManager roomManager) {
-        // 자신을 제외한 실제 게임 엔진들만 필터링
         this.services = new HashMap<>();
         services.stream()
                 .filter(s -> !(s instanceof GameServiceRouter))

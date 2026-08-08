@@ -35,9 +35,6 @@ public class GameRoom {
         }
     }
 
-    /**
-     * 진행 중인 게임에 이탈했던 참가자를 다시 받아들인다. 시작 여부 검증을 건너뛴다.
-     */
     public int rejoin(String playerName) {
         players.add(playerName);
         return players.getCurrentCount();

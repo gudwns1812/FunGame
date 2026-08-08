@@ -54,10 +54,8 @@ public class ChatController {
 
         try {
             gameRoomManager.touch(roomId);
-            // 클라이언트에서 보낸 action의 playerName이 실제 헤더와 일치하는지 검증 로직 추가 가능
             gameService.handleAction(roomId, action);
         } catch (CoreException e) {
-            // 이미 정리된 방으로 뒤늦게 들어온 액션은 무시한다.
             log.info("Action for missing room {}: {}", roomId, e.getMessage());
         }
     }

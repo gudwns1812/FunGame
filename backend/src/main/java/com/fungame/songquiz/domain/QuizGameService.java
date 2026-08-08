@@ -43,7 +43,6 @@ public class QuizGameService implements GameService {
             return;
         }
 
-        // 라운드 진행 자체를 활동으로 인정한다. 채팅이 없는 게임이 유휴 청소에 삭제되는 것을 막는다.
         gameRoomManager.touch(roomId);
 
         gameSession.startRound();
@@ -148,7 +147,6 @@ public class QuizGameService implements GameService {
             return;
         }
 
-        // 랭킹과 스킵 정족수에서 이탈자를 빼준다. 라운드 진행은 남은 인원으로 그대로 이어간다.
         gameSession.removePlayer(playerName);
         log.info("게임 중 이탈: room {}, player {}", roomId, playerName);
     }
@@ -163,7 +161,6 @@ public class QuizGameService implements GameService {
         GameInfo gameInfo = gameSession.getGameInfo();
         int currentRound = gameSession.getCurrentRound();
 
-        // 게임 시작 직후 첫 라운드 전에는 보여줄 문제가 아직 없다.
         String content = currentRound >= 1 ? gameSession.getContent().toString() : null;
 
         return new GameStateDto(

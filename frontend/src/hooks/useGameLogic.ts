@@ -114,17 +114,6 @@ export const useGameLogic = () => {
           }
           break;
 
-        case 'HOST_CHANGE':
-          setPlayers((prev) =>
-            prev.map((p) => ({
-              ...p,
-              isHost: p.name === event.newHost,
-              isReady: p.name === event.newHost ? true : p.isReady,
-            })),
-          );
-          setIsHost(event.newHost === nickname);
-          break;
-
         case 'PLAYER_READY':
           if (roomId) {
             fetchRoomUsers(roomId);
