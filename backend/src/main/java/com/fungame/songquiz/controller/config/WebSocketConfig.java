@@ -1,13 +1,13 @@
 package com.fungame.songquiz.controller.config;
 
 import com.fungame.songquiz.controller.websocket.StompDestination;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.messaging.handler.invocation.HandlerMethodArgumentResolver;
 import org.springframework.messaging.simp.config.ChannelRegistration;
 import org.springframework.messaging.simp.config.MessageBrokerRegistry;
 import org.springframework.scheduling.TaskScheduler;
-import org.springframework.scheduling.concurrent.ConcurrentTaskScheduler;
 import org.springframework.security.messaging.context.AuthenticationPrincipalArgumentResolver;
 import org.springframework.security.messaging.context.SecurityContextChannelInterceptor;
 import org.springframework.web.socket.config.annotation.EnableWebSocketMessageBroker;
@@ -16,7 +16,6 @@ import org.springframework.web.socket.config.annotation.WebSocketMessageBrokerCo
 import org.springframework.web.socket.server.support.HttpSessionHandshakeInterceptor;
 
 import java.util.List;
-import java.util.concurrent.ScheduledExecutorService;
 
 @Configuration
 @EnableWebSocketMessageBroker
@@ -27,10 +26,10 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
     @Value("${cors.allowed-origins:*}")
     private String allowedOrigins;
 
-    private final TaskScheduler heartbeatScheduler;
+    private final TaskScheduler taskScheduler;
 
-    public WebSocketConfig(ScheduledExecutorService scheduledExecutorService) {
-        this.heartbeatScheduler = new ConcurrentTaskScheduler(scheduledExecutorService);
+    public WebSocketConfig(@Qualifier("taskScheduler") TaskScheduler taskScheduler) {
+        this.taskScheduler = taskScheduler;
     }
 
     @Override
@@ -45,7 +44,7 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
     public void configureMessageBroker(MessageBrokerRegistry registry) {
         registry.enableSimpleBroker(StompDestination.BROKER_PREFIX)
                 .setHeartbeatValue(HEARTBEAT_MILLIS)
-                .setTaskScheduler(heartbeatScheduler);
+                .setTaskScheduler(taskScheduler);
         registry.setApplicationDestinationPrefixes(StompDestination.APPLICATION_PREFIX);
     }
 
