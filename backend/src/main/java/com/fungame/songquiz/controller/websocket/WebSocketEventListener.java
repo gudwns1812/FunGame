@@ -59,8 +59,6 @@ public class WebSocketEventListener {
             return;
         }
 
-        // 핸드셰이크 시점의 인증 정보에서 닉네임을 얻는다.
-        // HTTP 세션 속성에는 nickname 이 담기지 않으므로 Principal 을 사용해야 한다.
         String nickname = extractNickname(event.getUser());
         if (nickname == null) {
             log.warn("Cannot resolve nickname for session {} subscribing to room {}", sessionId, roomId);
@@ -134,6 +132,12 @@ public class WebSocketEventListener {
         }
     }
 
+    /**
+     * 이 클래스의 메서드는 @MessageMapping 핸들러가 아니라 @EventListener 다.
+     * @EventListener 는 인자 리졸버를 거치지 않으므로 ChatController 처럼
+     * @AuthenticationPrincipal 을 쓸 수 없고, 이벤트가 들고 있는 Principal 에서 직접 꺼내야 한다.
+     * (핸드셰이크 때 HTTP 세션 속성에는 nickname 이 담기지 않으므로 세션 속성으로는 얻을 수 없다.)
+     */
     private String extractNickname(Principal principal) {
         if (principal instanceof Authentication authentication
                 && authentication.getPrincipal() instanceof MemberAdapter member) {
