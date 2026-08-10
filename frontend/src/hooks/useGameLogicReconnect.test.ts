@@ -2,16 +2,19 @@ import { renderHook, act, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import axios from 'axios';
 import type { StompConfig } from '@stomp/stompjs';
+import { TickerStrategy } from '@stomp/stompjs';
 import { useGameLogic } from './useGameLogic';
 
 vi.mock('axios');
 vi.mock('sockjs-client');
 
 /** new Client(config) 로 넘어간 설정들. onConnect 를 직접 호출해 재연결을 흉내낸다. */
-type CapturedConfig = Required<Pick<StompConfig, 'onConnect' | 'onWebSocketClose'>>;
+type CapturedConfig = Required<Pick<StompConfig, 'onConnect' | 'onWebSocketClose'>> &
+  Pick<StompConfig, 'heartbeatStrategy' | 'reconnectDelay'>;
 const clientConfigs: CapturedConfig[] = [];
 
 vi.mock('@stomp/stompjs', () => ({
+  TickerStrategy: { Interval: 'interval', Worker: 'worker' },
   Client: class {
     connected = true;
     activate = vi.fn();
@@ -81,6 +84,19 @@ describe('useGameLogic 재연결 시 참가 상태 동기화', () => {
 
     expect(typeof config.onConnect).toBe('function');
     expect(typeof config.onWebSocketClose).toBe('function');
+  });
+
+  it('백그라운드 탭에서도 하트비트가 밀리지 않도록 워커 티커를 쓴다', async () => {
+    const { config } = await joinAndGetConfig();
+
+    expect(config.heartbeatStrategy).toBe(TickerStrategy.Worker);
+  });
+
+  it('서버의 이탈 유예(15초)보다 재연결 대기가 짧다', async () => {
+    const { config } = await joinAndGetConfig();
+
+    // 같거나 크면 재연결이 유예를 이길 수 없다. application.yml 의 leave-grace-seconds 와 짝이다.
+    expect(config.reconnectDelay).toBeLessThan(15_000);
   });
 
   it('최초 연결에서는 join 을 다시 호출하지 않는다', async () => {

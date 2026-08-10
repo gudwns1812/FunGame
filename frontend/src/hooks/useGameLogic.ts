@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import axios from 'axios';
-import { Client } from '@stomp/stompjs';
+import { Client, TickerStrategy } from '@stomp/stompjs';
 import SockJS from 'sockjs-client';
 import type { Player, GameStatus, Room, GameStartInfo, RoundEndInfo, HangmanStatus } from '../types/game';
 import { stripTag } from '../utils/stringUtils';
@@ -277,19 +277,22 @@ export const useGameLogic = () => {
   }, [logs]);
 
   const connectWebSocket = useCallback(
-    (targetRoomId: string) => {
+    (targetRoomId: string, options?: { resyncOnConnect?: boolean }) => {
       if (stompClient.current) {
         stompClient.current.deactivate();
       }
 
-      // 최초 연결은 join 을 마친 뒤에 호출된다. 재연결일 때만 참가 상태를 다시 맞춘다.
-      let hasConnectedOnce = false;
+      // join 직후의 최초 연결은 이미 참가 상태가 맞아 있다. 그 이후의 연결만 동기화한다.
+      let shouldResync = options?.resyncOnConnect ?? false;
 
       const client = new Client({
         webSocketFactory: () => new SockJS(import.meta.env.VITE_WS_URL),
         reconnectDelay: 5000,
         heartbeatIncoming: 10000,
         heartbeatOutgoing: 10000,
+        // 기본값(setInterval)은 백그라운드 탭에서 스로틀링돼 하트비트가 밀린다.
+        // 워커 타이머는 그 영향을 덜 받으므로 탭이 숨겨져도 PING 이 계속 나간다.
+        heartbeatStrategy: TickerStrategy.Worker,
         onConnect: () => {
           client.subscribe(roomTopic(targetRoomId), (message) => {
             const response = JSON.parse(message.body);
@@ -298,15 +301,13 @@ export const useGameLogic = () => {
             }
           });
 
-          if (hasConnectedOnce) {
+          if (shouldResync) {
             resyncMembershipRef.current(targetRoomId);
           }
-          hasConnectedOnce = true;
+          shouldResync = true;
         },
         onWebSocketClose: () => {
-          if (hasConnectedOnce) {
-            console.warn('WebSocket 연결이 끊겼습니다. 재연결을 시도합니다.');
-          }
+          console.warn('WebSocket 연결이 끊겼습니다. 재연결을 시도합니다.');
         },
         onStompError: (frame) => {
           console.error('STOMP Error:', frame);
@@ -526,6 +527,27 @@ export const useGameLogic = () => {
       fetchRoomUsers(roomId);
     }
   }, [status, roomId, fetchRoomUsers]);
+
+  /**
+   * 탭이 다시 보이는 순간 끊긴 연결을 즉시 되살린다.
+   *
+   * 백그라운드에서는 stompjs 의 재연결 setTimeout 도 함께 스로틀링되기 때문에,
+   * 돌아와도 한참 뒤에야 붙는다. 그 사이 서버는 이미 이탈 처리를 끝냈을 수 있다.
+   */
+  useEffect(() => {
+    if (!roomId || (status !== 'WAITING' && status !== 'PLAYING')) return;
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState !== 'visible') return;
+      if (stompClient.current?.connected) return;
+
+      console.warn('탭 복귀 시점에 연결이 끊겨 있어 즉시 재연결합니다.');
+      connectWebSocket(roomId, { resyncOnConnect: true });
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [roomId, status, connectWebSocket]);
 
   useEffect(() => {
     const handlePopState = () => {
