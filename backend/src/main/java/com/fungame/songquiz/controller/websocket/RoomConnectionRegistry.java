@@ -38,7 +38,7 @@ public class RoomConnectionRegistry {
 
     public RoomConnectionRegistry(GameRoomService gameRoomService,
                                   ScheduledExecutorService scheduler,
-                                  @Value("${game.leave-grace-seconds:5}") long leaveGraceSeconds) {
+                                  @Value("${game.leave-grace-seconds:15}") long leaveGraceSeconds) {
         this.gameRoomService = gameRoomService;
         this.scheduler = scheduler;
         this.leaveGraceSeconds = leaveGraceSeconds;
