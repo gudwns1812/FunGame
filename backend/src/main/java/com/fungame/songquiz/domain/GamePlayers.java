@@ -30,16 +30,22 @@ public class GamePlayers {
         }
     }
 
-    public void add(String player) {
+    /**
+     * @return 이번 호출로 실제 추가되었으면 true, 이미 있던 플레이어면 false
+     */
+    public boolean add(String player) {
+        // 이미 들어와 있는 플레이어의 재참가는 정원과 무관하게 통과시킨다.
+        // 그렇지 않으면 정원이 찬 방에서 재연결한 사람이 정원 초과로 거부된다.
+        if (players.containsKey(player)) {
+            return false;
+        }
+
         if (isFull()) {
             throw new CoreException(ErrorType.GAME_ROOM_MAX_PLAYER_EXCEED);
         }
 
-        if (players.get(player) != null) {
-            return;
-        }
-
         players.put(player, GamePlayer.createNewPlayer(player));
+        return true;
     }
 
     public void remove(String player) {

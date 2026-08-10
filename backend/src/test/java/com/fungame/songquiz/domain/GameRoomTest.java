@@ -30,11 +30,27 @@ class GameRoomTest {
     @DisplayName("방에 플레이어가 정상적으로 입장한다.")
     void join_success() {
         // when
-        int count = gameRoom.join("player2");
+        GameRoom.JoinResult result = gameRoom.join("player2");
 
         // then
-        assertThat(count).isEqualTo(2);
+        assertThat(result.playerNumber()).isEqualTo(2);
+        assertThat(result.newlyJoined()).isTrue();
         assertThat(gameRoom.getRoomPlayers()).contains("player2");
+    }
+
+    @Test
+    @DisplayName("이미 방에 있는 플레이어가 다시 입장해도 새 참가로 집계되지 않는다.")
+    void join_is_idempotent() {
+        // given
+        gameRoom.join("player2");
+
+        // when
+        GameRoom.JoinResult result = gameRoom.join("player2");
+
+        // then
+        assertThat(result.newlyJoined()).isFalse();
+        assertThat(result.playerNumber()).isEqualTo(2);
+        assertThat(gameRoom.getRoomPlayers()).containsExactly("host", "player2");
     }
 
     @Test

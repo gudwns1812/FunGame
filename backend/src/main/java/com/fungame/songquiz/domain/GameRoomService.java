@@ -51,10 +51,14 @@ public class GameRoomService {
 
     public int joinRoom(Long roomId, String playerName) {
         log.info("roomId : {} , playerName : {}", roomId, playerName);
-        int playerNumber = gameRoomManager.joinRoom(roomId, playerName);
-        applicationEventPublisher.publishEvent(new PlayerJoinEvent(roomId, playerName));
+        GameRoom.JoinResult result = gameRoomManager.joinRoom(roomId, playerName);
 
-        return playerNumber;
+        // 새로고침·재연결로 join 이 다시 호출될 수 있다. 실제로 방에 추가됐을 때만 알린다.
+        if (result.newlyJoined()) {
+            applicationEventPublisher.publishEvent(new PlayerJoinEvent(roomId, playerName));
+        }
+
+        return result.playerNumber();
     }
 
     public void leaveRoom(Long roomId, String playerName) {

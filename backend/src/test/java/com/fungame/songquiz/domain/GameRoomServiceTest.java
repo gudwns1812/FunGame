@@ -1,5 +1,6 @@
 package com.fungame.songquiz.domain;
 
+import com.fungame.songquiz.domain.event.PlayerJoinEvent;
 import com.fungame.songquiz.domain.event.PlayerLeaveEvent;
 import com.fungame.songquiz.domain.gamecreator.SongGameCreateInfo;
 import com.fungame.songquiz.domain.gamecreator.SongGameFactory;
@@ -81,6 +82,34 @@ class GameRoomServiceTest {
                 eq("방장"),
                 eq(8)
         );
+    }
+
+    @Test
+    void 실제로_새로_참가했을_때만_입장_이벤트를_발행한다() {
+        // given
+        given(gameRoomManager.joinRoom(1L, "참가자"))
+                .willReturn(new GameRoom.JoinResult(2, true));
+
+        // when
+        int playerNumber = service.joinRoom(1L, "참가자");
+
+        // then
+        assertThat(playerNumber).isEqualTo(2);
+        verify(applicationEventPublisher).publishEvent(any(PlayerJoinEvent.class));
+    }
+
+    @Test
+    void 이미_방에_있는_플레이어의_재참가는_입장_이벤트를_발행하지_않는다() {
+        // given: 새로고침이나 재연결로 join 이 다시 호출된 경우
+        given(gameRoomManager.joinRoom(1L, "참가자"))
+                .willReturn(new GameRoom.JoinResult(2, false));
+
+        // when
+        int playerNumber = service.joinRoom(1L, "참가자");
+
+        // then: 인원 정보는 그대로 돌려주되 "입장했습니다" 알림은 다시 보내지 않는다
+        assertThat(playerNumber).isEqualTo(2);
+        verify(applicationEventPublisher, never()).publishEvent(any(PlayerJoinEvent.class));
     }
 
     @Test

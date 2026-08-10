@@ -53,7 +53,7 @@ public class GameRoomManager {
         lockContext.createLockWithLockKey(roomId);
     }
 
-    public int joinRoom(Long roomId, String playerName) {
+    public GameRoom.JoinResult joinRoom(Long roomId, String playerName) {
         return lockContext.processWithLockKey(roomId, () -> {
             GameRoom gameRoom = getRoom(roomId);
             gameRoom.touch();
@@ -66,9 +66,9 @@ public class GameRoomManager {
         });
     }
 
-    private int rejoinPlayingRoom(Long roomId, GameRoom gameRoom, String playerName) {
+    private GameRoom.JoinResult rejoinPlayingRoom(Long roomId, GameRoom gameRoom, String playerName) {
         if (gameRoom.hasPlayer(playerName)) {
-            return gameRoom.getPlayerCount();
+            return new GameRoom.JoinResult(gameRoom.getPlayerCount(), false);
         }
 
         GameSession gameSession = gameSessionManager.getGameSession(roomId);
@@ -76,11 +76,11 @@ public class GameRoomManager {
             throw new CoreException(ErrorType.GAME_ALREADY_PLAYING);
         }
 
-        int playerCount = gameRoom.rejoin(playerName);
+        GameRoom.JoinResult result = gameRoom.rejoin(playerName);
         gameSession.restorePlayer(playerName);
         log.info("게임 재입장: room {}, player {}", roomId, playerName);
 
-        return playerCount;
+        return result;
     }
 
     public record LeaveResult(boolean destroyed, boolean wasPlaying) {
