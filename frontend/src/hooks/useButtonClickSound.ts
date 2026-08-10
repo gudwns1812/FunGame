@@ -5,8 +5,10 @@ const SOUND_ATTRIBUTE = 'data-sound';
 const SILENT_SOUND = 'none';
 const SOUND_TARGET_SELECTOR = `button, [${SOUND_ATTRIBUTE}]`;
 
-export const useButtonClickSound = () => {
+export const useButtonClickSound = ({ enabled }: { enabled: boolean }) => {
   useEffect(() => {
+    if (!enabled) return;
+
     const playSoundOfClickTarget = (event: MouseEvent) => {
       const target = event.target as Element | null;
       const clicked = target?.closest(SOUND_TARGET_SELECTOR);
@@ -27,5 +29,5 @@ export const useButtonClickSound = () => {
 
     document.addEventListener('click', playSoundOfClickTarget, true);
     return () => document.removeEventListener('click', playSoundOfClickTarget, true);
-  }, []);
+  }, [enabled]);
 };

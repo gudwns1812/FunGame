@@ -12,8 +12,12 @@ import HangmanResultPage from './pages/HangmanResultPage';
 import ResultPage from './pages/ResultPage';
 import { useGameLogic } from './hooks/useGameLogic';
 import { useButtonClickSound } from './hooks/useButtonClickSound';
+import type { GameStatus } from './types/game';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { useEffect } from 'react';
+
+/** 방에 들어가 있는 동안은 클릭음이 게임을 방해해서 끈다 */
+const IN_ROOM_STATUSES: GameStatus[] = ['WAITING', 'PLAYING', 'RESULT'];
 
 /** 부트스트랩 · 방 생성 대기 화면 */
 function LoadingScreen({ label }: { label: string }) {
@@ -73,7 +77,7 @@ function AppContent() {
 
   const { isAuthenticated, isInitialLoading, user } = useAuth();
 
-  useButtonClickSound();
+  useButtonClickSound({ enabled: !IN_ROOM_STATUSES.includes(status) });
 
   // 로그인한 사용자의 닉네임을 기존 게임 로직에 연동
   useEffect(() => {
