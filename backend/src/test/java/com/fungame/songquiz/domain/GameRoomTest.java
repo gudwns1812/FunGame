@@ -30,7 +30,7 @@ class GameRoomTest {
     @DisplayName("방에 플레이어가 정상적으로 입장한다.")
     void join_success() {
         // when
-        GameRoom.JoinResult result = gameRoom.join("player2");
+        JoinResult result = gameRoom.join("player2");
 
         // then
         assertThat(result.playerNumber()).isEqualTo(2);
@@ -45,7 +45,7 @@ class GameRoomTest {
         gameRoom.join("player2");
 
         // when
-        GameRoom.JoinResult result = gameRoom.join("player2");
+        JoinResult result = gameRoom.join("player2");
 
         // then
         assertThat(result.newlyJoined()).isFalse();

@@ -1,16 +1,16 @@
 package com.fungame.songquiz.controller.websocket;
 
 import com.fungame.songquiz.domain.GameRoomService;
+import com.fungame.songquiz.support.config.AppTaskScheduler;
 import com.fungame.songquiz.support.error.CoreException;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
+import org.springframework.scheduling.TaskScheduler;
 import org.springframework.stereotype.Component;
 
+import java.time.Instant;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
-import java.util.concurrent.TimeUnit;
 
 /**
  * "지금 웹소켓으로 연결되어 있는가"(연결 상태)만 관리한다.
@@ -26,9 +26,16 @@ import java.util.concurrent.TimeUnit;
 @Component
 public class RoomConnectionRegistry {
 
+    /**
+     * 연결이 끊긴 뒤 이 시간 안에 돌아오지 않으면 방에서 내보낸다.
+     * <p>
+     * 프론트의 재연결 대기(5초)에 SockJS 핸드셰이크와 CONNECT/SUBSCRIBE 왕복을 더한 것보다
+     * 넉넉히 커야 한다. 같거나 작으면 재연결이 구조적으로 유예를 이길 수 없다.
+     */
+    private static final long LEAVE_GRACE_SECONDS = 15;
+
     private final GameRoomService gameRoomService;
-    private final ScheduledExecutorService scheduler;
-    private final long leaveGraceSeconds;
+    private final TaskScheduler taskScheduler;
 
     /** 웹소켓 세션 ID -> 그 세션이 대변하는 사람 */
     private final Map<String, RoomMember> connections = new ConcurrentHashMap<>();
@@ -37,11 +44,9 @@ public class RoomConnectionRegistry {
     private final Map<String, ScheduledFuture<?>> pendingLeaves = new ConcurrentHashMap<>();
 
     public RoomConnectionRegistry(GameRoomService gameRoomService,
-                                  ScheduledExecutorService scheduler,
-                                  @Value("${game.leave-grace-seconds:15}") long leaveGraceSeconds) {
+                                  @AppTaskScheduler TaskScheduler taskScheduler) {
         this.gameRoomService = gameRoomService;
-        this.scheduler = scheduler;
-        this.leaveGraceSeconds = leaveGraceSeconds;
+        this.taskScheduler = taskScheduler;
     }
 
     /**
@@ -63,20 +68,11 @@ public class RoomConnectionRegistry {
         }
 
         if (isConnected(member)) {
-            // 다른 세션으로 이미 돌아와 있다. 이탈 판단 자체가 필요 없다.
             log.info("세션 {} 종료, 다른 연결이 살아있어 유예를 예약하지 않는다: {}", sessionId, member.nickname());
             return;
         }
 
-        log.info("연결 종료: {} (room {}), {}초 안에 돌아오지 않으면 이탈 처리",
-                member.nickname(), member.roomId(), leaveGraceSeconds);
-
-        pendingLeaves.compute(member.key(), (key, previous) -> {
-            if (previous != null) {
-                previous.cancel(false);
-            }
-            return scheduler.schedule(() -> leaveAfterGrace(member), leaveGraceSeconds, TimeUnit.SECONDS);
-        });
+        scheduleLeaveAfterGrace(member);
     }
 
     /**
@@ -86,15 +82,41 @@ public class RoomConnectionRegistry {
         return connections.containsValue(member);
     }
 
+    /**
+     * 유예 시간 뒤에 이탈 처리를 예약한다.
+     * 이미 예약된 게 있으면(짧은 시간에 두 번 끊긴 경우) 취소하고 새 예약으로 대체한다.
+     */
+    private void scheduleLeaveAfterGrace(RoomMember member) {
+        log.info("연결 종료: {} (room {}), {}초 안에 돌아오지 않으면 이탈 처리",
+                member.nickname(), member.roomId(), LEAVE_GRACE_SECONDS);
+
+        pendingLeaves.compute(member.key(), (key, alreadyScheduled) -> {
+            cancelQuietly(alreadyScheduled);
+            return taskScheduler.schedule(
+                    () -> leaveIfStillDisconnected(member),
+                    Instant.now().plusSeconds(LEAVE_GRACE_SECONDS));
+        });
+    }
+
     private void cancelPendingLeave(RoomMember member) {
-        pendingLeaves.computeIfPresent(member.key(), (key, task) -> {
-            task.cancel(false);
+        pendingLeaves.computeIfPresent(member.key(), (key, scheduled) -> {
+            cancelQuietly(scheduled);
             log.info("재연결 감지, 이탈 유예 취소: {}", member.nickname());
             return null;
         });
     }
 
-    private void leaveAfterGrace(RoomMember member) {
+    /** 이미 시작된 작업은 중단하지 않는다. 그 경우는 leaveIfStillDisconnected 가 다시 판단한다. */
+    private void cancelQuietly(ScheduledFuture<?> scheduled) {
+        if (scheduled != null) {
+            scheduled.cancel(false);
+        }
+    }
+
+    /**
+     * 유예가 끝난 시점에도 여전히 연결이 없으면 그때 방에서 내보낸다.
+     */
+    private void leaveIfStillDisconnected(RoomMember member) {
         pendingLeaves.remove(member.key());
 
         if (isConnected(member)) {

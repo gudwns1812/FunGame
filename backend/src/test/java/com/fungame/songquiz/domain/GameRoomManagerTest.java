@@ -126,7 +126,7 @@ class GameRoomManagerTest {
         given(session.canRejoin(HOST)).willReturn(true);
 
         // when
-        GameRoom.JoinResult result = gameRoomManager.joinRoom(ROOM_ID, HOST);
+        JoinResult result = gameRoomManager.joinRoom(ROOM_ID, HOST);
 
         // then
         assertThat(result.playerNumber()).isEqualTo(2);
@@ -157,7 +157,7 @@ class GameRoomManagerTest {
         gameRoomManager.startGame(ROOM_ID, HOST);
 
         // when
-        GameRoom.JoinResult result = gameRoomManager.joinRoom(ROOM_ID, HOST);
+        JoinResult result = gameRoomManager.joinRoom(ROOM_ID, HOST);
 
         // then: 세션을 건드리지 않고, 새 참가로도 집계하지 않는다
         assertThat(result.playerNumber()).isEqualTo(1);
@@ -172,7 +172,7 @@ class GameRoomManagerTest {
         gameRoomManager.joinRoom(ROOM_ID, "참가자");
 
         // when
-        GameRoom.JoinResult result = gameRoomManager.joinRoom(ROOM_ID, "참가자");
+        JoinResult result = gameRoomManager.joinRoom(ROOM_ID, "참가자");
 
         // then
         assertThat(result.newlyJoined()).isFalse();
@@ -187,7 +187,7 @@ class GameRoomManagerTest {
         gameRoomManager.joinRoom(ROOM_ID, "참가자");
 
         // when
-        GameRoom.JoinResult result = gameRoomManager.joinRoom(ROOM_ID, "참가자");
+        JoinResult result = gameRoomManager.joinRoom(ROOM_ID, "참가자");
 
         // then
         assertThat(result.newlyJoined()).isFalse();

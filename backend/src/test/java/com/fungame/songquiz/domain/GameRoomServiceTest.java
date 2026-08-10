@@ -88,7 +88,7 @@ class GameRoomServiceTest {
     void 실제로_새로_참가했을_때만_입장_이벤트를_발행한다() {
         // given
         given(gameRoomManager.joinRoom(1L, "참가자"))
-                .willReturn(new GameRoom.JoinResult(2, true));
+                .willReturn(new JoinResult(2, true));
 
         // when
         int playerNumber = service.joinRoom(1L, "참가자");
@@ -102,7 +102,7 @@ class GameRoomServiceTest {
     void 이미_방에_있는_플레이어의_재참가는_입장_이벤트를_발행하지_않는다() {
         // given: 새로고침이나 재연결로 join 이 다시 호출된 경우
         given(gameRoomManager.joinRoom(1L, "참가자"))
-                .willReturn(new GameRoom.JoinResult(2, false));
+                .willReturn(new JoinResult(2, false));
 
         // when
         int playerNumber = service.joinRoom(1L, "참가자");
