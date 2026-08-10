@@ -1,0 +1,65 @@
+services:
+  caddy:
+    image: caddy:2
+    container_name: fungame-caddy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./caddy:/etc/caddy
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on:
+      - backend
+
+  backend:
+    image: ${BACKEND_IMAGE:-ghcr.io/gudwns1812/fungame-backend:latest}
+    container_name: fungame-backend
+    restart: unless-stopped
+    expose:
+      - "8080"
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS}
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/fungame
+      SPRING_DATASOURCE_USERNAME: ${MYSQL_USER}
+      SPRING_DATASOURCE_PASSWORD: ${MYSQL_PASSWORD}
+    depends_on:
+      mysql:
+        condition: service_healthy
+
+  mysql:
+    image: mysql:8.0
+    container_name: fungame-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: fungame
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+    ports:
+      - 3306:3306
+    volumes:
+      - mysql-data:/var/lib/mysql
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "mysqladmin",
+          "ping",
+          "-h",
+          "localhost",
+          "-u",
+          "root",
+          "-p${MYSQL_ROOT_PASSWORD}"
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  caddy-data:
+  caddy-config:
+  mysql-data:
