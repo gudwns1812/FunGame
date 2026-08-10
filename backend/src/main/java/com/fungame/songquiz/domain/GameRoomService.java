@@ -62,7 +62,7 @@ public class GameRoomService {
     }
 
     public void leaveRoom(Long roomId, String playerName) {
-        GameRoomManager.LeaveResult result = gameRoomManager.leaveRoom(roomId, playerName);
+        LeaveResult result = gameRoomManager.leaveRoom(roomId, playerName);
 
         if (result.destroyed()) {
             return;
@@ -87,7 +87,7 @@ public class GameRoomService {
     }
 
     public void readyPlayer(Long roomId, String playerName) {
-        GameRoomManager.ReadyResult result = gameRoomManager.readyPlayer(roomId, playerName);
+        ReadyResult result = gameRoomManager.readyPlayer(roomId, playerName);
 
         applicationEventPublisher.publishEvent(new PlayerReadyEvent(roomId, playerName, result.ready(), result.isAllReady()));
     }

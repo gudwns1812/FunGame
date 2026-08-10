@@ -83,9 +83,6 @@ public class GameRoomManager {
         return result;
     }
 
-    public record LeaveResult(boolean destroyed, boolean wasPlaying) {
-    }
-
     public LeaveResult leaveRoom(Long roomId, String playerName) {
         return lockContext.processWithLockKey(roomId, () -> {
             GameRoom gameRoom = getRoom(roomId);
@@ -149,9 +146,6 @@ public class GameRoomManager {
 
             return PlayersInfo.from(gameRoom);
         });
-    }
-
-    public record ReadyResult(boolean ready, boolean isAllReady) {
     }
 
     public ReadyResult readyPlayer(Long roomId, String playerName) {

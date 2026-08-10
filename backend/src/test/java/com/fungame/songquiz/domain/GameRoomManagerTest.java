@@ -55,7 +55,7 @@ class GameRoomManagerTest {
         gameRoomManager.startGame(ROOM_ID, HOST);
 
         // when
-        GameRoomManager.LeaveResult result = gameRoomManager.leaveRoom(ROOM_ID, HOST);
+        LeaveResult result = gameRoomManager.leaveRoom(ROOM_ID, HOST);
 
         // then
         assertThat(result.destroyed()).isTrue();
@@ -73,7 +73,7 @@ class GameRoomManagerTest {
         gameRoomManager.joinRoom(ROOM_ID, "참가자");
 
         // when
-        GameRoomManager.LeaveResult result = gameRoomManager.leaveRoom(ROOM_ID, HOST);
+        LeaveResult result = gameRoomManager.leaveRoom(ROOM_ID, HOST);
 
         // then
         assertThat(result.destroyed()).isFalse();
