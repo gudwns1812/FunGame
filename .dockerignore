@@ -1,0 +1,11 @@
+.git
+.github
+.gradle
+build
+backend/build
+frontend
+docs
+api
+archive
+*.md
+*.iml
