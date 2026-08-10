@@ -18,7 +18,6 @@ concurrency:
 
 env:
   IMAGE_NAME: ghcr.io/${{ github.repository_owner }}/fungame-backend
-  CONTAINER_NAME: songquiz-backend
 
 jobs:
   build:
@@ -27,8 +26,6 @@ jobs:
     permissions:
       contents: read
       packages: write
-    outputs:
-      image: ${{ steps.meta.outputs.image }}
     steps:
       - uses: actions/checkout@v4
 
@@ -41,9 +38,6 @@ jobs:
 
       - name: 테스트
         run: ./gradlew :backend:test
-
-      - id: meta
-        run: echo "image=${IMAGE_NAME}:${GITHUB_SHA}" >> "$GITHUB_OUTPUT"
 
       - uses: docker/setup-buildx-action@v3
 
@@ -78,16 +72,12 @@ jobs:
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.EC2_SSH_KEY }}
           port: ${{ secrets.EC2_PORT || 22 }}
-          envs: IMAGE,CONTAINER_NAME,REGISTRY_USER,REGISTRY_TOKEN,ENV_FILE
+          envs: IMAGE_NAME,IMAGE_TAG,SERVICE,CONTAINER_NAME,REGISTRY_USER,REGISTRY_TOKEN,PROJECT_DIR
           script_stop: true
           script: |
             set -euo pipefail
 
-            if [ ! -f "$ENV_FILE" ]; then
-              echo "환경 변수 파일이 없다: $ENV_FILE"
-              echo "경로가 바뀌었으면 BACKEND_ENV_FILE_PATH 시크릿으로 덮어쓸 수 있다"
-              exit 1
-            fi
+            cd "$PROJECT_DIR"
 
             echo "$REGISTRY_TOKEN" | docker login ghcr.io -u "$REGISTRY_USER" --password-stdin
             trap 'docker logout ghcr.io >/dev/null 2>&1 || true' EXIT
@@ -95,23 +85,16 @@ jobs:
             PREVIOUS_IMAGE=$(docker inspect --format '{{.Config.Image}}' "$CONTAINER_NAME" 2>/dev/null || echo '')
             echo "현재 이미지: ${PREVIOUS_IMAGE:-없음}"
 
-            docker pull "$IMAGE"
-
-            start_container() {
-              docker rm -f "$CONTAINER_NAME" >/dev/null 2>&1 || true
-              docker run -d \
-                --name "$CONTAINER_NAME" \
-                --restart unless-stopped \
-                -p 8080:8080 \
-                --env-file "$ENV_FILE" \
-                "$1"
+            deploy_tag() {
+              BACKEND_IMAGE="$1" docker compose pull "$SERVICE"
+              BACKEND_IMAGE="$1" docker compose up -d --no-deps "$SERVICE"
             }
 
             wait_until_healthy() {
               for _ in $(seq 1 30); do
-                code=$(curl -s -o /dev/null -w '%{http_code}' \
-                  'http://localhost:8080/api/auth/check-id?loginId=healthcheck' || true)
-                if [ "$code" = "200" ]; then
+                if docker exec "$CONTAINER_NAME" \
+                    wget -qO- 'http://localhost:8080/api/auth/check-id?loginId=healthcheck' \
+                    >/dev/null 2>&1; then
                   return 0
                 fi
                 sleep 3
@@ -119,16 +102,16 @@ jobs:
               return 1
             }
 
-            start_container "$IMAGE"
+            deploy_tag "${IMAGE_NAME}:${IMAGE_TAG}"
 
             if wait_until_healthy; then
-              echo "배포 성공"
+              echo "배포 성공: ${IMAGE_NAME}:${IMAGE_TAG}"
               docker image prune -f
               exit 0
             fi
 
             echo "새 이미지가 90초 안에 응답하지 않는다"
-            docker logs --tail 100 "$CONTAINER_NAME" || true
+            docker compose logs --tail 100 "$SERVICE" || true
 
             if [ -z "$PREVIOUS_IMAGE" ]; then
               echo "되돌릴 이전 이미지가 없다"
@@ -136,7 +119,7 @@ jobs:
             fi
 
             echo "이전 이미지로 되돌린다: $PREVIOUS_IMAGE"
-            start_container "$PREVIOUS_IMAGE"
+            deploy_tag "$PREVIOUS_IMAGE"
 
             if wait_until_healthy; then
               echo "롤백 완료. 서비스는 이전 버전으로 살아 있다"
@@ -145,8 +128,10 @@ jobs:
             fi
             exit 1
         env:
-          IMAGE: ${{ needs.build.outputs.image }}
-          CONTAINER_NAME: ${{ env.CONTAINER_NAME }}
+          IMAGE_NAME: ${{ env.IMAGE_NAME }}
+          IMAGE_TAG: ${{ github.sha }}
+          SERVICE: backend
+          CONTAINER_NAME: fungame-backend
           REGISTRY_USER: ${{ github.actor }}
           REGISTRY_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          ENV_FILE: ${{ secrets.BACKEND_ENV_FILE_PATH || '/home/ubuntu/fungame/.env' }}
+          PROJECT_DIR: ${{ secrets.BACKEND_PROJECT_DIR || '/home/ubuntu/fungame' }}
