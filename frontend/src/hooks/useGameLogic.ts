@@ -54,6 +54,9 @@ export const useGameLogic = () => {
   const stompClient = useRef<Client | null>(null);
   const fetchRankRef = useRef<() => Promise<void>>(async () => { });
   const hasBootstrapped = useRef(false);
+  // 재연결 시점에 최신 콜백을 쓰기 위한 우회로. connectWebSocket 보다 뒤에 정의된다.
+  const resyncMembershipRef = useRef<(targetRoomId: string) => Promise<void>>(async () => { });
+  const statusRef = useRef<GameStatus>(status);
 
   const addLog = useCallback((msg: string) => {
     setLogs((prev) => [...prev.slice(-49), msg]);
@@ -279,6 +282,9 @@ export const useGameLogic = () => {
         stompClient.current.deactivate();
       }
 
+      // 최초 연결은 join 을 마친 뒤에 호출된다. 재연결일 때만 참가 상태를 다시 맞춘다.
+      let hasConnectedOnce = false;
+
       const client = new Client({
         webSocketFactory: () => new SockJS(import.meta.env.VITE_WS_URL),
         reconnectDelay: 5000,
@@ -291,6 +297,16 @@ export const useGameLogic = () => {
               handleEventRef.current(response.data);
             }
           });
+
+          if (hasConnectedOnce) {
+            resyncMembershipRef.current(targetRoomId);
+          }
+          hasConnectedOnce = true;
+        },
+        onWebSocketClose: () => {
+          if (hasConnectedOnce) {
+            console.warn('WebSocket 연결이 끊겼습니다. 재연결을 시도합니다.');
+          }
         },
         onStompError: (frame) => {
           console.error('STOMP Error:', frame);
@@ -406,6 +422,42 @@ export const useGameLogic = () => {
     setStatus('PLAYING');
     addLog('[알림] 진행 중인 게임에 다시 입장했습니다.');
   }, [addLog]);
+
+  /**
+   * 재연결 직후 서버의 참가 상태를 다시 맞춘다.
+   *
+   * 웹소켓이 끊겨 있는 동안 서버의 이탈 유예가 만료되면 방에서 빠지는데, 재연결은 토픽을
+   * 다시 구독할 뿐이라 방에는 돌아오지 못한다(= 이벤트는 받지만 방에는 없는 상태).
+   * join 은 멱등하므로 이미 방에 남아 있으면 아무 일도 일어나지 않는다.
+   */
+  const resyncMembership = useCallback(
+    async (targetRoomId: string) => {
+      try {
+        await axios.post(`/game/rooms/${targetRoomId}/join`);
+
+        if (statusRef.current === 'PLAYING') {
+          await restorePlayState(targetRoomId);
+        } else {
+          await fetchRoomUsers(targetRoomId);
+        }
+      } catch (error: any) {
+        console.error('Resync after reconnect failed:', error);
+        const message =
+          error?.response?.data?.error?.message || '연결이 끊긴 사이 방에서 나가게 되었습니다.';
+        window.alert(message);
+        returnToLobby();
+      }
+    },
+    [fetchRoomUsers, restorePlayState, returnToLobby],
+  );
+
+  useEffect(() => {
+    resyncMembershipRef.current = resyncMembership;
+  }, [resyncMembership]);
+
+  useEffect(() => {
+    statusRef.current = status;
+  }, [status]);
 
   useEffect(() => {
     localStorage.setItem('ums_status', status);

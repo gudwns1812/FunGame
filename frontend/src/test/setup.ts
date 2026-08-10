@@ -34,6 +34,34 @@ class MemoryStorage {
   }
 }
 
+/**
+ * jsdom 에는 EventSource 가 없다. 방 목록 SSE 구독 때문에 훅을 렌더링하는 것만으로
+ * ReferenceError 가 나므로 아무 것도 하지 않는 스텁을 둔다.
+ */
+class NoopEventSource {
+  static readonly CONNECTING = 0;
+  static readonly OPEN = 1;
+  static readonly CLOSED = 2;
+
+  readonly readyState = NoopEventSource.CONNECTING;
+  onopen: ((event: Event) => void) | null = null;
+  onerror: ((event: Event) => void) | null = null;
+
+  addEventListener() { }
+
+  removeEventListener() { }
+
+  close() { }
+}
+
+if (typeof globalThis.EventSource === 'undefined') {
+  Object.defineProperty(globalThis, 'EventSource', {
+    value: NoopEventSource,
+    configurable: true,
+    writable: true,
+  });
+}
+
 const storage = new MemoryStorage() as unknown as Storage;
 
 for (const target of [globalThis, typeof window === 'undefined' ? null : window]) {
