@@ -54,7 +54,6 @@ export const useGameLogic = () => {
   const stompClient = useRef<Client | null>(null);
   const fetchRankRef = useRef<() => Promise<void>>(async () => { });
   const hasBootstrapped = useRef(false);
-  // 재연결 시점에 최신 콜백을 쓰기 위한 우회로. connectWebSocket 보다 뒤에 정의된다.
   const resyncMembershipRef = useRef<(targetRoomId: string) => Promise<void>>(async () => { });
   const statusRef = useRef<GameStatus>(status);
 
@@ -282,7 +281,6 @@ export const useGameLogic = () => {
         stompClient.current.deactivate();
       }
 
-      // join 직후의 최초 연결은 이미 참가 상태가 맞아 있다. 그 이후의 연결만 동기화한다.
       let shouldResync = options?.resyncOnConnect ?? false;
 
       const client = new Client({
@@ -290,8 +288,6 @@ export const useGameLogic = () => {
         reconnectDelay: 5000,
         heartbeatIncoming: 10000,
         heartbeatOutgoing: 10000,
-        // 기본값(setInterval)은 백그라운드 탭에서 스로틀링돼 하트비트가 밀린다.
-        // 워커 타이머는 그 영향을 덜 받으므로 탭이 숨겨져도 PING 이 계속 나간다.
         heartbeatStrategy: TickerStrategy.Worker,
         onConnect: () => {
           client.subscribe(roomTopic(targetRoomId), (message) => {
@@ -424,13 +420,6 @@ export const useGameLogic = () => {
     addLog('[알림] 진행 중인 게임에 다시 입장했습니다.');
   }, [addLog]);
 
-  /**
-   * 재연결 직후 서버의 참가 상태를 다시 맞춘다.
-   *
-   * 웹소켓이 끊겨 있는 동안 서버의 이탈 유예가 만료되면 방에서 빠지는데, 재연결은 토픽을
-   * 다시 구독할 뿐이라 방에는 돌아오지 못한다(= 이벤트는 받지만 방에는 없는 상태).
-   * join 은 멱등하므로 이미 방에 남아 있으면 아무 일도 일어나지 않는다.
-   */
   const resyncMembership = useCallback(
     async (targetRoomId: string) => {
       try {
@@ -528,16 +517,10 @@ export const useGameLogic = () => {
     }
   }, [status, roomId, fetchRoomUsers]);
 
-  /**
-   * 탭이 다시 보이는 순간 끊긴 연결을 즉시 되살린다.
-   *
-   * 백그라운드에서는 stompjs 의 재연결 setTimeout 도 함께 스로틀링되기 때문에,
-   * 돌아와도 한참 뒤에야 붙는다. 그 사이 서버는 이미 이탈 처리를 끝냈을 수 있다.
-   */
   useEffect(() => {
     if (!roomId || (status !== 'WAITING' && status !== 'PLAYING')) return;
 
-    const handleVisibilityChange = () => {
+    const reconnectImmediatelyIfDropped = () => {
       if (document.visibilityState !== 'visible') return;
       if (stompClient.current?.connected) return;
 
@@ -545,8 +528,8 @@ export const useGameLogic = () => {
       connectWebSocket(roomId, { resyncOnConnect: true });
     };
 
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+    document.addEventListener('visibilitychange', reconnectImmediatelyIfDropped);
+    return () => document.removeEventListener('visibilitychange', reconnectImmediatelyIfDropped);
   }, [roomId, status, connectWebSocket]);
 
   useEffect(() => {

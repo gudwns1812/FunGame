@@ -39,9 +39,6 @@ class RoomConnectionRegistryTest {
         registry = new RoomConnectionRegistry(gameRoomService, taskScheduler);
     }
 
-    /**
-     * 유예 시간을 기다리지 않고 검증하기 위해, 예약된 작업을 붙잡아 원할 때 직접 실행한다.
-     */
     private Runnable captureScheduledLeave() {
         ArgumentCaptor<Runnable> captor = ArgumentCaptor.forClass(Runnable.class);
         verify(taskScheduler).schedule(captor.capture(), any(Instant.class));
@@ -62,7 +59,7 @@ class RoomConnectionRegistryTest {
         // when
         registry.disconnected("session-1");
 
-        // then: 이탈은 예약만 됐을 뿐 아직 실행되지 않았다 (연결 상태 != 참가 상태)
+        // then
         verify(gameRoomService, never()).leaveRoom(ROOM_ID, NICKNAME);
         assertThat(registry.isConnected(MEMBER)).isFalse();
     }
@@ -75,7 +72,7 @@ class RoomConnectionRegistryTest {
         registry.disconnected("session-1");
         Runnable scheduledLeave = captureScheduledLeave();
 
-        // when: 새 세션으로 재연결한 뒤 유예가 만료된다
+        // when
         registry.connected("session-2", MEMBER);
         scheduledLeave.run();
 
@@ -110,11 +107,11 @@ class RoomConnectionRegistryTest {
 
     @Test
     void 다른_연결이_살아있으면_이탈을_예약하지_않는다() {
-        // given: 같은 사람이 두 세션으로 붙어 있다
+        // given
         registry.connected("session-1", MEMBER);
         registry.connected("session-2", MEMBER);
 
-        // when: 그중 하나만 끊긴다
+        // when
         registry.disconnected("session-1");
 
         // then
@@ -137,7 +134,7 @@ class RoomConnectionRegistryTest {
         registry.connected("session-2", MEMBER);
         registry.disconnected("session-2");
 
-        // then: 앞선 예약이 살아남아 뒤늦게 내보내는 일이 없어야 한다
+        // then
         verify(first).cancel(false);
         verify(second, never()).cancel(false);
     }

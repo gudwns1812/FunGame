@@ -100,14 +100,14 @@ class GameRoomServiceTest {
 
     @Test
     void 이미_방에_있는_플레이어의_재참가는_입장_이벤트를_발행하지_않는다() {
-        // given: 새로고침이나 재연결로 join 이 다시 호출된 경우
+        // given
         given(gameRoomManager.joinRoom(1L, "참가자"))
                 .willReturn(new JoinResult(2, false));
 
         // when
         int playerNumber = service.joinRoom(1L, "참가자");
 
-        // then: 인원 정보는 그대로 돌려주되 "입장했습니다" 알림은 다시 보내지 않는다
+        // then
         assertThat(playerNumber).isEqualTo(2);
         verify(applicationEventPublisher, never()).publishEvent(any(PlayerJoinEvent.class));
     }

@@ -12,10 +12,6 @@ import org.springframework.web.socket.messaging.SessionSubscribeEvent;
 
 import java.security.Principal;
 
-/**
- * STOMP 세션 이벤트를 {@link RoomConnectionRegistry} 의 연결 상태 변화로 번역하기만 한다.
- * 이탈 여부 판단은 레지스트리가 한다.
- */
 @Component
 @RequiredArgsConstructor
 @Slf4j
