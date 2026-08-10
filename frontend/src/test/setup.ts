@@ -34,10 +34,6 @@ class MemoryStorage {
   }
 }
 
-/**
- * jsdom 에는 EventSource 가 없다. 방 목록 SSE 구독 때문에 훅을 렌더링하는 것만으로
- * ReferenceError 가 나므로 아무 것도 하지 않는 스텁을 둔다.
- */
 class NoopEventSource {
   static readonly CONNECTING = 0;
   static readonly OPEN = 1;

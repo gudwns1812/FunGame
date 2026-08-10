@@ -30,13 +30,8 @@ public class GamePlayers {
         }
     }
 
-    /**
-     * @return 이번 호출로 실제 추가되었으면 true, 이미 있던 플레이어면 false
-     */
     public boolean add(String player) {
-        // 이미 들어와 있는 플레이어의 재참가는 정원과 무관하게 통과시킨다.
-        // 그렇지 않으면 정원이 찬 방에서 재연결한 사람이 정원 초과로 거부된다.
-        if (players.containsKey(player)) {
+        if (isAlreadyIn(player)) {
             return false;
         }
 
@@ -46,6 +41,10 @@ public class GamePlayers {
 
         players.put(player, GamePlayer.createNewPlayer(player));
         return true;
+    }
+
+    private boolean isAlreadyIn(String player) {
+        return players.containsKey(player);
     }
 
     public void remove(String player) {

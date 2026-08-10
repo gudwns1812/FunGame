@@ -159,7 +159,7 @@ class GameRoomManagerTest {
         // when
         JoinResult result = gameRoomManager.joinRoom(ROOM_ID, HOST);
 
-        // then: 세션을 건드리지 않고, 새 참가로도 집계하지 않는다
+        // then
         assertThat(result.playerNumber()).isEqualTo(1);
         assertThat(result.newlyJoined()).isFalse();
         verify(gameSessionManager, never()).getGameSession(ROOM_ID);
@@ -182,7 +182,7 @@ class GameRoomManagerTest {
 
     @Test
     void 정원이_찬_방이어도_이미_들어와_있는_플레이어의_재참가는_거부하지_않는다() {
-        // given: 정원 2명이 모두 찬 방
+        // given
         gameRoomManager.createGameRoom(ROOM_ID, "방", mock(Game.class), HOST, 2);
         gameRoomManager.joinRoom(ROOM_ID, "참가자");
 
