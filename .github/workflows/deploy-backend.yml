@@ -83,10 +83,9 @@ jobs:
           script: |
             set -euo pipefail
 
-            ENV_FILE="${ENV_FILE:-$HOME/.env}"
             if [ ! -f "$ENV_FILE" ]; then
               echo "환경 변수 파일이 없다: $ENV_FILE"
-              echo "BACKEND_ENV_FILE_PATH 시크릿으로 경로를 지정하거나 서버에 파일을 두어야 한다"
+              echo "경로가 바뀌었으면 BACKEND_ENV_FILE_PATH 시크릿으로 덮어쓸 수 있다"
               exit 1
             fi
 
@@ -150,4 +149,4 @@ jobs:
           CONTAINER_NAME: ${{ env.CONTAINER_NAME }}
           REGISTRY_USER: ${{ github.actor }}
           REGISTRY_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          ENV_FILE: ${{ secrets.BACKEND_ENV_FILE_PATH }}
+          ENV_FILE: ${{ secrets.BACKEND_ENV_FILE_PATH || '/home/ubuntu/fungame/.env' }}
