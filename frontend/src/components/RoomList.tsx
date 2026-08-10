@@ -188,6 +188,7 @@ const RoomList: React.FC<RoomListProps> = ({ rooms, onJoinRoom, onCreateRoom, on
             </button>
             <button
               className="px-btn px-btn-sm px-btn-primary"
+              data-sound="roomCreate"
               onClick={() => {
                 if (newRoomName.trim()) {
                   onCreateRoom(newRoomName.trim(), maxPlayers, category, songCount, gameType, difficulty);

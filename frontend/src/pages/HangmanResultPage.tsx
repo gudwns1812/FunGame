@@ -1,4 +1,5 @@
 import React from 'react';
+import ResultBgm from '../components/ResultBgm';
 import type { Player } from '../types/game';
 
 interface HangmanResultPageProps {
@@ -32,6 +33,8 @@ const HangmanResultPage: React.FC<HangmanResultPageProps> = ({ rankings, onBackT
 
     return (
         <div className="min-h-[100dvh] relative z-[1] flex items-center justify-center p-4">
+            <ResultBgm />
+
             <div className="px-card w-full max-w-xs p-6 text-center space-y-4 animate-scale-up">
                 <p className={`px-title text-2xl ${isWin ? 'text-grass' : 'text-cherry'}`}>
                     {isWin ? '단어 해독 완료' : '모든 기회를 소진했습니다.'}
