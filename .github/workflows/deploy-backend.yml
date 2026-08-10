@@ -68,7 +68,6 @@ jobs:
     name: EC2 배포
     needs: build
     runs-on: ubuntu-latest
-    environment: production
     permissions:
       contents: read
       packages: read
@@ -83,6 +82,13 @@ jobs:
           script_stop: true
           script: |
             set -euo pipefail
+
+            ENV_FILE="${ENV_FILE:-$HOME/.env}"
+            if [ ! -f "$ENV_FILE" ]; then
+              echo "환경 변수 파일이 없다: $ENV_FILE"
+              echo "BACKEND_ENV_FILE_PATH 시크릿으로 경로를 지정하거나 서버에 파일을 두어야 한다"
+              exit 1
+            fi
 
             echo "$REGISTRY_TOKEN" | docker login ghcr.io -u "$REGISTRY_USER" --password-stdin
             trap 'docker logout ghcr.io >/dev/null 2>&1 || true' EXIT
@@ -144,4 +150,4 @@ jobs:
           CONTAINER_NAME: ${{ env.CONTAINER_NAME }}
           REGISTRY_USER: ${{ github.actor }}
           REGISTRY_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          ENV_FILE: ${{ secrets.BACKEND_ENV_FILE_PATH || '/home/ubuntu/.env' }}
+          ENV_FILE: ${{ secrets.BACKEND_ENV_FILE_PATH }}
