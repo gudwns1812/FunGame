@@ -1,8 +1,6 @@
 package com.fungame.songquiz.controller.websocket;
 
-import com.fungame.songquiz.domain.GameRoomService;
 import com.fungame.songquiz.domain.member.MemberAdapter;
-import com.fungame.songquiz.support.error.CoreException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.event.EventListener;
@@ -13,24 +11,17 @@ import org.springframework.web.socket.messaging.SessionDisconnectEvent;
 import org.springframework.web.socket.messaging.SessionSubscribeEvent;
 
 import java.security.Principal;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledFuture;
-import java.util.concurrent.TimeUnit;
 
+/**
+ * STOMP 세션 이벤트를 {@link RoomConnectionRegistry} 의 연결 상태 변화로 번역하기만 한다.
+ * 이탈 여부 판단은 레지스트리가 한다.
+ */
 @Component
 @RequiredArgsConstructor
 @Slf4j
 public class WebSocketEventListener {
 
-    private static final long LEAVE_GRACE_SECONDS = 5;
-
-    private final GameRoomService gameRoomService;
-    private final ScheduledExecutorService scheduler;
-
-    private final Map<String, UserSession> sessionMap = new ConcurrentHashMap<>();
-    private final Map<String, ScheduledFuture<?>> pendingLeaves = new ConcurrentHashMap<>();
+    private final RoomConnectionRegistry connectionRegistry;
 
     @EventListener
     public void handleSubscribe(SessionSubscribeEvent event) {
@@ -43,60 +34,17 @@ public class WebSocketEventListener {
 
         String nickname = extractNickname(event.getUser());
         if (nickname == null) {
-            log.warn("Cannot resolve nickname for session {} subscribing to room {}", sessionId, roomId);
+            log.warn("방 {} 을 구독한 세션 {} 의 닉네임을 확인할 수 없다", roomId, sessionId);
             return;
         }
 
-        UserSession userSession = new UserSession(roomId, nickname);
-        sessionMap.put(sessionId, userSession);
-        cancelPendingLeave(userSession);
-
-        log.info("User {} subscribed to room {}", nickname, roomId);
+        connectionRegistry.connected(sessionId, new RoomMember(roomId, nickname));
     }
 
     @EventListener
     public void handleDisconnect(SessionDisconnectEvent event) {
         StompHeaderAccessor headerAccessor = StompHeaderAccessor.wrap(event.getMessage());
-        String sessionId = headerAccessor.getSessionId();
-
-        UserSession userSession = sessionMap.remove(sessionId);
-        if (userSession == null) {
-            return;
-        }
-
-        log.info("User {} disconnected from room {}, leaving in {}s unless reconnected",
-                userSession.nickname(), userSession.roomId(), LEAVE_GRACE_SECONDS);
-
-        pendingLeaves.compute(userSession.key(), (key, previous) -> {
-            if (previous != null) {
-                previous.cancel(false);
-            }
-            return scheduler.schedule(() -> leaveAfterGrace(userSession), LEAVE_GRACE_SECONDS, TimeUnit.SECONDS);
-        });
-    }
-
-    private void cancelPendingLeave(UserSession userSession) {
-        pendingLeaves.computeIfPresent(userSession.key(), (key, task) -> {
-            task.cancel(false);
-            log.info("Reconnect detected, cancelled pending leave for {}", userSession.nickname());
-            return null;
-        });
-    }
-
-    private void leaveAfterGrace(UserSession userSession) {
-        pendingLeaves.remove(userSession.key());
-
-        if (sessionMap.containsValue(userSession)) {
-            return;
-        }
-
-        try {
-            gameRoomService.leaveRoom(userSession.roomId(), userSession.nickname());
-        } catch (CoreException e) {
-            log.info("Room {} already gone on disconnect of {}", userSession.roomId(), userSession.nickname());
-        } catch (Exception e) {
-            log.error("Failed to leave room {} for {}", userSession.roomId(), userSession.nickname(), e);
-        }
+        connectionRegistry.disconnected(headerAccessor.getSessionId());
     }
 
     private String extractNickname(Principal principal) {
@@ -106,11 +54,5 @@ public class WebSocketEventListener {
         }
 
         return null;
-    }
-
-    private record UserSession(Long roomId, String nickname) {
-        String key() {
-            return roomId + ":" + nickname;
-        }
     }
 }
