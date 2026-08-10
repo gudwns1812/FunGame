@@ -100,6 +100,12 @@
   100% { transform: translateY(0) scale(1); }
 }
 
+/* 로고 글자: 앞 글자부터 차례로 솟았다 내려오는 파도타기 */
+@keyframes px-wave {
+  0%, 55%, 100% { transform: translateY(0); }
+  25% { transform: translateY(-12px); }
+}
+
 @keyframes px-note {
   0%, 100% { transform: scaleY(0.35); }
   50% { transform: scaleY(1); }
@@ -315,6 +321,10 @@
     transform-origin: bottom center;
     animation: px-note 0.9s steps(4, end) infinite;
   }
+  .animate-wave {
+    display: inline-block;
+    animation: px-wave 1.5s ease-in-out infinite;
+  }
 
   /* 정답자 하이라이트 (RankingItem) */
   .animate-shimmer {
@@ -328,6 +338,7 @@
     .animate-shimmer,
     .animate-shimmer .name-text,
     .px-eq-bar,
+    .animate-wave,
     .animate-blink,
     .animate-tick,
     .animate-tick-urgent {

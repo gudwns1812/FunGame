@@ -2,6 +2,23 @@ import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 
+const APP_TITLE = 'FUNGAME';
+const WAVE_DELAY_PER_LETTER_SECONDS = 0.09;
+
+const WaveTitle: React.FC<{ text: string }> = ({ text }) => (
+  <h1 className="px-title text-3xl flex" aria-label={text}>
+    {[...text].map((letter, index) => (
+      <span
+        key={`${letter}-${index}`}
+        className="animate-wave"
+        style={{ animationDelay: `${index * WAVE_DELAY_PER_LETTER_SECONDS}s` }}
+        aria-hidden="true">
+        {letter}
+      </span>
+    ))}
+  </h1>
+);
+
 const LoginPage: React.FC = () => {
   const [loginId, setLoginId] = useState('');
   const [password, setPassword] = useState('');
@@ -44,7 +61,7 @@ const LoginPage: React.FC = () => {
               <path d="M11 18V6l10-2v11" />
             </svg>
           </span>
-          <h1 className="px-title text-3xl">펀게임</h1>
+          <WaveTitle text={APP_TITLE} />
         </div>
 
         <form onSubmit={handleSubmit} className="px-card p-5 space-y-4">

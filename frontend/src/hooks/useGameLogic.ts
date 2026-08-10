@@ -6,10 +6,16 @@ import type { Player, GameStatus, Room, GameStartInfo, RoundEndInfo, HangmanStat
 import { stripTag } from '../utils/stringUtils';
 import { PLAYER_COLOR_INDEX_KEY } from '../utils/playerColor';
 import { roomChat, roomTopic } from '../utils/stompDestination';
+import { playSound } from '../utils/sound';
 
 // Configure axios base URL
 axios.defaults.baseURL = import.meta.env.VITE_API_BASE_URL;
 axios.defaults.withCredentials = true; // 세션 인증을 위해 추가
+
+/** 서버가 정답자 없는 라운드에 winner 로 내려주는 값 */
+const NO_WINNER = '없음';
+/** 행맨에서 단어를 완성했을 때의 HANGMAN_ACTION result */
+const HANGMAN_SOLVED_RESULT = 'CORRECT';
 
 export const useGameLogic = () => {
   const [nickname, setNickname] = useState(() => localStorage.getItem('ums_nickname') || '');
@@ -207,9 +213,12 @@ export const useGameLogic = () => {
         case 'ROUND_SKIP':
           break;
 
-        case 'ROUND_END':
+        case 'ROUND_END': {
           setHint('');
           const isCsRound = gameTypeRef.current === 'CS';
+          if (event.winner && event.winner !== NO_WINNER) {
+            playSound('correctAnswer');
+          }
           setRoundEndInfo({
             answer: event.answer,
             explanation: isCsRound && event.explanation?.trim() ? event.explanation : null,
@@ -218,9 +227,13 @@ export const useGameLogic = () => {
 
           fetchRankRef.current();
           break;
+        }
 
         case 'HANGMAN_ACTION': {
           const s = event.status;
+          if (event.result === HANGMAN_SOLVED_RESULT) {
+            playSound('correctAnswer');
+          }
           setHangmanStatus({
             currentDisplay: s[0],
             wrongLetters: s[1] ? s[1].split(',') : [],

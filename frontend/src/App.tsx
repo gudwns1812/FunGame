@@ -11,6 +11,7 @@ import HangmanPage from './pages/HangmanPage';
 import HangmanResultPage from './pages/HangmanResultPage';
 import ResultPage from './pages/ResultPage';
 import { useGameLogic } from './hooks/useGameLogic';
+import { useButtonClickSound } from './hooks/useButtonClickSound';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { useEffect } from 'react';
 
@@ -71,6 +72,8 @@ function AppContent() {
   } = useGameLogic();
 
   const { isAuthenticated, isInitialLoading, user } = useAuth();
+
+  useButtonClickSound();
 
   // 로그인한 사용자의 닉네임을 기존 게임 로직에 연동
   useEffect(() => {
