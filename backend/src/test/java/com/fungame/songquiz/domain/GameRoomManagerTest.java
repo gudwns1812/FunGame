@@ -126,10 +126,11 @@ class GameRoomManagerTest {
         given(session.canRejoin(HOST)).willReturn(true);
 
         // when
-        int playerCount = gameRoomManager.joinRoom(ROOM_ID, HOST);
+        GameRoom.JoinResult result = gameRoomManager.joinRoom(ROOM_ID, HOST);
 
         // then
-        assertThat(playerCount).isEqualTo(2);
+        assertThat(result.playerNumber()).isEqualTo(2);
+        assertThat(result.newlyJoined()).isTrue();
         verify(session).restorePlayer(HOST);
         assertThat(gameRoomManager.findRoom(ROOM_ID).getRoomPlayers()).contains(HOST);
     }
@@ -156,11 +157,41 @@ class GameRoomManagerTest {
         gameRoomManager.startGame(ROOM_ID, HOST);
 
         // when
-        int playerCount = gameRoomManager.joinRoom(ROOM_ID, HOST);
+        GameRoom.JoinResult result = gameRoomManager.joinRoom(ROOM_ID, HOST);
 
-        // then: 세션을 건드리지 않는다
-        assertThat(playerCount).isEqualTo(1);
+        // then: 세션을 건드리지 않고, 새 참가로도 집계하지 않는다
+        assertThat(result.playerNumber()).isEqualTo(1);
+        assertThat(result.newlyJoined()).isFalse();
         verify(gameSessionManager, never()).getGameSession(ROOM_ID);
+    }
+
+    @Test
+    void 대기_중인_방에_같은_플레이어가_다시_참가해도_새_참가로_집계되지_않는다() {
+        // given
+        gameRoomManager.createGameRoom(ROOM_ID, "방", mock(Game.class), HOST, 8);
+        gameRoomManager.joinRoom(ROOM_ID, "참가자");
+
+        // when
+        GameRoom.JoinResult result = gameRoomManager.joinRoom(ROOM_ID, "참가자");
+
+        // then
+        assertThat(result.newlyJoined()).isFalse();
+        assertThat(result.playerNumber()).isEqualTo(2);
+        assertThat(gameRoomManager.findRoom(ROOM_ID).getRoomPlayers()).containsExactly(HOST, "참가자");
+    }
+
+    @Test
+    void 정원이_찬_방이어도_이미_들어와_있는_플레이어의_재참가는_거부하지_않는다() {
+        // given: 정원 2명이 모두 찬 방
+        gameRoomManager.createGameRoom(ROOM_ID, "방", mock(Game.class), HOST, 2);
+        gameRoomManager.joinRoom(ROOM_ID, "참가자");
+
+        // when
+        GameRoom.JoinResult result = gameRoomManager.joinRoom(ROOM_ID, "참가자");
+
+        // then
+        assertThat(result.newlyJoined()).isFalse();
+        assertThat(result.playerNumber()).isEqualTo(2);
     }
 
     @Test
