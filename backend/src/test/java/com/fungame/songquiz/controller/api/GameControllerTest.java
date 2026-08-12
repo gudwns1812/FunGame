@@ -12,7 +12,7 @@ import com.fungame.songquiz.domain.dto.RoomInfo;
 import com.fungame.songquiz.domain.dto.RoomSettingsInfo;
 import com.fungame.songquiz.domain.member.Member;
 import com.fungame.songquiz.domain.member.MemberAdapter;
-import com.fungame.songquiz.domain.member.Role;
+import com.fungame.songquiz.support.MemberFixture;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -64,13 +64,7 @@ class GameControllerTest {
 
                     @Override
                     public Object resolveArgument(MethodParameter parameter, ModelAndViewContainer mavContainer, NativeWebRequest webRequest, WebDataBinderFactory binderFactory) {
-                        return new MemberAdapter(Member.builder()
-                                .loginId("testUser")
-                                .password("password")
-                                .nickname("테스트유저")
-                                .email("testuser@fun-game.club")
-                                .role(Role.USER)
-                                .build());
+                        return new MemberAdapter(MemberFixture.withId(1L, "테스트유저"));
                     }
                 })
                 .build();
@@ -103,7 +97,7 @@ class GameControllerTest {
                 .totalRound(10)
                 .build();
 
-        given(gameRoomService.createRoom(any(), anyString()))
+        given(gameRoomService.createRoom(any(), anyString(), anyLong()))
                 .willReturn(1L);
 
         // when // then
@@ -121,7 +115,7 @@ class GameControllerTest {
     @DisplayName("방에 입장한다.")
     void joinRoom() throws Exception {
         // given
-        given(gameRoomService.joinRoom(anyLong(), anyString())).willReturn(1);
+        given(gameRoomService.joinRoom(anyLong(), anyString(), anyLong())).willReturn(1);
 
         // when // then
         mockMvc.perform(post("/game/rooms/{roomId}/join", 1L)

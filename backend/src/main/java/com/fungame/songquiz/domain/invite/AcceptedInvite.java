@@ -1,0 +1,9 @@
+package com.fungame.songquiz.domain.invite;
+
+import com.fungame.songquiz.domain.dto.RoomInfo;
+
+public record AcceptedInvite(
+        RoomInfo room,
+        int playerSequence
+) {
+}

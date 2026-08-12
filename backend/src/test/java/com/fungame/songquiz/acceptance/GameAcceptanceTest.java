@@ -12,7 +12,7 @@ import com.fungame.songquiz.domain.gamecreator.GameCreateInfo;
 import com.fungame.songquiz.domain.gamecreator.SongGameCreateInfo;
 import com.fungame.songquiz.domain.member.Member;
 import com.fungame.songquiz.domain.member.MemberAdapter;
-import com.fungame.songquiz.domain.member.Role;
+import com.fungame.songquiz.support.MemberFixture;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -66,13 +66,7 @@ public class GameAcceptanceTest {
 
                     @Override
                     public Object resolveArgument(MethodParameter parameter, ModelAndViewContainer mavContainer, NativeWebRequest webRequest, WebDataBinderFactory binderFactory) {
-                        return new MemberAdapter(Member.builder()
-                                .loginId("testUser")
-                                .password("password")
-                                .nickname("방장")
-                                .email("host@fun-game.club")
-                                .role(Role.USER)
-                                .build());
+                        return new MemberAdapter(MemberFixture.withId(1L, "방장"));
                     }
                 })
                 .build();
@@ -89,7 +83,7 @@ public class GameAcceptanceTest {
         request.put("category", "KPOP");
         request.put("totalRound", 10);
 
-        given(gameRoomService.createRoom(any(RoomSettings.class), anyString())).willReturn(1L);
+        given(gameRoomService.createRoom(any(RoomSettings.class), anyString(), anyLong())).willReturn(1L);
 
         // when & then
         mockMvc.perform(post("/game/rooms")
@@ -98,7 +92,7 @@ public class GameAcceptanceTest {
                 .andExpect(status().isOk());
 
         verify(gameRoomService).createRoom(
-                eq(new RoomSettings(GameType.SONG, "테스트 방", 5, Category.KPOP, 10, 0)), eq("방장"));
+                eq(new RoomSettings(GameType.SONG, "테스트 방", 5, Category.KPOP, 10, 0)), eq("방장"), eq(1L));
     }
 
     @Test
@@ -109,7 +103,7 @@ public class GameAcceptanceTest {
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk());
 
-        verify(gameRoomService).joinRoom(1L, "방장");
+        verify(gameRoomService).joinRoom(1L, "방장", 1L);
     }
 
     @Test
@@ -120,7 +114,7 @@ public class GameAcceptanceTest {
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk());
 
-        verify(gameRoomService).leaveRoom(1L, "방장");
+        verify(gameRoomService).leaveRoom(1L, "방장", 1L);
     }
 
     @Test

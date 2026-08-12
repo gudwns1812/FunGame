@@ -3,6 +3,7 @@ package com.fungame.songquiz.domain;
 import com.fungame.songquiz.domain.event.PlayerJoinEvent;
 import com.fungame.songquiz.domain.event.PlayerLeaveEvent;
 import com.fungame.songquiz.domain.gamecreator.SongGameFactory;
+import com.fungame.songquiz.domain.member.MemberPresenceService;
 import com.fungame.songquiz.storage.GameRoomStore;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -37,6 +38,9 @@ class GameRoomServiceTest {
     GameService gameService;
 
     @Mock
+    MemberPresenceService memberPresenceService;
+
+    @Mock
     ApplicationEventPublisher applicationEventPublisher;
 
     GameRoomService service;
@@ -48,6 +52,7 @@ class GameRoomServiceTest {
                 gameRoomStore,
                 gameService,
                 new RoomPresence(),
+                memberPresenceService,
                 applicationEventPublisher
         );
     }
@@ -60,7 +65,7 @@ class GameRoomServiceTest {
         given(gameRoomStore.open(settings, "방장")).willReturn(7L);
 
         // when
-        Long roomId = service.createRoom(settings, "방장");
+        Long roomId = service.createRoom(settings, "방장", 11L);
 
         // then
         assertThat(roomId).isEqualTo(7L);
@@ -73,9 +78,11 @@ class GameRoomServiceTest {
         // given
         given(gameRoomManager.joinRoom(1L, "참가자"))
                 .willReturn(new JoinResult(2, true));
+        GameRoom room = waitingRoom();
+        given(gameRoomManager.findRoom(1L)).willReturn(room);
 
         // when
-        int playerNumber = service.joinRoom(1L, "참가자");
+        int playerNumber = service.joinRoom(1L, "참가자", 11L);
 
         // then
         assertThat(playerNumber).isEqualTo(2);
@@ -87,9 +94,11 @@ class GameRoomServiceTest {
         // given
         given(gameRoomManager.joinRoom(1L, "참가자"))
                 .willReturn(new JoinResult(2, false));
+        GameRoom room = waitingRoom();
+        given(gameRoomManager.findRoom(1L)).willReturn(room);
 
         // when
-        int playerNumber = service.joinRoom(1L, "참가자");
+        int playerNumber = service.joinRoom(1L, "참가자", 11L);
 
         // then
         assertThat(playerNumber).isEqualTo(2);
@@ -103,7 +112,7 @@ class GameRoomServiceTest {
                 .willReturn(new LeaveResult(false, true));
 
         // when
-        service.leaveRoom(1L, "이탈자");
+        service.leaveRoom(1L, "이탈자", 11L);
 
         // then
         verify(gameService).handlePlayerLeave(1L, "이탈자");
@@ -117,7 +126,7 @@ class GameRoomServiceTest {
                 .willReturn(new LeaveResult(false, false));
 
         // when
-        service.leaveRoom(1L, "이탈자");
+        service.leaveRoom(1L, "이탈자", 11L);
 
         // then
         verify(gameService, never()).handlePlayerLeave(any(), any());
@@ -131,10 +140,85 @@ class GameRoomServiceTest {
                 .willReturn(new LeaveResult(true, true));
 
         // when
-        service.leaveRoom(1L, "이탈자");
+        service.leaveRoom(1L, "이탈자", 11L);
 
         // then
         verify(gameService, never()).handlePlayerLeave(any(), any());
         verify(applicationEventPublisher, never()).publishEvent(any(PlayerLeaveEvent.class));
+    }
+
+    @Test
+    void 방을_만든_사람은_그_방의_대기실에_있는_것으로_기록된다() {
+        // given
+        RoomSettings settings = new RoomSettings(GameType.SONG, "방2", 8, Category.KPOP, 10, 0);
+        given(gameRoomStore.open(settings, "방장")).willReturn(7L);
+
+        // when
+        service.createRoom(settings, "방장", 11L);
+
+        // then
+        verify(memberPresenceService).enterWaitingRoom(11L, 7L);
+    }
+
+    @Test
+    void 대기_중인_방에_입장하면_대기_상태로_기록된다() {
+        // given
+        given(gameRoomManager.joinRoom(1L, "참가자")).willReturn(new JoinResult(2, true));
+        GameRoom room = waitingRoom();
+        given(gameRoomManager.findRoom(1L)).willReturn(room);
+
+        // when
+        service.joinRoom(1L, "참가자", 11L);
+
+        // then
+        verify(memberPresenceService).enterWaitingRoom(11L, 1L);
+    }
+
+    @Test
+    void 진행_중인_방에_재입장하면_게임중_상태로_기록된다() {
+        // given
+        given(gameRoomManager.joinRoom(1L, "참가자")).willReturn(new JoinResult(2, true));
+        GameRoom room = playingRoom();
+        given(gameRoomManager.findRoom(1L)).willReturn(room);
+
+        // when
+        service.joinRoom(1L, "참가자", 11L);
+
+        // then
+        verify(memberPresenceService).enterPlayingRoom(11L, 1L);
+    }
+
+    @Test
+    void 방이_사라져도_나간_사람의_위치는_비운다() {
+        // given
+        given(gameRoomManager.leaveRoom(1L, "이탈자")).willReturn(new LeaveResult(true, true));
+
+        // when
+        service.leaveRoom(1L, "이탈자", 11L);
+
+        // then
+        verify(memberPresenceService).leaveRoom(11L);
+    }
+
+    @Test
+    void 기동_시점에_남아있던_회원_위치를_로비로_되돌린다() {
+        // when
+        service.resetInterruptedGames();
+
+        // then
+        verify(gameRoomStore).markInterruptedGamesWaiting();
+        verify(memberPresenceService).clearEveryLocation();
+    }
+
+    private GameRoom waitingRoom() {
+        GameRoom room = mock(GameRoom.class);
+        given(room.isPlaying()).willReturn(false);
+        return room;
+    }
+
+    private GameRoom playingRoom() {
+        GameRoom room = mock(GameRoom.class);
+        given(room.isPlaying()).willReturn(true);
+        return room;
     }
 }

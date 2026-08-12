@@ -50,6 +50,9 @@ public class GameServiceIntegrationTest {
     @Autowired
     private com.fungame.songquiz.storage.ComputerScienceRepository computerScienceRepository;
 
+    @Autowired
+    private com.fungame.songquiz.domain.member.MemberRepository memberRepository;
+
     private Long roomId;
     private final String hostName = "host";
     private final String player1 = "player1";
@@ -78,11 +81,15 @@ public class GameServiceIntegrationTest {
                 .build());
 
         // 방 생성 및 입장
+        Long hostId = saveMember(hostName);
+        Long player1Id = saveMember(player1);
+
         roomId = gameRoomService.createRoom(
                 new com.fungame.songquiz.domain.RoomSettings(GameType.CS, "테스트 방", 5, null, 2, 0),
-                hostName
+                hostName,
+                hostId
         );
-        gameRoomService.joinRoom(roomId, player1);
+        gameRoomService.joinRoom(roomId, player1, player1Id);
         gameRoomService.readyPlayer(roomId, player1); // player1도 준비 완료!
 
         // 타이머 동작 모킹: 순서 제어를 위해 콜백을 보관하거나 즉시 실행(약간의 지연 추가)
@@ -162,5 +169,15 @@ public class GameServiceIntegrationTest {
                         .toList();
             }
         }
+    }
+
+    private Long saveMember(String nickname) {
+        return memberRepository.save(com.fungame.songquiz.domain.member.Member.builder()
+                .loginId(nickname)
+                .password("password")
+                .nickname(nickname)
+                .email(nickname + "@fun-game.club")
+                .role(com.fungame.songquiz.domain.member.Role.USER)
+                .build()).getId();
     }
 }

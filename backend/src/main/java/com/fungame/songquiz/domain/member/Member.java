@@ -38,6 +38,13 @@ public class Member {
     @Column(nullable = false)
     private Role role;
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    private PlayerStatus status;
+
+    @Column(name = "current_room_id")
+    private Long currentRoomId;
+
     @CreatedDate
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
@@ -55,6 +62,32 @@ public class Member {
         this.nickname = nickname;
         this.email = email;
         this.role = role;
+        this.status = PlayerStatus.LOBBY;
+    }
+
+    public void enterWaitingRoom(Long roomId) {
+        Assert.notNull(roomId, "방 번호는 필수입니다.");
+        this.status = PlayerStatus.WAITING;
+        this.currentRoomId = roomId;
+    }
+
+    public void enterPlayingRoom(Long roomId) {
+        Assert.notNull(roomId, "방 번호는 필수입니다.");
+        this.status = PlayerStatus.PLAYING;
+        this.currentRoomId = roomId;
+    }
+
+    public void leaveRoom() {
+        this.status = PlayerStatus.LOBBY;
+        this.currentRoomId = null;
+    }
+
+    public boolean isInLobby() {
+        return currentRoomId == null;
+    }
+
+    public boolean isWaitingIn(Long roomId) {
+        return status == PlayerStatus.WAITING && roomId.equals(currentRoomId);
     }
 
     public void changeNickname(String newNickname) {

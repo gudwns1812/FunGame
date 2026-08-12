@@ -92,7 +92,7 @@ public class RoomConnectionRegistry {
         }
 
         try {
-            gameRoomService.leaveRoom(member.roomId(), member.nickname());
+            gameRoomService.leaveRoom(member.roomId(), member.nickname(), member.memberId());
         } catch (CoreException e) {
             log.info("이탈 처리 시점에 방 {} 이 이미 없음: {}", member.roomId(), member.nickname());
         } catch (Exception e) {
