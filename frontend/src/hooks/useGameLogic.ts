@@ -584,7 +584,6 @@ export const useGameLogic = () => {
     }
   }, []);
 
-  // SSE 연결 및 방 목록 실시간 업데이트 로직
   useEffect(() => {
     if (status !== 'ROOM_LIST') return;
 
@@ -597,37 +596,55 @@ export const useGameLogic = () => {
     };
 
     const sseUrl = `${import.meta.env.VITE_API_BASE_URL}/api/sse/rooms/subscribe`;
-    const eventSource = new EventSource(sseUrl, { withCredentials: true });
+    let roomUpdates: EventSource;
+    let hasConnectedBefore = false;
 
-    eventSource.addEventListener('room-update', (event) => {
-      if (event.data === 'REFRESH') {
-        debouncedFetchRooms();
-      }
-    });
+    const browserGaveUpReconnecting = () => roomUpdates.readyState === EventSource.CLOSED;
 
-    eventSource.onopen = () => {
-      // 끊겨 있던 동안의 방 변경을 보정한다 (SSE는 REFRESH 신호만 보내므로 목록을 다시 받아야 함)
+    const subscribeToRoomUpdates = () => {
+      roomUpdates = new EventSource(sseUrl, { withCredentials: true });
+
+      roomUpdates.addEventListener('room-update', (event) => {
+        if (event.data === 'REFRESH') {
+          debouncedFetchRooms();
+        }
+      });
+
+      roomUpdates.onopen = () => {
+        const recoveringFromDisconnect = hasConnectedBefore;
+        hasConnectedBefore = true;
+
+        if (recoveringFromDisconnect) {
+          debouncedFetchRooms();
+        }
+      };
+
+      roomUpdates.onerror = () => {
+        if (browserGaveUpReconnecting()) {
+          console.warn('SSE 연결이 종료되었습니다. 탭 복귀 시 다시 연결합니다.');
+        }
+      };
+    };
+
+    const resyncOnTabReturn = () => {
+      if (document.visibilityState !== 'visible') return;
+
       debouncedFetchRooms();
-    };
 
-    // close() 를 호출하면 EventSource 의 자동 재연결이 영구히 꺼진다.
-    // 서버 emitter 는 5분마다 정상 종료되므로, 여기서는 닫지 않고 브라우저 재연결에 맡긴다.
-    eventSource.onerror = () => {
-      if (eventSource.readyState === EventSource.CLOSED) {
-        console.warn('SSE 연결이 종료되었습니다.');
+      if (browserGaveUpReconnecting()) {
+        subscribeToRoomUpdates();
       }
     };
+
+    fetchRooms();
+    subscribeToRoomUpdates();
+    document.addEventListener('visibilitychange', resyncOnTabReturn);
 
     return () => {
-      eventSource.close();
+      document.removeEventListener('visibilitychange', resyncOnTabReturn);
+      roomUpdates.close();
       clearTimeout(debounceTimer);
     };
-  }, [status, fetchRooms]);
-
-  useEffect(() => {
-    if (status === 'ROOM_LIST') {
-      fetchRooms();
-    }
   }, [status, fetchRooms]);
 
   const enterLobby = useCallback((name: string) => {
