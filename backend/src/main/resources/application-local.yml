@@ -25,14 +25,11 @@ spring:
     password: ""
   jpa:
     hibernate:
-      ddl-auto: create-drop
-    # 스키마 생성 후에 시드 SQL 이 실행되도록 미룹니다.
-    defer-datasource-initialization: true
-  sql:
-    init:
-      mode: always
-      # 파일명을 data.sql 로 두면 모든 프로파일에서 자동 실행되므로 경로를 명시합니다.
-      data-locations: classpath:db/local-seed.sql
+      # 스키마는 Flyway 가 만듭니다. 엔티티와 어긋나면 기동 시점에 실패합니다.
+      ddl-auto: validate
+  flyway:
+    # db/local 은 로컬 전용 시드입니다. 운영은 db/migration 만 실행합니다.
+    locations: classpath:db/migration,classpath:db/local
   session:
     jdbc:
       initialize-schema: always

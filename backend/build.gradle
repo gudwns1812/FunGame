@@ -28,6 +28,8 @@ repositories {
 
 dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+    implementation 'org.flywaydb:flyway-core'
+    implementation 'org.flywaydb:flyway-mysql'
     implementation 'org.springframework.boot:spring-boot-starter-web'
     implementation 'org.springframework.boot:spring-boot-starter-security'
     implementation 'org.springframework.boot:spring-boot-starter-websocket'
@@ -63,6 +65,11 @@ ext {
 tasks.named('test') {
     outputs.dir snippetsDir
     useJUnitPlatform()
+
+    // 테스트 H2 는 MySQL 모드가 아니라 마이그레이션의 MySQL 문법을 해석하지 못한다.
+    // 마이그레이션 검증은 local 프로파일로 도는 FlywayMigrationTest 가 담당한다.
+    systemProperty 'spring.flyway.enabled', 'false'
+    systemProperty 'spring.jpa.hibernate.ddl-auto', 'create-drop'
 }
 
 tasks.named('asciidoctor') {
