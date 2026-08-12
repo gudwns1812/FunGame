@@ -37,6 +37,11 @@ class MockEventSource {
     this.listeners.get(type)?.delete(listener);
   }
 
+  open() {
+    this.readyState = MockEventSource.OPEN;
+    this.onopen?.(new Event('open'));
+  }
+
   dropConnectionPermanently() {
     this.readyState = MockEventSource.CLOSED;
     this.onerror?.(new Event('error'));
@@ -96,6 +101,26 @@ describe('useGameLogic 로비 SSE 연결', () => {
     const { sse } = await renderInLobby();
 
     expect(sse.url).toContain('/api/sse/rooms/subscribe');
+  });
+
+  it('로비에 진입하면 방 목록을 한 번만 가져온다', async () => {
+    const { sse } = await renderInLobby();
+
+    act(() => sse.open());
+    await letDebounceSettle();
+
+    expect(roomListFetchCount()).toBe(1);
+  });
+
+  it('끊겼다 다시 연결되면 놓친 방 변경을 보정한다', async () => {
+    const { sse } = await renderInLobby();
+    act(() => sse.open());
+    await letDebounceSettle();
+    const fetchesBeforeReconnect = roomListFetchCount();
+
+    act(() => sse.open());
+
+    await waitFor(() => expect(roomListFetchCount()).toBe(fetchesBeforeReconnect + 1));
   });
 
   it('탭으로 돌아오면 놓친 방 변경을 보정하려고 목록을 다시 가져온다', async () => {

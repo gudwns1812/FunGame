@@ -597,6 +597,7 @@ export const useGameLogic = () => {
 
     const sseUrl = `${import.meta.env.VITE_API_BASE_URL}/api/sse/rooms/subscribe`;
     let roomUpdates: EventSource;
+    let hasConnectedBefore = false;
 
     const browserGaveUpReconnecting = () => roomUpdates.readyState === EventSource.CLOSED;
 
@@ -610,7 +611,12 @@ export const useGameLogic = () => {
       });
 
       roomUpdates.onopen = () => {
-        debouncedFetchRooms();
+        const recoveringFromDisconnect = hasConnectedBefore;
+        hasConnectedBefore = true;
+
+        if (recoveringFromDisconnect) {
+          debouncedFetchRooms();
+        }
       };
 
       roomUpdates.onerror = () => {
@@ -630,6 +636,7 @@ export const useGameLogic = () => {
       }
     };
 
+    fetchRooms();
     subscribeToRoomUpdates();
     document.addEventListener('visibilitychange', resyncOnTabReturn);
 
@@ -638,12 +645,6 @@ export const useGameLogic = () => {
       roomUpdates.close();
       clearTimeout(debounceTimer);
     };
-  }, [status, fetchRooms]);
-
-  useEffect(() => {
-    if (status === 'ROOM_LIST') {
-      fetchRooms();
-    }
   }, [status, fetchRooms]);
 
   const enterLobby = useCallback((name: string) => {
