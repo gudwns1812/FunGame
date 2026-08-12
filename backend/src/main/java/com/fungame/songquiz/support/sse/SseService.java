@@ -67,10 +67,10 @@ public class SseService {
                     .name(name)
                     .data(data));
         } catch (IOException e) {
-            log.error("SSE 전송 실패, 클라이언트 제거: {}", id);
+            log.debug("연결이 끊긴 구독자를 제거한다: {}", id);
             emitters.remove(id);
         } catch (Exception e) {
-            log.error("SSE 브로드캐스트 중 예외 발생: {}", e.getMessage());
+            log.error("예상하지 못한 SSE 전송 오류로 구독자를 제거한다: {}", id, e);
             emitters.remove(id);
         }
     }
