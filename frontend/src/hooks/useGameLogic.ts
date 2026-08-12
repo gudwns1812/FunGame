@@ -179,6 +179,7 @@ export const useGameLogic = () => {
         case 'GAME_START': {
           setStatus('PLAYING');
           setHint('');
+          setPlayers((prev) => prev.map((player) => ({ ...player, score: 0 })));
           const normalizedGameType =
             event.gameType === 'CS' ? 'CS' : event.gameType === 'HANGMAN' ? 'HANGMAN' : 'SONG';
           setGameType(normalizedGameType);
