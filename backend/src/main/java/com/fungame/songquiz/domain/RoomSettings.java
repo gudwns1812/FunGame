@@ -23,7 +23,7 @@ public record RoomSettings(
         };
     }
 
-    public RoomSettings changeTo(String newTitle, int newMaxPlayers, Category newCategory, int newTotalRound, int newDifficulty) {
-        return new RoomSettings(gameType, newTitle, newMaxPlayers, newCategory, newTotalRound, newDifficulty);
+    public RoomSettings changeTo(GameType newGameType, int newMaxPlayers, Category newCategory, int newTotalRound, int newDifficulty) {
+        return new RoomSettings(newGameType, title, newMaxPlayers, newCategory, newTotalRound, newDifficulty);
     }
 }

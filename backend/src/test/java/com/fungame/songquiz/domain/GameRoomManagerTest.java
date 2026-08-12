@@ -60,7 +60,7 @@ class GameRoomManagerTest {
     }
 
     private void openRoom(int maxPlayers) {
-        RoomSettings settings = SETTINGS.changeTo(SETTINGS.title(), maxPlayers, SETTINGS.category(), SETTINGS.totalRound(), SETTINGS.difficulty());
+        RoomSettings settings = SETTINGS.changeTo(SETTINGS.gameType(), maxPlayers, SETTINGS.category(), SETTINGS.totalRound(), SETTINGS.difficulty());
         gameRoomManager.createGameRoom(ROOM_ID, settings, HOST);
     }
 

@@ -3,7 +3,8 @@ import type { Player, RoomSettings } from '../types/game';
 import { stripTag } from '../utils/stringUtils';
 import { getPlayerColor } from '../utils/playerColor';
 import LogList from './LogList';
-import RoomSettingsPanel from './RoomSettingsPanel';
+import RoomSettingsModal from './RoomSettingsModal';
+import RoomSettingsSummary from './RoomSettingsSummary';
 
 interface WaitingRoomProps {
   players: Player[];
@@ -15,7 +16,7 @@ interface WaitingRoomProps {
   onSendMessage: (message: string) => void;
   maxPlayers: number;
   roomSettings: RoomSettings | null;
-  onChangeSettings: (changes: Omit<RoomSettings, 'gameType' | 'host'>) => void;
+  onChangeSettings: (changes: Omit<RoomSettings, 'title' | 'host'>) => void;
 }
 
 const WaitingRoom: React.FC<WaitingRoomProps> = ({
@@ -31,6 +32,7 @@ const WaitingRoom: React.FC<WaitingRoomProps> = ({
   onChangeSettings,
 }) => {
   const [chatInput, setChatInput] = useState('');
+  const [isEditingSettings, setIsEditingSettings] = useState(false);
   const logContainerRef = useRef<HTMLDivElement>(null);
   const chatInputRef = useRef<HTMLInputElement>(null);
   const SLOTS = maxPlayers || 12;
@@ -68,11 +70,18 @@ const WaitingRoom: React.FC<WaitingRoomProps> = ({
   return (
     <div className="h-full min-h-0 max-w-5xl w-full mx-auto flex flex-col gap-3">
       {roomSettings && (
-        <RoomSettingsPanel
+        <RoomSettingsSummary settings={roomSettings} isHost={isHost} onEdit={() => setIsEditingSettings(true)} />
+      )}
+
+      {roomSettings && isEditingSettings && (
+        <RoomSettingsModal
           settings={roomSettings}
-          isHost={isHost}
           currentPlayers={players.length}
-          onChange={onChangeSettings}
+          onSubmit={(changes) => {
+            onChangeSettings(changes);
+            setIsEditingSettings(false);
+          }}
+          onClose={() => setIsEditingSettings(false)}
         />
       )}
 

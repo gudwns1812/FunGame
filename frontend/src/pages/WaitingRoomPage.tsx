@@ -12,7 +12,7 @@ interface WaitingRoomPageProps {
   onSendMessage: (message: string) => void;
   maxPlayers: number;
   roomSettings: RoomSettings | null;
-  onChangeSettings: (changes: Omit<RoomSettings, 'gameType' | 'host'>) => void;
+  onChangeSettings: (changes: Omit<RoomSettings, 'title' | 'host'>) => void;
   /** 헤더에 표시할 방 이름 */
   roomName?: string;
 }

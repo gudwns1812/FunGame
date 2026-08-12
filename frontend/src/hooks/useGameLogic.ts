@@ -110,37 +110,46 @@ export const useGameLogic = () => {
     [nickname],
   );
 
-  const fetchRoomSettings = useCallback(async (targetRoomId: string) => {
-    try {
-      const response = await axios.get(`/game/rooms/${targetRoomId}/settings`);
-      if (response.data?.result === 'SUCCESS') {
-        setRoomSettings(response.data.data);
-      }
-    } catch (error) {
-      console.error('Failed to fetch room settings:', error);
-    }
+  const applyRoomSettings = useCallback((settings: RoomSettings) => {
+    setRoomSettings(settings);
+    setRoomMaxPlayers(settings.maxPlayers);
+    setRoomName(settings.title);
   }, []);
 
+  const fetchRoomSettings = useCallback(
+    async (targetRoomId: string) => {
+      try {
+        const response = await axios.get(`/game/rooms/${targetRoomId}/settings`);
+        if (response.data?.result === 'SUCCESS') {
+          applyRoomSettings(response.data.data);
+        }
+      } catch (error) {
+        console.error('Failed to fetch room settings:', error);
+      }
+    },
+    [applyRoomSettings],
+  );
+
   const changeRoomSettings = useCallback(
-    async (changes: Omit<RoomSettings, 'gameType' | 'host'>) => {
+    async (changes: Omit<RoomSettings, 'title' | 'host'>) => {
       if (!roomId) return;
       try {
         const response = await axios.patch(`/game/rooms/${roomId}/settings`, changes);
         if (response.data?.result === 'SUCCESS') {
-          setRoomSettings(response.data.data);
+          applyRoomSettings(response.data.data);
         }
       } catch (error: any) {
         window.alert(error?.response?.data?.error?.message ?? '방 설정을 바꾸지 못했습니다.');
       }
     },
-    [roomId],
+    [roomId, applyRoomSettings],
   );
 
   const handleEvent = useCallback(
     (event: any) => {
       switch (event.type) {
         case 'ROOM_SETTINGS_CHANGED':
-          setRoomSettings(event.settings);
+          applyRoomSettings(event.settings);
           addLog('[시스템] 방장이 방 설정을 변경했습니다.');
           break;
 
@@ -307,7 +316,7 @@ export const useGameLogic = () => {
         }
       }
     },
-    [addLog, nickname, roomId, fetchRoomUsers, gameType, status],
+    [addLog, nickname, roomId, fetchRoomUsers, gameType, status, applyRoomSettings],
   );
 
   const handleEventRef = useRef(handleEvent);
@@ -398,12 +407,14 @@ export const useGameLogic = () => {
     setHint('');
     setCurrentVideoId('');
     localStorage.removeItem('ums_currentVideoId');
+    clearLogs();
+    localStorage.removeItem('ums_logs');
     setStatus('WAITING');
 
     if (roomId) {
       await fetchRoomUsers(roomId);
     }
-  }, [roomId, fetchRoomUsers]);
+  }, [roomId, fetchRoomUsers, clearLogs]);
 
   /**
    * 진행 중인 게임에 재입장했을 때, 놓친 라운드 상태를 서버 스냅샷으로 복원한다.

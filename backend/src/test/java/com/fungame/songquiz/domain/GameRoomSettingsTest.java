@@ -80,7 +80,7 @@ class GameRoomSettingsTest {
         gameRoomManager.joinRoom(ROOM_ID, "참가자1");
         gameRoomManager.joinRoom(ROOM_ID, "참가자2");
 
-        RoomSettings shrunk = SETTINGS.changeTo("방", 2, Category.KPOP, 10, 0);
+        RoomSettings shrunk = SETTINGS.changeTo(GameType.SONG, 2, Category.KPOP, 10, 0);
 
         assertThatThrownBy(() -> gameRoomManager.changeSettings(ROOM_ID, HOST, shrunk))
                 .isInstanceOf(CoreException.class)
@@ -88,13 +88,23 @@ class GameRoomSettingsTest {
     }
 
     @Test
-    @DisplayName("게임 종류는 바꿀 수 없다.")
-    void cannotChangeGameType() {
-        RoomSettings otherGame = new RoomSettings(GameType.HANGMAN, "방", 8, null, 10, 1);
+    @DisplayName("게임 종류를 바꾸면 다음 판은 바뀐 종류로 시작한다.")
+    void canChangeGameType() {
+        RoomSettings hangman = SETTINGS.changeTo(GameType.HANGMAN, 6, Category.DEFAULT, 1, 3);
 
-        assertThatThrownBy(() -> gameRoomManager.changeSettings(ROOM_ID, HOST, otherGame))
-                .isInstanceOf(CoreException.class)
-                .hasFieldOrPropertyWithValue("type", ErrorType.INVALID_INPUT_VALUE);
+        gameRoomManager.changeSettings(ROOM_ID, HOST, hangman);
+
+        GameRoom room = gameRoomManager.findRoom(ROOM_ID);
+        assertThat(room.getSettings().gameType()).isEqualTo(GameType.HANGMAN);
+        assertThat(gameRoomManager.getGameType(ROOM_ID)).isEqualTo(GameType.HANGMAN);
+    }
+
+    @Test
+    @DisplayName("설정을 바꿔도 방 이름은 유지된다.")
+    void titleSurvivesSettingsChange() {
+        gameRoomManager.changeSettings(ROOM_ID, HOST, SETTINGS.changeTo(GameType.CS, 8, Category.DEFAULT, 5, 0));
+
+        assertThat(gameRoomManager.findRoom(ROOM_ID).getTitle()).isEqualTo(SETTINGS.title());
     }
 
     @Test
@@ -104,14 +114,14 @@ class GameRoomSettingsTest {
         gameRoomManager.readyPlayer(ROOM_ID, "참가자");
         assertThat(gameRoomManager.findRoom(ROOM_ID).isAllReady()).isTrue();
 
-        gameRoomManager.changeSettings(ROOM_ID, HOST, SETTINGS.changeTo("새 방 제목", 8, Category.POP, 5, 0));
+        gameRoomManager.changeSettings(ROOM_ID, HOST, SETTINGS.changeTo(GameType.SONG, 8, Category.POP, 5, 0));
 
         GameRoom room = gameRoomManager.findRoom(ROOM_ID);
         assertThat(room.isAllReady()).isFalse();
         assertThat(room.getPlayers().snapshot())
                 .filteredOn(player -> player.name().equals(HOST))
                 .allMatch(GamePlayer::isReady);
-        assertThat(room.getTitle()).isEqualTo("새 방 제목");
+        assertThat(room.getSettings().category()).isEqualTo(Category.POP);
     }
 
     @Test

@@ -108,9 +108,6 @@ public class GameRoom {
         if (status == GameRoomStatus.PLAYING) {
             throw new CoreException(ErrorType.GAME_ALREADY_PLAYING);
         }
-        if (newSettings.gameType() != settings.gameType()) {
-            throw new CoreException(ErrorType.INVALID_INPUT_VALUE);
-        }
     }
 
     public boolean isEmpty() {

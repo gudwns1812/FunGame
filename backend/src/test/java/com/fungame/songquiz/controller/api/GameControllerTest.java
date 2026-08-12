@@ -191,13 +191,13 @@ class GameControllerTest {
         RoomSettingsInfo current =
                 new RoomSettingsInfo("K-POP 퀴즈방", GameType.SONG, 8, Category.KPOP, 10, 0, "테스트유저");
         RoomSettingsInfo changed =
-                new RoomSettingsInfo("발라드 방", GameType.SONG, 6, Category.BALLAD, 5, 0, "테스트유저");
+                new RoomSettingsInfo("K-POP 퀴즈방", GameType.SONG, 6, Category.BALLAD, 5, 0, "테스트유저");
 
         given(gameRoomService.findSettings(1L)).willReturn(current);
         given(gameRoomService.changeSettings(eq(1L), eq("테스트유저"), any())).willReturn(changed);
 
         ChangeRoomSettingsRequest request = ChangeRoomSettingsRequest.builder()
-                .title("발라드 방")
+                .gameType(GameType.SONG)
                 .maxPlayers(6)
                 .category(Category.BALLAD)
                 .totalRound(5)
@@ -208,7 +208,7 @@ class GameControllerTest {
                         .content(objectMapper.writeValueAsString(request))
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.title").value("발라드 방"))
+                .andExpect(jsonPath("$.data.title").value("K-POP 퀴즈방"))
                 .andExpect(jsonPath("$.data.maxPlayers").value(6))
                 .andExpect(jsonPath("$.data.category").value("BALLAD"))
                 .andDo(document("room-settings-change",
