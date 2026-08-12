@@ -1,12 +1,15 @@
 package com.fungame.songquiz.controller.api;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fungame.songquiz.controller.request.ChangeRoomSettingsRequest;
 import com.fungame.songquiz.controller.request.CreateRoomRequest;
 import com.fungame.songquiz.domain.GameRoomService;
 import com.fungame.songquiz.domain.GameRoomStatus;
 import com.fungame.songquiz.domain.GameService;
 import com.fungame.songquiz.domain.GameType;
+import com.fungame.songquiz.domain.Category;
 import com.fungame.songquiz.domain.dto.RoomInfo;
+import com.fungame.songquiz.domain.dto.RoomSettingsInfo;
 import com.fungame.songquiz.domain.member.Member;
 import com.fungame.songquiz.domain.member.MemberAdapter;
 import com.fungame.songquiz.domain.member.Role;
@@ -33,10 +36,12 @@ import static org.mockito.Mockito.mock;
 import static org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.document;
 import static org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.documentationConfiguration;
 import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.get;
+import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.patch;
 import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.post;
 import static org.springframework.restdocs.operation.preprocess.Preprocessors.*;
 import static org.springframework.restdocs.request.RequestDocumentation.parameterWithName;
 import static org.springframework.restdocs.request.RequestDocumentation.pathParameters;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @ExtendWith(RestDocumentationExtension.class)
@@ -97,7 +102,7 @@ class GameControllerTest {
                 .totalRound(10)
                 .build();
 
-        given(gameRoomService.createRoom(any(), anyString(), anyInt(), anyString(), any()))
+        given(gameRoomService.createRoom(any(), anyString()))
                 .willReturn(1L);
 
         // when // then
@@ -156,6 +161,60 @@ class GameControllerTest {
                         pathParameters(
                                 parameterWithName("roomId").description("방 ID")
                         )
+                ));
+    }
+
+    @Test
+    @DisplayName("대기실에서 방 설정을 조회한다.")
+    void findSettings() throws Exception {
+        // given
+        given(gameRoomService.findSettings(1L)).willReturn(
+                new RoomSettingsInfo("K-POP 퀴즈방", GameType.SONG, 8, Category.KPOP, 10, 0, "방장닉네임"));
+
+        // when // then
+        mockMvc.perform(get("/game/rooms/{roomId}/settings", 1L))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.title").value("K-POP 퀴즈방"))
+                .andExpect(jsonPath("$.data.gameType").value("SONG"))
+                .andExpect(jsonPath("$.data.category").value("KPOP"))
+                .andExpect(jsonPath("$.data.totalRound").value(10))
+                .andDo(document("room-settings",
+                        preprocessResponse(prettyPrint()),
+                        pathParameters(parameterWithName("roomId").description("방 ID"))
+                ));
+    }
+
+    @Test
+    @DisplayName("방장이 대기실에서 방 설정을 변경한다.")
+    void changeSettings() throws Exception {
+        // given
+        RoomSettingsInfo current =
+                new RoomSettingsInfo("K-POP 퀴즈방", GameType.SONG, 8, Category.KPOP, 10, 0, "테스트유저");
+        RoomSettingsInfo changed =
+                new RoomSettingsInfo("발라드 방", GameType.SONG, 6, Category.BALLAD, 5, 0, "테스트유저");
+
+        given(gameRoomService.findSettings(1L)).willReturn(current);
+        given(gameRoomService.changeSettings(eq(1L), eq("테스트유저"), any())).willReturn(changed);
+
+        ChangeRoomSettingsRequest request = ChangeRoomSettingsRequest.builder()
+                .title("발라드 방")
+                .maxPlayers(6)
+                .category(Category.BALLAD)
+                .totalRound(5)
+                .build();
+
+        // when // then
+        mockMvc.perform(patch("/game/rooms/{roomId}/settings", 1L)
+                        .content(objectMapper.writeValueAsString(request))
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.title").value("발라드 방"))
+                .andExpect(jsonPath("$.data.maxPlayers").value(6))
+                .andExpect(jsonPath("$.data.category").value("BALLAD"))
+                .andDo(document("room-settings-change",
+                        preprocessRequest(prettyPrint()),
+                        preprocessResponse(prettyPrint()),
+                        pathParameters(parameterWithName("roomId").description("방 ID"))
                 ));
     }
 }

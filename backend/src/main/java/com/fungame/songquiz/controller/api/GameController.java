@@ -1,13 +1,16 @@
 package com.fungame.songquiz.controller.api;
 
+import com.fungame.songquiz.controller.request.ChangeRoomSettingsRequest;
 import com.fungame.songquiz.controller.request.CreateRoomRequest;
 import com.fungame.songquiz.domain.GameAction;
 import com.fungame.songquiz.domain.GameRoomService;
 import com.fungame.songquiz.domain.GameService;
 import com.fungame.songquiz.domain.PlayerScore;
+import com.fungame.songquiz.domain.RoomSettings;
 import com.fungame.songquiz.domain.dto.GameStateDto;
 import com.fungame.songquiz.domain.dto.PlayersInfo;
 import com.fungame.songquiz.domain.dto.RoomInfo;
+import com.fungame.songquiz.domain.dto.RoomSettingsInfo;
 import com.fungame.songquiz.domain.member.MemberAdapter;
 import com.fungame.songquiz.support.response.ApiResponse;
 import lombok.RequiredArgsConstructor;
@@ -38,6 +41,23 @@ public class GameController {
         return ApiResponse.success(users);
     }
 
+    @GetMapping("/{roomId}/settings")
+    public ApiResponse<RoomSettingsInfo> findSettings(@PathVariable Long roomId) {
+        return ApiResponse.success(gameRoomService.findSettings(roomId));
+    }
+
+    @PatchMapping("/{roomId}/settings")
+    public ApiResponse<RoomSettingsInfo> changeSettings(
+            @PathVariable Long roomId,
+            @RequestBody ChangeRoomSettingsRequest request,
+            @AuthenticationPrincipal MemberAdapter memberAdapter) {
+        RoomSettings current = gameRoomService.findSettings(roomId).toSettings();
+        RoomSettingsInfo changed = gameRoomService.changeSettings(
+                roomId, memberAdapter.getNickName(), request.applyTo(current));
+
+        return ApiResponse.success(changed);
+    }
+
     @GetMapping("/{roomId}/health")
     public ApiResponse<String> healthCheck(@PathVariable Long roomId) {
         gameRoomService.findUsers(roomId); // 방이 존재하지 않으면 예외 발생
@@ -59,14 +79,7 @@ public class GameController {
     public ApiResponse<Long> createRoom(
             @RequestBody CreateRoomRequest request,
             @AuthenticationPrincipal MemberAdapter memberAdapter) {
-        log.info("category: {}", request.getCategory());
-        Long roomId = gameRoomService.createRoom(
-                request.getGameType(),
-                request.getTitle(),
-                request.getMaxPlayers(),
-                memberAdapter.getNickName(),
-                request.toGameInfo()
-        );
+        Long roomId = gameRoomService.createRoom(request.toRoomSettings(), memberAdapter.getNickName());
         return ApiResponse.success(roomId);
     }
 

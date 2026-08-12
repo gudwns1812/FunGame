@@ -62,6 +62,9 @@ function AppContent() {
     createRoom,
     leaveRoom,
     returnToLobby,
+    returnToWaitingRoom,
+    roomSettings,
+    changeRoomSettings,
     startGame,
     toggleReady,
     skipRound,
@@ -181,6 +184,8 @@ function AppContent() {
               onToggleReady={toggleReady}
               onSendMessage={sendMessage}
               maxPlayers={roomMaxPlayers}
+              roomSettings={roomSettings}
+              onChangeSettings={changeRoomSettings}
               roomName={roomName}
             />
           ) : (
@@ -235,7 +240,7 @@ function AppContent() {
         path="/hangman-result"
         element={
           isAuthenticated && status === 'RESULT' && gameType === 'HANGMAN' ? (
-            <HangmanResultPage rankings={players} onBackToLobby={returnToLobby} />
+            <HangmanResultPage rankings={players} onBackToLobby={returnToLobby} onBackToRoom={returnToWaitingRoom} />
           ) : (
             <Navigate to={isAuthenticated ? currentPath : "/login"} replace />
           )
@@ -245,7 +250,7 @@ function AppContent() {
         path="/result"
         element={
           isAuthenticated && status === 'RESULT' && gameType !== 'HANGMAN' ? (
-            <ResultPage rankings={players} onBackToLobby={returnToLobby} />
+            <ResultPage rankings={players} onBackToLobby={returnToLobby} onBackToRoom={returnToWaitingRoom} />
           ) : (
             <Navigate to={isAuthenticated ? currentPath : "/login"} replace />
           )

@@ -2,55 +2,48 @@ package com.fungame.songquiz.domain;
 
 import com.fungame.songquiz.domain.dto.PlayersInfo;
 import com.fungame.songquiz.domain.dto.RoomInfo;
+import com.fungame.songquiz.domain.dto.RoomSettingsInfo;
 import com.fungame.songquiz.domain.event.PlayerJoinEvent;
 import com.fungame.songquiz.domain.event.PlayerLeaveEvent;
 import com.fungame.songquiz.domain.event.PlayerReadyEvent;
 import com.fungame.songquiz.domain.event.RoomChangedEvent;
-import com.fungame.songquiz.domain.gamecreator.GameCreateInfo;
-import com.fungame.songquiz.storage.CounterEntity;
-import com.fungame.songquiz.storage.CounterRepository;
+import com.fungame.songquiz.domain.event.RoomSettingsChangedEvent;
+import com.fungame.songquiz.storage.GameRoomStore;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
 
 @Slf4j
 @Service
+@RequiredArgsConstructor
 public class GameRoomService {
 
-    private static final String GAME_ROOM_COUNTER = "GAME_ROOM_COUNTER";
-
-    private final CounterRepository counterRepository;
-    private final Map<GameType, GameFactory> creators;
     private final GameRoomManager gameRoomManager;
+    private final GameRoomStore gameRoomStore;
     private final GameService gameService;
+    private final RoomPresence roomPresence;
     private final ApplicationEventPublisher applicationEventPublisher;
 
-    public GameRoomService(CounterRepository counterRepository, List<GameFactory> creators, GameRoomManager gameRoomManager, GameService gameService, ApplicationEventPublisher applicationEventPublisher) {
-        this.counterRepository = counterRepository;
-        this.gameRoomManager = gameRoomManager;
-        this.gameService = gameService;
-        this.applicationEventPublisher = applicationEventPublisher;
-        this.creators = creators.stream().collect(Collectors.toMap(GameFactory::getSupportedType, creator -> creator));
+    @EventListener(ApplicationReadyEvent.class)
+    public void resetInterruptedGames() {
+        gameRoomStore.markInterruptedGamesWaiting();
     }
 
-    @Transactional
-    public Long createRoom(GameType gameType, String title, int maxPlayers, String hostName, GameCreateInfo createInfo) {
-        Game game = creators.get(gameType).create(createInfo);
-        CounterEntity counter = counterRepository.findByName(GAME_ROOM_COUNTER);
-        counter.increment();
+    public Long createRoom(RoomSettings settings, String hostName) {
+        Long roomId = gameRoomStore.open(settings, hostName);
 
-        gameRoomManager.createGameRoom(counter.getCount(), title, game, hostName, maxPlayers);
+        gameRoomManager.createGameRoom(roomId, settings, hostName);
         applicationEventPublisher.publishEvent(new RoomChangedEvent());
-        return counter.getCount();
+
+        return roomId;
     }
 
     public int joinRoom(Long roomId, String playerName) {
-        log.info("roomId : {} , playerName : {}", roomId, playerName);
         JoinResult result = gameRoomManager.joinRoom(roomId, playerName);
 
         if (result.newlyJoined()) {
@@ -75,14 +68,27 @@ public class GameRoomService {
     }
 
     public List<RoomInfo> findAllRooms() {
-        var rooms = gameRoomManager.getRooms();
-        return rooms.entrySet().stream()
-                .map(room -> RoomInfo.from(room.getKey(), room.getValue()))
+        return gameRoomStore.loadAll().stream()
+                .map(stored -> RoomInfo.of(stored, roomPresence.countConnectedIn(stored.roomId())))
                 .toList();
     }
 
     public PlayersInfo findUsers(Long roomId) {
         return gameRoomManager.findRoomUsers(roomId);
+    }
+
+    public RoomSettingsInfo findSettings(Long roomId) {
+        GameRoom gameRoom = gameRoomManager.findRoom(roomId);
+        return RoomSettingsInfo.from(gameRoom);
+    }
+
+    public RoomSettingsInfo changeSettings(Long roomId, String nickname, RoomSettings newSettings) {
+        GameRoom gameRoom = gameRoomManager.changeSettings(roomId, nickname, newSettings);
+        RoomSettingsInfo changed = RoomSettingsInfo.from(gameRoom);
+
+        applicationEventPublisher.publishEvent(new RoomSettingsChangedEvent(roomId, changed));
+
+        return changed;
     }
 
     public void readyPlayer(Long roomId, String playerName) {

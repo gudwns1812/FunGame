@@ -9,18 +9,37 @@ import java.util.List;
 
 @Getter
 public class GameRoom {
-    private final String title;
-    private final Game game;
     private final GamePlayers players;
+    private RoomSettings settings;
+    private Game game;
     private GameRoomStatus status;
     private Instant lastActivityTime;
 
-    private GameRoom(String title, Game game, GamePlayers players) {
-        this.title = title;
-        this.game = game;
+    private GameRoom(RoomSettings settings, GamePlayers players, GameRoomStatus status, Instant lastActivityTime) {
+        this.settings = settings;
         this.players = players;
-        this.status = GameRoomStatus.WAITING;
-        this.lastActivityTime = Instant.now();
+        this.status = status;
+        this.lastActivityTime = lastActivityTime;
+    }
+
+    public static GameRoom create(RoomSettings settings, List<String> initialPlayers, String host) {
+        return new GameRoom(
+                settings,
+                new GamePlayers(initialPlayers, settings.maxPlayers(), host),
+                GameRoomStatus.WAITING,
+                Instant.now());
+    }
+
+    public static GameRoom restore(RoomSettings settings, List<GamePlayer> players, String host, Instant lastActivityTime) {
+        return new GameRoom(
+                settings,
+                GamePlayers.restore(players, settings.maxPlayers(), host),
+                GameRoomStatus.WAITING,
+                lastActivityTime);
+    }
+
+    public String getTitle() {
+        return settings.title();
     }
 
     public JoinResult join(String playerName) {
@@ -48,9 +67,10 @@ public class GameRoom {
         return players.getPlayers();
     }
 
-    public void start(String nickname) {
+    public void start(String nickname, Game startingGame) {
         validateStart(nickname);
-        status = GameRoomStatus.PLAYING;
+        this.game = startingGame;
+        this.status = GameRoomStatus.PLAYING;
     }
 
     private void validateStart(String nickname) {
@@ -65,6 +85,31 @@ public class GameRoom {
         }
         if (!isAllReady()) {
             throw new CoreException(ErrorType.GAME_ROOM_NOT_ALL_READY);
+        }
+    }
+
+    public void finishGame() {
+        this.game = null;
+        this.status = GameRoomStatus.WAITING;
+        players.resetReady();
+        touch();
+    }
+
+    public void changeSettings(RoomSettings newSettings) {
+        validateSettingsChange(newSettings);
+
+        players.changeMaxPlayer(newSettings.maxPlayers());
+        this.settings = newSettings;
+        players.resetReady();
+        touch();
+    }
+
+    private void validateSettingsChange(RoomSettings newSettings) {
+        if (status == GameRoomStatus.PLAYING) {
+            throw new CoreException(ErrorType.GAME_ALREADY_PLAYING);
+        }
+        if (newSettings.gameType() != settings.gameType()) {
+            throw new CoreException(ErrorType.INVALID_INPUT_VALUE);
         }
     }
 
@@ -94,10 +139,6 @@ public class GameRoom {
 
     public boolean isAllReady() {
         return players.isAllReady();
-    }
-
-    public static GameRoom create(String title, Game game, List<String> initialPlayers, int maxPlayer, String host) {
-        return new GameRoom(title, game, new GamePlayers(initialPlayers, maxPlayer, host));
     }
 
     public boolean isIdle(Instant threshold) {

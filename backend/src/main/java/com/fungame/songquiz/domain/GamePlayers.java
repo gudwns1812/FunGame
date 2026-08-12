@@ -13,14 +13,16 @@ import java.util.stream.Collectors;
 public class GamePlayers {
     private final Map<String, GamePlayer> players;
     @Getter
-    private final int maxPlayer;
+    private int maxPlayer;
     @Getter
     private String host;
 
     public GamePlayers(List<String> players, int maxPlayer, String host) {
-        this.players = players.stream()
-                .map(GamePlayer::createNewPlayer)
-                .collect(Collectors.toMap(GamePlayer::name, player -> player, (existing, replacement) -> existing, LinkedHashMap::new));
+        this(toPlayerMap(players.stream().map(GamePlayer::createNewPlayer).toList()), maxPlayer, host);
+    }
+
+    private GamePlayers(Map<String, GamePlayer> players, int maxPlayer, String host) {
+        this.players = players;
         this.maxPlayer = maxPlayer;
         this.host = host;
 
@@ -28,6 +30,30 @@ public class GamePlayers {
         if (this.players.containsKey(host)) {
             this.players.put(host, this.players.get(host).setReady(true));
         }
+    }
+
+    public static GamePlayers restore(List<GamePlayer> players, int maxPlayer, String host) {
+        return new GamePlayers(toPlayerMap(players), maxPlayer, host);
+    }
+
+    private static Map<String, GamePlayer> toPlayerMap(List<GamePlayer> players) {
+        return players.stream()
+                .collect(Collectors.toMap(GamePlayer::name, player -> player, (existing, replacement) -> existing, LinkedHashMap::new));
+    }
+
+    public List<GamePlayer> snapshot() {
+        return List.copyOf(players.values());
+    }
+
+    public void changeMaxPlayer(int maxPlayer) {
+        if (maxPlayer < players.size()) {
+            throw new CoreException(ErrorType.GAME_ROOM_MAX_PLAYER_EXCEED);
+        }
+        this.maxPlayer = maxPlayer;
+    }
+
+    public void resetReady() {
+        players.replaceAll((name, player) -> player.setReady(name.equals(host)));
     }
 
     public boolean add(String player) {
@@ -56,15 +82,16 @@ public class GamePlayers {
     }
 
     private void delegateHost() {
-        if (!players.isEmpty()) {
-            host = players.values().stream()
-                    .findFirst()
-                    .orElseThrow(() -> new CoreException(ErrorType.GAME_ROOM_PLAYER_EMPTY))
-                    .name();
+        players.values().stream()
+                .findFirst()
+                .map(GamePlayer::name)
+                .ifPresent(this::assignHost);
+    }
 
-            // 새 방장도 즉시 준비 상태로 변경
-            players.put(host, players.get(host).setReady(true));
-        }
+    private void assignHost(String name) {
+        host = name;
+        // 새 방장도 즉시 준비 상태로 변경
+        players.put(name, players.get(name).setReady(true));
     }
 
     public boolean isFull() {

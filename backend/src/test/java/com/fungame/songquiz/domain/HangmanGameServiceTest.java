@@ -78,7 +78,7 @@ class HangmanGameServiceTest {
     }
 
     @Test
-    @DisplayName("게임이 승리 상태로 종료되면 방과 게임 세션을 정리하고 결과를 발행한다.")
+    @DisplayName("게임이 승리 상태로 종료되면 결과를 발행하고 방을 대기 상태로 되돌린다.")
     void handleAction_win_ends_room() {
         // Given
         Long roomId = 1L;
@@ -96,7 +96,6 @@ class HangmanGameServiceTest {
 
         // Then
         verify(gameRoomManager).endGame(roomId);
-        verify(gameSessionManager).endGameSession(roomId);
         verify(eventPublisher).publishEvent(any(HangmanActionEvent.class));
         verify(eventPublisher).publishEvent(any(GameResultEvent.class));
     }

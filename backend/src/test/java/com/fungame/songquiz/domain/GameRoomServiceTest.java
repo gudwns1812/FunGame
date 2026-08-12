@@ -2,10 +2,8 @@ package com.fungame.songquiz.domain;
 
 import com.fungame.songquiz.domain.event.PlayerJoinEvent;
 import com.fungame.songquiz.domain.event.PlayerLeaveEvent;
-import com.fungame.songquiz.domain.gamecreator.SongGameCreateInfo;
 import com.fungame.songquiz.domain.gamecreator.SongGameFactory;
-import com.fungame.songquiz.storage.CounterEntity;
-import com.fungame.songquiz.storage.CounterRepository;
+import com.fungame.songquiz.storage.GameRoomStore;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -27,7 +25,7 @@ import static org.mockito.Mockito.verify;
 class GameRoomServiceTest {
 
     @Mock
-    CounterRepository counterRepository;
+    GameRoomStore gameRoomStore;
 
     @Mock
     SongReader songReader;
@@ -45,43 +43,29 @@ class GameRoomServiceTest {
 
     @BeforeEach
     void setUp() {
-        SongGameFactory gameFactory = new SongGameFactory(songReader);
-
         service = new GameRoomService(
-                counterRepository,
-                List.of(gameFactory),
                 gameRoomManager,
+                gameRoomStore,
                 gameService,
+                new RoomPresence(),
                 applicationEventPublisher
         );
     }
 
     @Test
-    void gameRoom을_만들면_counter가_증가해야한다() {
+    void 방을_만들면_저장소가_발급한_id_로_방을_연다() {
         // given
-        SongGameCreateInfo info = new SongGameCreateInfo(Category.KPOP, 10);
+        RoomSettings settings = new RoomSettings(GameType.SONG, "방2", 8, Category.KPOP, 10, 0);
 
-        CounterEntity counter = new CounterEntity(1L, "GAME_ROOM_COUNTER", 0L);
-        Game game = mock(Game.class);
-        Song song = mock(Song.class);
-
-        given(songReader.findSongByCategoryWithCount(info.category(),info.songCount())).willReturn(List.of(song));
-        given(counterRepository.findByName("GAME_ROOM_COUNTER")).willReturn(counter);
+        given(gameRoomStore.open(settings, "방장")).willReturn(7L);
 
         // when
-        Long roomId = service.createRoom(GameType.SONG, "방2", 8, "방장", info);
+        Long roomId = service.createRoom(settings, "방장");
 
         // then
-        assertThat(roomId).isEqualTo(1L);
-        assertThat(counter.getCount()).isEqualTo(1L);
+        assertThat(roomId).isEqualTo(7L);
 
-        verify(gameRoomManager).createGameRoom(
-                eq(1L),
-                eq("방2"),
-                any(Game.class),
-                eq("방장"),
-                eq(8)
-        );
+        verify(gameRoomManager).createGameRoom(eq(7L), eq(settings), eq("방장"));
     }
 
     @Test

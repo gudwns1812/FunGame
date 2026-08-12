@@ -68,13 +68,12 @@ public class HangmanGameService implements GameService {
     }
 
     private void submitResult(Long roomId, HangmanGame hangmanGame) {
-        gameRoomManager.endGame(roomId);
-        gameSessionManager.endGameSession(roomId);
-
         var result = hangmanGame.getRemainingTries() == 0 ? "실패" : "성공";
 
         var playerScore = List.of(new PlayerScore(result, hangmanGame.getRemainingTries()), new PlayerScore(hangmanGame.getAnswer().getAnswer(), 0));
         eventPublisher.publishEvent(new GameResultEvent(roomId, playerScore));
+
+        gameRoomManager.endGame(roomId);
     }
 
     @Override

@@ -1,6 +1,8 @@
 package com.fungame.songquiz.controller.websocket;
 
 import com.fungame.songquiz.domain.GameRoomService;
+import com.fungame.songquiz.domain.RoomMember;
+import com.fungame.songquiz.domain.RoomPresence;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -36,7 +38,7 @@ class RoomConnectionRegistryTest {
 
     @BeforeEach
     void setUp() {
-        registry = new RoomConnectionRegistry(gameRoomService, taskScheduler);
+        registry = new RoomConnectionRegistry(gameRoomService, taskScheduler, new RoomPresence());
     }
 
     private Runnable captureScheduledLeave() {

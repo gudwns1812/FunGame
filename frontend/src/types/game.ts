@@ -16,6 +16,16 @@ export interface Room {
   status: string;
 }
 
+export interface RoomSettings {
+  title: string;
+  gameType: string;
+  maxPlayers: number;
+  category: string | null;
+  totalRound: number;
+  difficulty: number;
+  host: string;
+}
+
 export type GameEvent =
   | { type: 'PLAYER_JOIN'; player: string }
   | { type: 'PLAYER_LEAVE'; player: string }

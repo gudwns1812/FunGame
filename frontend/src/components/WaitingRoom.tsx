@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
-import type { Player } from '../types/game';
+import type { Player, RoomSettings } from '../types/game';
 import { stripTag } from '../utils/stringUtils';
 import { getPlayerColor } from '../utils/playerColor';
 import LogList from './LogList';
+import RoomSettingsPanel from './RoomSettingsPanel';
 
 interface WaitingRoomProps {
   players: Player[];
@@ -13,6 +14,8 @@ interface WaitingRoomProps {
   logs: string[];
   onSendMessage: (message: string) => void;
   maxPlayers: number;
+  roomSettings: RoomSettings | null;
+  onChangeSettings: (changes: Omit<RoomSettings, 'gameType' | 'host'>) => void;
 }
 
 const WaitingRoom: React.FC<WaitingRoomProps> = ({
@@ -24,6 +27,8 @@ const WaitingRoom: React.FC<WaitingRoomProps> = ({
   logs,
   onSendMessage,
   maxPlayers,
+  roomSettings,
+  onChangeSettings,
 }) => {
   const [chatInput, setChatInput] = useState('');
   const logContainerRef = useRef<HTMLDivElement>(null);
@@ -62,6 +67,15 @@ const WaitingRoom: React.FC<WaitingRoomProps> = ({
 
   return (
     <div className="h-full min-h-0 max-w-5xl w-full mx-auto flex flex-col gap-3">
+      {roomSettings && (
+        <RoomSettingsPanel
+          settings={roomSettings}
+          isHost={isHost}
+          currentPlayers={players.length}
+          onChange={onChangeSettings}
+        />
+      )}
+
       {/* 상단: 인원 · 준비 현황 + 액션 */}
       <div className="px-card shrink-0 px-3 py-2.5 flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center gap-2">

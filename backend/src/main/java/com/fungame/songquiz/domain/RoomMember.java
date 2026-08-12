@@ -1,4 +1,4 @@
-package com.fungame.songquiz.controller.websocket;
+package com.fungame.songquiz.domain;
 
 public record RoomMember(Long roomId, String nickname) {
 
