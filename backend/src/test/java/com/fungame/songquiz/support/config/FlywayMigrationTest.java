@@ -5,27 +5,20 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.TestPropertySource;
 
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 @SpringBootTest
-@ActiveProfiles("local")
-@TestPropertySource(properties = {
-        "spring.flyway.enabled=true",
-        "spring.jpa.hibernate.ddl-auto=validate"
-})
 class FlywayMigrationTest {
 
     @Autowired
     private JdbcTemplate jdbcTemplate;
 
     @Test
-    @DisplayName("마이그레이션으로 만든 스키마가 엔티티 매핑과 일치한다.")
-    void migrationsMatchEntityMappings() {
+    @DisplayName("마이그레이션이 적용된 상태로 기동한다.")
+    void migrationsAreApplied() {
         List<String> appliedVersions = jdbcTemplate.queryForList(
                 "select \"version\" from \"flyway_schema_history\" where \"success\" = true and \"version\" is not null",
                 String.class);

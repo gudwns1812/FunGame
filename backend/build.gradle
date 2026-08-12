@@ -66,10 +66,9 @@ tasks.named('test') {
     outputs.dir snippetsDir
     useJUnitPlatform()
 
-    // 테스트 H2 는 MySQL 모드가 아니라 마이그레이션의 MySQL 문법을 해석하지 못한다.
-    // 마이그레이션 검증은 local 프로파일로 도는 FlywayMigrationTest 가 담당한다.
-    systemProperty 'spring.flyway.enabled', 'false'
-    systemProperty 'spring.jpa.hibernate.ddl-auto', 'create-drop'
+    // 마이그레이션이 MySQL 문법이므로 테스트 H2 도 MySQL 모드로 띄운다.
+    // 스키마는 운영과 같이 Flyway 가 만들고, ddl-auto 는 validate 로 검증만 한다.
+    systemProperty 'spring.datasource.url', 'jdbc:h2:mem:songquiz-test;DB_CLOSE_DELAY=-1;MODE=MySQL'
 }
 
 tasks.named('asciidoctor') {
