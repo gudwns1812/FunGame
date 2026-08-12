@@ -30,7 +30,6 @@ public class ChatController {
     @MessageMapping("/room/{roomId}/chat")
     public void chat(@DestinationVariable Long roomId, @AuthenticationPrincipal MemberAdapter user,
                      @Payload ChatRequest request) {
-        log.info("Chat in room {}: {} - {}", roomId, user.getNickName(), request.message());
         Object payload = Map.of(
                 "type", "CHAT",
                 "playerName", user.getNickName(),
