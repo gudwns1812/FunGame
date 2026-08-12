@@ -5,9 +5,7 @@ import lombok.NoArgsConstructor;
 
 @Getter
 @NoArgsConstructor
-public class SignupRequest {
+public class PasswordResetLinkRequest {
     private String loginId;
-    private String password;
-    private String nickname;
     private String email;
 }

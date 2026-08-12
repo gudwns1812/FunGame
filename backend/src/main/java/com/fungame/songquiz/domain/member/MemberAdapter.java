@@ -13,8 +13,12 @@ public class  MemberAdapter extends User {
     private final String nickName;
     private final PlayerStatus status;
 
+    public static String principalNameOf(Member member) {
+        return member.getNickname();
+    }
+
     public MemberAdapter(Member member) {
-        super(member.getNickname(), member.getPassword(),
+        super(principalNameOf(member), member.getPassword(),
                 Collections.singleton(new SimpleGrantedAuthority(member.getRole().getKey())));
 
         loginId = member.getLoginId();

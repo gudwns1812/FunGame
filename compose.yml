@@ -26,6 +26,9 @@ services:
       SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/fungame
       SPRING_DATASOURCE_USERNAME: ${MYSQL_USER}
       SPRING_DATASOURCE_PASSWORD: ${MYSQL_PASSWORD}
+      AWS_REGION: ${AWS_REGION}
+      MAIL_FROM: ${MAIL_FROM}
+      PASSWORD_RESET_LINK_BASE_URL: ${PASSWORD_RESET_LINK_BASE_URL}
     depends_on:
       mysql:
         condition: service_healthy

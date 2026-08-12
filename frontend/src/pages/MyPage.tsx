@@ -152,6 +152,11 @@ const MyPage: React.FC = () => {
               </div>
 
               <div>
+                <label className="px-label block mb-1.5">이메일</label>
+                <div className="px-input bg-paper-2 text-ink-soft">{user?.email}</div>
+              </div>
+
+              <div>
                 <label className="px-label block mb-1.5">새 닉네임</label>
                 <input
                   type="text"

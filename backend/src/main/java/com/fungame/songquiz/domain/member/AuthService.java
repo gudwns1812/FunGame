@@ -32,18 +32,25 @@ public class AuthService {
     }
 
     @Transactional
-    public Long signup(String loginId, String password, String nickname) {
+    public Long signup(String loginId, String password, String nickname, String email) {
+        if (!PasswordPolicy.isSatisfiedBy(password)) {
+            throw new CoreException(ErrorType.PASSWORD_POLICY_VIOLATION);
+        }
         if (memberRepository.existsByLoginId(loginId)) {
             throw new CoreException(ErrorType.LOGIN_ID_DUPLICATED);
         }
         if (memberRepository.existsByNickname(nickname)) {
             throw new CoreException(ErrorType.NICKNAME_DUPLICATED);
         }
+        if (memberRepository.existsByEmail(email)) {
+            throw new CoreException(ErrorType.EMAIL_DUPLICATED);
+        }
 
         Member member = Member.builder()
                 .loginId(loginId)
                 .password(passwordEncoder.encode(password))
                 .nickname(nickname)
+                .email(email)
                 .role(Role.USER) // 기본 역할은 USER
                 .build();
 

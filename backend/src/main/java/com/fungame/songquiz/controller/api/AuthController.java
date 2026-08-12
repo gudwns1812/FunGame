@@ -2,11 +2,14 @@ package com.fungame.songquiz.controller.api;
 
 import com.fungame.songquiz.controller.request.LoginRequest;
 import com.fungame.songquiz.controller.request.NicknameRequest;
+import com.fungame.songquiz.controller.request.PasswordResetLinkRequest;
+import com.fungame.songquiz.controller.request.PasswordResetRequest;
 import com.fungame.songquiz.controller.request.SignupRequest;
 import com.fungame.songquiz.domain.dto.MemberInfo;
 import com.fungame.songquiz.domain.member.AuthService;
 import com.fungame.songquiz.domain.member.Member;
 import com.fungame.songquiz.domain.member.MemberAdapter;
+import com.fungame.songquiz.domain.member.PasswordResetService;
 import com.fungame.songquiz.support.response.ApiResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
@@ -19,14 +22,28 @@ import org.springframework.web.bind.annotation.*;
 public class AuthController {
 
     private final AuthService authService;
+    private final PasswordResetService passwordResetService;
 
     @PostMapping("/signup")
     public ApiResponse<Long> signup(@RequestBody SignupRequest request) {
         return ApiResponse.success(authService.signup(
                 request.getLoginId(),
                 request.getPassword(),
-                request.getNickname()
+                request.getNickname(),
+                request.getEmail()
         ));
+    }
+
+    @PostMapping("/password-reset-request")
+    public ApiResponse<Void> requestPasswordReset(@RequestBody PasswordResetLinkRequest request) {
+        passwordResetService.requestReset(request.getLoginId(), request.getEmail());
+        return ApiResponse.success();
+    }
+
+    @PostMapping("/password-reset")
+    public ApiResponse<Void> resetPassword(@RequestBody PasswordResetRequest request) {
+        passwordResetService.resetPassword(request.getToken(), request.getNewPassword());
+        return ApiResponse.success();
     }
 
     @GetMapping("/check-id")

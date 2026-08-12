@@ -68,6 +68,7 @@ class GameControllerTest {
                                 .loginId("testUser")
                                 .password("password")
                                 .nickname("테스트유저")
+                                .email("testuser@fun-game.club")
                                 .role(Role.USER)
                                 .build());
                     }

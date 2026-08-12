@@ -34,6 +34,11 @@ spring:
     jdbc:
       initialize-schema: always
 
+app:
+  password-reset:
+    # 로컬에서는 메일을 보내지 않고 이 주소로 만든 링크를 로그로 출력합니다.
+    link-base-url: http://localhost:5199/reset-password
+
 logging:
   level:
     com.fungame.songquiz: DEBUG

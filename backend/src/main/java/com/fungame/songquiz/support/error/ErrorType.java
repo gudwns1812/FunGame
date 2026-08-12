@@ -1,5 +1,6 @@
 package com.fungame.songquiz.support.error;
 
+import com.fungame.songquiz.domain.member.PasswordPolicy;
 import lombok.Getter;
 import org.springframework.boot.logging.LogLevel;
 import org.springframework.http.HttpStatus;
@@ -32,6 +33,11 @@ public enum ErrorType {
     PASSWORD_NOT_MATCH(HttpStatus.BAD_REQUEST, ErrorCode.M004, "비밀번호가 일치하지 않습니다.", LogLevel.DEBUG),
     PROMOTION_ALREADY_PENDING(HttpStatus.BAD_REQUEST, ErrorCode.M005, "이미 진행 중인 승급 요청이 있습니다.", LogLevel.DEBUG),
     PROMOTION_NOT_FOUND(HttpStatus.NOT_FOUND, ErrorCode.M006, "승급 요청을 찾을 수 없습니다.", LogLevel.WARN),
+    EMAIL_DUPLICATED(HttpStatus.BAD_REQUEST, ErrorCode.M007, "이미 사용 중인 이메일입니다.", LogLevel.DEBUG),
+    INVALID_PASSWORD_RESET_TOKEN(HttpStatus.BAD_REQUEST, ErrorCode.M008,
+            "링크가 만료되었거나 이미 사용되었습니다. 다시 요청해주세요.", LogLevel.DEBUG),
+    PASSWORD_POLICY_VIOLATION(HttpStatus.BAD_REQUEST, ErrorCode.M009,
+            "비밀번호는 " + PasswordPolicy.MINIMUM_LENGTH + "자 이상이어야 합니다.", LogLevel.DEBUG),
 
     HANGMAN_WORD_FETCH_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, ErrorCode.H001, "행맨 단어를 가져오는데 실패했습니다.", LogLevel.ERROR),
     HANGMAN_ANSWER_EMPTY(HttpStatus.BAD_REQUEST, ErrorCode.H002, "행맨 정답 단어는 비어있을 수 없습니다.", LogLevel.DEBUG),

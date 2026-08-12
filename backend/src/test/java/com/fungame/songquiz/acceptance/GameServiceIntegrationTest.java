@@ -8,9 +8,9 @@ import com.fungame.songquiz.domain.event.*;
 import com.fungame.songquiz.domain.gamecreator.CsQuizGameCreateInfo;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
+import com.fungame.songquiz.support.MySqlIntegrationTest;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
@@ -27,7 +27,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.doAnswer;
 
-@SpringBootTest
+@MySqlIntegrationTest
 @ActiveProfiles("test")
 @Import(GameServiceIntegrationTest.TestEventCapture.class)
 public class GameServiceIntegrationTest {
