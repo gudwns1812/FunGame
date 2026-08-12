@@ -7,6 +7,8 @@ import { stripTag } from '../utils/stringUtils';
 import { PLAYER_COLOR_INDEX_KEY } from '../utils/playerColor';
 import { roomChat, roomTopic } from '../utils/stompDestination';
 import { playSound } from '../utils/sound';
+import { useSse } from '../contexts/SseContext';
+import type { RoomInvite } from '../types/presence';
 
 // Configure axios base URL
 axios.defaults.baseURL = import.meta.env.VITE_API_BASE_URL;
@@ -18,6 +20,7 @@ const NO_WINNER = '없음';
 const HANGMAN_SOLVED_RESULT = 'CORRECT';
 
 export const useGameLogic = () => {
+  const { onEvent: onSseEvent } = useSse();
   const [nickname, setNickname] = useState(() => localStorage.getItem('ums_nickname') || '');
   const [roomId, setRoomId] = useState<string | null>(() => localStorage.getItem('ums_roomId'));
   const [status, setStatus] = useState<GameStatus>(() => {
@@ -634,57 +637,29 @@ export const useGameLogic = () => {
       }, 300);
     };
 
-    const sseUrl = `${import.meta.env.VITE_API_BASE_URL}/api/sse/rooms/subscribe`;
-    let roomUpdates: EventSource;
-    let hasConnectedBefore = false;
-
-    const browserGaveUpReconnecting = () => roomUpdates.readyState === EventSource.CLOSED;
-
-    const subscribeToRoomUpdates = () => {
-      roomUpdates = new EventSource(sseUrl, { withCredentials: true });
-
-      roomUpdates.addEventListener('room-update', (event) => {
-        if (event.data === 'REFRESH') {
-          debouncedFetchRooms();
-        }
-      });
-
-      roomUpdates.onopen = () => {
-        const recoveringFromDisconnect = hasConnectedBefore;
-        hasConnectedBefore = true;
-
-        if (recoveringFromDisconnect) {
-          debouncedFetchRooms();
-        }
-      };
-
-      roomUpdates.onerror = () => {
-        if (browserGaveUpReconnecting()) {
-          console.warn('SSE 연결이 종료되었습니다. 탭 복귀 시 다시 연결합니다.');
-        }
-      };
+    const refreshOnRoomUpdate = (event: MessageEvent) => {
+      if (event.data === 'REFRESH') {
+        debouncedFetchRooms();
+      }
     };
 
     const resyncOnTabReturn = () => {
       if (document.visibilityState !== 'visible') return;
-
       debouncedFetchRooms();
-
-      if (browserGaveUpReconnecting()) {
-        subscribeToRoomUpdates();
-      }
     };
 
     fetchRooms();
-    subscribeToRoomUpdates();
+    const stopListeningRoomUpdate = onSseEvent('room-update', refreshOnRoomUpdate);
+    const stopListeningConnected = onSseEvent('connected', debouncedFetchRooms);
     document.addEventListener('visibilitychange', resyncOnTabReturn);
 
     return () => {
       document.removeEventListener('visibilitychange', resyncOnTabReturn);
-      roomUpdates.close();
+      stopListeningRoomUpdate();
+      stopListeningConnected();
       clearTimeout(debounceTimer);
     };
-  }, [status, fetchRooms]);
+  }, [status, fetchRooms, onSseEvent]);
 
   const enterLobby = useCallback((name: string) => {
     localStorage.setItem('ums_nickname', name);
@@ -692,46 +667,79 @@ export const useGameLogic = () => {
     setStatus('ROOM_LIST');
   }, []);
 
+  const enterRoom = useCallback(
+    async (room: Room, slotIndex: number | null) => {
+      setRoomMaxPlayers(room.maxPlayers);
+      setRoomName(room.name);
+      if (slotIndex !== null) {
+        localStorage.setItem(PLAYER_COLOR_INDEX_KEY, String(slotIndex));
+        setMyColorIndex(slotIndex);
+      }
+      clearLogs();
+      localStorage.removeItem('ums_logs');
+      setRoomId(room.id);
+      setIsHost(room.hostName === nickname);
+
+      if (room.status === 'PLAYING') {
+        // 서버가 재입장을 허용한 경우에만 여기까지 온다. 진행 중인 라운드 상태를 복원한다.
+        await restorePlayState(room.id);
+      } else {
+        setStatus('WAITING');
+        setCurrentVideoId(''); // 이전 비디오 아이디 초기화
+        setHint('');
+        localStorage.removeItem('ums_currentVideoId');
+        setPlayers([
+          {
+            id: nickname,
+            name: nickname,
+            isHost: room.hostName === nickname,
+            isReady: room.hostName === nickname,
+            score: 0,
+            colorIndex: slotIndex ?? undefined,
+          },
+        ]);
+        addLog(`[시스템] ${room.name} 방에 입장했습니다.`);
+      }
+
+      connectWebSocket(room.id);
+      window.history.pushState({ room: room.id }, '');
+    },
+    [nickname, connectWebSocket, clearLogs, addLog, restorePlayState],
+  );
+
+  const acceptInvite = useCallback(
+    async (invite: RoomInvite) => {
+      try {
+        const response = await axios.post(`/api/invites/${invite.inviteId}/accept`);
+        if (response.data.result === 'SUCCESS') {
+          const { room, playerSequence } = response.data.data;
+          await enterRoom(
+            {
+              id: String(room.roomId),
+              name: room.title,
+              hostName: room.hostName,
+              playerCount: room.currentPlayers,
+              maxPlayers: room.maxPlayers,
+              status: room.status,
+            },
+            typeof playerSequence === 'number' ? playerSequence : null,
+          );
+        }
+      } catch (error: any) {
+        console.error('Accept invite failed:', error);
+        window.alert(error?.response?.data?.error?.message || '방에 입장할 수 없습니다.');
+      }
+    },
+    [enterRoom],
+  );
+
   const joinRoom = useCallback(
     async (room: Room) => {
       try {
         const response = await axios.post(`/game/rooms/${room.id}/join`);
         if (response.data.result === 'SUCCESS') {
-          setRoomMaxPlayers(room.maxPlayers);
-          setRoomName(room.name);
           const slotIndex = typeof response.data.data === 'number' ? response.data.data : null;
-          if (slotIndex !== null) {
-            localStorage.setItem(PLAYER_COLOR_INDEX_KEY, String(slotIndex));
-            setMyColorIndex(slotIndex);
-          }
-          clearLogs();
-          localStorage.removeItem('ums_logs');
-          setRoomId(room.id);
-          setIsHost(room.hostName === nickname);
-
-          if (room.status === 'PLAYING') {
-            // 서버가 재입장을 허용한 경우에만 여기까지 온다. 진행 중인 라운드 상태를 복원한다.
-            await restorePlayState(room.id);
-          } else {
-            setStatus('WAITING');
-            setCurrentVideoId(''); // 이전 비디오 아이디 초기화
-            setHint('');
-            localStorage.removeItem('ums_currentVideoId');
-            setPlayers([
-              {
-                id: nickname,
-                name: nickname,
-                isHost: room.hostName === nickname,
-                isReady: room.hostName === nickname,
-                score: 0,
-                colorIndex: slotIndex ?? undefined,
-              },
-            ]);
-            addLog(`[시스템] ${room.name} 방에 입장했습니다.`);
-          }
-
-          connectWebSocket(room.id);
-          window.history.pushState({ room: room.id }, '');
+          await enterRoom(room, slotIndex);
         }
       } catch (error: any) {
         console.error('Join room failed:', error);
@@ -750,7 +758,7 @@ export const useGameLogic = () => {
         window.alert(message);
       }
     },
-    [nickname, connectWebSocket, clearLogs, addLog, restorePlayState],
+    [nickname, connectWebSocket, enterRoom],
   );
 
   const createRoom = useCallback(
@@ -926,6 +934,7 @@ export const useGameLogic = () => {
     isMusicStart,
     enterLobby,
     joinRoom,
+    acceptInvite,
     createRoom,
     leaveRoom,
     returnToLobby,

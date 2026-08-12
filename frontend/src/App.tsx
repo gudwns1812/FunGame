@@ -16,6 +16,9 @@ import { useGameLogic } from './hooks/useGameLogic';
 import { useButtonClickSound } from './hooks/useButtonClickSound';
 import type { GameStatus } from './types/game';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { SseProvider } from './contexts/SseContext';
+import { useRoomInvites } from './hooks/useRoomInvites';
+import InviteToast from './components/InviteToast';
 import { useEffect } from 'react';
 
 /** 방에 들어가 있는 동안은 클릭음이 게임을 방해해서 끈다 */
@@ -61,6 +64,7 @@ function AppContent() {
     isCreatingRoom,
     enterLobby,
     joinRoom,
+    acceptInvite,
     createRoom,
     leaveRoom,
     returnToLobby,
@@ -81,6 +85,7 @@ function AppContent() {
   } = useGameLogic();
 
   const { isAuthenticated, isInitialLoading, user } = useAuth();
+  const { currentInvite, dropInvite, declineInvite } = useRoomInvites();
 
   useButtonClickSound({ enabled: !IN_ROOM_STATUSES.includes(status) });
 
@@ -120,7 +125,21 @@ function AppContent() {
   const isMaster = user?.role === 'MASTER';
 
   return (
-    <Routes>
+    <>
+      {currentInvite && (
+        <InviteToast
+          key={currentInvite.inviteId}
+          invite={currentInvite}
+          onAccept={(invite) => {
+            dropInvite(invite.inviteId);
+            acceptInvite(invite);
+          }}
+          onDecline={declineInvite}
+          onExpire={dropInvite}
+        />
+      )}
+
+      <Routes>
       {/* 인증 관련 페이지 */}
       <Route
         path="/login"
@@ -197,6 +216,7 @@ function AppContent() {
               roomSettings={roomSettings}
               onChangeSettings={changeRoomSettings}
               roomName={roomName}
+              roomId={roomId}
             />
           ) : (
             <Navigate to={isAuthenticated ? currentPath : "/login"} replace />
@@ -270,7 +290,8 @@ function AppContent() {
       {/* 기본 경로 */}
       <Route path="/" element={<Navigate to={currentPath} replace />} />
       <Route path="*" element={<Navigate to={currentPath} replace />} />
-    </Routes>
+      </Routes>
+    </>
   );
 }
 
@@ -278,7 +299,9 @@ function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
-        <AppContent />
+        <SseProvider>
+          <AppContent />
+        </SseProvider>
       </AuthProvider>
     </BrowserRouter>
   );

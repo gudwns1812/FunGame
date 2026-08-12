@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import RoomList from '../components/RoomList';
+import OnlineUserList from '../components/OnlineUserList';
 import TopBar from '../components/layout/TopBar';
 import type { Room } from '../types/game';
 import { useAuth } from '../contexts/AuthContext';
@@ -110,13 +111,17 @@ const RoomListPage: React.FC<RoomListPageProps> = ({
         }
       />
 
-      <main className="flex-1 min-h-0 scroll-y custom-scrollbar p-4 sm:p-6">
-        <RoomList
-          rooms={rooms}
-          onJoinRoom={onJoinRoom}
-          onCreateRoom={onCreateRoom}
-          onRefreshRooms={onRefreshRooms}
-        />
+      <main className="flex-1 min-h-0 p-4 sm:p-6 flex flex-col md:flex-row gap-4">
+        <div className="flex-1 min-h-0 scroll-y custom-scrollbar">
+          <RoomList
+            rooms={rooms}
+            onJoinRoom={onJoinRoom}
+            onCreateRoom={onCreateRoom}
+            onRefreshRooms={onRefreshRooms}
+          />
+        </div>
+
+        <OnlineUserList />
       </main>
     </div>
   );

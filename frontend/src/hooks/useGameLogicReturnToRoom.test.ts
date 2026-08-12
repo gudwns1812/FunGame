@@ -2,6 +2,7 @@ import { renderHook, act } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import axios from 'axios';
 import { useGameLogic } from './useGameLogic';
+import { createSseStub } from '../test/sseTestUtils';
 
 vi.mock('axios');
 vi.mock('sockjs-client');
@@ -66,7 +67,7 @@ describe('useGameLogic 결과창에서 게임방으로 돌아가기', () => {
   });
 
   it('지난 판의 로그를 지운 채로 대기실에 들어간다', async () => {
-    const { result } = renderHook(() => useGameLogic());
+    const { result } = renderHook(() => useGameLogic(), { wrapper: createSseStub().wrapper });
 
     act(() => {
       result.current.addLog('[시스템] 1라운드 정답은 밤양갱');
@@ -83,7 +84,7 @@ describe('useGameLogic 결과창에서 게임방으로 돌아가기', () => {
   });
 
   it('새 판이 시작되면 지난 판의 점수를 0 으로 되돌린다', async () => {
-    const { result } = renderHook(() => useGameLogic());
+    const { result } = renderHook(() => useGameLogic(), { wrapper: createSseStub().wrapper });
 
     await act(async () => {
       await result.current.joinRoom({
@@ -109,7 +110,7 @@ describe('useGameLogic 결과창에서 게임방으로 돌아가기', () => {
   });
 
   it('진행 중이던 라운드 화면 상태도 함께 비운다', async () => {
-    const { result } = renderHook(() => useGameLogic());
+    const { result } = renderHook(() => useGameLogic(), { wrapper: createSseStub().wrapper });
 
     await act(async () => {
       await result.current.returnToWaitingRoom();

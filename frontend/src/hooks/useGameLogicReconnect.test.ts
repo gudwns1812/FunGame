@@ -4,6 +4,7 @@ import axios from 'axios';
 import type { StompConfig } from '@stomp/stompjs';
 import { TickerStrategy } from '@stomp/stompjs';
 import { useGameLogic } from './useGameLogic';
+import { createSseStub } from '../test/sseTestUtils';
 
 vi.mock('axios');
 vi.mock('sockjs-client');
@@ -69,7 +70,7 @@ describe('useGameLogic 재연결 시 참가 상태 동기화', () => {
   });
 
   const joinAndGetConfig = async () => {
-    const { result } = renderHook(() => useGameLogic());
+    const { result } = renderHook(() => useGameLogic(), { wrapper: createSseStub().wrapper });
     await act(async () => {
       await result.current.joinRoom(ROOM);
     });
