@@ -12,15 +12,14 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class CreateRoomRequest {
+public class ChangeRoomSettingsRequest {
     private GameType gameType;
-    private String title;
     private int maxPlayers;
     private Category category;
     private int totalRound;
     private int difficulty;
 
-    public RoomSettings toRoomSettings() {
-        return new RoomSettings(gameType, title, maxPlayers, category, totalRound, difficulty);
+    public RoomSettings applyTo(RoomSettings current) {
+        return current.changeTo(gameType, maxPlayers, category, totalRound, difficulty);
     }
 }

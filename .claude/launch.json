@@ -2,6 +2,12 @@
   "version": "0.0.1",
   "configurations": [
     {
+      "name": "songquiz-backend",
+      "runtimeExecutable": "./gradlew",
+      "runtimeArgs": [":backend:bootRun", "--args=--spring.profiles.active=local"],
+      "port": 8080
+    },
+    {
       "name": "songquiz-frontend",
       "runtimeExecutable": "npm",
       "runtimeArgs": ["run", "dev:local", "--prefix", "frontend"],

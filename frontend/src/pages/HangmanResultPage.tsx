@@ -5,11 +5,12 @@ import type { Player } from '../types/game';
 interface HangmanResultPageProps {
     rankings: Player[];
     onBackToLobby: () => void;
+    onBackToRoom: () => void;
 }
 
 const MAX_TRIES = 6;
 
-const HangmanResultPage: React.FC<HangmanResultPageProps> = ({ rankings, onBackToLobby }) => {
+const HangmanResultPage: React.FC<HangmanResultPageProps> = ({ rankings, onBackToLobby, onBackToRoom }) => {
     const firstRank = rankings?.[0];
     const secondRank = rankings?.[1];
     let isWin = false;
@@ -54,9 +55,14 @@ const HangmanResultPage: React.FC<HangmanResultPageProps> = ({ rankings, onBackT
                     </p>
                 </div>
 
-                <button onClick={onBackToLobby} className="px-btn px-btn-primary w-full py-3">
-                    대기실로 돌아가기
-                </button>
+                <div className="flex flex-col gap-2">
+                    <button onClick={onBackToRoom} className="px-btn px-btn-primary w-full py-3">
+                        대기실로 돌아가기
+                    </button>
+                    <button onClick={onBackToLobby} className="px-btn w-full py-3">
+                        ◀ 로비로 돌아가기
+                    </button>
+                </div>
             </div>
         </div>
     );

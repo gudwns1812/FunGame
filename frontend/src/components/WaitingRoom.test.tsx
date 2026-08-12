@@ -11,7 +11,9 @@ describe('WaitingRoom 키보드 인터랙션', () => {
         isHost: false,
         maxPlayers: 12,
         logs: [],
-        onSendMessage: vi.fn()
+        onSendMessage: vi.fn(),
+        roomSettings: null,
+        onChangeSettings: vi.fn()
     };
 
     it('전역에서 Enter 키 입력 시 채팅 입력창으로 포커스가 이동해야 한다', () => {

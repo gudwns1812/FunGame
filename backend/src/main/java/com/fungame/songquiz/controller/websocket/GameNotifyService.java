@@ -37,6 +37,14 @@ public class GameNotifyService {
     }
 
     @EventListener
+    public void handleRoomSettingsChanged(RoomSettingsChangedEvent event) {
+        log.info("Broadcasting room settings change in room {}", event.roomId());
+        String destination = StompDestination.room(event.roomId());
+        Object payload = Map.of("type", "ROOM_SETTINGS_CHANGED", "settings", event.settings());
+        messagingTemplate.convertAndSend(destination, ApiResponse.success(payload));
+    }
+
+    @EventListener
     public void handlePlayerJoin(PlayerJoinEvent event) {
         log.info("Broadcasting player join: {} in room {}", event.playerName(), event.roomId());
         String destination = StompDestination.room(event.roomId());

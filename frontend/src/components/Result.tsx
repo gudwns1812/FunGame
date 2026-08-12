@@ -10,11 +10,12 @@ import thirdBadge from '../images/medal-third.svg';
 interface ResultProps {
   rankings: Player[];
   onBackToLobby: () => void;
+  onBackToRoom: () => void;
 }
 
 const BADGES = [firstBadge, secondBadge, thirdBadge];
 
-const Result: React.FC<ResultProps> = ({ rankings, onBackToLobby }) => {
+const Result: React.FC<ResultProps> = ({ rankings, onBackToLobby, onBackToRoom }) => {
   const sortedRankings = [...rankings].sort((a, b) => b.score - a.score);
   const winner = sortedRankings[0];
 
@@ -65,9 +66,14 @@ const Result: React.FC<ResultProps> = ({ rankings, onBackToLobby }) => {
         </div>
       </div>
 
-      <button className="px-btn px-btn-primary w-full py-3" onClick={onBackToLobby}>
-        ◀ 로비로 돌아가기
-      </button>
+      <div className="flex flex-col gap-2">
+        <button className="px-btn px-btn-primary w-full py-3" onClick={onBackToRoom}>
+          게임방으로 돌아가기
+        </button>
+        <button className="px-btn w-full py-3" onClick={onBackToLobby}>
+          ◀ 로비로 돌아가기
+        </button>
+      </div>
     </div>
   );
 };

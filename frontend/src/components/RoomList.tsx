@@ -1,6 +1,14 @@
 import React, { useState } from 'react';
 import type { Room } from '../types/game';
 import { stripTag } from '../utils/stringUtils';
+import {
+  CATEGORIES,
+  GAME_TYPES,
+  applyGameTypeConstraints,
+  isSingleRound,
+  maxPlayerOptionsFor,
+  roundOptionsFor,
+} from '../utils/gameOptions';
 
 interface RoomListProps {
   rooms: Room[];
@@ -28,52 +36,16 @@ const RoomList: React.FC<RoomListProps> = ({ rooms, onJoinRoom, onCreateRoom, on
   const [gameType, setGameType] = useState('SONG');
   const [difficulty, setDifficulty] = useState(3);
 
-  const categories = [
-    { value: 'TOTAL', label: '전체' },
-    { value: 'KPOP', label: 'K-POP' },
-    { value: 'POP', label: 'POP' },
-    { value: 'BALLAD', label: '발라드' },
-    { value: 'RAP', label: '랩/힙합' },
-    { value: 'OST', label: 'OST' },
-  ];
+  const changeGameType = (nextGameType: string) => {
+    const adjusted = applyGameTypeConstraints(nextGameType, { category, totalRound: songCount, maxPlayers });
 
-  const gameTypes = [
-    { value: 'SONG', label: '음악 퀴즈' },
-    { value: 'CS', label: 'CS 퀴즈' },
-    { value: 'HANGMAN', label: '행맨' },
-  ];
+    setGameType(nextGameType);
+    setCategory(adjusted.category);
+    setSongCount(adjusted.totalRound);
+    setMaxPlayers(adjusted.maxPlayers);
+  };
 
-  const songCountOptions = [10, 20, 30, 40, 50, 60, 70, 80, 90, 100];
-
-  // 게임 타입 선택 시 제약 사항 자동 조정
-  React.useEffect(() => {
-    if (gameType === 'CS') {
-      setCategory('DEFAULT');
-      if (songCount > 50) setSongCount(50);
-    } else if (gameType === 'HANGMAN') {
-      setCategory('DEFAULT');
-      setSongCount(1);
-      if (maxPlayers > 6) setMaxPlayers(6);
-    } else {
-      if (category === 'DEFAULT' || category === 'DEFAULT') {
-        setCategory('KPOP');
-      }
-    }
-  }, [gameType, category, songCount, maxPlayers]);
-
-  const filteredSongCountOptions =
-    gameType === 'CS'
-      ? songCountOptions.filter((n) => n <= 50)
-      : gameType === 'HANGMAN'
-        ? [1]
-        : songCountOptions;
-
-  const filteredMaxPlayerOptions =
-    gameType === 'HANGMAN'
-      ? [2, 3, 4, 5, 6]
-      : [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
-
-  const isSingleRound = gameType === 'HANGMAN';
+  const singleRound = isSingleRound(gameType);
 
   return (
     <div className="w-full max-w-5xl mx-auto flex flex-col gap-4">
@@ -119,8 +91,8 @@ const RoomList: React.FC<RoomListProps> = ({ rooms, onJoinRoom, onCreateRoom, on
 
             <div>
               <label className="px-label block mb-1.5">게임 모드</label>
-              <select className="px-input" value={gameType} onChange={(e) => setGameType(e.target.value)}>
-                {gameTypes.map((type) => (
+              <select className="px-input" value={gameType} onChange={(e) => changeGameType(e.target.value)}>
+                {GAME_TYPES.map((type) => (
                   <option key={type.value} value={type.value}>
                     {type.label}
                   </option>
@@ -147,7 +119,7 @@ const RoomList: React.FC<RoomListProps> = ({ rooms, onJoinRoom, onCreateRoom, on
                 </div>
               ) : (
                 <select className="px-input" value={category} onChange={(e) => setCategory(e.target.value)}>
-                  {categories.map((cat) => (
+                  {CATEGORIES.map((cat) => (
                     <option key={cat.value} value={cat.value}>
                       {cat.label}
                     </option>
@@ -162,7 +134,7 @@ const RoomList: React.FC<RoomListProps> = ({ rooms, onJoinRoom, onCreateRoom, on
                 className="px-input"
                 value={maxPlayers}
                 onChange={(e) => setMaxPlayers(parseInt(e.target.value))}>
-                {filteredMaxPlayerOptions.map((n) => (
+                {maxPlayerOptionsFor(gameType).map((n) => (
                   <option key={n} value={n}>
                     {n}명
                   </option>
@@ -171,11 +143,11 @@ const RoomList: React.FC<RoomListProps> = ({ rooms, onJoinRoom, onCreateRoom, on
             </div>
 
             <div>
-              <label className="px-label block mb-1.5">{isSingleRound ? '게임 방식' : '퀴즈 수'}</label>
+              <label className="px-label block mb-1.5">{singleRound ? '게임 방식' : '퀴즈 수'}</label>
               <select className="px-input" value={songCount} onChange={(e) => setSongCount(parseInt(e.target.value))}>
-                {filteredSongCountOptions.map((n) => (
+                {roundOptionsFor(gameType).map((n) => (
                   <option key={n} value={n}>
-                    {isSingleRound ? '단판' : `${n}문제`}
+                    {singleRound ? '단판' : `${n}문제`}
                   </option>
                 ))}
               </select>

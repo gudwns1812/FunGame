@@ -1,6 +1,8 @@
 package com.fungame.songquiz.controller.websocket;
 
 import com.fungame.songquiz.domain.GameRoomService;
+import com.fungame.songquiz.domain.RoomMember;
+import com.fungame.songquiz.domain.RoomPresence;
 import com.fungame.songquiz.support.config.AppTaskScheduler;
 import com.fungame.songquiz.support.error.CoreException;
 import lombok.extern.slf4j.Slf4j;
@@ -20,24 +22,26 @@ public class RoomConnectionRegistry {
 
     private final GameRoomService gameRoomService;
     private final TaskScheduler taskScheduler;
+    private final RoomPresence roomPresence;
 
-    private final Map<String, RoomMember> connectionsBySessionId = new ConcurrentHashMap<>();
     private final Map<String, ScheduledFuture<?>> pendingLeavesByMember = new ConcurrentHashMap<>();
 
     public RoomConnectionRegistry(GameRoomService gameRoomService,
-                                  @AppTaskScheduler TaskScheduler taskScheduler) {
+                                  @AppTaskScheduler TaskScheduler taskScheduler,
+                                  RoomPresence roomPresence) {
         this.gameRoomService = gameRoomService;
         this.taskScheduler = taskScheduler;
+        this.roomPresence = roomPresence;
     }
 
     public void connected(String sessionId, RoomMember member) {
-        connectionsBySessionId.put(sessionId, member);
+        roomPresence.arrive(sessionId, member);
         cancelPendingLeave(member);
         log.info("연결 등록: {} (room {}, session {})", member.nickname(), member.roomId(), sessionId);
     }
 
     public void disconnected(String sessionId) {
-        RoomMember member = connectionsBySessionId.remove(sessionId);
+        RoomMember member = roomPresence.depart(sessionId);
         if (member == null) {
             return;
         }
@@ -51,7 +55,7 @@ public class RoomConnectionRegistry {
     }
 
     public boolean isConnected(RoomMember member) {
-        return connectionsBySessionId.containsValue(member);
+        return roomPresence.isConnected(member);
     }
 
     private void scheduleLeaveAfterGrace(RoomMember member) {

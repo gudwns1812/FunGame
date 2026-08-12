@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
-import type { Player } from '../types/game';
+import type { Player, RoomSettings } from '../types/game';
 import { stripTag } from '../utils/stringUtils';
 import { getPlayerColor } from '../utils/playerColor';
 import LogList from './LogList';
+import RoomSettingsModal from './RoomSettingsModal';
+import RoomSettingsSummary from './RoomSettingsSummary';
 
 interface WaitingRoomProps {
   players: Player[];
@@ -13,6 +15,8 @@ interface WaitingRoomProps {
   logs: string[];
   onSendMessage: (message: string) => void;
   maxPlayers: number;
+  roomSettings: RoomSettings | null;
+  onChangeSettings: (changes: Omit<RoomSettings, 'title' | 'host'>) => void;
 }
 
 const WaitingRoom: React.FC<WaitingRoomProps> = ({
@@ -24,8 +28,11 @@ const WaitingRoom: React.FC<WaitingRoomProps> = ({
   logs,
   onSendMessage,
   maxPlayers,
+  roomSettings,
+  onChangeSettings,
 }) => {
   const [chatInput, setChatInput] = useState('');
+  const [isEditingSettings, setIsEditingSettings] = useState(false);
   const logContainerRef = useRef<HTMLDivElement>(null);
   const chatInputRef = useRef<HTMLInputElement>(null);
   const SLOTS = maxPlayers || 12;
@@ -62,6 +69,22 @@ const WaitingRoom: React.FC<WaitingRoomProps> = ({
 
   return (
     <div className="h-full min-h-0 max-w-5xl w-full mx-auto flex flex-col gap-3">
+      {roomSettings && (
+        <RoomSettingsSummary settings={roomSettings} isHost={isHost} onEdit={() => setIsEditingSettings(true)} />
+      )}
+
+      {roomSettings && isEditingSettings && (
+        <RoomSettingsModal
+          settings={roomSettings}
+          currentPlayers={players.length}
+          onSubmit={(changes) => {
+            onChangeSettings(changes);
+            setIsEditingSettings(false);
+          }}
+          onClose={() => setIsEditingSettings(false)}
+        />
+      )}
+
       {/* 상단: 인원 · 준비 현황 + 액션 */}
       <div className="px-card shrink-0 px-3 py-2.5 flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center gap-2">

@@ -7,6 +7,7 @@ import com.fungame.songquiz.domain.Category;
 import com.fungame.songquiz.domain.GameRoomService;
 import com.fungame.songquiz.domain.GameService;
 import com.fungame.songquiz.domain.GameType;
+import com.fungame.songquiz.domain.RoomSettings;
 import com.fungame.songquiz.domain.gamecreator.GameCreateInfo;
 import com.fungame.songquiz.domain.gamecreator.SongGameCreateInfo;
 import com.fungame.songquiz.domain.member.Member;
@@ -87,8 +88,7 @@ public class GameAcceptanceTest {
         request.put("category", "KPOP");
         request.put("totalRound", 10);
 
-        given(gameRoomService.createRoom(eq(GameType.SONG), anyString(), anyInt(), anyString(), any(GameCreateInfo.class))).willReturn(
-                1L);
+        given(gameRoomService.createRoom(any(RoomSettings.class), anyString())).willReturn(1L);
 
         // when & then
         mockMvc.perform(post("/game/rooms")
@@ -96,7 +96,8 @@ public class GameAcceptanceTest {
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk());
 
-        verify(gameRoomService).createRoom(eq(GameType.SONG), eq("테스트 방"), eq(5), eq("방장"), any(SongGameCreateInfo.class));
+        verify(gameRoomService).createRoom(
+                eq(new RoomSettings(GameType.SONG, "테스트 방", 5, Category.KPOP, 10, 0)), eq("방장"));
     }
 
     @Test

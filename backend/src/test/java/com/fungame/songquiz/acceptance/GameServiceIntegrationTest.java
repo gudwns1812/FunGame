@@ -79,11 +79,8 @@ public class GameServiceIntegrationTest {
 
         // 방 생성 및 입장
         roomId = gameRoomService.createRoom(
-                GameType.CS,
-                "테스트 방",
-                5,
-                hostName,
-                new CsQuizGameCreateInfo(2)
+                new com.fungame.songquiz.domain.RoomSettings(GameType.CS, "테스트 방", 5, null, 2, 0),
+                hostName
         );
         gameRoomService.joinRoom(roomId, player1);
         gameRoomService.readyPlayer(roomId, player1); // player1도 준비 완료!

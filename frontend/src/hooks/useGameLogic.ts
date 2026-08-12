@@ -2,7 +2,7 @@ import { useState, useCallback, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { Client, TickerStrategy } from '@stomp/stompjs';
 import SockJS from 'sockjs-client';
-import type { Player, GameStatus, Room, GameStartInfo, RoundEndInfo, HangmanStatus } from '../types/game';
+import type { Player, GameStatus, Room, GameStartInfo, RoundEndInfo, HangmanStatus, RoomSettings } from '../types/game';
 import { stripTag } from '../utils/stringUtils';
 import { PLAYER_COLOR_INDEX_KEY } from '../utils/playerColor';
 import { roomChat, roomTopic } from '../utils/stompDestination';
@@ -48,6 +48,7 @@ export const useGameLogic = () => {
   const [totalRound, setTotalRound] = useState<number>(0);
   const [hint, setHint] = useState<string>('');
   const [hangmanStatus, setHangmanStatus] = useState<HangmanStatus | null>(null);
+  const [roomSettings, setRoomSettings] = useState<RoomSettings | null>(null);
   const [isBootstrapping, setIsBootstrapping] = useState(true);
   const [isCreatingRoom, setIsCreatingRoom] = useState(false);
   const [myColorIndex, setMyColorIndex] = useState<number | null>(() => {
@@ -109,9 +110,49 @@ export const useGameLogic = () => {
     [nickname],
   );
 
+  const applyRoomSettings = useCallback((settings: RoomSettings) => {
+    setRoomSettings(settings);
+    setRoomMaxPlayers(settings.maxPlayers);
+    setRoomName(settings.title);
+  }, []);
+
+  const fetchRoomSettings = useCallback(
+    async (targetRoomId: string) => {
+      try {
+        const response = await axios.get(`/game/rooms/${targetRoomId}/settings`);
+        if (response.data?.result === 'SUCCESS') {
+          applyRoomSettings(response.data.data);
+        }
+      } catch (error) {
+        console.error('Failed to fetch room settings:', error);
+      }
+    },
+    [applyRoomSettings],
+  );
+
+  const changeRoomSettings = useCallback(
+    async (changes: Omit<RoomSettings, 'title' | 'host'>) => {
+      if (!roomId) return;
+      try {
+        const response = await axios.patch(`/game/rooms/${roomId}/settings`, changes);
+        if (response.data?.result === 'SUCCESS') {
+          applyRoomSettings(response.data.data);
+        }
+      } catch (error: any) {
+        window.alert(error?.response?.data?.error?.message ?? '방 설정을 바꾸지 못했습니다.');
+      }
+    },
+    [roomId, applyRoomSettings],
+  );
+
   const handleEvent = useCallback(
     (event: any) => {
       switch (event.type) {
+        case 'ROOM_SETTINGS_CHANGED':
+          applyRoomSettings(event.settings);
+          addLog('[시스템] 방장이 방 설정을 변경했습니다.');
+          break;
+
         case 'PLAYER_JOIN':
         case 'PLAYER_LEAVE':
           if (roomId) {
@@ -138,6 +179,7 @@ export const useGameLogic = () => {
         case 'GAME_START': {
           setStatus('PLAYING');
           setHint('');
+          setPlayers((prev) => prev.map((player) => ({ ...player, score: 0 })));
           const normalizedGameType =
             event.gameType === 'CS' ? 'CS' : event.gameType === 'HANGMAN' ? 'HANGMAN' : 'SONG';
           setGameType(normalizedGameType);
@@ -275,7 +317,7 @@ export const useGameLogic = () => {
         }
       }
     },
-    [addLog, nickname, roomId, fetchRoomUsers, gameType, status],
+    [addLog, nickname, roomId, fetchRoomUsers, gameType, status, applyRoomSettings],
   );
 
   const handleEventRef = useRef(handleEvent);
@@ -358,26 +400,22 @@ export const useGameLogic = () => {
     setMyColorIndex(null);
   }, [roomId, nickname]);
 
-  const returnToLobby = useCallback(() => {
-    if (stompClient.current) {
-      stompClient.current.deactivate();
-    }
-    setRoomId(null);
-    setRoomName('');
-    setStatus('ROOM_LIST');
-    setPlayers([]);
-    setIsHost(false);
-    setPlayerIndex(null);
+  const returnToLobby = leaveRoom;
+
+  const returnToWaitingRoom = useCallback(async () => {
     setGameStartInfo(null);
     setRoundEndInfo(null);
-    setGameType(null);
-    gameTypeRef.current = null;
     setHint('');
-    setCurrentVideoId(''); // 비디오 아이디 초기화
-    localStorage.removeItem('ums_currentVideoId'); // 로컬 스토리지도 함께 삭제
-    localStorage.removeItem(PLAYER_COLOR_INDEX_KEY);
-    setMyColorIndex(null);
-  }, []);
+    setCurrentVideoId('');
+    localStorage.removeItem('ums_currentVideoId');
+    clearLogs();
+    localStorage.removeItem('ums_logs');
+    setStatus('WAITING');
+
+    if (roomId) {
+      await fetchRoomUsers(roomId);
+    }
+  }, [roomId, fetchRoomUsers, clearLogs]);
 
   /**
    * 진행 중인 게임에 재입장했을 때, 놓친 라운드 상태를 서버 스냅샷으로 복원한다.
@@ -527,8 +565,9 @@ export const useGameLogic = () => {
   useEffect(() => {
     if (status === 'WAITING' && roomId) {
       fetchRoomUsers(roomId);
+      fetchRoomSettings(roomId);
     }
-  }, [status, roomId, fetchRoomUsers]);
+  }, [status, roomId, fetchRoomUsers, fetchRoomSettings]);
 
   useEffect(() => {
     if (!roomId || (status !== 'WAITING' && status !== 'PLAYING')) return;
@@ -890,6 +929,9 @@ export const useGameLogic = () => {
     createRoom,
     leaveRoom,
     returnToLobby,
+    returnToWaitingRoom,
+    roomSettings,
+    changeRoomSettings,
     startGame,
     toggleReady,
     skipRound,

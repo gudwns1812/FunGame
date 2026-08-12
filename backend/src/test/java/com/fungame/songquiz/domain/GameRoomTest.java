@@ -23,7 +23,7 @@ class GameRoomTest {
         var songs = List.of(Song.of("정답", "", List.of(Category.KPOP), LocalDate.of(2015, 1, 1), "", 30, List.of(), ""));
         game = new SongQuiz(songs, Category.KPOP);
         List<String> players = new ArrayList<>(List.of("host"));
-        gameRoom = GameRoom.create("방제목", game, players, 2, "host");
+        gameRoom = GameRoom.create(new RoomSettings(GameType.SONG, "방제목", 2, Category.KPOP, 1, 0), players, "host");
     }
 
     @Test
@@ -69,7 +69,7 @@ class GameRoomTest {
     @DisplayName("게임이 이미 진행 중인 방에는 입장할 수 없다.")
     void join_fail_already_playing() {
         // given
-        gameRoom.start("host");
+        gameRoom.start("host", game);
 
         // when // then
         assertThatThrownBy(() -> gameRoom.join("player2"))
@@ -81,7 +81,7 @@ class GameRoomTest {
     @DisplayName("방장이 아닌 사용자가 게임을 시작하면 예외가 발생한다.")
     void start_fail_not_host() {
         // when // then
-        assertThatThrownBy(() -> gameRoom.start("not_host"))
+        assertThatThrownBy(() -> gameRoom.start("not_host", game))
                 .isInstanceOf(CoreException.class)
                 .hasMessageContaining(ErrorType.NOT_VALID_HOST.getMessage());
     }

@@ -1,6 +1,6 @@
 import WaitingRoom from '../components/WaitingRoom';
 import TopBar from '../components/layout/TopBar';
-import type { Player } from '../types/game';
+import type { Player, RoomSettings } from '../types/game';
 
 interface WaitingRoomPageProps {
   players: Player[];
@@ -11,6 +11,8 @@ interface WaitingRoomPageProps {
   onToggleReady: () => void;
   onSendMessage: (message: string) => void;
   maxPlayers: number;
+  roomSettings: RoomSettings | null;
+  onChangeSettings: (changes: Omit<RoomSettings, 'title' | 'host'>) => void;
   /** 헤더에 표시할 방 이름 */
   roomName?: string;
 }
@@ -24,6 +26,8 @@ const WaitingRoomPage: React.FC<WaitingRoomPageProps> = ({
   onToggleReady,
   onSendMessage,
   maxPlayers,
+  roomSettings,
+  onChangeSettings,
   roomName,
 }) => {
   return (
@@ -44,6 +48,8 @@ const WaitingRoomPage: React.FC<WaitingRoomPageProps> = ({
           onToggleReady={onToggleReady}
           onSendMessage={onSendMessage}
           maxPlayers={maxPlayers}
+          roomSettings={roomSettings}
+          onChangeSettings={onChangeSettings}
         />
       </main>
     </div>
