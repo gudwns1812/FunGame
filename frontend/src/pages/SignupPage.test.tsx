@@ -139,4 +139,65 @@ describe('SignupPage 닉네임 중복 확인 기능', () => {
       expect(screen.getByText('API Error')).toBeInTheDocument();
     });
   });
+
+  it('이메일까지 채워 제출하면 이메일을 함께 회원가입 API 로 넘긴다', async () => {
+    // Given
+    mockCheckNickname.mockResolvedValue(false);
+    mockCheckId.mockResolvedValue(false);
+    mockSignup.mockResolvedValue(undefined);
+    vi.spyOn(window, 'alert').mockImplementation(() => {});
+    setup();
+
+    const checkButtons = screen.getAllByRole('button', { name: /중복 확인/ });
+
+    // When
+    fireEvent.change(screen.getByPlaceholderText(/닉네임 입력/), { target: { value: 'newNick' } });
+    fireEvent.click(checkButtons[0]);
+    await waitFor(() => expect(screen.getByText('사용 가능한 닉네임입니다.')).toBeInTheDocument());
+
+    fireEvent.change(screen.getByPlaceholderText(/아이디 입력/), { target: { value: 'newId' } });
+    fireEvent.click(checkButtons[1]);
+    await waitFor(() => expect(screen.getByText('사용 가능한 아이디입니다.')).toBeInTheDocument());
+
+    fireEvent.change(screen.getByPlaceholderText(/비밀번호를 잊었을 때 쓰입니다/), {
+      target: { value: 'tester@fun-game.club' },
+    });
+    fireEvent.change(screen.getByPlaceholderText('비밀번호 입력'), { target: { value: 'pw1234' } });
+    fireEvent.change(screen.getByPlaceholderText('비밀번호 다시 입력'), { target: { value: 'pw1234' } });
+    fireEvent.click(screen.getByRole('button', { name: /계정 생성하기/ }));
+
+    // Then
+    await waitFor(() => {
+      expect(mockSignup).toHaveBeenCalledWith('newId', 'pw1234', 'newNick', 'tester@fun-game.club');
+    });
+  });
+
+  it('브라우저 검증은 통과하지만 도메인에 점이 없는 이메일은 회원가입을 요청하지 않는다', async () => {
+    // Given
+    mockCheckNickname.mockResolvedValue(false);
+    mockCheckId.mockResolvedValue(false);
+    setup();
+
+    const checkButtons = screen.getAllByRole('button', { name: /중복 확인/ });
+
+    // When
+    fireEvent.change(screen.getByPlaceholderText(/닉네임 입력/), { target: { value: 'newNick' } });
+    fireEvent.click(checkButtons[0]);
+    await waitFor(() => expect(screen.getByText('사용 가능한 닉네임입니다.')).toBeInTheDocument());
+
+    fireEvent.change(screen.getByPlaceholderText(/아이디 입력/), { target: { value: 'newId' } });
+    fireEvent.click(checkButtons[1]);
+    await waitFor(() => expect(screen.getByText('사용 가능한 아이디입니다.')).toBeInTheDocument());
+
+    fireEvent.change(screen.getByPlaceholderText(/비밀번호를 잊었을 때 쓰입니다/), {
+      target: { value: 'tester@fun-game' },
+    });
+    fireEvent.change(screen.getByPlaceholderText('비밀번호 입력'), { target: { value: 'pw1234' } });
+    fireEvent.change(screen.getByPlaceholderText('비밀번호 다시 입력'), { target: { value: 'pw1234' } });
+    fireEvent.click(screen.getByRole('button', { name: /계정 생성하기/ }));
+
+    // Then
+    expect(await screen.findByText('이메일 형식이 올바르지 않습니다.')).toBeInTheDocument();
+    expect(mockSignup).not.toHaveBeenCalled();
+  });
 });

@@ -37,6 +37,8 @@ dependencies {
     // starter-security 에는 포함되지 않는다.
     implementation 'org.springframework.security:spring-security-messaging'
     implementation 'org.springframework.session:spring-session-jdbc'
+    implementation platform('software.amazon.awssdk:bom:2.31.30')
+    implementation 'software.amazon.awssdk:sesv2'
     implementation 'org.jsoup:jsoup:1.16.1'
     implementation "io.github.openfeign.querydsl:querydsl-jpa:${queryDslVersion}"
     implementation "io.github.openfeign.querydsl:querydsl-core:${queryDslVersion}"
@@ -45,6 +47,9 @@ dependencies {
     annotationProcessor 'org.projectlombok:lombok'
     
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testImplementation 'org.springframework.boot:spring-boot-testcontainers'
+    testImplementation 'org.testcontainers:junit-jupiter'
+    testImplementation 'org.testcontainers:mysql'
     testImplementation 'org.springframework.security:spring-security-test'
     testImplementation 'org.springframework.restdocs:spring-restdocs-mockmvc'
     testImplementation 'org.awaitility:awaitility:4.2.0'
@@ -72,10 +77,6 @@ tasks.named('test') {
             excludeTags 'external'
         }
     }
-
-    // 마이그레이션이 MySQL 문법이므로 테스트 H2 도 MySQL 모드로 띄운다.
-    // 스키마는 운영과 같이 Flyway 가 만들고, ddl-auto 는 validate 로 검증만 한다.
-    systemProperty 'spring.datasource.url', 'jdbc:h2:mem:songquiz-test;DB_CLOSE_DELAY=-1;MODE=MySQL'
 }
 
 tasks.named('asciidoctor') {

@@ -1,6 +1,8 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import SignupPage from './pages/SignupPage';
 import LoginPage from './pages/LoginPage';
+import ForgotPasswordPage from './pages/ForgotPasswordPage';
+import ResetPasswordPage from './pages/ResetPasswordPage';
 import RoomListPage from './pages/RoomListPage';
 import MyPage from './pages/MyPage';
 import AdminSongPage from './pages/AdminSongPage';
@@ -127,6 +129,14 @@ function AppContent() {
       <Route
         path="/signup"
         element={!isAuthenticated ? <SignupPage /> : <Navigate to={currentPath} replace />}
+      />
+      <Route
+        path="/forgot-password"
+        element={!isAuthenticated ? <ForgotPasswordPage /> : <Navigate to={currentPath} replace />}
+      />
+      <Route
+        path="/reset-password"
+        element={!isAuthenticated ? <ResetPasswordPage /> : <Navigate to={currentPath} replace />}
       />
 
       {/* 보호된 경로 */}

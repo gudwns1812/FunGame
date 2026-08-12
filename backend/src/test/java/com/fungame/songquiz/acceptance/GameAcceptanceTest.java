@@ -70,6 +70,7 @@ public class GameAcceptanceTest {
                                 .loginId("testUser")
                                 .password("password")
                                 .nickname("방장")
+                                .email("host@fun-game.club")
                                 .role(Role.USER)
                                 .build());
                     }

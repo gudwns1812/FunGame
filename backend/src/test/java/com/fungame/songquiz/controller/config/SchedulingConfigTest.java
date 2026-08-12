@@ -1,10 +1,10 @@
 package com.fungame.songquiz.controller.config;
 
 import org.junit.jupiter.api.DisplayName;
+import com.fungame.songquiz.support.MySqlIntegrationTest;
 import org.junit.jupiter.api.Test;
 import com.fungame.songquiz.support.config.AppTaskScheduler;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.ApplicationContext;
 import org.springframework.scheduling.TaskScheduler;
 import org.springframework.scheduling.annotation.ScheduledAnnotationBeanPostProcessor;
@@ -13,7 +13,7 @@ import org.springframework.test.util.ReflectionTestUtils;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-@SpringBootTest
+@MySqlIntegrationTest
 class SchedulingConfigTest {
 
     @Autowired

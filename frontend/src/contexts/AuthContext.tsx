@@ -4,7 +4,9 @@ import type { AuthState } from '../types/auth';
 
 interface AuthContextType extends AuthState {
   login: (loginId: string, password: string) => Promise<void>;
-  signup: (loginId: string, password: string, nickname: string) => Promise<void>;
+  signup: (loginId: string, password: string, nickname: string, email: string) => Promise<void>;
+  requestPasswordReset: (loginId: string, email: string) => Promise<void>;
+  resetPassword: (token: string, newPassword: string) => Promise<void>;
   checkId: (loginId: string) => Promise<boolean>;
   checkNickname: (nickname: string) => Promise<boolean>;
   logout: () => Promise<void>;
@@ -92,14 +94,36 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const signup = async (loginId: string, password: string, nickname: string) => {
+  const signup = async (loginId: string, password: string, nickname: string, email: string) => {
     try {
-      const response = await axios.post('/api/auth/signup', { loginId, password, nickname });
+      const response = await axios.post('/api/auth/signup', { loginId, password, nickname, email });
       if (response.data.result !== 'SUCCESS') {
         throw new Error(response.data.error.message || '회원가입에 실패했습니다.');
       }
     } catch (error: any) {
       throw new Error(error.response?.data?.error?.message || '회원가입에 실패했습니다.');
+    }
+  };
+
+  const requestPasswordReset = async (loginId: string, email: string) => {
+    try {
+      const response = await axios.post('/api/auth/password-reset-request', { loginId, email });
+      if (response.data.result !== 'SUCCESS') {
+        throw new Error(response.data.error.message || '재설정 요청에 실패했습니다.');
+      }
+    } catch (error: any) {
+      throw new Error(error.response?.data?.error?.message || '재설정 요청에 실패했습니다.');
+    }
+  };
+
+  const resetPassword = async (token: string, newPassword: string) => {
+    try {
+      const response = await axios.post('/api/auth/password-reset', { token, newPassword });
+      if (response.data.result !== 'SUCCESS') {
+        throw new Error(response.data.error.message || '비밀번호 재설정에 실패했습니다.');
+      }
+    } catch (error: any) {
+      throw new Error(error.response?.data?.error?.message || '비밀번호 재설정에 실패했습니다.');
     }
   };
 
@@ -163,7 +187,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   return (
-    <AuthContext.Provider value={{ ...authState, login, signup, checkId, checkNickname, logout, updateNickname, refreshUser }}>
+    <AuthContext.Provider value={{ ...authState, login, signup, requestPasswordReset, resetPassword, checkId, checkNickname, logout, updateNickname, refreshUser }}>
       {children}
     </AuthContext.Provider>
   );

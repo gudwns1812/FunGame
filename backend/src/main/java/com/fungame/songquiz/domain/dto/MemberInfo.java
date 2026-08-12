@@ -12,12 +12,14 @@ import lombok.NoArgsConstructor;
 public class MemberInfo {
     private String loginId;
     private String nickname;
+    private String email;
     private Role role;
 
     @Builder
-    private MemberInfo(String loginId, String nickname, Role role) {
+    private MemberInfo(String loginId, String nickname, String email, Role role) {
         this.loginId = loginId;
         this.nickname = nickname;
+        this.email = email;
         this.role = role;
     }
 
@@ -25,6 +27,7 @@ public class MemberInfo {
         return MemberInfo.builder()
                 .loginId(member.getLoginId())
                 .nickname(member.getNickname())
+                .email(member.getEmail())
                 .role(member.getRole())
                 .build();
     }

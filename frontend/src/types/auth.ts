@@ -3,6 +3,7 @@ export type UserRole = 'MASTER' | 'ADMIN' | 'USER';
 export interface MemberInfo {
   loginId: string;
   nickname: string;
+  email: string;
   role: UserRole;
 }
 

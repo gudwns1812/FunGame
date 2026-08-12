@@ -2,9 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
 const SignupPage: React.FC = () => {
   const [nickname, setNickname] = useState('');
   const [loginId, setLoginId] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
 
@@ -81,7 +84,7 @@ const SignupPage: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!nickname || !loginId || !password || !confirmPassword) {
+    if (!nickname || !loginId || !email || !password || !confirmPassword) {
       setError('모든 필드를 입력해주세요.');
       return;
     }
@@ -93,6 +96,11 @@ const SignupPage: React.FC = () => {
 
     if (isNicknameAvailable !== true) {
       setError('닉네임 중복 확인을 먼저 완료해주세요.');
+      return;
+    }
+
+    if (!EMAIL_PATTERN.test(email)) {
+      setError('이메일 형식이 올바르지 않습니다.');
       return;
     }
 
@@ -110,7 +118,7 @@ const SignupPage: React.FC = () => {
     setError('');
 
     try {
-      await signup(loginId, password, nickname);
+      await signup(loginId, password, nickname, email);
       window.alert('회원가입이 완료되었습니다. 로그인해주세요.');
       navigate('/login');
     } catch (err: any) {
@@ -177,6 +185,17 @@ const SignupPage: React.FC = () => {
             </div>
             {isIdAvailable === true && <p className="px-label text-grass mt-1.5">사용 가능한 아이디입니다.</p>}
             {isIdAvailable === false && <p className="px-label text-cherry mt-1.5">이미 사용 중인 아이디입니다.</p>}
+          </div>
+
+          <div>
+            <label className="px-label block mb-1.5">이메일</label>
+            <input
+              type="email"
+              className="px-input"
+              placeholder="비밀번호를 잊었을 때 쓰입니다"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+            />
           </div>
 
           <div>

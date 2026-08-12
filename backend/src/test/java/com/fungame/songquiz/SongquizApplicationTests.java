@@ -1,9 +1,9 @@
 package com.fungame.songquiz;
 
+import com.fungame.songquiz.support.MySqlIntegrationTest;
 import org.junit.jupiter.api.Test;
-import org.springframework.boot.test.context.SpringBootTest;
 
-@SpringBootTest
+@MySqlIntegrationTest
 class SongquizApplicationTests {
 
     @Test

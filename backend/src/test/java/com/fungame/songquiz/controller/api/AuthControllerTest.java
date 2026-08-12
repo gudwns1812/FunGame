@@ -2,6 +2,7 @@ package com.fungame.songquiz.controller.api;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fungame.songquiz.domain.member.AuthService;
+import com.fungame.songquiz.domain.member.PasswordResetService;
 import com.fungame.songquiz.domain.member.Member;
 import com.fungame.songquiz.domain.member.Role;
 import com.fungame.songquiz.controller.request.LoginRequest;
@@ -26,16 +27,18 @@ class AuthControllerTest {
 
     private MockMvc mockMvc;
     private final AuthService authService = mock(AuthService.class);
+    private final PasswordResetService passwordResetService = mock(PasswordResetService.class);
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     @BeforeEach
     void setUp() {
-        this.mockMvc = MockMvcBuilders.standaloneSetup(new AuthController(authService)).build();
+        this.mockMvc = MockMvcBuilders.standaloneSetup(new AuthController(authService, passwordResetService)).build();
 
         given(authService.getMyInfo(anyString())).willReturn(Member.builder()
                 .loginId("tester")
                 .password("encoded")
                 .nickname("테스터")
+                .email("tester@fun-game.club")
                 .role(Role.USER)
                 .build());
     }
