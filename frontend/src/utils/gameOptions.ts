@@ -4,13 +4,28 @@ export const GAME_TYPES = [
   { value: 'HANGMAN', label: '행맨' },
 ];
 
-export const CATEGORIES = [
-  { value: 'TOTAL', label: '전체' },
+export const SONG_CATEGORIES = [
   { value: 'KPOP', label: 'K-POP' },
   { value: 'POP', label: 'POP' },
   { value: 'BALLAD', label: '발라드' },
   { value: 'RAP', label: '랩/힙합' },
   { value: 'OST', label: 'OST' },
+  { value: 'SM', label: 'SM' },
+  { value: 'YG', label: 'YG' },
+  { value: 'JYP', label: 'JYP' },
+  { value: 'HYBE', label: 'HYBE' },
+  { value: 'STARSHIP', label: '스타쉽' },
+  { value: 'GEN1', label: '1세대' },
+  { value: 'GEN2', label: '2세대' },
+  { value: 'GEN3', label: '3세대' },
+  { value: 'GEN4', label: '4세대' },
+];
+
+const ROOM_EXCLUDED_CATEGORIES = ['GEN1'];
+
+export const CATEGORIES = [
+  { value: 'TOTAL', label: '전체' },
+  ...SONG_CATEGORIES.filter((category) => !ROOM_EXCLUDED_CATEGORIES.includes(category.value)),
 ];
 
 const SONG_COUNT_OPTIONS = [10, 20, 30, 40, 50, 60, 70, 80, 90, 100];

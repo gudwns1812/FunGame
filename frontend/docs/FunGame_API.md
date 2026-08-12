@@ -100,6 +100,15 @@ http://{서버주소}
 - `BALLAD` - 발라드
 - `RAP` - 랩/힙합
 - `OST` - OST
+- `SM` - SM
+- `YG` - YG
+- `JYP` - JYP
+- `HYBE` - HYBE
+- `STARSHIP` - 스타쉽
+- `GEN1` - 1세대
+- `GEN2` - 2세대
+- `GEN3` - 3세대
+- `GEN4` - 4세대
 
 **Response `data`**: `String` - 생성된 방의 ID
 

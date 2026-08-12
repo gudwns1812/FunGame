@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import TopBar from '../components/layout/TopBar';
+import { SONG_CATEGORIES } from '../utils/gameOptions';
 
 const AdminSongPage: React.FC = () => {
   const [formData, setFormData] = useState({
@@ -20,14 +21,6 @@ const AdminSongPage: React.FC = () => {
   // Duplicate Check States
   const [isCheckingDuplicate, setIsCheckingDuplicate] = useState(false);
   const [duplicateStatus, setDuplicateStatus] = useState<'idle' | 'available' | 'duplicate'>('idle');
-
-  const categories = [
-    { value: 'KPOP', label: 'K-POP' },
-    { value: 'POP', label: 'POP' },
-    { value: 'BALLAD', label: '발라드' },
-    { value: 'RAP', label: '랩/힙합' },
-    { value: 'OST', label: 'OST' },
-  ];
 
   const handleCategoryToggle = (value: string) => {
     setFormData((prev) => ({
@@ -226,7 +219,7 @@ const AdminSongPage: React.FC = () => {
               <div className="md:col-span-2">
                 <label className="px-label block mb-1.5">카테고리 (필수 선택)</label>
                 <div className="flex flex-wrap gap-2">
-                  {categories.map((cat) => (
+                  {SONG_CATEGORIES.map((cat) => (
                     <button
                       key={cat.value}
                       type="button"
