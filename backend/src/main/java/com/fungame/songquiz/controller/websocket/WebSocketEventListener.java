@@ -29,13 +29,13 @@ public class WebSocketEventListener {
             return;
         }
 
-        String nickname = extractNickname(event.getUser());
-        if (nickname == null) {
-            log.warn("방 {} 을 구독한 세션 {} 의 닉네임을 확인할 수 없다", roomId, sessionId);
+        MemberAdapter member = extractMember(event.getUser());
+        if (member == null) {
+            log.warn("방 {} 을 구독한 세션 {} 의 회원 정보를 확인할 수 없다", roomId, sessionId);
             return;
         }
 
-        connectionRegistry.connected(sessionId, new RoomMember(roomId, nickname));
+        connectionRegistry.connected(sessionId, new RoomMember(roomId, member.getId(), member.getNickName()));
     }
 
     @EventListener
@@ -44,10 +44,10 @@ public class WebSocketEventListener {
         connectionRegistry.disconnected(headerAccessor.getSessionId());
     }
 
-    private String extractNickname(Principal principal) {
+    private MemberAdapter extractMember(Principal principal) {
         if (principal instanceof Authentication authentication
                 && authentication.getPrincipal() instanceof MemberAdapter member) {
-            return member.getNickName();
+            return member;
         }
 
         return null;

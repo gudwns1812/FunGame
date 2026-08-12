@@ -39,6 +39,13 @@ public enum ErrorType {
     PASSWORD_POLICY_VIOLATION(HttpStatus.BAD_REQUEST, ErrorCode.M009,
             "비밀번호는 " + PasswordPolicy.MINIMUM_LENGTH + "자 이상이어야 합니다.", LogLevel.DEBUG),
 
+    INVITE_NOT_FROM_WAITING_ROOM(HttpStatus.BAD_REQUEST, ErrorCode.I001, "대기실에 있을 때만 초대할 수 있습니다.", LogLevel.DEBUG),
+    INVITE_TARGET_OFFLINE(HttpStatus.BAD_REQUEST, ErrorCode.I002, "상대방이 접속 중이 아닙니다.", LogLevel.DEBUG),
+    INVITE_TARGET_NOT_IN_LOBBY(HttpStatus.BAD_REQUEST, ErrorCode.I003, "로비에 있는 사용자만 초대할 수 있습니다.", LogLevel.DEBUG),
+    INVITE_TO_SELF(HttpStatus.BAD_REQUEST, ErrorCode.I004, "자기 자신은 초대할 수 없습니다.", LogLevel.DEBUG),
+    INVITE_NOT_FOUND(HttpStatus.BAD_REQUEST, ErrorCode.I005, "초대가 만료되었거나 이미 처리되었습니다.", LogLevel.DEBUG),
+    ALREADY_IN_ANOTHER_ROOM(HttpStatus.BAD_REQUEST, ErrorCode.I006, "이미 다른 방에 참여 중입니다.", LogLevel.DEBUG),
+
     HANGMAN_WORD_FETCH_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, ErrorCode.H001, "행맨 단어를 가져오는데 실패했습니다.", LogLevel.ERROR),
     HANGMAN_ANSWER_EMPTY(HttpStatus.BAD_REQUEST, ErrorCode.H002, "행맨 정답 단어는 비어있을 수 없습니다.", LogLevel.DEBUG),
     HANGMAN_PLAYER_EMPTY(HttpStatus.BAD_REQUEST, ErrorCode.H003, "행맨 플레이어가 존재해야 합니다.", LogLevel.DEBUG);

@@ -26,7 +26,8 @@ class RoomConnectionRegistryTest {
 
     private static final Long ROOM_ID = 1L;
     private static final String NICKNAME = "참가자";
-    private static final RoomMember MEMBER = new RoomMember(ROOM_ID, NICKNAME);
+    private static final Long MEMBER_ID = 11L;
+    private static final RoomMember MEMBER = new RoomMember(ROOM_ID, MEMBER_ID, NICKNAME);
 
     @Mock
     GameRoomService gameRoomService;
@@ -62,7 +63,7 @@ class RoomConnectionRegistryTest {
         registry.disconnected("session-1");
 
         // then
-        verify(gameRoomService, never()).leaveRoom(ROOM_ID, NICKNAME);
+        verify(gameRoomService, never()).leaveRoom(ROOM_ID, NICKNAME, MEMBER_ID);
         assertThat(registry.isConnected(MEMBER)).isFalse();
     }
 
@@ -80,7 +81,7 @@ class RoomConnectionRegistryTest {
 
         // then
         assertThat(registry.isConnected(MEMBER)).isTrue();
-        verify(gameRoomService, never()).leaveRoom(ROOM_ID, NICKNAME);
+        verify(gameRoomService, never()).leaveRoom(ROOM_ID, NICKNAME, MEMBER_ID);
     }
 
     @Test
@@ -94,7 +95,7 @@ class RoomConnectionRegistryTest {
         captureScheduledLeave().run();
 
         // then
-        verify(gameRoomService).leaveRoom(ROOM_ID, NICKNAME);
+        verify(gameRoomService).leaveRoom(ROOM_ID, NICKNAME, MEMBER_ID);
     }
 
     @Test
@@ -104,7 +105,7 @@ class RoomConnectionRegistryTest {
 
         // then
         verify(taskScheduler, never()).schedule(any(Runnable.class), any(Instant.class));
-        verify(gameRoomService, never()).leaveRoom(any(), any());
+        verify(gameRoomService, never()).leaveRoom(any(), any(), any());
     }
 
     @Test

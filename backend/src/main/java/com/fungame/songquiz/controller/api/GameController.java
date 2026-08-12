@@ -79,7 +79,7 @@ public class GameController {
     public ApiResponse<Long> createRoom(
             @RequestBody CreateRoomRequest request,
             @AuthenticationPrincipal MemberAdapter memberAdapter) {
-        Long roomId = gameRoomService.createRoom(request.toRoomSettings(), memberAdapter.getNickName());
+        Long roomId = gameRoomService.createRoom(request.toRoomSettings(), memberAdapter.getNickName(), memberAdapter.getId());
         return ApiResponse.success(roomId);
     }
 
@@ -87,7 +87,7 @@ public class GameController {
     public ApiResponse<Integer> joinRoom(
             @PathVariable Long roomId,
             @AuthenticationPrincipal MemberAdapter memberAdapter) {
-        int playerSequence = gameRoomService.joinRoom(roomId, memberAdapter.getNickName());
+        int playerSequence = gameRoomService.joinRoom(roomId, memberAdapter.getNickName(), memberAdapter.getId());
         return ApiResponse.success(playerSequence);
     }
 
@@ -95,7 +95,7 @@ public class GameController {
     public ApiResponse<Void> leaveRoom(
             @PathVariable Long roomId,
             @AuthenticationPrincipal MemberAdapter memberAdapter) {
-        gameRoomService.leaveRoom(roomId, memberAdapter.getNickName());
+        gameRoomService.leaveRoom(roomId, memberAdapter.getNickName(), memberAdapter.getId());
         return ApiResponse.success();
     }
 
