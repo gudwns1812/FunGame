@@ -1,6 +1,6 @@
 import React from 'react';
 import type { RoomSettings } from '../types/game';
-import { CATEGORIES, GAME_TYPES, isSingleRound } from '../utils/gameOptions';
+import { CATEGORIES, CS_DIFFICULTIES, GAME_TYPES, isSingleRound } from '../utils/gameOptions';
 
 interface RoomSettingsSummaryProps {
   settings: RoomSettings;
@@ -22,6 +22,10 @@ const RoomSettingsSummary: React.FC<RoomSettingsSummaryProps> = ({ settings, isH
         </span>
 
         {settings.gameType === 'SONG' && <span className="px-chip">{labelOf(CATEGORIES, settings.category)}</span>}
+
+        {settings.gameType === 'CS' && (
+          <span className="px-chip">난이도 {labelOf(CS_DIFFICULTIES, settings.csDifficulty)}</span>
+        )}
 
         {settings.gameType === 'HANGMAN' ? (
           <span className="px-chip">

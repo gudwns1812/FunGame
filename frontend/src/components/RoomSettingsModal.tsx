@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import type { RoomSettings } from '../types/game';
 import {
   CATEGORIES,
+  CS_DIFFICULTIES,
+  DEFAULT_CS_DIFFICULTY,
   GAME_TYPES,
   applyGameTypeConstraints,
   canHold,
@@ -24,6 +26,7 @@ const RoomSettingsModal: React.FC<RoomSettingsModalProps> = ({ settings, current
   const [totalRound, setTotalRound] = useState(settings.totalRound);
   const [difficulty, setDifficulty] = useState(settings.difficulty || 3);
   const [maxPlayers, setMaxPlayers] = useState(settings.maxPlayers);
+  const [csDifficulty, setCsDifficulty] = useState(settings.csDifficulty ?? DEFAULT_CS_DIFFICULTY);
 
   const changeGameType = (nextGameType: string) => {
     const adjusted = applyGameTypeConstraints(nextGameType, { category, totalRound, maxPlayers }, currentPlayers);
@@ -38,7 +41,7 @@ const RoomSettingsModal: React.FC<RoomSettingsModalProps> = ({ settings, current
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSubmit({ gameType, maxPlayers, category, totalRound, difficulty });
+    onSubmit({ gameType, maxPlayers, category, totalRound, difficulty, csDifficulty });
   };
 
   return (
@@ -65,9 +68,24 @@ const RoomSettingsModal: React.FC<RoomSettingsModalProps> = ({ settings, current
         </div>
 
         <div>
-          <label className="px-label block mb-1.5" htmlFor="room-settings-category">{gameType === 'HANGMAN' ? '난이도' : '장르'}</label>
+          <label className="px-label block mb-1.5" htmlFor={gameType === 'CS' ? 'room-settings-cs-difficulty' : 'room-settings-category'}>
+            {gameType === 'HANGMAN' || gameType === 'CS' ? '난이도' : '장르'}
+          </label>
           {gameType === 'CS' ? (
-            <div className="px-input bg-paper-2 text-ink-soft">CS 종합</div>
+            <>
+              <select
+                id="room-settings-cs-difficulty"
+                className="px-input"
+                value={csDifficulty}
+                onChange={(e) => setCsDifficulty(e.target.value)}>
+                {CS_DIFFICULTIES.map((level) => (
+                  <option key={level.value} value={level.value}>
+                    {level.label}
+                  </option>
+                ))}
+              </select>
+              <p className="px-label text-[10px] mt-1">고른 난이도까지의 문제가 출제됩니다.</p>
+            </>
           ) : gameType === 'HANGMAN' ? (
             <div className="px-input flex items-center gap-3 py-2.5">
               <input

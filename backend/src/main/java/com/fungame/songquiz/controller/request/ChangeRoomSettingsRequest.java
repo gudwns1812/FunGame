@@ -1,5 +1,6 @@
 package com.fungame.songquiz.controller.request;
 
+import com.fungame.songquiz.domain.CSQuizDifficulty;
 import com.fungame.songquiz.domain.Category;
 import com.fungame.songquiz.domain.GameType;
 import com.fungame.songquiz.domain.RoomSettings;
@@ -18,8 +19,13 @@ public class ChangeRoomSettingsRequest {
     private Category category;
     private int totalRound;
     private int difficulty;
+    private CSQuizDifficulty csDifficulty;
 
     public RoomSettings applyTo(RoomSettings current) {
-        return current.changeTo(gameType, maxPlayers, category, totalRound, difficulty);
+        return current.changeTo(gameType, maxPlayers, category, totalRound, difficulty, csDifficultyOr(current.csDifficulty()));
+    }
+
+    private CSQuizDifficulty csDifficultyOr(CSQuizDifficulty unchanged) {
+        return csDifficulty == null ? unchanged : csDifficulty;
     }
 }

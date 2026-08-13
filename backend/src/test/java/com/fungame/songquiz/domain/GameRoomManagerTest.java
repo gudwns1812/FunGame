@@ -1,5 +1,6 @@
 package com.fungame.songquiz.domain;
 
+import com.fungame.songquiz.domain.CSQuizDifficulty;
 import com.fungame.songquiz.storage.GameRoomStore;
 import com.fungame.songquiz.support.error.CoreException;
 import com.fungame.songquiz.support.lock.LockContext;
@@ -30,7 +31,7 @@ class GameRoomManagerTest {
     private static final GamePlayer HOST = GamePlayer.createNewPlayer(1L, "방장");
     private static final GamePlayer GUEST = GamePlayer.createNewPlayer(2L, "참가자");
     private static final GamePlayer INTRUDER = GamePlayer.createNewPlayer(9L, "난입자");
-    private static final RoomSettings SETTINGS = new RoomSettings(GameType.SONG, "방", 8, Category.KPOP, 10, 0);
+    private static final RoomSettings SETTINGS = new RoomSettings(GameType.SONG, "방", 8, Category.KPOP, 10, 0, CSQuizDifficulty.HARD);
 
     @Mock
     ApplicationEventPublisher applicationEventPublisher;
@@ -62,7 +63,7 @@ class GameRoomManagerTest {
     }
 
     private void openRoom(int maxPlayers) {
-        RoomSettings settings = SETTINGS.changeTo(SETTINGS.gameType(), maxPlayers, SETTINGS.category(), SETTINGS.totalRound(), SETTINGS.difficulty());
+        RoomSettings settings = SETTINGS.changeTo(SETTINGS.gameType(), maxPlayers, SETTINGS.category(), SETTINGS.totalRound(), SETTINGS.difficulty(), SETTINGS.csDifficulty());
         gameRoomManager.createGameRoom(ROOM_ID, settings, HOST);
     }
 

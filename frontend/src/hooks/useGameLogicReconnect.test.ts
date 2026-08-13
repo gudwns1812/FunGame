@@ -42,6 +42,8 @@ const ROOM = {
   playerCount: 1,
   maxPlayers: 8,
   status: 'WAITING' as const,
+  gameType: 'SONG',
+  csDifficulty: 'HARD',
 };
 
 const joinCallsFor = (roomId: string) =>

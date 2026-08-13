@@ -1,5 +1,6 @@
 package com.fungame.songquiz.storage;
 
+import com.fungame.songquiz.domain.CSQuizDifficulty;
 import com.fungame.songquiz.domain.Category;
 import com.fungame.songquiz.domain.GamePlayer;
 import com.fungame.songquiz.domain.GameRoomStatus;
@@ -51,6 +52,10 @@ public class GameRoomEntity {
 
     private int difficulty;
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private CSQuizDifficulty csDifficulty;
+
     @Column(nullable = false)
     private Instant lastActivityTime;
 
@@ -66,6 +71,7 @@ public class GameRoomEntity {
         this.category = settings.category();
         this.totalRound = settings.totalRound();
         this.difficulty = settings.difficulty();
+        this.csDifficulty = settings.csDifficulty();
         this.lastActivityTime = Instant.now();
     }
 
@@ -74,7 +80,7 @@ public class GameRoomEntity {
     }
 
     public RoomSettings toSettings() {
-        return new RoomSettings(gameType, title, maxPlayer, category, totalRound, difficulty);
+        return new RoomSettings(gameType, title, maxPlayer, category, totalRound, difficulty, csDifficulty);
     }
 
     public void applySettings(RoomSettings settings) {
@@ -83,6 +89,7 @@ public class GameRoomEntity {
         this.category = settings.category();
         this.totalRound = settings.totalRound();
         this.difficulty = settings.difficulty();
+        this.csDifficulty = settings.csDifficulty();
     }
 
     public void changeStatus(GameRoomStatus status) {

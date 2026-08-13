@@ -1,5 +1,6 @@
 package com.fungame.songquiz.domain.invite;
 
+import com.fungame.songquiz.domain.CSQuizDifficulty;
 import com.fungame.songquiz.domain.Category;
 import com.fungame.songquiz.domain.GamePlayer;
 import com.fungame.songquiz.domain.GameRoomService;
@@ -296,14 +297,14 @@ class RoomInviteServiceTest {
     }
 
     private static RoomInfo waitingRoomInfo() {
-        return new RoomInfo(ROOM_ID, "테스트 방", INVITER_ID, "방장", GameRoomStatus.WAITING, 8, 2);
+        return new RoomInfo(ROOM_ID, "테스트 방", INVITER_ID, "방장", GameRoomStatus.WAITING, 8, 2, GameType.SONG, CSQuizDifficulty.HARD);
     }
 
     private static RoomInfo playingRoomInfo() {
-        return new RoomInfo(ROOM_ID, "테스트 방", INVITER_ID, "방장", GameRoomStatus.PLAYING, 8, 2);
+        return new RoomInfo(ROOM_ID, "테스트 방", INVITER_ID, "방장", GameRoomStatus.PLAYING, 8, 2, GameType.SONG, CSQuizDifficulty.HARD);
     }
 
     private static RoomSettingsInfo roomSettings() {
-        return new RoomSettingsInfo("테스트 방", GameType.SONG, 8, Category.KPOP, 10, 0, INVITER_ID, "방장");
+        return new RoomSettingsInfo("테스트 방", GameType.SONG, 8, Category.KPOP, 10, 0, CSQuizDifficulty.HARD, INVITER_ID, "방장");
     }
 }

@@ -1,5 +1,6 @@
 package com.fungame.songquiz.controller.api;
 
+import com.fungame.songquiz.domain.CSQuizDifficulty;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fungame.songquiz.controller.request.ChangeRoomSettingsRequest;
 import com.fungame.songquiz.controller.request.CreateRoomRequest;
@@ -76,7 +77,7 @@ class GameControllerTest {
     void findAllRoom() throws Exception {
         // given
         given(gameRoomService.findAllRooms()).willReturn(List.of(
-                new RoomInfo(1L, "K-POP 퀴즈방", 2L, "방장닉네임", GameRoomStatus.WAITING, 8, 3)
+                new RoomInfo(1L, "K-POP 퀴즈방", 2L, "방장닉네임", GameRoomStatus.WAITING, 8, 3, GameType.SONG, CSQuizDifficulty.HARD)
         ));
 
         // when // then
@@ -170,7 +171,7 @@ class GameControllerTest {
     void findSettings() throws Exception {
         // given
         given(gameRoomService.findSettings(1L)).willReturn(
-                new RoomSettingsInfo("K-POP 퀴즈방", GameType.SONG, 8, Category.KPOP, 10, 0, 2L, "방장닉네임"));
+                new RoomSettingsInfo("K-POP 퀴즈방", GameType.SONG, 8, Category.KPOP, 10, 0, CSQuizDifficulty.HARD, 2L, "방장닉네임"));
 
         // when // then
         mockMvc.perform(get("/game/rooms/{roomId}/settings", 1L))
@@ -190,9 +191,9 @@ class GameControllerTest {
     void changeSettings() throws Exception {
         // given
         RoomSettingsInfo current =
-                new RoomSettingsInfo("K-POP 퀴즈방", GameType.SONG, 8, Category.KPOP, 10, 0, 1L, "테스트유저");
+                new RoomSettingsInfo("K-POP 퀴즈방", GameType.SONG, 8, Category.KPOP, 10, 0, CSQuizDifficulty.HARD, 1L, "테스트유저");
         RoomSettingsInfo changed =
-                new RoomSettingsInfo("K-POP 퀴즈방", GameType.SONG, 6, Category.BALLAD, 5, 0, 1L, "테스트유저");
+                new RoomSettingsInfo("K-POP 퀴즈방", GameType.SONG, 6, Category.BALLAD, 5, 0, CSQuizDifficulty.HARD, 1L, "테스트유저");
 
         given(gameRoomService.findSettings(1L)).willReturn(current);
         given(gameRoomService.changeSettings(eq(1L), eq(1L), any())).willReturn(changed);

@@ -21,11 +21,11 @@ public class CSQuizGameFactory implements GameFactory {
 
     @Override
     public Game create(GameCreateInfo info) {
-        if (!(info instanceof CsQuizGameCreateInfo(int totalRound))) {
+        if (!(info instanceof CsQuizGameCreateInfo(int totalRound, CSQuizDifficulty difficulty))) {
             throw new CoreException(ErrorType.GAME_NOT_FOUND);
         }
 
-        List<ComputerScienceQuiz> computerScienceQuizs = csQuizReader.getRandomCSQuizWithCount(totalRound);
+        List<ComputerScienceQuiz> computerScienceQuizs = csQuizReader.getRandomCSQuizWithCount(totalRound, difficulty);
         return new ComputerScienceQuizGame(computerScienceQuizs);
     }
 }

@@ -3,14 +3,14 @@ import { useNavigate } from 'react-router-dom';
 import RoomList from '../components/RoomList';
 import OnlineUserList from '../components/OnlineUserList';
 import TopBar from '../components/layout/TopBar';
-import type { Room } from '../types/game';
+import type { CreateRoomInput, Room } from '../types/game';
 import { useAuth } from '../contexts/AuthContext';
 
 interface RoomListPageProps {
   rooms: Room[];
   nickname: string;
   onJoinRoom: (room: Room) => void;
-  onCreateRoom: (title: string, maxPlayers: number, category: string, songCount: number, gameType: string, difficulty?: number) => void;
+  onCreateRoom: (input: CreateRoomInput) => void;
   onRefreshRooms: () => void;
   onChangeNickname: (newName: string) => void;
 }

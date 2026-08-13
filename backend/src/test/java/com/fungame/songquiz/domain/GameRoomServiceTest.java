@@ -1,5 +1,6 @@
 package com.fungame.songquiz.domain;
 
+import com.fungame.songquiz.domain.CSQuizDifficulty;
 import com.fungame.songquiz.domain.event.PlayerJoinEvent;
 import com.fungame.songquiz.domain.event.PlayerLeaveEvent;
 import com.fungame.songquiz.domain.gamecreator.SongGameFactory;
@@ -64,7 +65,7 @@ class GameRoomServiceTest {
     @Test
     void 방을_만들면_저장소가_발급한_id_로_방을_연다() {
         // given
-        RoomSettings settings = new RoomSettings(GameType.SONG, "방2", 8, Category.KPOP, 10, 0);
+        RoomSettings settings = new RoomSettings(GameType.SONG, "방2", 8, Category.KPOP, 10, 0, CSQuizDifficulty.HARD);
 
         given(gameRoomStore.open(settings, HOST)).willReturn(7L);
 
@@ -154,7 +155,7 @@ class GameRoomServiceTest {
     @Test
     void 방을_만든_사람은_그_방의_대기실에_있는_것으로_기록된다() {
         // given
-        RoomSettings settings = new RoomSettings(GameType.SONG, "방2", 8, Category.KPOP, 10, 0);
+        RoomSettings settings = new RoomSettings(GameType.SONG, "방2", 8, Category.KPOP, 10, 0, CSQuizDifficulty.HARD);
         given(gameRoomStore.open(settings, HOST)).willReturn(7L);
 
         // when

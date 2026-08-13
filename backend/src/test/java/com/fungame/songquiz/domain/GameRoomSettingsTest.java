@@ -1,5 +1,6 @@
 package com.fungame.songquiz.domain;
 
+import com.fungame.songquiz.domain.CSQuizDifficulty;
 import com.fungame.songquiz.storage.GameRoomStore;
 import com.fungame.songquiz.support.error.CoreException;
 import com.fungame.songquiz.support.error.ErrorType;
@@ -24,7 +25,7 @@ class GameRoomSettingsTest {
     private static final GamePlayer GUEST = GamePlayer.createNewPlayer(2L, "참가자");
     private static final GamePlayer GUEST2 = GamePlayer.createNewPlayer(3L, "참가자2");
     private static final RoomSettings SETTINGS =
-            new RoomSettings(GameType.SONG, "방", 8, Category.KPOP, 10, 0);
+            new RoomSettings(GameType.SONG, "방", 8, Category.KPOP, 10, 0, CSQuizDifficulty.HARD);
 
     @Mock
     ApplicationEventPublisher applicationEventPublisher;
@@ -82,7 +83,7 @@ class GameRoomSettingsTest {
         gameRoomManager.joinRoom(ROOM_ID, GUEST);
         gameRoomManager.joinRoom(ROOM_ID, GUEST2);
 
-        RoomSettings shrunk = SETTINGS.changeTo(GameType.SONG, 2, Category.KPOP, 10, 0);
+        RoomSettings shrunk = SETTINGS.changeTo(GameType.SONG, 2, Category.KPOP, 10, 0, CSQuizDifficulty.HARD);
 
         assertThatThrownBy(() -> gameRoomManager.changeSettings(ROOM_ID, HOST.memberId(), shrunk))
                 .isInstanceOf(CoreException.class)
@@ -92,7 +93,7 @@ class GameRoomSettingsTest {
     @Test
     @DisplayName("게임 종류를 바꾸면 다음 판은 바뀐 종류로 시작한다.")
     void canChangeGameType() {
-        RoomSettings hangman = SETTINGS.changeTo(GameType.HANGMAN, 6, Category.DEFAULT, 1, 3);
+        RoomSettings hangman = SETTINGS.changeTo(GameType.HANGMAN, 6, Category.DEFAULT, 1, 3, CSQuizDifficulty.HARD);
 
         gameRoomManager.changeSettings(ROOM_ID, HOST.memberId(), hangman);
 
@@ -104,7 +105,7 @@ class GameRoomSettingsTest {
     @Test
     @DisplayName("설정을 바꿔도 방 이름은 유지된다.")
     void titleSurvivesSettingsChange() {
-        gameRoomManager.changeSettings(ROOM_ID, HOST.memberId(), SETTINGS.changeTo(GameType.CS, 8, Category.DEFAULT, 5, 0));
+        gameRoomManager.changeSettings(ROOM_ID, HOST.memberId(), SETTINGS.changeTo(GameType.CS, 8, Category.DEFAULT, 5, 0, CSQuizDifficulty.NORMAL));
 
         assertThat(gameRoomManager.findRoom(ROOM_ID).getTitle()).isEqualTo(SETTINGS.title());
     }
@@ -116,7 +117,7 @@ class GameRoomSettingsTest {
         gameRoomManager.readyPlayer(ROOM_ID, GUEST.memberId());
         assertThat(gameRoomManager.findRoom(ROOM_ID).isAllReady()).isTrue();
 
-        gameRoomManager.changeSettings(ROOM_ID, HOST.memberId(), SETTINGS.changeTo(GameType.SONG, 8, Category.POP, 5, 0));
+        gameRoomManager.changeSettings(ROOM_ID, HOST.memberId(), SETTINGS.changeTo(GameType.SONG, 8, Category.POP, 5, 0, CSQuizDifficulty.HARD));
 
         GameRoom room = gameRoomManager.findRoom(ROOM_ID);
         assertThat(room.isAllReady()).isFalse();

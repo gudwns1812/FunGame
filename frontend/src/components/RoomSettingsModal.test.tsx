@@ -10,6 +10,7 @@ const songRoom = (maxPlayers: number): RoomSettings => ({
   category: 'KPOP',
   totalRound: 10,
   difficulty: 0,
+  csDifficulty: 'HARD',
   hostMemberId: 1,
   hostNickname: '방장',
 });
@@ -54,5 +55,32 @@ describe('RoomSettingsModal', () => {
     expect(onSubmit).toHaveBeenCalledTimes(1);
     expect(onSubmit.mock.calls[0][0].maxPlayers).toBeGreaterThanOrEqual(5);
     expect(onSubmit.mock.calls[0][0].gameType).toBe('HANGMAN');
+  });
+
+  it('CS 를 고르면 난이도를 고를 수 있다', () => {
+    openModal(2);
+
+    fireEvent.change(screen.getByLabelText('게임 모드', { selector: 'select' }), { target: { value: 'CS' } });
+
+    const levels = screen.getAllByRole('option').map((option) => option.textContent);
+    expect(levels).toEqual(expect.arrayContaining(['쉬움', '보통', '어려움']));
+  });
+
+  it('고른 CS 난이도를 저장값 그대로 넘긴다', () => {
+    const onSubmit = openModal(2);
+
+    fireEvent.change(screen.getByLabelText('게임 모드', { selector: 'select' }), { target: { value: 'CS' } });
+    fireEvent.change(screen.getByLabelText('난이도', { selector: 'select' }), { target: { value: 'EASY' } });
+    fireEvent.click(screen.getByRole('button', { name: '저장' }));
+
+    expect(onSubmit.mock.calls[0][0].csDifficulty).toBe('EASY');
+  });
+
+  it('CS 가 아닌 모드에서는 방의 기존 난이도를 그대로 유지한다', () => {
+    const onSubmit = openModal(2);
+
+    fireEvent.click(screen.getByRole('button', { name: '저장' }));
+
+    expect(onSubmit.mock.calls[0][0].csDifficulty).toBe('HARD');
   });
 });

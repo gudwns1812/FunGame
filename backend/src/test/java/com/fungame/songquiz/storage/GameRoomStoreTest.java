@@ -1,5 +1,6 @@
 package com.fungame.songquiz.storage;
 
+import com.fungame.songquiz.domain.CSQuizDifficulty;
 import com.fungame.songquiz.domain.Category;
 import com.fungame.songquiz.domain.GamePlayer;
 import com.fungame.songquiz.domain.GameRoom;
@@ -22,7 +23,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 class GameRoomStoreTest {
 
     private static final RoomSettings SETTINGS =
-            new RoomSettings(GameType.SONG, "저장된 방", 8, Category.KPOP, 10, 0);
+            new RoomSettings(GameType.SONG, "저장된 방", 8, Category.KPOP, 10, 0, CSQuizDifficulty.HARD);
 
     @Autowired
     private GameRoomStore gameRoomStore;

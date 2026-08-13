@@ -1,5 +1,6 @@
 package com.fungame.songquiz.domain;
 
+import com.fungame.songquiz.domain.CSQuizDifficulty;
 import com.fungame.songquiz.support.error.CoreException;
 import com.fungame.songquiz.support.error.ErrorType;
 import org.junit.jupiter.api.BeforeEach;
@@ -26,7 +27,7 @@ class GameRoomTest {
     void setUp() {
         var songs = List.of(Song.of("정답", "", List.of(Category.KPOP), LocalDate.of(2015, 1, 1), "", 30, List.of(), ""));
         game = new SongQuiz(songs, Category.KPOP);
-        gameRoom = GameRoom.create(new RoomSettings(GameType.SONG, "방제목", 2, Category.KPOP, 1, 0), HOST);
+        gameRoom = GameRoom.create(new RoomSettings(GameType.SONG, "방제목", 2, Category.KPOP, 1, 0, CSQuizDifficulty.HARD), HOST);
     }
 
     @Test

@@ -5,6 +5,7 @@ import com.fungame.songquiz.storage.ComputerScienceRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
@@ -14,12 +15,13 @@ public class ComputerScienceQuizReader {
 
     private final ComputerScienceRepository computerScienceRepository;
 
-    public List<ComputerScienceQuiz> getRandomCSQuizWithCount(int totalRound) {
-        List<ComputerScienceEntity> computerScienceEntities = computerScienceRepository.findAll();
+    public List<ComputerScienceQuiz> getRandomCSQuizWithCount(int totalRound, CSQuizDifficulty difficulty) {
+        List<ComputerScienceEntity> candidates =
+                new ArrayList<>(computerScienceRepository.findByDifficultyIn(difficulty.andEasier()));
 
-        Collections.shuffle(computerScienceEntities);
+        Collections.shuffle(candidates);
 
-        return computerScienceEntities.stream()
+        return candidates.stream()
                 .limit(totalRound)
                 .map(ComputerScienceEntity::toDomain)
                 .toList();

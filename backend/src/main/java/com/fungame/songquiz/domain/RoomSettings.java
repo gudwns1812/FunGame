@@ -11,19 +11,26 @@ public record RoomSettings(
         int maxPlayers,
         Category category,
         int totalRound,
-        int difficulty
+        int difficulty,
+        CSQuizDifficulty csDifficulty
 ) {
 
     public GameCreateInfo toGameCreateInfo() {
         return switch (gameType) {
             case SONG -> new SongGameCreateInfo(category, totalRound);
-            case CS -> new CsQuizGameCreateInfo(totalRound);
+            case CS -> new CsQuizGameCreateInfo(totalRound, csDifficulty);
             case HANGMAN -> new HangmanGameCreateInfo(difficulty);
             case NONE -> null;
         };
     }
 
-    public RoomSettings changeTo(GameType newGameType, int newMaxPlayers, Category newCategory, int newTotalRound, int newDifficulty) {
-        return new RoomSettings(newGameType, title, newMaxPlayers, newCategory, newTotalRound, newDifficulty);
+    public RoomSettings changeTo(
+            GameType newGameType,
+            int newMaxPlayers,
+            Category newCategory,
+            int newTotalRound,
+            int newDifficulty,
+            CSQuizDifficulty newCsDifficulty) {
+        return new RoomSettings(newGameType, title, newMaxPlayers, newCategory, newTotalRound, newDifficulty, newCsDifficulty);
     }
 }

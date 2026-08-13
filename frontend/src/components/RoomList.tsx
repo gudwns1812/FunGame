@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
-import type { Room } from '../types/game';
+import type { CreateRoomInput, Room } from '../types/game';
 import { stripTag } from '../utils/stringUtils';
 import {
   CATEGORIES,
+  CS_DIFFICULTIES,
+  DEFAULT_CS_DIFFICULTY,
   GAME_TYPES,
   applyGameTypeConstraints,
   isSingleRound,
@@ -13,19 +15,15 @@ import {
 interface RoomListProps {
   rooms: Room[];
   onJoinRoom: (room: Room) => void;
-  onCreateRoom: (
-    title: string,
-    maxPlayers: number,
-    category: string,
-    songCount: number,
-    gameType: string,
-    difficulty?: number,
-  ) => void;
+  onCreateRoom: (input: CreateRoomInput) => void;
   onRefreshRooms: () => void;
 }
 
 /** 방 제목 최대 길이 (헤더 칩에 잘리지 않고 들어가는 길이 기준) */
 const ROOM_NAME_MAX = 20;
+
+const labelOf = (options: { value: string; label: string }[], value: string | null) =>
+  options.find((option) => option.value === value)?.label ?? value;
 
 const RoomList: React.FC<RoomListProps> = ({ rooms, onJoinRoom, onCreateRoom, onRefreshRooms }) => {
   const [showCreate, setShowCreate] = useState(false);
@@ -35,6 +33,7 @@ const RoomList: React.FC<RoomListProps> = ({ rooms, onJoinRoom, onCreateRoom, on
   const [category, setCategory] = useState('KPOP');
   const [gameType, setGameType] = useState('SONG');
   const [difficulty, setDifficulty] = useState(3);
+  const [csDifficulty, setCsDifficulty] = useState(DEFAULT_CS_DIFFICULTY);
 
   const changeGameType = (nextGameType: string) => {
     const adjusted = applyGameTypeConstraints(nextGameType, { category, totalRound: songCount, maxPlayers });
@@ -101,9 +100,20 @@ const RoomList: React.FC<RoomListProps> = ({ rooms, onJoinRoom, onCreateRoom, on
             </div>
 
             <div>
-              <label className="px-label block mb-1.5">{gameType === 'HANGMAN' ? '난이도' : '장르'}</label>
+              <label className="px-label block mb-1.5">
+                {gameType === 'HANGMAN' || gameType === 'CS' ? '난이도' : '장르'}
+              </label>
               {gameType === 'CS' ? (
-                <div className="px-input bg-paper-2 text-ink-soft">CS 종합</div>
+                <>
+                  <select className="px-input" value={csDifficulty} onChange={(e) => setCsDifficulty(e.target.value)}>
+                    {CS_DIFFICULTIES.map((level) => (
+                      <option key={level.value} value={level.value}>
+                        {level.label}
+                      </option>
+                    ))}
+                  </select>
+                  <p className="px-label text-[10px] mt-1">고른 난이도까지의 문제가 출제됩니다.</p>
+                </>
               ) : gameType === 'HANGMAN' ? (
                 <div className="px-input flex items-center gap-3 py-2.5">
                   <input
@@ -163,7 +173,15 @@ const RoomList: React.FC<RoomListProps> = ({ rooms, onJoinRoom, onCreateRoom, on
               data-sound="roomCreate"
               onClick={() => {
                 if (newRoomName.trim()) {
-                  onCreateRoom(newRoomName.trim(), maxPlayers, category, songCount, gameType, difficulty);
+                  onCreateRoom({
+                    title: newRoomName.trim(),
+                    maxPlayers,
+                    category,
+                    totalRound: songCount,
+                    gameType,
+                    difficulty,
+                    csDifficulty,
+                  });
                   setShowCreate(false);
                   setNewRoomName('');
                 }
@@ -212,6 +230,13 @@ const RoomList: React.FC<RoomListProps> = ({ rooms, onJoinRoom, onCreateRoom, on
 
                 <div className="p-3 flex flex-col gap-2 flex-1">
                   <h3 className="px-title text-base leading-snug break-keep">{room.name}</h3>
+
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    <span className="px-chip px-chip-sea">{labelOf(GAME_TYPES, room.gameType)}</span>
+                    {room.gameType === 'CS' && (
+                      <span className="px-chip">난이도 {labelOf(CS_DIFFICULTIES, room.csDifficulty)}</span>
+                    )}
+                  </div>
 
                   <div className="mt-auto flex items-center justify-between gap-2">
                     <span className="px-label truncate">방장 {stripTag(room.hostName)}</span>
