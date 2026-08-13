@@ -192,10 +192,11 @@ const SignupPage: React.FC = () => {
             <input
               type="email"
               className="px-input"
-              placeholder="비밀번호를 잊었을 때 쓰입니다"
+              placeholder="이메일 입력"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
             />
+            <p className="px-label mt-1.5">비밀번호 재설정 시 필요합니다.</p>
           </div>
 
           <div>

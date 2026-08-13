@@ -1,18 +1,9 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import SiteFooter from '../components/SiteFooter';
 
 const APP_TITLE = 'FUNGAME';
-const MEMBER_RESET_NOTICE = `안녕하세요. 이용에 불편을 드려 죄송합니다.
-
-비밀번호 재설정 기능을 준비하면서 회원 정보에 이메일 항목이 새로 추가되었습니다.
-기존에 가입해 주신 계정에는 이메일 정보가 없어, 부득이하게 저장되어 있던 회원 정보를 모두 삭제하였습니다.
-
-번거로우시겠지만 회원가입을 다시 한 번 부탁드립니다.
-사용하시던 아이디와 닉네임은 그대로 다시 등록하실 수 있습니다.
-
-소중한 시간을 들여 가입해 주셨는데 미리 안내드리지 못한 점 깊이 사과드립니다.
-앞으로는 이런 일이 없도록 더욱 신중하게 준비하겠습니다. 너그러이 양해해 주시면 감사하겠습니다.`;
 const WAVE_DELAY_PER_LETTER_SECONDS = 0.09;
 
 const WaveTitle: React.FC<{ text: string }> = ({ text }) => (
@@ -120,10 +111,7 @@ const LoginPage: React.FC = () => {
           </p>
         </form>
 
-        <div className="px-card p-4 mt-4">
-          <p className="px-label mb-2">공지</p>
-          <p className="text-[11px] leading-relaxed whitespace-pre-line">{MEMBER_RESET_NOTICE}</p>
-        </div>
+        <SiteFooter />
       </div>
     </div>
   );

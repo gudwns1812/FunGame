@@ -159,7 +159,7 @@ describe('SignupPage 닉네임 중복 확인 기능', () => {
     fireEvent.click(checkButtons[1]);
     await waitFor(() => expect(screen.getByText('사용 가능한 아이디입니다.')).toBeInTheDocument());
 
-    fireEvent.change(screen.getByPlaceholderText(/비밀번호를 잊었을 때 쓰입니다/), {
+    fireEvent.change(screen.getByPlaceholderText('이메일 입력'), {
       target: { value: 'tester@fun-game.club' },
     });
     fireEvent.change(screen.getByPlaceholderText('비밀번호 입력'), { target: { value: 'pw1234' } });
@@ -189,7 +189,7 @@ describe('SignupPage 닉네임 중복 확인 기능', () => {
     fireEvent.click(checkButtons[1]);
     await waitFor(() => expect(screen.getByText('사용 가능한 아이디입니다.')).toBeInTheDocument());
 
-    fireEvent.change(screen.getByPlaceholderText(/비밀번호를 잊었을 때 쓰입니다/), {
+    fireEvent.change(screen.getByPlaceholderText('이메일 입력'), {
       target: { value: 'tester@fun-game' },
     });
     fireEvent.change(screen.getByPlaceholderText('비밀번호 입력'), { target: { value: 'pw1234' } });
