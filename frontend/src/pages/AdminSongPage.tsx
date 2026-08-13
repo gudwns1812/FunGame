@@ -137,6 +137,10 @@ const AdminSongPage: React.FC = () => {
             </div>
 
             <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-3">
+              <p className="md:col-span-2 px-label leading-5">
+                노래 제목과 가수, 발매일은 Melon 정보를 기준으로 작성해야 합니다.
+              </p>
+
               <div className="md:col-span-2">
                 <label className="px-label block mb-1.5">노래 제목 (필수)</label>
                 <input
