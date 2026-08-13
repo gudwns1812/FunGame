@@ -12,8 +12,8 @@ import java.time.Instant;
 @Table(
         name = "game_room_member",
         uniqueConstraints = @UniqueConstraint(
-                name = "uk_game_room_member_nickname",
-                columnNames = {"game_room_id", "nickname"})
+                name = "uk_game_room_member_member",
+                columnNames = {"game_room_id", "member_id"})
 )
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class GameRoomMemberEntity {
@@ -26,8 +26,8 @@ public class GameRoomMemberEntity {
     @JoinColumn(name = "game_room_id", nullable = false)
     private GameRoomEntity gameRoom;
 
-    @Column(nullable = false, length = 100)
-    private String nickname;
+    @Column(nullable = false)
+    private Long memberId;
 
     @Column(nullable = false)
     private boolean ready;
@@ -35,14 +35,14 @@ public class GameRoomMemberEntity {
     @Column(nullable = false)
     private Instant joinedAt;
 
-    private GameRoomMemberEntity(String nickname, boolean ready) {
-        this.nickname = nickname;
+    private GameRoomMemberEntity(Long memberId, boolean ready) {
+        this.memberId = memberId;
         this.ready = ready;
         this.joinedAt = Instant.now();
     }
 
-    public static GameRoomMemberEntity of(String nickname, boolean ready) {
-        return new GameRoomMemberEntity(nickname, ready);
+    public static GameRoomMemberEntity of(Long memberId, boolean ready) {
+        return new GameRoomMemberEntity(memberId, ready);
     }
 
     void belongTo(GameRoomEntity gameRoom) {

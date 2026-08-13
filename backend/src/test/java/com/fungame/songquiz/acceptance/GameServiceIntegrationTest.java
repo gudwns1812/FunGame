@@ -56,6 +56,8 @@ public class GameServiceIntegrationTest {
     private Long roomId;
     private final String hostName = "host";
     private final String player1 = "player1";
+    private com.fungame.songquiz.domain.GamePlayer host;
+    private com.fungame.songquiz.domain.GamePlayer guest;
 
     @BeforeEach
     void setUp() {
@@ -84,13 +86,15 @@ public class GameServiceIntegrationTest {
         Long hostId = saveMember(hostName);
         Long player1Id = saveMember(player1);
 
+        host = com.fungame.songquiz.domain.GamePlayer.createNewPlayer(hostId, hostName);
+        guest = com.fungame.songquiz.domain.GamePlayer.createNewPlayer(player1Id, player1);
+
         roomId = gameRoomService.createRoom(
                 new com.fungame.songquiz.domain.RoomSettings(GameType.CS, "테스트 방", 5, null, 2, 0),
-                hostName,
-                hostId
+                host
         );
-        gameRoomService.joinRoom(roomId, player1, player1Id);
-        gameRoomService.readyPlayer(roomId, player1); // player1도 준비 완료!
+        gameRoomService.joinRoom(roomId, guest);
+        gameRoomService.readyPlayer(roomId, guest.memberId()); // player1도 준비 완료!
 
         // 타이머 동작 모킹: 순서 제어를 위해 콜백을 보관하거나 즉시 실행(약간의 지연 추가)
         doAnswer(invocation -> {
@@ -111,7 +115,7 @@ public class GameServiceIntegrationTest {
     @DisplayName("전체 게임 흐름(시작-정답-종료)이 올바르게 동작하는지 검증한다")
     void fullGameFlowTest() {
         // 1. 게임 시작
-        gameService.startGame(roomId, hostName);
+        gameService.startGame(roomId, host.memberId());
 
         // GameStartEvent 및 첫 라운드 시작 대기
         await().atMost(2, TimeUnit.SECONDS).untilAsserted(() -> {
@@ -124,7 +128,7 @@ public class GameServiceIntegrationTest {
         String question = currentRound.content().data().get(2);
         String answer = question.equals("문제1") ? "정답1" : "정답2";
 
-        gameService.processAnswer(roomId, player1, answer);
+        gameService.processAnswer(roomId, guest.memberId(), answer);
 
         // 1라운드 종료 확인 및 2라운드 시작 대기
         await().atMost(2, TimeUnit.SECONDS).untilAsserted(() -> {
@@ -136,7 +140,7 @@ public class GameServiceIntegrationTest {
         RoundStartEvent nextRound = eventCapture.getEvents(RoundStartEvent.class).get(1);
         String nextAnswer = nextRound.content().data().get(2).equals("문제1") ? "정답1" : "정답2";
 
-        gameService.processAnswer(roomId, player1, nextAnswer);
+        gameService.processAnswer(roomId, guest.memberId(), nextAnswer);
 
         // 4. 게임 전체 결과 및 종료 확인
         await().atMost(5, TimeUnit.SECONDS).untilAsserted(() -> {

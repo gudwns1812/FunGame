@@ -7,8 +7,16 @@ public record StoredRoom(
         Long roomId,
         RoomSettings settings,
         GameRoomStatus status,
-        String host,
+        Long hostId,
         List<GamePlayer> players,
         Instant lastActivityTime
 ) {
+
+    public String hostNickname() {
+        return players.stream()
+                .filter(player -> player.memberId().equals(hostId))
+                .map(GamePlayer::nickname)
+                .findFirst()
+                .orElse(null);
+    }
 }

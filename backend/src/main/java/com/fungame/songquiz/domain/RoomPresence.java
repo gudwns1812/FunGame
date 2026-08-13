@@ -25,7 +25,7 @@ public class RoomPresence {
     public int countConnectedIn(Long roomId) {
         return (int) membersBySessionId.values().stream()
                 .filter(member -> member.roomId().equals(roomId))
-                .map(RoomMember::nickname)
+                .map(RoomMember::memberId)
                 .distinct()
                 .count();
     }

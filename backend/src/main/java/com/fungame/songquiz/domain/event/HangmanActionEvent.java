@@ -8,7 +8,8 @@ import com.fungame.songquiz.domain.dto.GameContentDto;
  */
 public record HangmanActionEvent(
         Long roomId,
-        String playerName,
+        Long memberId,
+        String nickname,
         char letter,
         ActionResult result,
         GameContentDto status

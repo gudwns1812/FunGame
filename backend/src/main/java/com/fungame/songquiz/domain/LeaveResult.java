@@ -1,4 +1,4 @@
 package com.fungame.songquiz.domain;
 
-public record LeaveResult(boolean destroyed, boolean wasPlaying) {
+public record LeaveResult(boolean destroyed, boolean wasPlaying, String nickname) {
 }

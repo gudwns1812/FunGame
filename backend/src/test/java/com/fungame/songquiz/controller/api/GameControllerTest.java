@@ -75,7 +75,7 @@ class GameControllerTest {
     void findAllRoom() throws Exception {
         // given
         given(gameRoomService.findAllRooms()).willReturn(List.of(
-                new RoomInfo(1L, "K-POP 퀴즈방", "방장닉네임", GameRoomStatus.WAITING, 8, 3)
+                new RoomInfo(1L, "K-POP 퀴즈방", 2L, "방장닉네임", GameRoomStatus.WAITING, 8, 3)
         ));
 
         // when // then
@@ -97,8 +97,7 @@ class GameControllerTest {
                 .totalRound(10)
                 .build();
 
-        given(gameRoomService.createRoom(any(), anyString(), anyLong()))
-                .willReturn(1L);
+        given(gameRoomService.createRoom(any(), any())).willReturn(1L);
 
         // when // then
         mockMvc.perform(post("/game/rooms")
@@ -115,7 +114,7 @@ class GameControllerTest {
     @DisplayName("방에 입장한다.")
     void joinRoom() throws Exception {
         // given
-        given(gameRoomService.joinRoom(anyLong(), anyString(), anyLong())).willReturn(1);
+        given(gameRoomService.joinRoom(anyLong(), any())).willReturn(1);
 
         // when // then
         mockMvc.perform(post("/game/rooms/{roomId}/join", 1L)
@@ -164,7 +163,7 @@ class GameControllerTest {
     void findSettings() throws Exception {
         // given
         given(gameRoomService.findSettings(1L)).willReturn(
-                new RoomSettingsInfo("K-POP 퀴즈방", GameType.SONG, 8, Category.KPOP, 10, 0, "방장닉네임"));
+                new RoomSettingsInfo("K-POP 퀴즈방", GameType.SONG, 8, Category.KPOP, 10, 0, 2L, "방장닉네임"));
 
         // when // then
         mockMvc.perform(get("/game/rooms/{roomId}/settings", 1L))
@@ -184,12 +183,12 @@ class GameControllerTest {
     void changeSettings() throws Exception {
         // given
         RoomSettingsInfo current =
-                new RoomSettingsInfo("K-POP 퀴즈방", GameType.SONG, 8, Category.KPOP, 10, 0, "테스트유저");
+                new RoomSettingsInfo("K-POP 퀴즈방", GameType.SONG, 8, Category.KPOP, 10, 0, 1L, "테스트유저");
         RoomSettingsInfo changed =
-                new RoomSettingsInfo("K-POP 퀴즈방", GameType.SONG, 6, Category.BALLAD, 5, 0, "테스트유저");
+                new RoomSettingsInfo("K-POP 퀴즈방", GameType.SONG, 6, Category.BALLAD, 5, 0, 1L, "테스트유저");
 
         given(gameRoomService.findSettings(1L)).willReturn(current);
-        given(gameRoomService.changeSettings(eq(1L), eq("테스트유저"), any())).willReturn(changed);
+        given(gameRoomService.changeSettings(eq(1L), eq(1L), any())).willReturn(changed);
 
         ChangeRoomSettingsRequest request = ChangeRoomSettingsRequest.builder()
                 .gameType(GameType.SONG)

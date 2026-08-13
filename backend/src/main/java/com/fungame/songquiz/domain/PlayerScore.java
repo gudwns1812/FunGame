@@ -1,4 +1,4 @@
 package com.fungame.songquiz.domain;
 
-public record PlayerScore(String player, int score) {
+public record PlayerScore(Long memberId, String nickname, int score) {
 }

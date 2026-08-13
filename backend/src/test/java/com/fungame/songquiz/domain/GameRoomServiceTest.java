@@ -25,6 +25,10 @@ import static org.mockito.Mockito.verify;
 @ExtendWith(MockitoExtension.class)
 class GameRoomServiceTest {
 
+    private static final GamePlayer HOST = GamePlayer.createNewPlayer(1L, "방장");
+    private static final GamePlayer GUEST = GamePlayer.createNewPlayer(11L, "참가자");
+    private static final GamePlayer LEAVER = GamePlayer.createNewPlayer(12L, "이탈자");
+
     @Mock
     GameRoomStore gameRoomStore;
 
@@ -62,27 +66,27 @@ class GameRoomServiceTest {
         // given
         RoomSettings settings = new RoomSettings(GameType.SONG, "방2", 8, Category.KPOP, 10, 0);
 
-        given(gameRoomStore.open(settings, "방장")).willReturn(7L);
+        given(gameRoomStore.open(settings, HOST)).willReturn(7L);
 
         // when
-        Long roomId = service.createRoom(settings, "방장", 11L);
+        Long roomId = service.createRoom(settings, HOST);
 
         // then
         assertThat(roomId).isEqualTo(7L);
 
-        verify(gameRoomManager).createGameRoom(eq(7L), eq(settings), eq("방장"));
+        verify(gameRoomManager).createGameRoom(eq(7L), eq(settings), eq(HOST));
     }
 
     @Test
     void 실제로_새로_참가했을_때만_입장_이벤트를_발행한다() {
         // given
-        given(gameRoomManager.joinRoom(1L, "참가자"))
+        given(gameRoomManager.joinRoom(1L, GUEST))
                 .willReturn(new JoinResult(2, true));
         GameRoom room = waitingRoom();
         given(gameRoomManager.findRoom(1L)).willReturn(room);
 
         // when
-        int playerNumber = service.joinRoom(1L, "참가자", 11L);
+        int playerNumber = service.joinRoom(1L, GUEST);
 
         // then
         assertThat(playerNumber).isEqualTo(2);
@@ -92,13 +96,13 @@ class GameRoomServiceTest {
     @Test
     void 이미_방에_있는_플레이어의_재참가는_입장_이벤트를_발행하지_않는다() {
         // given
-        given(gameRoomManager.joinRoom(1L, "참가자"))
+        given(gameRoomManager.joinRoom(1L, GUEST))
                 .willReturn(new JoinResult(2, false));
         GameRoom room = waitingRoom();
         given(gameRoomManager.findRoom(1L)).willReturn(room);
 
         // when
-        int playerNumber = service.joinRoom(1L, "참가자", 11L);
+        int playerNumber = service.joinRoom(1L, GUEST);
 
         // then
         assertThat(playerNumber).isEqualTo(2);
@@ -108,25 +112,25 @@ class GameRoomServiceTest {
     @Test
     void 게임_진행_중_이탈이면_게임별_이탈_처리를_위임한다() {
         // given
-        given(gameRoomManager.leaveRoom(1L, "이탈자"))
-                .willReturn(new LeaveResult(false, true));
+        given(gameRoomManager.leaveRoom(1L, LEAVER.memberId()))
+                .willReturn(new LeaveResult(false, true, LEAVER.nickname()));
 
         // when
-        service.leaveRoom(1L, "이탈자", 11L);
+        service.leaveRoom(1L, LEAVER.memberId());
 
         // then
-        verify(gameService).handlePlayerLeave(1L, "이탈자");
+        verify(gameService).handlePlayerLeave(1L, LEAVER.memberId());
         verify(applicationEventPublisher).publishEvent(any(PlayerLeaveEvent.class));
     }
 
     @Test
     void 대기_중_이탈이면_게임_이탈_처리를_하지_않는다() {
         // given
-        given(gameRoomManager.leaveRoom(1L, "이탈자"))
-                .willReturn(new LeaveResult(false, false));
+        given(gameRoomManager.leaveRoom(1L, LEAVER.memberId()))
+                .willReturn(new LeaveResult(false, false, LEAVER.nickname()));
 
         // when
-        service.leaveRoom(1L, "이탈자", 11L);
+        service.leaveRoom(1L, LEAVER.memberId());
 
         // then
         verify(gameService, never()).handlePlayerLeave(any(), any());
@@ -136,11 +140,11 @@ class GameRoomServiceTest {
     @Test
     void 마지막_인원이_나가_방이_사라지면_이탈_이벤트를_발행하지_않는다() {
         // given
-        given(gameRoomManager.leaveRoom(1L, "이탈자"))
-                .willReturn(new LeaveResult(true, true));
+        given(gameRoomManager.leaveRoom(1L, LEAVER.memberId()))
+                .willReturn(new LeaveResult(true, true, LEAVER.nickname()));
 
         // when
-        service.leaveRoom(1L, "이탈자", 11L);
+        service.leaveRoom(1L, LEAVER.memberId());
 
         // then
         verify(gameService, never()).handlePlayerLeave(any(), any());
@@ -151,53 +155,53 @@ class GameRoomServiceTest {
     void 방을_만든_사람은_그_방의_대기실에_있는_것으로_기록된다() {
         // given
         RoomSettings settings = new RoomSettings(GameType.SONG, "방2", 8, Category.KPOP, 10, 0);
-        given(gameRoomStore.open(settings, "방장")).willReturn(7L);
+        given(gameRoomStore.open(settings, HOST)).willReturn(7L);
 
         // when
-        service.createRoom(settings, "방장", 11L);
+        service.createRoom(settings, HOST);
 
         // then
-        verify(memberPresenceService).enterWaitingRoom(11L, 7L);
+        verify(memberPresenceService).enterWaitingRoom(HOST.memberId(), 7L);
     }
 
     @Test
     void 대기_중인_방에_입장하면_대기_상태로_기록된다() {
         // given
-        given(gameRoomManager.joinRoom(1L, "참가자")).willReturn(new JoinResult(2, true));
+        given(gameRoomManager.joinRoom(1L, GUEST)).willReturn(new JoinResult(2, true));
         GameRoom room = waitingRoom();
         given(gameRoomManager.findRoom(1L)).willReturn(room);
 
         // when
-        service.joinRoom(1L, "참가자", 11L);
+        service.joinRoom(1L, GUEST);
 
         // then
-        verify(memberPresenceService).enterWaitingRoom(11L, 1L);
+        verify(memberPresenceService).enterWaitingRoom(GUEST.memberId(), 1L);
     }
 
     @Test
     void 진행_중인_방에_재입장하면_게임중_상태로_기록된다() {
         // given
-        given(gameRoomManager.joinRoom(1L, "참가자")).willReturn(new JoinResult(2, true));
+        given(gameRoomManager.joinRoom(1L, GUEST)).willReturn(new JoinResult(2, true));
         GameRoom room = playingRoom();
         given(gameRoomManager.findRoom(1L)).willReturn(room);
 
         // when
-        service.joinRoom(1L, "참가자", 11L);
+        service.joinRoom(1L, GUEST);
 
         // then
-        verify(memberPresenceService).enterPlayingRoom(11L, 1L);
+        verify(memberPresenceService).enterPlayingRoom(GUEST.memberId(), 1L);
     }
 
     @Test
     void 방이_사라져도_나간_사람의_위치는_비운다() {
         // given
-        given(gameRoomManager.leaveRoom(1L, "이탈자")).willReturn(new LeaveResult(true, true));
+        given(gameRoomManager.leaveRoom(1L, LEAVER.memberId())).willReturn(new LeaveResult(true, true, LEAVER.nickname()));
 
         // when
-        service.leaveRoom(1L, "이탈자", 11L);
+        service.leaveRoom(1L, LEAVER.memberId());
 
         // then
-        verify(memberPresenceService).leaveRoom(11L);
+        verify(memberPresenceService).leaveRoom(LEAVER.memberId());
     }
 
     @Test

@@ -11,6 +11,7 @@ import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -23,12 +24,12 @@ public class GameNotifyService {
 
     @EventListener
     public void handleHangmanAction(HangmanActionEvent event) {
-        log.info("Broadcasting Hangman action: {} by {} in room {}", event.letter(), event.playerName(), event.roomId());
         String destination = StompDestination.room(event.roomId());
 
         Object payload = Map.of(
                 "type", "HANGMAN_ACTION",
-                "playerName", event.playerName(),
+                "memberId", event.memberId(),
+                "nickname", event.nickname(),
                 "letter", String.valueOf(event.letter()),
                 "result", event.result().name(),
                 "status", event.status().data()
@@ -46,27 +47,28 @@ public class GameNotifyService {
 
     @EventListener
     public void handlePlayerJoin(PlayerJoinEvent event) {
-        log.info("Broadcasting player join: {} in room {}", event.playerName(), event.roomId());
+        log.info("Broadcasting player join: {} in room {}", event.memberId(), event.roomId());
         String destination = StompDestination.room(event.roomId());
-        Object payload = Map.of("type", "PLAYER_JOIN", "player", event.playerName());
+        Object payload = Map.of("type", "PLAYER_JOIN", "memberId", event.memberId(), "nickname", event.nickname());
         messagingTemplate.convertAndSend(destination, ApiResponse.success(payload));
     }
 
     @EventListener
     public void handlePlayerLeave(PlayerLeaveEvent event) {
-        log.info("Broadcasting player leave: {} in room {}", event.playerName(), event.roomId());
+        log.info("Broadcasting player leave: {} in room {}", event.memberId(), event.roomId());
         String destination = StompDestination.room(event.roomId());
-        Object payload = Map.of("type", "PLAYER_LEAVE", "player", event.playerName());
+        Object payload = Map.of("type", "PLAYER_LEAVE", "memberId", event.memberId(), "nickname", event.nickname());
         messagingTemplate.convertAndSend(destination, ApiResponse.success(payload));
     }
 
     @EventListener
     public void handlePlayerReady(PlayerReadyEvent event) {
-        log.info("Broadcasting player ready: player {} is now {} in room {}", event.player(), event.ready(), event.roomId());
+        log.info("Broadcasting player ready: member {} is now {} in room {}", event.memberId(), event.ready(), event.roomId());
         String destination = StompDestination.room(event.roomId());
         Object payload = Map.of(
                 "type", "PLAYER_READY",
-                "player", event.player(),
+                "memberId", event.memberId(),
+                "nickname", event.nickname(),
                 "ready", event.ready(),
                 "isAllReady", event.isAllReady()
         );
@@ -138,14 +140,12 @@ public class GameNotifyService {
         log.info("Broadcasting round end in room {}", event.roomId());
         String destination = StompDestination.room(event.roomId());
 
-        String winnerName = (event.winner() != null) ? event.winner() : "없음";
-
-        Object payload = Map.of(
-                "type", "ROUND_END",
-                "answer", event.answer().getAnswer(),
-                "explanation", event.answer().explanation(),
-                "winner", winnerName
-        );
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("type", "ROUND_END");
+        payload.put("answer", event.answer().getAnswer());
+        payload.put("explanation", event.answer().explanation());
+        payload.put("winnerMemberId", event.winnerMemberId());
+        payload.put("winnerNickname", event.winnerNickname());
         messagingTemplate.convertAndSend(destination, ApiResponse.success(payload));
     }
 
@@ -165,16 +165,23 @@ public class GameNotifyService {
         log.info("Broadcasting game end in room {}", event.roomId());
         String destination = StompDestination.room(event.roomId());
 
-        StringBuilder builder = new StringBuilder();
-
-        List<PlayerScore> rankings = event.rankings();
-        rankings.forEach(score -> builder.append(score.player()).append(":").append(score.score()).append("\n"));
+        List<Map<String, Object>> rankings = event.rankings().stream()
+                .map(GameNotifyService::toRankingPayload)
+                .toList();
 
         Object payload = Map.of(
                 "type", "GAME_RESULT",
-                "rankings", builder.toString(),
+                "rankings", rankings,
                 "message", "5초 뒤 게임이 종료됩니다."
         );
         messagingTemplate.convertAndSend(destination, ApiResponse.success(payload));
+    }
+
+    private static Map<String, Object> toRankingPayload(PlayerScore score) {
+        Map<String, Object> ranking = new HashMap<>();
+        ranking.put("memberId", score.memberId());
+        ranking.put("nickname", score.nickname());
+        ranking.put("score", score.score());
+        return ranking;
     }
 }

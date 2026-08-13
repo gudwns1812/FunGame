@@ -18,6 +18,9 @@ import java.util.List;
 @RequiredArgsConstructor
 public class HangmanGameService implements GameService {
 
+    private static final char NO_LETTER = ' ';
+    private static final int NO_SCORE = 0;
+
     private final GameRoomManager gameRoomManager;
     private final GameSessionManager gameSessionManager;
     private final ApplicationEventPublisher eventPublisher;
@@ -28,8 +31,8 @@ public class HangmanGameService implements GameService {
     }
 
     @Override
-    public void startGame(Long roomId, String nickname) {
-        GameRoom gameRoom = gameRoomManager.startGame(roomId, nickname);
+    public void startGame(Long roomId, Long memberId) {
+        GameRoom gameRoom = gameRoomManager.startGame(roomId, memberId);
 
         if (gameRoom.getGame() instanceof HangmanGame hangmanGame) {
             hangmanGame.initPlayers(gameRoom.getRoomPlayers());
@@ -39,7 +42,9 @@ public class HangmanGameService implements GameService {
 
             eventPublisher.publishEvent(new RoundStartEvent(roomId, hangmanGame.getStatus(), 1, 1));
 
-            eventPublisher.publishEvent(new HangmanActionEvent(roomId, nickname, ' ', ActionResult.ACTION_SUCCESS, hangmanGame.getStatus()));
+            GamePlayer starter = hangmanGame.getCurrentTurnPlayer();
+            eventPublisher.publishEvent(new HangmanActionEvent(roomId, starter.memberId(), starter.nickname(),
+                    NO_LETTER, ActionResult.ACTION_SUCCESS, hangmanGame.getStatus()));
         }
     }
 
@@ -57,10 +62,12 @@ public class HangmanGameService implements GameService {
             throw new CoreException(ErrorType.INVALID_INPUT_VALUE);
         }
 
+        GamePlayer actor = hangmanGame.getCurrentTurnPlayer();
         char letter = payload.charAt(0);
-        ActionResult result = hangmanGame.guess(action.playerName(), letter);
+        ActionResult result = hangmanGame.guess(action.memberId(), letter);
 
-        eventPublisher.publishEvent(new HangmanActionEvent(roomId, action.playerName(), letter, result, hangmanGame.getStatus()));
+        eventPublisher.publishEvent(new HangmanActionEvent(roomId, actor.memberId(), actor.nickname(), letter, result,
+                hangmanGame.getStatus()));
 
         if (result == ActionResult.CORRECT || result == ActionResult.WRONG) {
             submitResult(roomId, hangmanGame);
@@ -70,18 +77,20 @@ public class HangmanGameService implements GameService {
     private void submitResult(Long roomId, HangmanGame hangmanGame) {
         var result = hangmanGame.getRemainingTries() == 0 ? "실패" : "성공";
 
-        var playerScore = List.of(new PlayerScore(result, hangmanGame.getRemainingTries()), new PlayerScore(hangmanGame.getAnswer().getAnswer(), 0));
+        var playerScore = List.of(
+                new PlayerScore(null, result, hangmanGame.getRemainingTries()),
+                new PlayerScore(null, hangmanGame.getAnswer().getAnswer(), NO_SCORE));
         eventPublisher.publishEvent(new GameResultEvent(roomId, playerScore));
 
         gameRoomManager.endGame(roomId);
     }
 
     @Override
-    public void processAnswer(Long roomId, String playerName, String message) {
+    public void processAnswer(Long roomId, Long memberId, String message) {
     }
 
     @Override
-    public void increaseSkipVote(Long roomId, String playerName) {
+    public void increaseSkipVote(Long roomId, Long memberId) {
     }
 
     @Override
@@ -114,13 +123,18 @@ public class HangmanGameService implements GameService {
     }
 
     @Override
-    public void handlePlayerLeave(Long roomId, String playerName) {
+    public void handlePlayerLeave(Long roomId, Long memberId) {
         GameSession session = gameSessionManager.getGameSession(roomId);
         if (session == null) {
             return;
         }
 
-        session.removePlayer(playerName);
+        String leaverNickname = session.nicknameOf(memberId);
+        session.removePlayer(memberId);
+
+        if (leaverNickname == null) {
+            return;
+        }
 
         GameRoom room = gameRoomManager.findRoom(roomId);
         if (!(room.getGame() instanceof HangmanGame hangmanGame)) {
@@ -128,6 +142,6 @@ public class HangmanGameService implements GameService {
         }
 
         eventPublisher.publishEvent(new HangmanActionEvent(
-                roomId, playerName, ' ', ActionResult.ACTION_SUCCESS, hangmanGame.getStatus()));
+                roomId, memberId, leaverNickname, NO_LETTER, ActionResult.ACTION_SUCCESS, hangmanGame.getStatus()));
     }
 }

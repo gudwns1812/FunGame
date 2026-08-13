@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fungame.songquiz.controller.ApiControllerAdvice;
 import com.fungame.songquiz.controller.api.GameController;
 import com.fungame.songquiz.domain.Category;
+import com.fungame.songquiz.domain.GamePlayer;
 import com.fungame.songquiz.domain.GameRoomService;
 import com.fungame.songquiz.domain.GameService;
 import com.fungame.songquiz.domain.GameType;
@@ -83,7 +84,7 @@ public class GameAcceptanceTest {
         request.put("category", "KPOP");
         request.put("totalRound", 10);
 
-        given(gameRoomService.createRoom(any(RoomSettings.class), anyString(), anyLong())).willReturn(1L);
+        given(gameRoomService.createRoom(any(RoomSettings.class), any(GamePlayer.class))).willReturn(1L);
 
         // when & then
         mockMvc.perform(post("/game/rooms")
@@ -92,7 +93,8 @@ public class GameAcceptanceTest {
                 .andExpect(status().isOk());
 
         verify(gameRoomService).createRoom(
-                eq(new RoomSettings(GameType.SONG, "테스트 방", 5, Category.KPOP, 10, 0)), eq("방장"), eq(1L));
+                eq(new RoomSettings(GameType.SONG, "테스트 방", 5, Category.KPOP, 10, 0)),
+                eq(GamePlayer.createNewPlayer(1L, "방장")));
     }
 
     @Test
@@ -103,7 +105,7 @@ public class GameAcceptanceTest {
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk());
 
-        verify(gameRoomService).joinRoom(1L, "방장", 1L);
+        verify(gameRoomService).joinRoom(1L, GamePlayer.createNewPlayer(1L, "방장"));
     }
 
     @Test
@@ -114,7 +116,7 @@ public class GameAcceptanceTest {
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk());
 
-        verify(gameRoomService).leaveRoom(1L, "방장", 1L);
+        verify(gameRoomService).leaveRoom(1L, 1L);
     }
 
     @Test
@@ -126,6 +128,6 @@ public class GameAcceptanceTest {
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk());
 
-        verify(gameService).startGame(1L, "방장");
+        verify(gameService).startGame(1L, 1L);
     }
 }

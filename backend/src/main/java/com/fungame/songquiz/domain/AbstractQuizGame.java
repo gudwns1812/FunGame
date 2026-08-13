@@ -8,10 +8,10 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 public abstract class AbstractQuizGame implements Game {
     protected final AtomicBoolean isRoundProcessing = new AtomicBoolean(false);
-    protected final Map<String, Boolean> skipVotes = new ConcurrentHashMap<>();
-    protected List<String> players;
+    protected final Map<Long, Boolean> skipVotes = new ConcurrentHashMap<>();
+    protected List<GamePlayer> players;
 
-    protected AbstractQuizGame(List<String> players) {
+    protected AbstractQuizGame(List<GamePlayer> players) {
         if (players != null) {
             this.players = new ArrayList<>(players);
             initSkipVotes();
@@ -19,52 +19,56 @@ public abstract class AbstractQuizGame implements Game {
     }
 
     @Override
-    public void setPlayers(List<String> players) {
+    public void setPlayers(List<GamePlayer> players) {
         this.players = new ArrayList<>(players);
         initSkipVotes();
     }
 
     @Override
-    public void removePlayer(String playerName) {
+    public void removePlayer(Long memberId) {
         if (players == null) {
             return;
         }
 
-        players.remove(playerName);
-        skipVotes.remove(playerName);
+        players.removeIf(player -> player.memberId().equals(memberId));
+        skipVotes.remove(memberId);
     }
 
     @Override
-    public void restorePlayer(String playerName) {
-        if (players == null || players.contains(playerName)) {
+    public void restorePlayer(GamePlayer player) {
+        if (players == null || hasPlayer(player.memberId())) {
             return;
         }
 
-        players.add(playerName);
-        skipVotes.put(playerName, false);
+        players.add(player);
+        skipVotes.put(player.memberId(), false);
+    }
+
+    protected boolean hasPlayer(Long memberId) {
+        return players.stream().anyMatch(player -> player.memberId().equals(memberId));
     }
 
     private void initSkipVotes() {
         skipVotes.clear();
-        players.forEach(player -> skipVotes.put(player, false));
+        players.forEach(player -> skipVotes.put(player.memberId(), false));
     }
 
     @Override
     public ActionResult handleAction(GameAction action) {
         return switch (action.type()) {
-            case SUBMIT_ANSWER -> processAnswer(action.playerName(), action.value());
-            case SKIP_VOTE -> processSkipVote(action.playerName());
+            case SUBMIT_ANSWER -> processAnswer(action.memberId(), action.value());
+            case SKIP_VOTE -> processSkipVote(action.memberId());
             default -> ActionResult.NO_ACTION;
         };
     }
 
-    protected abstract ActionResult processAnswer(String playerName, String answer);
+    protected abstract ActionResult processAnswer(Long memberId, String answer);
 
-    private ActionResult processSkipVote(String playerName) {
-        if (!players.contains(playerName)) {
+    private ActionResult processSkipVote(Long memberId) {
+        if (!hasPlayer(memberId)) {
             return ActionResult.NO_ACTION;
         }
-        skipVotes.put(playerName, true);
+        skipVotes.put(memberId, true);
         return isSkipThresholdReached() ? ActionResult.SKIP_VOTE_SUCCESS : ActionResult.ACTION_SUCCESS;
     }
 

@@ -37,7 +37,7 @@ public class ComputerScienceQuizGame extends AbstractQuizGame {
     }
 
     @Override
-    protected ActionResult processAnswer(String playerName, String answer) {
+    protected ActionResult processAnswer(Long memberId, String answer) {
         int current = currentIdx.get();
         if (current == ROUND_NOT_STARTED) {
             return ActionResult.NO_ACTION;
