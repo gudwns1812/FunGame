@@ -1,6 +1,7 @@
 package com.fungame.songquiz.domain;
 
 import com.fungame.songquiz.domain.dto.GameContentDto;
+import com.fungame.songquiz.domain.event.RoundEndEvent;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -10,6 +11,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.context.ApplicationEventPublisher;
 
 import java.util.List;
+import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -83,6 +85,20 @@ class QuizGameServiceTest {
 
         // when & then: 예외 없이 통과
         quizGameService.handlePlayerLeave(ROOM_ID, "p1");
+    }
+
+    @Test
+    @DisplayName("첫 라운드가 시작되기 전에 들어온 채팅은 예외 없이 무시된다.")
+    void processAnswer_before_first_round_is_ignored() {
+        // given
+        SongQuiz game = new SongQuiz(Stream.of(mock(Song.class)).toList(), Category.KPOP);
+        GameSession session = new GameSession(game, List.of("p1"));
+        given(sessionManager.getGameSession(ROOM_ID)).willReturn(session);
+
+        // when & then: 예외 없이 통과
+        quizGameService.processAnswer(ROOM_ID, "p1", "아무 채팅");
+
+        verify(publisher, never()).publishEvent(any(RoundEndEvent.class));
     }
 
     @Test

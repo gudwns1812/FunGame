@@ -15,23 +15,26 @@ import java.util.stream.Collectors;
 
 @Getter
 public class HangmanGame extends AbstractQuizGame {
+    private static final int DEFAULT_TRIES = 6;
+    private static final char BLANK = ' ';
+    private static final String HIDDEN_LETTER = "_";
+    private static final String LETTER_DELIMITER = " ";
+
     private final String answer;
-    private String currentDisplay;
+    private final Set<Character> correctLetters;
     private final Set<Character> wrongLetters;
     private int remainingTries;
     private int currentTurnIndex;
     private List<String> playerOrder;
 
-    private static final int DEFAULT_TRIES = 6;
-
     private HangmanGame(String answer) {
         super(List.of());
         this.answer = answer.toUpperCase();
         this.playerOrder = new ArrayList<>();
+        this.correctLetters = new LinkedHashSet<>();
         this.wrongLetters = new LinkedHashSet<>();
         this.remainingTries = DEFAULT_TRIES;
         this.currentTurnIndex = 0;
-        this.currentDisplay = initializeDisplay(this.answer);
     }
 
     public static HangmanGame create(String answer) {
@@ -48,10 +51,17 @@ public class HangmanGame extends AbstractQuizGame {
         this.playerOrder = new ArrayList<>(players);
     }
 
-    private String initializeDisplay(String answer) {
+    public String getCurrentDisplay() {
         return answer.chars()
-                .mapToObj(c -> (char) c == ' ' ? " " : "_")
-                .collect(Collectors.joining(" "));
+                .mapToObj(codePoint -> letterDisplay((char) codePoint))
+                .collect(Collectors.joining(LETTER_DELIMITER));
+    }
+
+    private String letterDisplay(char letter) {
+        if (letter == BLANK) {
+            return LETTER_DELIMITER;
+        }
+        return correctLetters.contains(letter) ? String.valueOf(letter) : HIDDEN_LETTER;
     }
 
     public ActionResult guess(String playerId, char letter) {
@@ -60,7 +70,7 @@ public class HangmanGame extends AbstractQuizGame {
 
         boolean isCorrect = false;
         if (answer.indexOf(letter) >= 0) {
-            updateDisplay(letter);
+            correctLetters.add(letter);
             isCorrect = true;
         } else {
             wrongLetters.add(letter);
@@ -82,25 +92,9 @@ public class HangmanGame extends AbstractQuizGame {
         if (remainingTries <= 0 || isGameWon()) {
             throw new CoreException(ErrorType.DEFAULT_ERROR); // "이미 종료된 게임입니다."
         }
-        if (wrongLetters.contains(letter) || currentDisplay.indexOf(letter) >= 0) {
+        if (wrongLetters.contains(letter) || correctLetters.contains(letter)) {
             throw new CoreException(ErrorType.INVALID_INPUT_VALUE); // "이미 선택한 글자입니다."
         }
-    }
-
-    private void updateDisplay(char letter) {
-        StringBuilder nextDisplay = new StringBuilder();
-        String cleanDisplay = currentDisplay.replace(" ", "");
-        for (int i = 0; i < answer.length(); i++) {
-            if (answer.charAt(i) == letter) {
-                nextDisplay.append(letter);
-            } else {
-                nextDisplay.append(cleanDisplay.charAt(i));
-            }
-            if (i < answer.length() - 1) {
-                nextDisplay.append(" ");
-            }
-        }
-        this.currentDisplay = nextDisplay.toString();
     }
 
     private void moveToNextTurn() {
@@ -139,7 +133,9 @@ public class HangmanGame extends AbstractQuizGame {
     }
 
     public boolean isGameWon() {
-        return !currentDisplay.contains("_");
+        return answer.chars()
+                .filter(codePoint -> (char) codePoint != BLANK)
+                .allMatch(codePoint -> correctLetters.contains((char) codePoint));
     }
 
     public String getCurrentTurnPlayer() {
@@ -152,13 +148,18 @@ public class HangmanGame extends AbstractQuizGame {
 
     @Override
     protected ActionResult processAnswer(String playerName, String answer) {
-        if (this.answer.equalsIgnoreCase(answer.trim())) {
-            this.currentDisplay = this.answer.chars()
-                    .mapToObj(c -> String.valueOf((char) c))
-                    .collect(Collectors.joining(" "));
-            return ActionResult.CORRECT;
+        if (!this.answer.equalsIgnoreCase(answer.trim())) {
+            return ActionResult.WRONG;
         }
-        return ActionResult.WRONG;
+
+        revealAllLetters();
+        return ActionResult.CORRECT;
+    }
+
+    private void revealAllLetters() {
+        answer.chars()
+                .filter(codePoint -> (char) codePoint != BLANK)
+                .forEach(codePoint -> correctLetters.add((char) codePoint));
     }
 
     @Override
@@ -169,7 +170,7 @@ public class HangmanGame extends AbstractQuizGame {
     @Override
     public GameContentDto getStatus() {
         return GameContentDto.from(this,
-                currentDisplay,
+                getCurrentDisplay(),
                 wrongLetters.stream().map(String::valueOf).collect(Collectors.joining(",")),
                 String.valueOf(remainingTries),
                 getCurrentTurnPlayer(),
