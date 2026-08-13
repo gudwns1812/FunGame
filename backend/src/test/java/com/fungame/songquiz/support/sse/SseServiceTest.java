@@ -67,6 +67,14 @@ class SseServiceTest {
     }
 
     @Test
+    @DisplayName("구독한 연결에는 정해진 수명을 준다.")
+    void subscribedConnectionHasLifetime() {
+        SseEmitter emitter = sseService.subscribe(MEMBER_ID);
+
+        assertThat(emitter.getTimeout()).isEqualTo(SseService.CONNECTION_LIFETIME.toMillis());
+    }
+
+    @Test
     @DisplayName("한 회원이 탭을 여러 개 열면 채널도 그만큼 열린다.")
     void multipleTabsOfSameMember() {
         sseService.subscribe(MEMBER_ID);

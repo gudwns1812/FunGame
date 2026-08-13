@@ -11,6 +11,7 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
+import java.time.Duration;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -21,7 +22,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 @RequiredArgsConstructor
 public class SseService {
 
-    private static final Long DEFAULT_TIMEOUT = 60L * 1000 * 5;
+    static final Duration CONNECTION_LIFETIME = Duration.ofMinutes(30);
+
     private static final String CONNECTED_EVENT = "connected";
     private static final String ROOM_UPDATE_EVENT = "room-update";
     private static final String PRESENCE_UPDATE_EVENT = "presence-update";
@@ -36,7 +38,7 @@ public class SseService {
 
     public SseEmitter subscribe(Long memberId) {
         String connectionId = UUID.randomUUID().toString();
-        SseConnection connection = new SseConnection(connectionId, new SseEmitter(DEFAULT_TIMEOUT));
+        SseConnection connection = new SseConnection(connectionId, new SseEmitter(CONNECTION_LIFETIME.toMillis()));
 
         register(memberId, connectionId, connection);
         connection.send(CONNECTED_EVENT, "Connected");
