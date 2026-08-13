@@ -50,7 +50,6 @@ export const useGameLogic = () => {
     return savedLogs ? JSON.parse(savedLogs) : [];
   });
   const [currentVideoId, setCurrentVideoId] = useState(() => localStorage.getItem('ums_currentVideoId') || '');
-  const [isHost, setIsHost] = useState(false);
   const [playerIndex, setPlayerIndex] = useState<number | null>(null);
   const [gameStartInfo, setGameStartInfo] = useState<GameStartInfo | null>(null);
   const [roomMaxPlayers, setRoomMaxPlayers] = useState<number>(12);
@@ -72,12 +71,16 @@ export const useGameLogic = () => {
     return saved !== null ? Number(saved) : null;
   });
 
+  const hostMemberId = players.find((player) => player.isHost)?.memberId ?? roomSettings?.hostMemberId ?? null;
+  const isHost = myMemberId !== null && hostMemberId === myMemberId;
+
   // 제목없는 음원으로 미디어 플레이어 제목 가리기
 
   const stompClient = useRef<Client | null>(null);
   const fetchRankRef = useRef<() => Promise<void>>(async () => { });
   const hasBootstrapped = useRef(false);
   const resyncMembershipRef = useRef<(targetRoomId: string) => Promise<void>>(async () => { });
+  const returnToLobbyRef = useRef<() => Promise<void>>(async () => { });
   const statusRef = useRef<GameStatus>(status);
 
   const addLog = useCallback((msg: string) => {
@@ -110,18 +113,17 @@ export const useGameLogic = () => {
               };
             });
           });
-          setIsHost(hostMemberId === myMemberId);
         }
       } catch (error: any) {
         console.error('Failed to fetch room users:', error);
         const errorCode = error?.response?.data?.error?.code;
         if (errorCode === 'G002' || errorCode === 'G008') {
           window.alert('방이 종료되었거나 더 이상 존재하지 않습니다.');
-          returnToLobby();
+          returnToLobbyRef.current();
         }
       }
     },
-    [myMemberId],
+    [],
   );
 
   const applyRoomSettings = useCallback((settings: RoomSettings) => {
@@ -404,7 +406,7 @@ export const useGameLogic = () => {
     setRoomName('');
     setStatus('ROOM_LIST');
     setPlayers([]);
-    setIsHost(false);
+    setRoomSettings(null);
     setPlayerIndex(null);
     setGameStartInfo(null);
     setRoundEndInfo(null);
@@ -418,6 +420,10 @@ export const useGameLogic = () => {
   }, [roomId, nickname]);
 
   const returnToLobby = leaveRoom;
+
+  useEffect(() => {
+    returnToLobbyRef.current = returnToLobby;
+  }, [returnToLobby]);
 
   const returnToWaitingRoom = useCallback(async () => {
     setGameStartInfo(null);
@@ -553,7 +559,7 @@ export const useGameLogic = () => {
               if (nickname) {
                 setPlayers((prev) => {
                   if (prev.length === 0) {
-                    return [{ memberId: myMemberId ?? 0, name: nickname, isHost, isReady: isHost, score: 0 }];
+                    return [{ memberId: myMemberId ?? 0, name: nickname, isHost: false, isReady: false, score: 0 }];
                   }
                   return prev;
                 });
@@ -707,7 +713,6 @@ export const useGameLogic = () => {
       clearLogs();
       localStorage.removeItem('ums_logs');
       setRoomId(room.id);
-      setIsHost(room.hostMemberId === myMemberId);
 
       if (room.status === 'PLAYING') {
         // 서버가 재입장을 허용한 경우에만 여기까지 온다. 진행 중인 라운드 상태를 복원한다.
@@ -733,7 +738,7 @@ export const useGameLogic = () => {
       connectWebSocket(room.id);
       window.history.pushState({ room: room.id }, '');
     },
-    [nickname, connectWebSocket, clearLogs, addLog, restorePlayState],
+    [myMemberId, nickname, connectWebSocket, clearLogs, addLog, restorePlayState],
   );
 
   const acceptInvite = useCallback(
@@ -778,7 +783,6 @@ export const useGameLogic = () => {
         if (httpStatus === 409 && redirectRoomId) {
           setRoomId(redirectRoomId);
           setRoomName('');
-          setIsHost(false);
           setStatus('PLAYING');
           setPlayers([{ memberId: myMemberId ?? 0, name: nickname, isHost: false, isReady: false, score: 0 }]);
           connectWebSocket(redirectRoomId);
@@ -788,7 +792,7 @@ export const useGameLogic = () => {
         window.alert(message);
       }
     },
-    [nickname, connectWebSocket, enterRoom],
+    [myMemberId, nickname, connectWebSocket, enterRoom],
   );
 
   const createRoom = useCallback(
@@ -819,7 +823,6 @@ export const useGameLogic = () => {
           clearLogs();
           localStorage.removeItem('ums_logs');
           setRoomId(newRoomId);
-          setIsHost(true);
           setStatus('WAITING');
           setCurrentVideoId(''); // 이전 비디오 아이디 초기화
           setHint('');
@@ -837,7 +840,7 @@ export const useGameLogic = () => {
         setIsCreatingRoom(false);
       }
     },
-    [nickname, addLog, connectWebSocket, clearLogs],
+    [myMemberId, nickname, addLog, connectWebSocket, clearLogs],
   );
 
   const toggleReady = useCallback(async () => {

@@ -1,4 +1,4 @@
-import { renderHook, act } from '@testing-library/react';
+import { renderHook, act, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import axios from 'axios';
 import { useGameLogic } from './useGameLogic';
@@ -141,6 +141,42 @@ describe('useGameLogic 결과창에서 게임방으로 돌아가기', () => {
     expect(result.current.isHost).toBe(true);
     // 화면 상태는 identify 가 건드리지 않는다
     expect(result.current.status).toBe('WAITING');
+  });
+
+  it('방 안에서 새로고침해 회원 번호가 늦게 채워져도 방장으로 본다', async () => {
+    // given: 새로고침 직후라 회원 번호는 아직 없고, 대기실 상태만 남아 있다
+    localStorage.removeItem('ums_member_id');
+    localStorage.setItem('ums_status', 'WAITING');
+    localStorage.setItem('ums_roomId', '7');
+    mockedAxios.get = vi.fn().mockImplementation((url: string) => {
+      if (url.endsWith('/health')) {
+        return Promise.resolve({ data: { result: 'SUCCESS', data: 'ok' } });
+      }
+      if (url.endsWith('/users')) {
+        return Promise.resolve({
+          data: {
+            result: 'SUCCESS',
+            data: {
+              players: [{ memberId: 1, nickname: '나', isReady: true }],
+              hostMemberId: 1,
+              hostNickname: '나',
+            },
+          },
+        });
+      }
+      return Promise.resolve({ data: { result: 'SUCCESS', data: [] } });
+    });
+
+    const { result } = renderHook(() => useGameLogic(), { wrapper: createSseStub().wrapper });
+
+    // when: 로그인 확인이 재참가보다 먼저 끝나 회원 번호가 뒤늦게 들어온다
+    act(() => {
+      result.current.identify(1, '나');
+    });
+
+    // then: 뒤늦게 끝난 재참가가 방장 판정을 뒤집지 않는다
+    await waitFor(() => expect(result.current.isBootstrapping).toBe(false));
+    expect(result.current.isHost).toBe(true);
   });
 
   it('닉네임이 같아도 회원 번호가 다르면 방장으로 보지 않는다', async () => {
