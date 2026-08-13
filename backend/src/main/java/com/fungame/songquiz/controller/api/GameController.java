@@ -2,7 +2,8 @@ package com.fungame.songquiz.controller.api;
 
 import com.fungame.songquiz.controller.request.ChangeRoomSettingsRequest;
 import com.fungame.songquiz.controller.request.CreateRoomRequest;
-import com.fungame.songquiz.domain.GameAction;
+import com.fungame.songquiz.controller.request.GameActionRequest;
+import com.fungame.songquiz.domain.GamePlayer;
 import com.fungame.songquiz.domain.GameRoomService;
 import com.fungame.songquiz.domain.GameService;
 import com.fungame.songquiz.domain.PlayerScore;
@@ -53,7 +54,7 @@ public class GameController {
             @AuthenticationPrincipal MemberAdapter memberAdapter) {
         RoomSettings current = gameRoomService.findSettings(roomId).toSettings();
         RoomSettingsInfo changed = gameRoomService.changeSettings(
-                roomId, memberAdapter.getNickName(), request.applyTo(current));
+                roomId, memberAdapter.getId(), request.applyTo(current));
 
         return ApiResponse.success(changed);
     }
@@ -79,7 +80,7 @@ public class GameController {
     public ApiResponse<Long> createRoom(
             @RequestBody CreateRoomRequest request,
             @AuthenticationPrincipal MemberAdapter memberAdapter) {
-        Long roomId = gameRoomService.createRoom(request.toRoomSettings(), memberAdapter.getNickName(), memberAdapter.getId());
+        Long roomId = gameRoomService.createRoom(request.toRoomSettings(), toPlayer(memberAdapter));
         return ApiResponse.success(roomId);
     }
 
@@ -87,7 +88,7 @@ public class GameController {
     public ApiResponse<Integer> joinRoom(
             @PathVariable Long roomId,
             @AuthenticationPrincipal MemberAdapter memberAdapter) {
-        int playerSequence = gameRoomService.joinRoom(roomId, memberAdapter.getNickName(), memberAdapter.getId());
+        int playerSequence = gameRoomService.joinRoom(roomId, toPlayer(memberAdapter));
         return ApiResponse.success(playerSequence);
     }
 
@@ -95,7 +96,7 @@ public class GameController {
     public ApiResponse<Void> leaveRoom(
             @PathVariable Long roomId,
             @AuthenticationPrincipal MemberAdapter memberAdapter) {
-        gameRoomService.leaveRoom(roomId, memberAdapter.getNickName(), memberAdapter.getId());
+        gameRoomService.leaveRoom(roomId, memberAdapter.getId());
         return ApiResponse.success();
     }
 
@@ -103,7 +104,7 @@ public class GameController {
     public ApiResponse<Void> startGame(
             @PathVariable Long roomId,
             @AuthenticationPrincipal MemberAdapter memberAdapter) {
-        gameService.startGame(roomId, memberAdapter.getNickName());
+        gameService.startGame(roomId, memberAdapter.getId());
         return ApiResponse.success();
     }
 
@@ -111,7 +112,7 @@ public class GameController {
     public ApiResponse<Void> skipCurrentQuiz(
             @PathVariable Long roomId,
             @AuthenticationPrincipal MemberAdapter memberAdapter) {
-        gameService.increaseSkipVote(roomId, memberAdapter.getNickName());
+        gameService.increaseSkipVote(roomId, memberAdapter.getId());
         return ApiResponse.success();
     }
 
@@ -119,13 +120,20 @@ public class GameController {
     public ApiResponse<Void> playerReady(
             @PathVariable Long roomId,
             @AuthenticationPrincipal MemberAdapter memberAdapter) {
-        gameRoomService.readyPlayer(roomId, memberAdapter.getNickName());
+        gameRoomService.readyPlayer(roomId, memberAdapter.getId());
         return ApiResponse.success();
     }
 
     @PostMapping("/{roomId}/action")
-    public ApiResponse<Void> handleAction(@PathVariable Long roomId, @RequestBody GameAction action) {
-        gameService.handleAction(roomId, action);
+    public ApiResponse<Void> handleAction(
+            @PathVariable Long roomId,
+            @RequestBody GameActionRequest request,
+            @AuthenticationPrincipal MemberAdapter memberAdapter) {
+        gameService.handleAction(roomId, request.toAction(memberAdapter.getId()));
         return ApiResponse.success();
+    }
+
+    private GamePlayer toPlayer(MemberAdapter memberAdapter) {
+        return GamePlayer.createNewPlayer(memberAdapter.getId(), memberAdapter.getNickName());
     }
 }

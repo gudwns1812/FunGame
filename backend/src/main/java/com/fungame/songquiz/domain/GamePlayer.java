@@ -1,23 +1,20 @@
 package com.fungame.songquiz.domain;
 
 public record GamePlayer(
-        String name,
+        Long memberId,
+        String nickname,
         boolean isReady
 ) {
 
-    public boolean hasName(String player) {
-        return name.equals(player);
-    }
-
-    public static GamePlayer createNewPlayer(String name) {
-        return new GamePlayer(name, false);
+    public static GamePlayer createNewPlayer(Long memberId, String nickname) {
+        return new GamePlayer(memberId, nickname, false);
     }
 
     public GamePlayer toggleReady() {
-        return new GamePlayer(this.name, !this.isReady);
+        return new GamePlayer(memberId, nickname, !isReady);
     }
 
     public GamePlayer setReady(boolean ready) {
-        return new GamePlayer(this.name, ready);
+        return new GamePlayer(memberId, nickname, ready);
     }
 }

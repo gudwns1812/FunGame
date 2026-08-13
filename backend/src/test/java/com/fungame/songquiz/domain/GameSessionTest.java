@@ -19,7 +19,10 @@ class GameSessionTest {
     @BeforeEach
     void setUp() {
         game = mock(Game.class);
-        List<String> players = List.of("p1", "p2", "p3");
+        List<GamePlayer> players = List.of(
+                GamePlayer.createNewPlayer(1L, "p1"),
+                GamePlayer.createNewPlayer(2L, "p2"),
+                GamePlayer.createNewPlayer(3L, "p3"));
         gameSession = new GameSession(game, players);
     }
 
@@ -27,7 +30,7 @@ class GameSessionTest {
     @DisplayName("handleAction 호출 시 game의 handleAction으로 위임된다.")
     void handleAction_delegates_to_game() {
         // given
-        GameAction action = GameAction.submitAnswer("p1", "answer");
+        GameAction action = GameAction.submitAnswer(1L, "answer");
         given(game.handleAction(action)).willReturn(ActionResult.CORRECT);
 
         // when

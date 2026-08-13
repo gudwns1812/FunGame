@@ -11,18 +11,14 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 public class GamePlayers {
-    private final Map<String, GamePlayer> players;
+    private final Map<Long, GamePlayer> players;
     @Getter
     private int maxPlayer;
     @Getter
-    private String host;
+    private Long host;
 
-    public GamePlayers(List<String> players, int maxPlayer, String host) {
-        this(toPlayerMap(players.stream().map(GamePlayer::createNewPlayer).toList()), maxPlayer, host);
-    }
-
-    private GamePlayers(Map<String, GamePlayer> players, int maxPlayer, String host) {
-        this.players = players;
+    public GamePlayers(List<GamePlayer> players, int maxPlayer, Long host) {
+        this.players = toPlayerMap(players);
         this.maxPlayer = maxPlayer;
         this.host = host;
 
@@ -32,13 +28,10 @@ public class GamePlayers {
         }
     }
 
-    public static GamePlayers restore(List<GamePlayer> players, int maxPlayer, String host) {
-        return new GamePlayers(toPlayerMap(players), maxPlayer, host);
-    }
-
-    private static Map<String, GamePlayer> toPlayerMap(List<GamePlayer> players) {
+    private static Map<Long, GamePlayer> toPlayerMap(List<GamePlayer> players) {
         return players.stream()
-                .collect(Collectors.toMap(GamePlayer::name, player -> player, (existing, replacement) -> existing, LinkedHashMap::new));
+                .collect(Collectors.toMap(GamePlayer::memberId, player -> player, (existing, replacement) -> existing,
+                        LinkedHashMap::new));
     }
 
     public List<GamePlayer> snapshot() {
@@ -53,11 +46,11 @@ public class GamePlayers {
     }
 
     public void resetReady() {
-        players.replaceAll((name, player) -> player.setReady(name.equals(host)));
+        players.replaceAll((memberId, player) -> player.setReady(memberId.equals(host)));
     }
 
-    public boolean add(String player) {
-        if (isAlreadyIn(player)) {
+    public boolean add(GamePlayer player) {
+        if (isAlreadyIn(player.memberId())) {
             return false;
         }
 
@@ -65,18 +58,18 @@ public class GamePlayers {
             throw new CoreException(ErrorType.GAME_ROOM_MAX_PLAYER_EXCEED);
         }
 
-        players.put(player, GamePlayer.createNewPlayer(player));
+        players.put(player.memberId(), player);
         return true;
     }
 
-    private boolean isAlreadyIn(String player) {
-        return players.containsKey(player);
+    private boolean isAlreadyIn(Long memberId) {
+        return players.containsKey(memberId);
     }
 
-    public void remove(String player) {
-        players.remove(player);
+    public void remove(Long memberId) {
+        players.remove(memberId);
 
-        if (player.equals(host) && !players.isEmpty()) {
+        if (memberId.equals(host) && !players.isEmpty()) {
             delegateHost();
         }
     }
@@ -84,28 +77,36 @@ public class GamePlayers {
     private void delegateHost() {
         players.values().stream()
                 .findFirst()
-                .map(GamePlayer::name)
+                .map(GamePlayer::memberId)
                 .ifPresent(this::assignHost);
     }
 
-    private void assignHost(String name) {
-        host = name;
+    private void assignHost(Long memberId) {
+        host = memberId;
         // 새 방장도 즉시 준비 상태로 변경
-        players.put(name, players.get(name).setReady(true));
+        players.put(memberId, players.get(memberId).setReady(true));
     }
 
     public boolean isFull() {
         return players.size() >= maxPlayer;
     }
 
-    public List<String> getPlayers() {
-        return players.values().stream().map(GamePlayer::name)
-                .toList();
+    public List<GamePlayer> getPlayers() {
+        return List.copyOf(players.values());
+    }
+
+    public boolean hasPlayer(Long memberId) {
+        return players.containsKey(memberId);
+    }
+
+    public String nicknameOf(Long memberId) {
+        GamePlayer player = players.get(memberId);
+        return player == null ? null : player.nickname();
     }
 
     public List<GamePlayerInfo> getPlayersWithReadyStatus() {
         return players.values().stream()
-                .map(p -> new GamePlayerInfo(p.name(), p.isReady()))
+                .map(GamePlayerInfo::from)
                 .toList();
     }
 
@@ -113,19 +114,19 @@ public class GamePlayers {
         return players.size();
     }
 
-    public boolean readyPlayer(String player) {
-        if (!players.containsKey(player)) {
+    public boolean readyPlayer(Long memberId) {
+        if (!players.containsKey(memberId)) {
             throw new CoreException(ErrorType.PLAYER_NOT_FOUND);
         }
 
         // 방장은 준비 해제 불가, 항상 true
-        if (player.equals(host)) {
-            players.put(player, players.get(player).setReady(true));
+        if (memberId.equals(host)) {
+            players.put(memberId, players.get(memberId).setReady(true));
         } else {
-            players.put(player, players.get(player).toggleReady());
+            players.put(memberId, players.get(memberId).toggleReady());
         }
 
-        return players.get(player).isReady();
+        return players.get(memberId).isReady();
     }
 
     public boolean isAllReady() {

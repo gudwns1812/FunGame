@@ -19,11 +19,11 @@ public interface Game {
 
     void resetRoundState();
 
-    void setPlayers(List<String> players);
+    void setPlayers(List<GamePlayer> players);
 
-    void removePlayer(String playerName);
+    void removePlayer(Long memberId);
 
-    void restorePlayer(String playerName);
+    void restorePlayer(GamePlayer player);
 
     GameAnswerDto getAnswer();
 

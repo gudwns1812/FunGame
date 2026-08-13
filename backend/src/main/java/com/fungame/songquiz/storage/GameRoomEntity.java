@@ -41,8 +41,8 @@ public class GameRoomEntity {
     @Column(nullable = false)
     private int maxPlayer;
 
-    @Column(nullable = false, length = 100)
-    private String hostNickname;
+    @Column(nullable = false)
+    private Long hostMemberId;
 
     @Enumerated(EnumType.STRING)
     private Category category;
@@ -57,20 +57,20 @@ public class GameRoomEntity {
     @OneToMany(mappedBy = "gameRoom", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<GameRoomMemberEntity> members = new ArrayList<>();
 
-    private GameRoomEntity(RoomSettings settings, String hostNickname) {
+    private GameRoomEntity(RoomSettings settings, Long hostMemberId) {
         this.title = settings.title();
         this.gameType = settings.gameType();
         this.status = GameRoomStatus.WAITING;
         this.maxPlayer = settings.maxPlayers();
-        this.hostNickname = hostNickname;
+        this.hostMemberId = hostMemberId;
         this.category = settings.category();
         this.totalRound = settings.totalRound();
         this.difficulty = settings.difficulty();
         this.lastActivityTime = Instant.now();
     }
 
-    public static GameRoomEntity open(RoomSettings settings, String hostNickname) {
-        return new GameRoomEntity(settings, hostNickname);
+    public static GameRoomEntity open(RoomSettings settings, Long hostMemberId) {
+        return new GameRoomEntity(settings, hostMemberId);
     }
 
     public RoomSettings toSettings() {
@@ -89,8 +89,8 @@ public class GameRoomEntity {
         this.status = status;
     }
 
-    public void changeHost(String hostNickname) {
-        this.hostNickname = hostNickname;
+    public void changeHost(Long hostMemberId) {
+        this.hostMemberId = hostMemberId;
     }
 
     public void touch(Instant at) {
@@ -98,20 +98,20 @@ public class GameRoomEntity {
     }
 
     public void syncMembers(List<GamePlayer> players) {
-        Map<String, GamePlayer> desiredByNickname = players.stream()
-                .collect(Collectors.toMap(GamePlayer::name, player -> player));
+        Map<Long, GamePlayer> desiredByMemberId = players.stream()
+                .collect(Collectors.toMap(GamePlayer::memberId, player -> player));
 
-        members.removeIf(existing -> !desiredByNickname.containsKey(existing.getNickname()));
-        members.forEach(existing -> existing.changeReady(desiredByNickname.get(existing.getNickname()).isReady()));
+        members.removeIf(existing -> !desiredByMemberId.containsKey(existing.getMemberId()));
+        members.forEach(existing -> existing.changeReady(desiredByMemberId.get(existing.getMemberId()).isReady()));
 
-        Set<String> alreadyJoined = members.stream()
-                .map(GameRoomMemberEntity::getNickname)
+        Set<Long> alreadyJoined = members.stream()
+                .map(GameRoomMemberEntity::getMemberId)
                 .collect(Collectors.toSet());
 
         players.stream()
-                .filter(player -> !alreadyJoined.contains(player.name()))
+                .filter(player -> !alreadyJoined.contains(player.memberId()))
                 .forEach(player -> {
-                    GameRoomMemberEntity member = GameRoomMemberEntity.of(player.name(), player.isReady());
+                    GameRoomMemberEntity member = GameRoomMemberEntity.of(player.memberId(), player.isReady());
                     member.belongTo(this);
                     members.add(member);
                 });

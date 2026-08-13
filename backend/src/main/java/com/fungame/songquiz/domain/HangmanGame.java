@@ -25,7 +25,7 @@ public class HangmanGame extends AbstractQuizGame {
     private final Set<Character> wrongLetters;
     private int remainingTries;
     private int currentTurnIndex;
-    private List<String> playerOrder;
+    private List<GamePlayer> playerOrder;
 
     private HangmanGame(String answer) {
         super(List.of());
@@ -44,7 +44,7 @@ public class HangmanGame extends AbstractQuizGame {
         return new HangmanGame(answer);
     }
 
-    public void initPlayers(List<String> players) {
+    public void initPlayers(List<GamePlayer> players) {
         if (players == null || players.isEmpty()) {
             throw new CoreException(ErrorType.HANGMAN_PLAYER_EMPTY);
         }
@@ -64,9 +64,9 @@ public class HangmanGame extends AbstractQuizGame {
         return correctLetters.contains(letter) ? String.valueOf(letter) : HIDDEN_LETTER;
     }
 
-    public ActionResult guess(String playerId, char letter) {
+    public ActionResult guess(Long memberId, char letter) {
         letter = Character.toUpperCase(letter);
-        validateGuess(playerId, letter);
+        validateGuess(memberId, letter);
 
         boolean isCorrect = false;
         if (answer.indexOf(letter) >= 0) {
@@ -85,8 +85,8 @@ public class HangmanGame extends AbstractQuizGame {
         return remainingTries <= 0 ? ActionResult.WRONG : ActionResult.ACTION_SUCCESS;
     }
 
-    private void validateGuess(String playerId, char letter) {
-        if (!playerOrder.get(currentTurnIndex).equals(playerId)) {
+    private void validateGuess(Long memberId, char letter) {
+        if (!playerOrder.get(currentTurnIndex).memberId().equals(memberId)) {
             throw new CoreException(ErrorType.INVALID_INPUT_VALUE); // "당신의 차례가 아닙니다." 의미로 사용
         }
         if (remainingTries <= 0 || isGameWon()) {
@@ -102,10 +102,10 @@ public class HangmanGame extends AbstractQuizGame {
     }
 
     @Override
-    public void removePlayer(String playerName) {
-        super.removePlayer(playerName);
+    public void removePlayer(Long memberId) {
+        super.removePlayer(memberId);
 
-        int leaverIndex = playerOrder.indexOf(playerName);
+        int leaverIndex = indexOf(memberId);
         if (leaverIndex < 0) {
             return;
         }
@@ -123,12 +123,21 @@ public class HangmanGame extends AbstractQuizGame {
         currentTurnIndex %= playerOrder.size();
     }
 
-    @Override
-    public void restorePlayer(String playerName) {
-        super.restorePlayer(playerName);
+    private int indexOf(Long memberId) {
+        for (int i = 0; i < playerOrder.size(); i++) {
+            if (playerOrder.get(i).memberId().equals(memberId)) {
+                return i;
+            }
+        }
+        return -1;
+    }
 
-        if (!playerOrder.contains(playerName)) {
-            playerOrder.add(playerName);
+    @Override
+    public void restorePlayer(GamePlayer player) {
+        super.restorePlayer(player);
+
+        if (indexOf(player.memberId()) < 0) {
+            playerOrder.add(player);
         }
     }
 
@@ -138,7 +147,7 @@ public class HangmanGame extends AbstractQuizGame {
                 .allMatch(codePoint -> correctLetters.contains((char) codePoint));
     }
 
-    public String getCurrentTurnPlayer() {
+    public GamePlayer getCurrentTurnPlayer() {
         if (playerOrder == null || playerOrder.isEmpty()) {
             throw new CoreException(ErrorType.HANGMAN_PLAYER_EMPTY);
         }
@@ -147,7 +156,7 @@ public class HangmanGame extends AbstractQuizGame {
     }
 
     @Override
-    protected ActionResult processAnswer(String playerName, String answer) {
+    protected ActionResult processAnswer(Long memberId, String answer) {
         if (!this.answer.equalsIgnoreCase(answer.trim())) {
             return ActionResult.WRONG;
         }
@@ -169,13 +178,16 @@ public class HangmanGame extends AbstractQuizGame {
 
     @Override
     public GameContentDto getStatus() {
+        GamePlayer currentTurnPlayer = getCurrentTurnPlayer();
+
         return GameContentDto.from(this,
                 getCurrentDisplay(),
                 wrongLetters.stream().map(String::valueOf).collect(Collectors.joining(",")),
                 String.valueOf(remainingTries),
-                getCurrentTurnPlayer(),
+                currentTurnPlayer.nickname(),
                 String.valueOf(remainingTries <= 0 || isGameWon()),
-                String.valueOf(isGameWon())
+                String.valueOf(isGameWon()),
+                String.valueOf(currentTurnPlayer.memberId())
         );
     }
 

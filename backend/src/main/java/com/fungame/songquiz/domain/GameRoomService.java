@@ -39,44 +39,45 @@ public class GameRoomService {
     }
 
     @Transactional
-    public Long createRoom(RoomSettings settings, String hostName, Long hostMemberId) {
-        Long roomId = gameRoomStore.open(settings, hostName);
+    public Long createRoom(RoomSettings settings, GamePlayer host) {
+        Long roomId = gameRoomStore.open(settings, host);
 
-        gameRoomManager.createGameRoom(roomId, settings, hostName);
-        memberPresenceService.enterWaitingRoom(hostMemberId, roomId);
+        gameRoomManager.createGameRoom(roomId, settings, host);
+        memberPresenceService.enterWaitingRoom(host.memberId(), roomId);
         applicationEventPublisher.publishEvent(new RoomChangedEvent());
 
         return roomId;
     }
 
     @Transactional
-    public int joinRoom(Long roomId, String playerName, Long memberId) {
-        JoinResult result = gameRoomManager.joinRoom(roomId, playerName);
+    public int joinRoom(Long roomId, GamePlayer player) {
+        JoinResult result = gameRoomManager.joinRoom(roomId, player);
 
-        rememberWhereMemberIs(roomId, memberId);
+        rememberWhereMemberIs(roomId, player.memberId());
 
         if (result.newlyJoined()) {
-            applicationEventPublisher.publishEvent(new PlayerJoinEvent(roomId, playerName));
+            applicationEventPublisher.publishEvent(
+                    new PlayerJoinEvent(roomId, player.memberId(), player.nickname()));
         }
 
         return result.playerNumber();
     }
 
     @Transactional
-    public void leaveRoom(Long roomId, String playerName, Long memberId) {
-        LeaveResult result = gameRoomManager.leaveRoom(roomId, playerName);
+    public void leaveRoom(Long roomId, Long memberId) {
+        LeaveResult result = gameRoomManager.leaveRoom(roomId, memberId);
 
         memberPresenceService.leaveRoom(memberId);
 
-        if (result.destroyed()) {
+        if (result.destroyed() || result.nickname() == null) {
             return;
         }
 
         if (result.wasPlaying()) {
-            gameService.handlePlayerLeave(roomId, playerName);
+            gameService.handlePlayerLeave(roomId, memberId);
         }
 
-        applicationEventPublisher.publishEvent(new PlayerLeaveEvent(roomId, playerName));
+        applicationEventPublisher.publishEvent(new PlayerLeaveEvent(roomId, memberId, result.nickname()));
     }
 
     private void rememberWhereMemberIs(Long roomId, Long memberId) {
@@ -107,8 +108,8 @@ public class GameRoomService {
         return RoomSettingsInfo.from(gameRoom);
     }
 
-    public RoomSettingsInfo changeSettings(Long roomId, String nickname, RoomSettings newSettings) {
-        GameRoom gameRoom = gameRoomManager.changeSettings(roomId, nickname, newSettings);
+    public RoomSettingsInfo changeSettings(Long roomId, Long memberId, RoomSettings newSettings) {
+        GameRoom gameRoom = gameRoomManager.changeSettings(roomId, memberId, newSettings);
         RoomSettingsInfo changed = RoomSettingsInfo.from(gameRoom);
 
         applicationEventPublisher.publishEvent(new RoomSettingsChangedEvent(roomId, changed));
@@ -116,10 +117,11 @@ public class GameRoomService {
         return changed;
     }
 
-    public void readyPlayer(Long roomId, String playerName) {
-        ReadyResult result = gameRoomManager.readyPlayer(roomId, playerName);
+    public void readyPlayer(Long roomId, Long memberId) {
+        ReadyResult result = gameRoomManager.readyPlayer(roomId, memberId);
 
-        applicationEventPublisher.publishEvent(new PlayerReadyEvent(roomId, playerName, result.ready(), result.isAllReady()));
+        applicationEventPublisher.publishEvent(
+                new PlayerReadyEvent(roomId, memberId, result.nickname(), result.ready(), result.isAllReady()));
     }
 
     public void healthCheck(Long roomId) {
