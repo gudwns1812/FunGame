@@ -12,7 +12,8 @@ public record RoomSettingsInfo(
         Category category,
         int totalRound,
         int difficulty,
-        String host
+        Long hostMemberId,
+        String hostNickname
 ) {
 
     public RoomSettings toSettings() {
@@ -29,7 +30,8 @@ public record RoomSettingsInfo(
                 settings.category(),
                 settings.totalRound(),
                 settings.difficulty(),
-                gameRoom.getPlayers().getHost()
+                gameRoom.getPlayers().getHost(),
+                gameRoom.getPlayers().nicknameOf(gameRoom.getPlayers().getHost())
         );
     }
 }

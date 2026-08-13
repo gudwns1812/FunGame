@@ -1,7 +1,7 @@
 package com.fungame.songquiz.controller.websocket;
 
 import com.fungame.songquiz.controller.request.ChatRequest;
-import com.fungame.songquiz.domain.GameAction;
+import com.fungame.songquiz.controller.request.GameActionRequest;
 import com.fungame.songquiz.domain.GameRoomManager;
 import com.fungame.songquiz.domain.GameService;
 import com.fungame.songquiz.domain.member.MemberAdapter;
@@ -32,7 +32,8 @@ public class ChatController {
                      @Payload ChatRequest request) {
         Object payload = Map.of(
                 "type", "CHAT",
-                "playerName", user.getNickName(),
+                "memberId", user.getId(),
+                "nickname", user.getNickName(),
                 "message", request.message()
         );
 
@@ -40,7 +41,7 @@ public class ChatController {
 
         try {
             gameRoomManager.touch(roomId);
-            gameService.processAnswer(roomId, user.getNickName(), request.message());
+            gameService.processAnswer(roomId, user.getId(), request.message());
         } catch (CoreException e) {
             log.info("Chat for missing room {}: {}", roomId, e.getMessage());
         }
@@ -48,10 +49,10 @@ public class ChatController {
 
     @MessageMapping("/room/{roomId}/action")
     public void handleAction(@DestinationVariable Long roomId, @AuthenticationPrincipal MemberAdapter user,
-                            GameAction action) {
+                             GameActionRequest request) {
         try {
             gameRoomManager.touch(roomId);
-            gameService.handleAction(roomId, action);
+            gameService.handleAction(roomId, request.toAction(user.getId()));
         } catch (CoreException e) {
             log.info("Action for missing room {}: {}", roomId, e.getMessage());
         }

@@ -4,8 +4,8 @@ import com.fungame.songquiz.domain.dto.GameAnswerDto;
 
 public record RoundEndEvent(
         Long roomId,
-        String winner,
+        Long winnerMemberId,
+        String winnerNickname,
         GameAnswerDto answer
 ) {
-
 }

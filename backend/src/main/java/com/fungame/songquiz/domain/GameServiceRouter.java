@@ -26,8 +26,8 @@ public class GameServiceRouter implements GameService {
     }
 
     @Override
-    public void startGame(Long roomId, String nickname) {
-        getService(roomId).startGame(roomId, nickname);
+    public void startGame(Long roomId, Long memberId) {
+        getService(roomId).startGame(roomId, memberId);
     }
 
     private GameService getService(Long roomId) {
@@ -36,8 +36,8 @@ public class GameServiceRouter implements GameService {
     }
 
     @Override
-    public void processAnswer(Long roomId, String playerName, String message) {
-        getService(roomId).processAnswer(roomId, playerName, message);
+    public void processAnswer(Long roomId, Long memberId, String message) {
+        getService(roomId).processAnswer(roomId, memberId, message);
     }
 
     @Override
@@ -46,8 +46,8 @@ public class GameServiceRouter implements GameService {
     }
 
     @Override
-    public void increaseSkipVote(Long roomId, String playerName) {
-        getService(roomId).increaseSkipVote(roomId, playerName);
+    public void increaseSkipVote(Long roomId, Long memberId) {
+        getService(roomId).increaseSkipVote(roomId, memberId);
     }
 
     @Override
@@ -61,8 +61,8 @@ public class GameServiceRouter implements GameService {
     }
 
     @Override
-    public void handlePlayerLeave(Long roomId, String playerName) {
-        getService(roomId).handlePlayerLeave(roomId, playerName);
+    public void handlePlayerLeave(Long roomId, Long memberId) {
+        getService(roomId).handlePlayerLeave(roomId, memberId);
     }
 
     @Override

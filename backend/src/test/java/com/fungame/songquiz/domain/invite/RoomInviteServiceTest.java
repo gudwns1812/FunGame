@@ -1,6 +1,7 @@
 package com.fungame.songquiz.domain.invite;
 
 import com.fungame.songquiz.domain.Category;
+import com.fungame.songquiz.domain.GamePlayer;
 import com.fungame.songquiz.domain.GameRoomService;
 import com.fungame.songquiz.domain.GameRoomStatus;
 import com.fungame.songquiz.domain.GameType;
@@ -24,6 +25,7 @@ import java.time.ZoneId;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -166,7 +168,7 @@ class RoomInviteServiceTest {
         @Test
         @DisplayName("수락하면 그 방에 입장하고 방 정보와 순번을 돌려준다.")
         void acceptJoinsRoom() {
-            given(gameRoomService.joinRoom(ROOM_ID, "손님", TARGET_ID)).willReturn(3);
+            given(gameRoomService.joinRoom(ROOM_ID, GamePlayer.createNewPlayer(TARGET_ID, "손님"))).willReturn(3);
             String inviteId = invite();
 
             AcceptedInvite accepted = roomInviteService.accept(inviteId, TARGET_ID);
@@ -179,7 +181,7 @@ class RoomInviteServiceTest {
         @Test
         @DisplayName("같은 초대를 두 번 수락할 수 없다.")
         void rejectDoubleAccept() {
-            given(gameRoomService.joinRoom(ROOM_ID, "손님", TARGET_ID)).willReturn(3);
+            given(gameRoomService.joinRoom(ROOM_ID, GamePlayer.createNewPlayer(TARGET_ID, "손님"))).willReturn(3);
             String inviteId = invite();
             roomInviteService.accept(inviteId, TARGET_ID);
 
@@ -198,7 +200,7 @@ class RoomInviteServiceTest {
             assertThatThrownBy(() -> roomInviteService.accept(inviteId, TARGET_ID))
                     .isInstanceOf(CoreException.class)
                     .hasFieldOrPropertyWithValue("type", ErrorType.INVITE_NOT_FOUND);
-            verify(gameRoomService, never()).joinRoom(anyLong(), anyString(), anyLong());
+            verify(gameRoomService, never()).joinRoom(anyLong(), any());
         }
 
         @Test
@@ -214,7 +216,7 @@ class RoomInviteServiceTest {
         @Test
         @DisplayName("남이 가로채기를 시도해도 초대는 살아 있다.")
         void interceptAttemptDoesNotBurnInvite() {
-            given(gameRoomService.joinRoom(ROOM_ID, "손님", TARGET_ID)).willReturn(3);
+            given(gameRoomService.joinRoom(ROOM_ID, GamePlayer.createNewPlayer(TARGET_ID, "손님"))).willReturn(3);
             String inviteId = invite();
 
             assertThatThrownBy(() -> roomInviteService.accept(inviteId, 99L))
@@ -240,13 +242,13 @@ class RoomInviteServiceTest {
             assertThatThrownBy(() -> roomInviteService.accept(inviteId, TARGET_ID))
                     .isInstanceOf(CoreException.class)
                     .hasFieldOrPropertyWithValue("type", ErrorType.ALREADY_IN_ANOTHER_ROOM);
-            verify(gameRoomService, never()).joinRoom(anyLong(), anyString(), anyLong());
+            verify(gameRoomService, never()).joinRoom(anyLong(), any());
         }
 
         @Test
         @DisplayName("입장에 실패하면 그 사유가 그대로 올라온다.")
         void propagateJoinFailure() {
-            given(gameRoomService.joinRoom(ROOM_ID, "손님", TARGET_ID))
+            given(gameRoomService.joinRoom(ROOM_ID, GamePlayer.createNewPlayer(TARGET_ID, "손님")))
                     .willThrow(new CoreException(ErrorType.GAME_ROOM_MAX_PLAYER_EXCEED));
             String inviteId = invite();
 
@@ -291,14 +293,14 @@ class RoomInviteServiceTest {
     }
 
     private static RoomInfo waitingRoomInfo() {
-        return new RoomInfo(ROOM_ID, "테스트 방", "방장", GameRoomStatus.WAITING, 8, 2);
+        return new RoomInfo(ROOM_ID, "테스트 방", INVITER_ID, "방장", GameRoomStatus.WAITING, 8, 2);
     }
 
     private static RoomInfo playingRoomInfo() {
-        return new RoomInfo(ROOM_ID, "테스트 방", "방장", GameRoomStatus.PLAYING, 8, 2);
+        return new RoomInfo(ROOM_ID, "테스트 방", INVITER_ID, "방장", GameRoomStatus.PLAYING, 8, 2);
     }
 
     private static RoomSettingsInfo roomSettings() {
-        return new RoomSettingsInfo("테스트 방", GameType.SONG, 8, Category.KPOP, 10, 0, "방장");
+        return new RoomSettingsInfo("테스트 방", GameType.SONG, 8, Category.KPOP, 10, 0, INVITER_ID, "방장");
     }
 }

@@ -22,18 +22,18 @@ public class GameRoom {
         this.lastActivityTime = lastActivityTime;
     }
 
-    public static GameRoom create(RoomSettings settings, List<String> initialPlayers, String host) {
+    public static GameRoom create(RoomSettings settings, GamePlayer host) {
         return new GameRoom(
                 settings,
-                new GamePlayers(initialPlayers, settings.maxPlayers(), host),
+                new GamePlayers(List.of(host), settings.maxPlayers(), host.memberId()),
                 GameRoomStatus.WAITING,
                 Instant.now());
     }
 
-    public static GameRoom restore(RoomSettings settings, List<GamePlayer> players, String host, Instant lastActivityTime) {
+    public static GameRoom restore(RoomSettings settings, List<GamePlayer> players, Long hostId, Instant lastActivityTime) {
         return new GameRoom(
                 settings,
-                GamePlayers.restore(players, settings.maxPlayers(), host),
+                new GamePlayers(players, settings.maxPlayers(), hostId),
                 GameRoomStatus.WAITING,
                 lastActivityTime);
     }
@@ -42,9 +42,9 @@ public class GameRoom {
         return settings.title();
     }
 
-    public JoinResult join(String playerName) {
+    public JoinResult join(GamePlayer player) {
         validateJoin();
-        boolean newlyJoined = players.add(playerName);
+        boolean newlyJoined = players.add(player);
         return new JoinResult(players.getCurrentCount(), newlyJoined);
     }
 
@@ -54,27 +54,27 @@ public class GameRoom {
         }
     }
 
-    public JoinResult rejoin(String playerName) {
-        boolean newlyJoined = players.add(playerName);
+    public JoinResult rejoin(GamePlayer player) {
+        boolean newlyJoined = players.add(player);
         return new JoinResult(players.getCurrentCount(), newlyJoined);
     }
 
-    public void leave(String player) {
-        players.remove(player);
+    public void leave(Long memberId) {
+        players.remove(memberId);
     }
 
-    public List<String> getRoomPlayers() {
+    public List<GamePlayer> getRoomPlayers() {
         return players.getPlayers();
     }
 
-    public void start(String nickname, Game startingGame) {
-        validateStart(nickname);
+    public void start(Long memberId, Game startingGame) {
+        validateStart(memberId);
         this.game = startingGame;
         this.status = GameRoomStatus.PLAYING;
     }
 
-    private void validateStart(String nickname) {
-        if (!hasHostName(nickname)) {
+    private void validateStart(Long memberId) {
+        if (!isHost(memberId)) {
             throw new CoreException(ErrorType.NOT_VALID_HOST);
         }
         if (isEmpty()) {
@@ -118,20 +118,24 @@ public class GameRoom {
         return status == GameRoomStatus.PLAYING;
     }
 
-    public boolean hasPlayer(String playerName) {
-        return players.getPlayers().contains(playerName);
+    public boolean hasPlayer(Long memberId) {
+        return players.hasPlayer(memberId);
+    }
+
+    public String nicknameOf(Long memberId) {
+        return players.nicknameOf(memberId);
     }
 
     public int getPlayerCount() {
         return players.getCurrentCount();
     }
 
-    public boolean hasHostName(String name) {
-        return players.getHost().equals(name);
+    public boolean isHost(Long memberId) {
+        return players.getHost().equals(memberId);
     }
 
-    public boolean readyPlayer(String player) {
-        return players.readyPlayer(player);
+    public boolean readyPlayer(Long memberId) {
+        return players.readyPlayer(memberId);
     }
 
     public boolean isAllReady() {

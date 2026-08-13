@@ -13,7 +13,7 @@ import java.util.concurrent.ConcurrentHashMap;
 public class GameSessionManager {
     private final Map<Long, GameSession> manager = new ConcurrentHashMap<>();
 
-    public GameInfo startGame(Long roomId, Game game, List<String> players) {
+    public GameInfo startGame(Long roomId, Game game, List<GamePlayer> players) {
         manager.put(roomId, new GameSession(game, players));
         return game.getGameInfo();
     }

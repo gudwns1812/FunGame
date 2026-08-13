@@ -28,8 +28,8 @@ public class QuizGameService implements GameService {
     }
 
     @Override
-    public void startGame(Long roomId, String nickname) {
-        GameRoom gameRoom = gameRoomManager.startGame(roomId, nickname);
+    public void startGame(Long roomId, Long memberId) {
+        GameRoom gameRoom = gameRoomManager.startGame(roomId, memberId);
         GameInfo gameInfo = sessionManager.startGame(roomId, gameRoom.getGame(), gameRoom.getRoomPlayers());
         publisher.publishEvent(new GameStartEvent(roomId, gameInfo));
 
@@ -62,7 +62,7 @@ public class QuizGameService implements GameService {
         });
     }
 
-    private void endRound(Long roomId, String winner) {
+    private void endRound(Long roomId, Long winnerId) {
         GameSession gameSession = sessionManager.getGameSession(roomId);
 
         if (gameSession == null || !gameSession.startProcessing()) {
@@ -71,17 +71,20 @@ public class QuizGameService implements GameService {
 
         timer.stop(roomId);
 
-        processRoundResult(roomId, winner, gameSession);
+        processRoundResult(roomId, winnerId, gameSession);
 
         scheduleNextStep(roomId, gameSession);
     }
 
-    private void processRoundResult(Long roomId, String winner, GameSession gameSession) {
-        if (winner != null) {
-            gameSession.updatePlayerPoint(winner);
+    private void processRoundResult(Long roomId, Long winnerId, GameSession gameSession) {
+        if (winnerId == null) {
+            publisher.publishEvent(new RoundEndEvent(roomId, null, null, gameSession.getAnswer()));
+            return;
         }
 
-        publisher.publishEvent(new RoundEndEvent(roomId, winner, gameSession.getAnswer()));
+        gameSession.updatePlayerPoint(winnerId);
+        publisher.publishEvent(
+                new RoundEndEvent(roomId, winnerId, gameSession.nicknameOf(winnerId), gameSession.getAnswer()));
     }
 
     private void scheduleNextStep(Long roomId, GameSession gameSession) {
@@ -105,8 +108,8 @@ public class QuizGameService implements GameService {
     }
 
     @Override
-    public void processAnswer(Long roomId, String playerName, String message) {
-        handleAction(roomId, GameAction.submitAnswer(playerName, message));
+    public void processAnswer(Long roomId, Long memberId, String message) {
+        handleAction(roomId, GameAction.submitAnswer(memberId, message));
     }
 
     @Override
@@ -118,7 +121,7 @@ public class QuizGameService implements GameService {
 
         ActionResult result = gameSession.handleAction(action);
         if (result == ActionResult.CORRECT) {
-            endRound(roomId, action.playerName());
+            endRound(roomId, action.memberId());
         } else if (result == ActionResult.SKIP_VOTE_SUCCESS) {
             endRound(roomId, null);
         }
@@ -135,19 +138,19 @@ public class QuizGameService implements GameService {
     }
 
     @Override
-    public void increaseSkipVote(Long roomId, String playerName) {
-        handleAction(roomId, GameAction.skipVote(playerName));
+    public void increaseSkipVote(Long roomId, Long memberId) {
+        handleAction(roomId, GameAction.skipVote(memberId));
     }
 
     @Override
-    public void handlePlayerLeave(Long roomId, String playerName) {
+    public void handlePlayerLeave(Long roomId, Long memberId) {
         GameSession gameSession = sessionManager.getGameSession(roomId);
         if (gameSession == null) {
             return;
         }
 
-        gameSession.removePlayer(playerName);
-        log.info("게임 중 이탈: room {}, player {}", roomId, playerName);
+        gameSession.removePlayer(memberId);
+        log.info("게임 중 이탈: room {}, member {}", roomId, memberId);
     }
 
     @Override

@@ -45,7 +45,7 @@ const Result: React.FC<ResultProps> = ({ rankings, onBackToLobby, onBackToRoom }
 
             return (
               <div
-                key={p.id}
+                key={p.memberId}
                 className={`flex items-center gap-2.5 border-2 border-ink px-2.5 py-2 ${
                   isFirst ? 'bg-gold' : 'bg-white'
                 }`}>

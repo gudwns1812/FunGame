@@ -13,7 +13,7 @@ describe('RankingItem', () => {
   });
 
   const mockPlayer: Player = {
-    id: 'user1',
+    memberId: 1,
     name: 'Player 1',
     score: 100,
     isHost: false,

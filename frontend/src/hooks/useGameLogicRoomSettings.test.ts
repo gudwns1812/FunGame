@@ -26,7 +26,8 @@ const settingsResponse = (maxPlayers: number) => ({
       category: 'DEFAULT',
       totalRound: 5,
       difficulty: 0,
-      host: '나',
+      hostMemberId: 1,
+      hostNickname: '나',
     },
   },
 });

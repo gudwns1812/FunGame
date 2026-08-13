@@ -1,5 +1,6 @@
 package com.fungame.songquiz.domain.invite;
 
+import com.fungame.songquiz.domain.GamePlayer;
 import com.fungame.songquiz.domain.GameRoomService;
 import com.fungame.songquiz.domain.GameRoomStatus;
 import com.fungame.songquiz.domain.dto.RoomInfo;
@@ -66,7 +67,8 @@ public class RoomInviteService {
             throw new CoreException(ErrorType.ALREADY_IN_ANOTHER_ROOM);
         }
 
-        int playerSequence = gameRoomService.joinRoom(invite.roomId(), member.getNickname(), memberId);
+        int playerSequence = gameRoomService.joinRoom(invite.roomId(),
+                GamePlayer.createNewPlayer(memberId, member.getNickname()));
         RoomInfo room = gameRoomService.findRoomInfo(invite.roomId());
 
         return new AcceptedInvite(room, playerSequence);

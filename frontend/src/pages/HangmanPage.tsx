@@ -10,7 +10,7 @@ import type { HangmanStatus, Player } from '../types/game';
 interface HangmanPageProps {
   status: HangmanStatus | null;
   onGuess: (letter: string) => void;
-  myNickname: string;
+  myMemberId: number | null;
   logs: string[];
   players: Player[];
   onSendMessage: (msg: string) => void;
@@ -18,7 +18,7 @@ interface HangmanPageProps {
 
 const MAX_TRIES = 6;
 
-const HangmanPage: React.FC<HangmanPageProps> = ({ status, onGuess, myNickname, logs, players, onSendMessage }) => {
+const HangmanPage: React.FC<HangmanPageProps> = ({ status, onGuess, myMemberId, logs, players, onSendMessage }) => {
   const navigate = useNavigate();
   const [chatMessage, setChatMessage] = useState('');
   const logContainerRef = useRef<HTMLDivElement>(null);
@@ -91,7 +91,7 @@ const HangmanPage: React.FC<HangmanPageProps> = ({ status, onGuess, myNickname, 
     );
   }
 
-  const isMyTurn = myNickname === status.currentTurnPlayer;
+  const isMyTurn = myMemberId !== null && myMemberId === status.currentTurnMemberId;
 
   return (
     <div className="app-frame">
