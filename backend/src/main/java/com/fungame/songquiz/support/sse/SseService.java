@@ -2,6 +2,8 @@ package com.fungame.songquiz.support.sse;
 
 import com.fungame.songquiz.domain.event.MemberPresenceChangedEvent;
 import com.fungame.songquiz.domain.event.RoomChangedEvent;
+import com.fungame.songquiz.domain.member.MemberConnectionTracker;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Async;
@@ -9,22 +11,26 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
+import java.time.Duration;
 import java.util.Map;
-import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 @Slf4j
 @Service
+@RequiredArgsConstructor
 public class SseService {
 
-    private static final Long DEFAULT_TIMEOUT = 60L * 1000 * 5;
+    static final Duration CONNECTION_LIFETIME = Duration.ofMinutes(30);
+
     private static final String CONNECTED_EVENT = "connected";
     private static final String ROOM_UPDATE_EVENT = "room-update";
     private static final String PRESENCE_UPDATE_EVENT = "presence-update";
     private static final String HEARTBEAT_EVENT = "heartbeat";
     private static final String REFRESH_PAYLOAD = "REFRESH";
+
+    private final MemberConnectionTracker memberConnectionTracker;
 
     private final Map<Long, Map<String, SseConnection>> connectionsByMember = new ConcurrentHashMap<>();
     private final AtomicBoolean hasPendingRoomUpdate = new AtomicBoolean(false);
@@ -32,7 +38,7 @@ public class SseService {
 
     public SseEmitter subscribe(Long memberId) {
         String connectionId = UUID.randomUUID().toString();
-        SseConnection connection = new SseConnection(connectionId, new SseEmitter(DEFAULT_TIMEOUT));
+        SseConnection connection = new SseConnection(connectionId, new SseEmitter(CONNECTION_LIFETIME.toMillis()));
 
         register(memberId, connectionId, connection);
         connection.send(CONNECTED_EVENT, "Connected");
@@ -46,14 +52,6 @@ public class SseService {
                 unregister(memberId, connectionId);
             }
         });
-    }
-
-    public boolean isOnline(Long memberId) {
-        return !connectionsOf(memberId).isEmpty();
-    }
-
-    public Set<Long> onlineMemberIds() {
-        return Set.copyOf(connectionsByMember.keySet());
     }
 
     @Async
@@ -102,7 +100,7 @@ public class SseService {
         connection.emitter().onTimeout(() -> unregister(memberId, connectionId));
         connection.emitter().onError(error -> unregister(memberId, connectionId));
 
-        hasPendingPresenceUpdate.set(true);
+        memberConnectionTracker.connect(memberId, connectionId);
     }
 
     private void unregister(Long memberId, String connectionId) {
@@ -111,7 +109,7 @@ public class SseService {
             return connections.isEmpty() ? null : connections;
         });
 
-        hasPendingPresenceUpdate.set(true);
+        memberConnectionTracker.disconnect(memberId, connectionId);
     }
 
     private Map<String, SseConnection> connectionsOf(Long memberId) {

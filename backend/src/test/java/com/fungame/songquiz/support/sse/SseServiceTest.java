@@ -6,6 +6,8 @@ import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.read.ListAppender;
 import com.fungame.songquiz.domain.event.MemberPresenceChangedEvent;
 import com.fungame.songquiz.domain.event.RoomChangedEvent;
+import com.fungame.songquiz.domain.member.MemberConnectionTracker;
+import com.fungame.songquiz.support.MutableClock;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -15,6 +17,8 @@ import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.io.IOException;
+import java.time.Instant;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -27,7 +31,11 @@ class SseServiceTest {
     private static final Long MEMBER_ID = 11L;
     private static final Long OTHER_MEMBER_ID = 22L;
 
-    private final SseService sseService = new SseService();
+    private final MemberConnectionTracker memberConnectionTracker = new MemberConnectionTracker(
+            event -> {
+            },
+            new MutableClock(Instant.parse("2026-08-14T00:00:00Z"), ZoneId.of("UTC")));
+    private final SseService sseService = new SseService(memberConnectionTracker);
     private final ListAppender<ILoggingEvent> capturedLogs = new ListAppender<>();
 
     private Logger connectionLogger;
@@ -54,26 +62,26 @@ class SseServiceTest {
         SseEmitter emitter = sseService.subscribe(MEMBER_ID);
 
         assertThat(emitter).isNotNull();
-        assertThat(sseService.isOnline(MEMBER_ID)).isTrue();
-        assertThat(sseService.onlineMemberIds()).containsExactly(MEMBER_ID);
+        assertThat(connectionsOf(MEMBER_ID)).hasSize(1);
+        assertThat(memberConnectionTracker.hasLiveConnection(MEMBER_ID)).isTrue();
     }
 
     @Test
-    @DisplayName("구독하지 않은 회원은 접속 중이 아니다.")
-    void offlineWithoutSubscription() {
-        sseService.subscribe(MEMBER_ID);
+    @DisplayName("구독한 연결에는 정해진 수명을 준다.")
+    void subscribedConnectionHasLifetime() {
+        SseEmitter emitter = sseService.subscribe(MEMBER_ID);
 
-        assertThat(sseService.isOnline(OTHER_MEMBER_ID)).isFalse();
+        assertThat(emitter.getTimeout()).isEqualTo(SseService.CONNECTION_LIFETIME.toMillis());
     }
 
     @Test
-    @DisplayName("한 회원이 탭을 여러 개 열어도 하나의 회원으로 센다.")
+    @DisplayName("한 회원이 탭을 여러 개 열면 채널도 그만큼 열린다.")
     void multipleTabsOfSameMember() {
         sseService.subscribe(MEMBER_ID);
         sseService.subscribe(MEMBER_ID);
 
-        assertThat(sseService.onlineMemberIds()).containsExactly(MEMBER_ID);
         assertThat(connectionsOf(MEMBER_ID)).hasSize(2);
+        assertThat(memberConnectionTracker.onlineMemberIds()).containsExactly(MEMBER_ID);
     }
 
     @Test
@@ -95,7 +103,7 @@ class SseServiceTest {
     void sendToOfflineMemberIsNoop() {
         sseService.sendTo(MEMBER_ID, "room-invite", "payload");
 
-        assertThat(sseService.isOnline(MEMBER_ID)).isFalse();
+        assertThat(connectionsOf(MEMBER_ID)).isEmpty();
     }
 
     @Test
@@ -147,7 +155,7 @@ class SseServiceTest {
 
         sseService.sendHeartbeat();
 
-        assertThat(sseService.isOnline(MEMBER_ID)).isFalse();
+        assertThat(connectionsOf(MEMBER_ID)).isEmpty();
         assertThat(loggedLevels()).doesNotContain(Level.ERROR).contains(Level.DEBUG);
     }
 
@@ -158,19 +166,18 @@ class SseServiceTest {
 
         sseService.sendHeartbeat();
 
-        assertThat(sseService.isOnline(MEMBER_ID)).isFalse();
+        assertThat(connectionsOf(MEMBER_ID)).isEmpty();
         assertThat(loggedLevels()).contains(Level.ERROR);
     }
 
     @Test
-    @DisplayName("한 탭이 끊겨도 남은 탭이 있으면 접속 중이다.")
-    void stayOnlineWhileAnyTabAlive() {
+    @DisplayName("한 탭이 끊겨도 남은 탭의 채널은 유지한다.")
+    void keepAliveTabWhenAnotherIsGone() {
         putConnection(MEMBER_ID, "alive", countingEmitter(new AtomicInteger()));
         putConnection(MEMBER_ID, "gone", disconnectedEmitter());
 
         sseService.sendHeartbeat();
 
-        assertThat(sseService.isOnline(MEMBER_ID)).isTrue();
         assertThat(connectionsOf(MEMBER_ID)).containsOnlyKeys("alive");
     }
 

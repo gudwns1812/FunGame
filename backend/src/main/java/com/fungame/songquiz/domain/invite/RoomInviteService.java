@@ -6,6 +6,7 @@ import com.fungame.songquiz.domain.GameRoomStatus;
 import com.fungame.songquiz.domain.dto.RoomInfo;
 import com.fungame.songquiz.domain.dto.RoomSettingsInfo;
 import com.fungame.songquiz.domain.member.Member;
+import com.fungame.songquiz.domain.member.MemberConnectionTracker;
 import com.fungame.songquiz.domain.member.MemberPresenceService;
 import com.fungame.songquiz.support.error.CoreException;
 import com.fungame.songquiz.support.error.ErrorType;
@@ -35,6 +36,7 @@ public class RoomInviteService {
     private final GameRoomService gameRoomService;
     private final MemberPresenceService memberPresenceService;
     private final SseService sseService;
+    private final MemberConnectionTracker memberConnectionTracker;
     private final Clock clock;
 
     public RoomInviteNotification invite(Long roomId, Long inviterMemberId, Long targetMemberId) {
@@ -105,7 +107,7 @@ public class RoomInviteService {
     }
 
     private void requireInvitableTarget(Long targetMemberId) {
-        if (!sseService.isOnline(targetMemberId)) {
+        if (!memberConnectionTracker.hasLiveConnection(targetMemberId)) {
             throw new CoreException(ErrorType.INVITE_TARGET_OFFLINE);
         }
 
