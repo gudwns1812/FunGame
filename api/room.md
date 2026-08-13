@@ -67,12 +67,19 @@
 
 ## 5. 준비 상태 변경
 
-현재 플레이어의 준비 상태를 토글합니다.
+현재 플레이어의 준비 상태를 토글하고, 토글된 뒤의 준비 상태를 돌려줍니다.
+방 설정이 바뀌면 서버가 준비 상태를 초기화하므로, 클라이언트가 가진 값을 뒤집지 말고 이 응답을 그대로 반영해야 합니다.
 
 - **Method**: `POST`
 - **Path**: `/game/rooms/{roomId}/ready`
 - **Header**: `playerName: 플레이어닉네임` (필수)
-- **Response Data (data 필드)**: `null`
+- **Response Data (data 필드)**:
+
+| 필드 | 타입 | 설명 |
+| --- | --- | --- |
+| `memberId` | `number` | 준비 상태가 바뀐 회원 번호 |
+| `ready` | `boolean` | 토글된 뒤의 준비 상태 |
+| `isAllReady` | `boolean` | 방 전원이 준비되었는지 여부 |
 
 ---
 *참고: 모든 응답은 `api/common.md`에 정의된 공통 응답 구조를 따릅니다.*

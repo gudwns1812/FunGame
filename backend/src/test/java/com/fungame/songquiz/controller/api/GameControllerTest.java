@@ -8,6 +8,7 @@ import com.fungame.songquiz.domain.GameRoomStatus;
 import com.fungame.songquiz.domain.GameService;
 import com.fungame.songquiz.domain.GameType;
 import com.fungame.songquiz.domain.Category;
+import com.fungame.songquiz.domain.dto.PlayerReadyInfo;
 import com.fungame.songquiz.domain.dto.RoomInfo;
 import com.fungame.songquiz.domain.dto.RoomSettingsInfo;
 import com.fungame.songquiz.domain.member.Member;
@@ -144,12 +145,18 @@ class GameControllerTest {
     }
 
     @Test
-    @DisplayName("플레이어가 준비 상태를 변경한다.")
+    @DisplayName("플레이어가 준비 상태를 변경하면 바뀐 준비 상태를 돌려준다.")
     void playerReady() throws Exception {
+        // given
+        given(gameRoomService.readyPlayer(1L, 1L)).willReturn(new PlayerReadyInfo(1L, true, false));
+
         // when // then
         mockMvc.perform(post("/game/rooms/{roomId}/ready", 1L)
                         .header("playerName", "플레이어닉네임"))
                 .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.memberId").value(1L))
+                .andExpect(jsonPath("$.data.ready").value(true))
+                .andExpect(jsonPath("$.data.isAllReady").value(false))
                 .andDo(document("room-ready",
                         preprocessResponse(prettyPrint()),
                         pathParameters(
