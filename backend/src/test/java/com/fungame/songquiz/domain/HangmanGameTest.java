@@ -103,6 +103,41 @@ class HangmanGameTest {
     }
 
     @Test
+    @DisplayName("공백이 포함된 정답도 글자를 맞추면 표시 상태가 업데이트된다.")
+    void guess_correct_letter_with_blank_answer() {
+        // given
+        game = HangmanGame.create("HOT DOG");
+        game.initPlayers(players);
+
+        // when
+        ActionResult result = game.guess("player1", 'O');
+
+        // then
+        assertThat(result).isEqualTo(ActionResult.ACTION_SUCCESS);
+        assertThat(game.getCurrentDisplay()).isEqualTo("_ O _   _ O _");
+    }
+
+    @Test
+    @DisplayName("공백이 포함된 정답을 모두 맞추면 승리 처리된다.")
+    void win_game_with_blank_answer() {
+        // given
+        game = HangmanGame.create("HOT DOG");
+        game.initPlayers(players);
+
+        // when
+        game.guess("player1", 'H');
+        game.guess("player2", 'O');
+        game.guess("player1", 'T');
+        game.guess("player2", 'D');
+        ActionResult result = game.guess("player1", 'G');
+
+        // then
+        assertThat(result).isEqualTo(ActionResult.CORRECT);
+        assertThat(game.isGameWon()).isTrue();
+        assertThat(game.getCurrentDisplay()).isEqualTo("H O T   D O G");
+    }
+
+    @Test
     @DisplayName("자기 차례인 플레이어가 이탈하면 턴이 다음 사람에게 넘어간다.")
     void removePlayer_current_turn_moves_on() {
         // given: player1, player2, player3 중 player1 차례

@@ -11,9 +11,11 @@ import java.util.concurrent.atomic.AtomicInteger;
 @Slf4j
 public class SongQuiz extends AbstractQuizGame {
 
+    private static final int ROUND_NOT_STARTED = -1;
+
     private final List<Song> songs;
     private final Category gameCategory;
-    private final AtomicInteger currentIdx = new AtomicInteger(-1);
+    private final AtomicInteger currentIdx = new AtomicInteger(ROUND_NOT_STARTED);
 
     public SongQuiz(List<Song> songs, Category gameCategory) {
         super(null);
@@ -39,7 +41,12 @@ public class SongQuiz extends AbstractQuizGame {
 
     @Override
     protected ActionResult processAnswer(String playerName, String answer) {
-        Song song = songs.get(currentIdx.get());
+        int current = currentIdx.get();
+        if (current == ROUND_NOT_STARTED) {
+            return ActionResult.NO_ACTION;
+        }
+
+        Song song = songs.get(current);
         return song.isCorrect(answer) ? ActionResult.CORRECT : ActionResult.WRONG;
     }
 

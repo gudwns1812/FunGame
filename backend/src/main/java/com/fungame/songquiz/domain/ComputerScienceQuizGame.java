@@ -9,8 +9,10 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 public class ComputerScienceQuizGame extends AbstractQuizGame {
 
+    private static final int ROUND_NOT_STARTED = -1;
+
     private final List<ComputerScienceQuiz> quizs;
-    private final AtomicInteger currentIdx = new AtomicInteger(-1);
+    private final AtomicInteger currentIdx = new AtomicInteger(ROUND_NOT_STARTED);
 
     public ComputerScienceQuizGame(List<ComputerScienceQuiz> quizs) {
         super(null);
@@ -36,7 +38,12 @@ public class ComputerScienceQuizGame extends AbstractQuizGame {
 
     @Override
     protected ActionResult processAnswer(String playerName, String answer) {
-        var quiz = quizs.get(currentIdx.get());
+        int current = currentIdx.get();
+        if (current == ROUND_NOT_STARTED) {
+            return ActionResult.NO_ACTION;
+        }
+
+        var quiz = quizs.get(current);
         return quiz.isCorrect(answer) ? ActionResult.CORRECT : ActionResult.WRONG;
     }
 

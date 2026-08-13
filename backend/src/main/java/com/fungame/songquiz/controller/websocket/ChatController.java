@@ -49,8 +49,6 @@ public class ChatController {
     @MessageMapping("/room/{roomId}/action")
     public void handleAction(@DestinationVariable Long roomId, @AuthenticationPrincipal MemberAdapter user,
                             GameAction action) {
-        log.info("Action in room {}: {} - {}", roomId, user.getNickName(), action);
-
         try {
             gameRoomManager.touch(roomId);
             gameService.handleAction(roomId, action);

@@ -2,14 +2,12 @@ package com.fungame.songquiz.domain;
 
 import lombok.Getter;
 import lombok.With;
-import lombok.extern.slf4j.Slf4j;
 
 import java.time.LocalDate;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-@Slf4j
 @Getter
 public class Song {
     private final String title;
@@ -36,7 +34,6 @@ public class Song {
     }
 
     public boolean isCorrect(String answer) {
-        log.info("answer : {} , answers : {}", answer, answers);
         return answers.contains(answer);
     }
 

@@ -6,6 +6,7 @@ import com.fungame.songquiz.support.response.ApiResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.validation.BindException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
@@ -19,13 +20,20 @@ public class ApiControllerAdvice {
 
     @ExceptionHandler(CoreException.class)
     public ResponseEntity<ApiResponse<Void>> handleCoreException(CoreException e) {
-        switch (e.getType().getLogLevel()) {
-            case DEBUG -> log.debug("문제가 발생했습니다.", e);
-            case WARN -> log.warn("경고가 발생했습니다.", e);
-            case ERROR -> log.error("에러가 발생했습니다.", e);
+        ErrorType type = e.getType();
+        switch (type.getLogLevel()) {
+            case DEBUG -> log.debug("{} : {}", type.getCode(), type.getMessage());
+            case WARN -> log.warn("{} : {}", type.getCode(), type.getMessage());
+            case ERROR -> log.error("{} : {}", type.getCode(), type.getMessage(), e);
         }
 
-        return new ResponseEntity<>(ApiResponse.fail(e.getType()), e.getType().getStatus());
+        return new ResponseEntity<>(ApiResponse.fail(type), type.getStatus());
+    }
+
+    @ExceptionHandler(AuthenticationException.class)
+    public ResponseEntity<ApiResponse<Void>> handleAuthenticationException(AuthenticationException e) {
+        log.debug("로그인 실패 : {}", e.getMessage());
+        return new ResponseEntity<>(ApiResponse.fail(ErrorType.LOGIN_FAILED), ErrorType.LOGIN_FAILED.getStatus());
     }
 
     @ResponseStatus(HttpStatus.BAD_REQUEST)
