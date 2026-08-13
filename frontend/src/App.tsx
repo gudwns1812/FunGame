@@ -73,6 +73,7 @@ function AppContent() {
     hint,
     isBootstrapping,
     isCreatingRoom,
+    identify,
     enterLobby,
     joinRoom,
     acceptInvite,
@@ -101,7 +102,15 @@ function AppContent() {
 
   useButtonClickSound({ enabled: !IN_ROOM_STATUSES.includes(status) });
 
-  // 로그인한 사용자의 닉네임을 기존 게임 로직에 연동
+  // 로그인한 사용자가 누구인지 게임 로직에 알린다.
+  // 방 안에서 새로고침한 경우에도 회원 번호를 잃지 않도록 화면 상태와 분리한다.
+  useEffect(() => {
+    if (isAuthenticated && user) {
+      identify(user.id, user.nickname);
+    }
+  }, [isAuthenticated, user, identify]);
+
+  // 닉네임이 아직 연동되지 않았다면 로비에서 시작한다.
   useEffect(() => {
     if (isAuthenticated && user && nickname !== user.nickname) {
       enterLobby(user.id, user.nickname);

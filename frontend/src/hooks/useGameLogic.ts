@@ -677,13 +677,24 @@ export const useGameLogic = () => {
     };
   }, [status, fetchRooms, onSseEvent]);
 
-  const enterLobby = useCallback((memberId: number, name: string) => {
+  /**
+   * 로그인한 사람이 누구인지 게임 로직에 알린다.
+   * 방 안에서 새로고침한 경우에도 불리므로 화면 상태는 건드리지 않는다.
+   */
+  const identify = useCallback((memberId: number, name: string) => {
     localStorage.setItem(MY_MEMBER_ID_KEY, String(memberId));
     localStorage.setItem('ums_nickname', name);
     setMyMemberId(memberId);
     setNickname(name);
-    setStatus('ROOM_LIST');
   }, []);
+
+  const enterLobby = useCallback(
+    (memberId: number, name: string) => {
+      identify(memberId, name);
+      setStatus('ROOM_LIST');
+    },
+    [identify],
+  );
 
   const enterRoom = useCallback(
     async (room: Room, slotIndex: number | null) => {
@@ -952,6 +963,7 @@ export const useGameLogic = () => {
     isCreatingRoom,
     myColorIndex,
     isMusicStart,
+    identify,
     enterLobby,
     joinRoom,
     acceptInvite,

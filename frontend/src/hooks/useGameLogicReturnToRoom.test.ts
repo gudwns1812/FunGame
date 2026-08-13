@@ -115,6 +115,34 @@ describe('useGameLogic 결과창에서 게임방으로 돌아가기', () => {
     expect(result.current.players.every((player) => player.score === 0)).toBe(true);
   });
 
+  it('이미 로그인한 채로 새로고침해도 identify 로 회원 번호를 되찾는다', async () => {
+    // given: 예전 버전에서 만들어진 로컬스토리지에는 회원 번호가 없다
+    localStorage.removeItem('ums_member_id');
+
+    const { result } = renderHook(() => useGameLogic(), { wrapper: createSseStub().wrapper });
+
+    act(() => {
+      result.current.identify(1, '나');
+    });
+
+    await act(async () => {
+      await result.current.joinRoom({
+        id: '7',
+        name: '테스트 방',
+        hostMemberId: 1,
+        hostName: '나',
+        playerCount: 1,
+        maxPlayers: 8,
+        status: 'WAITING',
+      });
+    });
+
+    // then: 방장 판정이 회원 번호로 이뤄진다
+    expect(result.current.isHost).toBe(true);
+    // 화면 상태는 identify 가 건드리지 않는다
+    expect(result.current.status).toBe('WAITING');
+  });
+
   it('닉네임이 같아도 회원 번호가 다르면 방장으로 보지 않는다', async () => {
     mockedAxios.get = vi.fn().mockImplementation((url: string) => {
       if (url.endsWith('/users')) {
