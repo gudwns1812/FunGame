@@ -166,7 +166,10 @@ export const useGameLogic = () => {
       switch (event.type) {
         case 'ROOM_SETTINGS_CHANGED':
           applyRoomSettings(event.settings);
-          addLog('[시스템] 방장이 방 설정을 변경했습니다.');
+          if (roomId) {
+            fetchRoomUsers(roomId);
+          }
+          addLog('[시스템] 방장이 방 설정을 변경했습니다. 준비 상태가 초기화되었습니다.');
           break;
 
         case 'PLAYER_JOIN':
@@ -848,14 +851,15 @@ export const useGameLogic = () => {
     try {
       const response = await axios.post(`/game/rooms/${roomId}/ready`);
       if (response.data.result === 'SUCCESS') {
-        setPlayers((prev) => prev.map((p) => (p.name === nickname ? { ...p, isReady: !p.isReady } : p)));
+        const { memberId, ready } = response.data.data;
+        setPlayers((prev) => prev.map((p) => (p.memberId === memberId ? { ...p, isReady: ready } : p)));
       }
     } catch (error: any) {
       console.error('Toggle ready failed:', error);
       const message = error?.response?.data?.error?.message || '준비 상태 변경에 실패했습니다.';
       window.alert(message);
     }
-  }, [roomId, nickname]);
+  }, [roomId]);
 
   const startGame = useCallback(async () => {
     if (!roomId || !isHost) return;

@@ -9,6 +9,7 @@ import com.fungame.songquiz.domain.GameService;
 import com.fungame.songquiz.domain.PlayerScore;
 import com.fungame.songquiz.domain.RoomSettings;
 import com.fungame.songquiz.domain.dto.GameStateDto;
+import com.fungame.songquiz.domain.dto.PlayerReadyInfo;
 import com.fungame.songquiz.domain.dto.PlayersInfo;
 import com.fungame.songquiz.domain.dto.RoomInfo;
 import com.fungame.songquiz.domain.dto.RoomSettingsInfo;
@@ -117,11 +118,10 @@ public class GameController {
     }
 
     @PostMapping("/{roomId}/ready")
-    public ApiResponse<Void> playerReady(
+    public ApiResponse<PlayerReadyInfo> playerReady(
             @PathVariable Long roomId,
             @AuthenticationPrincipal MemberAdapter memberAdapter) {
-        gameRoomService.readyPlayer(roomId, memberAdapter.getId());
-        return ApiResponse.success();
+        return ApiResponse.success(gameRoomService.readyPlayer(roomId, memberAdapter.getId()));
     }
 
     @PostMapping("/{roomId}/action")

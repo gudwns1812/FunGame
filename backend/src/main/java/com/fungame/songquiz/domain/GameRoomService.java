@@ -1,5 +1,6 @@
 package com.fungame.songquiz.domain;
 
+import com.fungame.songquiz.domain.dto.PlayerReadyInfo;
 import com.fungame.songquiz.domain.dto.PlayersInfo;
 import com.fungame.songquiz.domain.dto.RoomInfo;
 import com.fungame.songquiz.domain.dto.RoomSettingsInfo;
@@ -117,11 +118,13 @@ public class GameRoomService {
         return changed;
     }
 
-    public void readyPlayer(Long roomId, Long memberId) {
+    public PlayerReadyInfo readyPlayer(Long roomId, Long memberId) {
         ReadyResult result = gameRoomManager.readyPlayer(roomId, memberId);
 
         applicationEventPublisher.publishEvent(
                 new PlayerReadyEvent(roomId, memberId, result.nickname(), result.ready(), result.isAllReady()));
+
+        return PlayerReadyInfo.of(memberId, result);
     }
 
     public void healthCheck(Long roomId) {
