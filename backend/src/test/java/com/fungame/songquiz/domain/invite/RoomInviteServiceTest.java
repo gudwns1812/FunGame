@@ -8,6 +8,7 @@ import com.fungame.songquiz.domain.GameType;
 import com.fungame.songquiz.domain.dto.RoomInfo;
 import com.fungame.songquiz.domain.dto.RoomSettingsInfo;
 import com.fungame.songquiz.domain.member.Member;
+import com.fungame.songquiz.domain.member.MemberConnectionTracker;
 import com.fungame.songquiz.domain.member.MemberPresenceService;
 import com.fungame.songquiz.support.MemberFixture;
 import com.fungame.songquiz.support.MutableClock;
@@ -43,6 +44,7 @@ class RoomInviteServiceTest {
     private final GameRoomService gameRoomService = mock(GameRoomService.class);
     private final MemberPresenceService memberPresenceService = mock(MemberPresenceService.class);
     private final SseService sseService = mock(SseService.class);
+    private final MemberConnectionTracker memberConnectionTracker = mock(MemberConnectionTracker.class);
     private final MutableClock clock = new MutableClock(Instant.parse("2026-08-13T00:00:00Z"), ZoneId.of("UTC"));
 
     private RoomInviteService roomInviteService;
@@ -52,7 +54,8 @@ class RoomInviteServiceTest {
 
     @BeforeEach
     void setUp() {
-        roomInviteService = new RoomInviteService(gameRoomService, memberPresenceService, sseService, clock);
+        roomInviteService = new RoomInviteService(
+                gameRoomService, memberPresenceService, sseService, memberConnectionTracker, clock);
 
         inviter = MemberFixture.withId(INVITER_ID, "방장");
         inviter.enterWaitingRoom(ROOM_ID);
@@ -60,7 +63,7 @@ class RoomInviteServiceTest {
 
         given(memberPresenceService.findMember(INVITER_ID)).willReturn(inviter);
         given(memberPresenceService.findMember(TARGET_ID)).willReturn(target);
-        given(sseService.isOnline(TARGET_ID)).willReturn(true);
+        given(memberConnectionTracker.hasLiveConnection(TARGET_ID)).willReturn(true);
         given(gameRoomService.findRoomInfo(ROOM_ID)).willReturn(waitingRoomInfo());
         given(gameRoomService.findSettings(ROOM_ID)).willReturn(roomSettings());
     }
@@ -132,7 +135,7 @@ class RoomInviteServiceTest {
         @Test
         @DisplayName("접속 중이 아닌 사람은 초대할 수 없다.")
         void rejectOfflineTarget() {
-            given(sseService.isOnline(TARGET_ID)).willReturn(false);
+            given(memberConnectionTracker.hasLiveConnection(TARGET_ID)).willReturn(false);
 
             assertThatThrownBy(() -> roomInviteService.invite(ROOM_ID, INVITER_ID, TARGET_ID))
                     .isInstanceOf(CoreException.class)
@@ -152,7 +155,7 @@ class RoomInviteServiceTest {
         @Test
         @DisplayName("검증에 걸린 초대는 알림을 보내지 않는다.")
         void doNotNotifyOnRejectedInvite() {
-            given(sseService.isOnline(TARGET_ID)).willReturn(false);
+            given(memberConnectionTracker.hasLiveConnection(TARGET_ID)).willReturn(false);
 
             assertThatThrownBy(() -> roomInviteService.invite(ROOM_ID, INVITER_ID, TARGET_ID))
                     .isInstanceOf(CoreException.class);
