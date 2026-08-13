@@ -1,5 +1,5 @@
 export interface Player {
-  id: string; // nickname as id for now as per API
+  memberId: number;
   name: string;
   isHost: boolean;
   isReady: boolean;
@@ -10,6 +10,7 @@ export interface Player {
 export interface Room {
   id: string;
   name: string;
+  hostMemberId: number;
   hostName: string;
   playerCount: number;
   maxPlayers: number;
@@ -23,22 +24,35 @@ export interface RoomSettings {
   category: string | null;
   totalRound: number;
   difficulty: number;
-  host: string;
+  hostMemberId: number;
+  hostNickname: string;
 }
 
 export type GameEvent =
-  | { type: 'PLAYER_JOIN'; player: string }
-  | { type: 'PLAYER_LEAVE'; player: string }
-  | { type: 'PLAYER_READY'; player: string; ready: boolean }
-  | { type: 'CHAT'; playerName: string; message: string }
+  | { type: 'PLAYER_JOIN'; memberId: number; nickname: string }
+  | { type: 'PLAYER_LEAVE'; memberId: number; nickname: string }
+  | { type: 'PLAYER_READY'; memberId: number; nickname: string; ready: boolean }
+  | { type: 'CHAT'; memberId: number; nickname: string; message: string }
   | { type: 'GAME_START'; gameType: string; category: string; songCount: number; message: string }
   | { type: 'ROUND_START'; videoURL: string; roundIndex: number; currentRound: number; totalRound: number }
   | { type: 'TIMER_TICK'; remainingSeconds: number }
   | { type: 'ROUND_HINT'; hint: string }
-  | { type: 'CORRECT_ANSWER'; playerName: string; answer: string; score: number }
-  | { type: 'ROUND_END'; answer: string; explanation?: string; winner: string }
-  | { type: 'GAME_RESULT'; rankings: string; answer?: string; score?: number }
-  | { type: 'HANGMAN_ACTION'; playerName: string; letter: string; result: string; status: string[] };
+  | { type: 'CORRECT_ANSWER'; memberId: number; nickname: string; answer: string; score: number }
+  | {
+      type: 'ROUND_END';
+      answer: string;
+      explanation?: string;
+      winnerMemberId: number | null;
+      winnerNickname: string | null;
+    }
+  | { type: 'GAME_RESULT'; rankings: RankingEntry[]; answer?: string; score?: number }
+  | { type: 'HANGMAN_ACTION'; memberId: number; nickname: string; letter: string; result: string; status: string[] };
+
+export interface RankingEntry {
+  memberId: number | null;
+  nickname: string;
+  score: number;
+}
 
 export type GameStatus = 'LOBBY' | 'ROOM_LIST' | 'WAITING' | 'PLAYING' | 'RESULT';
 
@@ -47,6 +61,7 @@ export interface HangmanStatus {
   wrongLetters: string[];
   remainingTries: number;
   currentTurnPlayer: string;
+  currentTurnMemberId: number | null;
   isGameOver: boolean;
   isWin: boolean;
 }

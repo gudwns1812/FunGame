@@ -50,6 +50,7 @@ describe('useGameLogic 결과창에서 게임방으로 돌아가기', () => {
     roomSubscribers.length = 0;
     localStorage.clear();
     localStorage.setItem('ums_nickname', '나');
+    localStorage.setItem('ums_member_id', '1');
 
     mockedAxios.post = vi.fn().mockResolvedValue({ data: { result: 'SUCCESS', data: 0 } });
     mockedAxios.get = vi.fn().mockImplementation((url: string) => {
@@ -57,7 +58,11 @@ describe('useGameLogic 결과창에서 게임방으로 돌아가기', () => {
         return Promise.resolve({
           data: {
             result: 'SUCCESS',
-            data: { players: [{ name: '나', isReady: true }], host: '나' },
+            data: {
+              players: [{ memberId: 1, nickname: '나', isReady: true }],
+              hostMemberId: 1,
+              hostNickname: '나',
+            },
           },
         });
       }
@@ -90,6 +95,7 @@ describe('useGameLogic 결과창에서 게임방으로 돌아가기', () => {
       await result.current.joinRoom({
         id: '7',
         name: '테스트 방',
+        hostMemberId: 1,
         hostName: '나',
         playerCount: 1,
         maxPlayers: 8,
@@ -98,7 +104,7 @@ describe('useGameLogic 결과창에서 게임방으로 돌아가기', () => {
     });
 
     act(() => {
-      publishToRoom({ type: 'CORRECT_ANSWER', playerName: '나', score: 30 });
+      publishToRoom({ type: 'CORRECT_ANSWER', memberId: 1, nickname: '나', score: 30 });
     });
     expect(result.current.players.find((player) => player.name === '나')?.score).toBe(30);
 
@@ -107,6 +113,42 @@ describe('useGameLogic 결과창에서 게임방으로 돌아가기', () => {
     });
 
     expect(result.current.players.every((player) => player.score === 0)).toBe(true);
+  });
+
+  it('닉네임이 같아도 회원 번호가 다르면 방장으로 보지 않는다', async () => {
+    mockedAxios.get = vi.fn().mockImplementation((url: string) => {
+      if (url.endsWith('/users')) {
+        return Promise.resolve({
+          data: {
+            result: 'SUCCESS',
+            data: {
+              players: [{ memberId: 1, nickname: '나', isReady: true }],
+              // 방장의 닉네임은 나와 같지만 다른 회원이다
+              hostMemberId: 2,
+              hostNickname: '나',
+            },
+          },
+        });
+      }
+      return Promise.resolve({ data: { result: 'SUCCESS', data: [] } });
+    });
+
+    const { result } = renderHook(() => useGameLogic(), { wrapper: createSseStub().wrapper });
+
+    await act(async () => {
+      await result.current.joinRoom({
+        id: '7',
+        name: '테스트 방',
+        hostMemberId: 2,
+        hostName: '나',
+        playerCount: 1,
+        maxPlayers: 8,
+        status: 'WAITING',
+      });
+    });
+
+    expect(result.current.isHost).toBe(false);
+    expect(result.current.players.find((player) => player.memberId === 1)?.isHost).toBe(false);
   });
 
   it('진행 중이던 라운드 화면 상태도 함께 비운다', async () => {

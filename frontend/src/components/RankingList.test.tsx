@@ -13,9 +13,9 @@ describe('RankingList', () => {
   });
 
   const mockPlayers: Player[] = [
-    { id: '1', name: 'Alice', score: 100, isHost: false, isReady: true, colorIndex: 0 },
-    { id: '2', name: 'Bob', score: 200, isHost: false, isReady: true, colorIndex: 1 },
-    { id: '3', name: 'Charlie', score: 150, isHost: false, isReady: true, colorIndex: 2 },
+    { memberId: 1, name: 'Alice', score: 100, isHost: false, isReady: true, colorIndex: 0 },
+    { memberId: 2, name: 'Bob', score: 200, isHost: false, isReady: true, colorIndex: 1 },
+    { memberId: 3, name: 'Charlie', score: 150, isHost: false, isReady: true, colorIndex: 2 },
   ];
 
   it('플레이어를 점수 내림차순으로 정렬하여 렌더링한다', () => {

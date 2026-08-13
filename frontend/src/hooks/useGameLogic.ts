@@ -2,7 +2,16 @@ import { useState, useCallback, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { Client, TickerStrategy } from '@stomp/stompjs';
 import SockJS from 'sockjs-client';
-import type { Player, GameStatus, Room, GameStartInfo, RoundEndInfo, HangmanStatus, RoomSettings } from '../types/game';
+import type {
+  Player,
+  GameStatus,
+  Room,
+  GameStartInfo,
+  RoundEndInfo,
+  HangmanStatus,
+  RankingEntry,
+  RoomSettings,
+} from '../types/game';
 import { stripTag } from '../utils/stringUtils';
 import { PLAYER_COLOR_INDEX_KEY } from '../utils/playerColor';
 import { roomChat, roomTopic } from '../utils/stompDestination';
@@ -14,13 +23,17 @@ import type { RoomInvite } from '../types/presence';
 axios.defaults.baseURL = import.meta.env.VITE_API_BASE_URL;
 axios.defaults.withCredentials = true; // 세션 인증을 위해 추가
 
-/** 서버가 정답자 없는 라운드에 winner 로 내려주는 값 */
-const NO_WINNER = '없음';
 /** 행맨에서 단어를 완성했을 때의 HANGMAN_ACTION result */
 const HANGMAN_SOLVED_RESULT = 'CORRECT';
+/** 내 회원 번호를 담아두는 로컬스토리지 키. 방·게임의 모든 "나" 판정이 이 값으로 이뤄진다 */
+const MY_MEMBER_ID_KEY = 'ums_member_id';
 
 export const useGameLogic = () => {
   const { onEvent: onSseEvent } = useSse();
+  const [myMemberId, setMyMemberId] = useState<number | null>(() => {
+    const saved = localStorage.getItem(MY_MEMBER_ID_KEY);
+    return saved ? Number(saved) : null;
+  });
   const [nickname, setNickname] = useState(() => localStorage.getItem('ums_nickname') || '');
   const [roomId, setRoomId] = useState<string | null>(() => localStorage.getItem('ums_roomId'));
   const [status, setStatus] = useState<GameStatus>(() => {
@@ -82,24 +95,22 @@ export const useGameLogic = () => {
 
         if (response.data?.result === 'SUCCESS' && response.data.data) {
           const playersData: any[] = response.data.data.players ?? [];
-          const host: string = response.data.data.host ?? '';
+          const hostMemberId: number | null = response.data.data.hostMemberId ?? null;
           setPlayers((prev) => {
-            const prevMap = new Map(prev.map((p) => [p.name, p]));
+            const prevMap = new Map(prev.map((p) => [p.memberId, p]));
             return playersData.map((pData, idx) => {
-              const name = pData.name;
-              const isReady = pData.isReady;
-              const prevPlayer = prevMap.get(name);
+              const prevPlayer = prevMap.get(pData.memberId);
               return {
-                id: name,
-                name,
-                isHost: name === host,
-                isReady: isReady,
+                memberId: pData.memberId,
+                name: pData.nickname,
+                isHost: pData.memberId === hostMemberId,
+                isReady: pData.isReady,
                 score: prevPlayer?.score ?? 0,
                 colorIndex: idx,
               };
             });
           });
-          setIsHost(host === nickname);
+          setIsHost(hostMemberId === myMemberId);
         }
       } catch (error: any) {
         console.error('Failed to fetch room users:', error);
@@ -110,7 +121,7 @@ export const useGameLogic = () => {
         }
       }
     },
-    [nickname],
+    [myMemberId],
   );
 
   const applyRoomSettings = useCallback((settings: RoomSettings) => {
@@ -134,7 +145,7 @@ export const useGameLogic = () => {
   );
 
   const changeRoomSettings = useCallback(
-    async (changes: Omit<RoomSettings, 'title' | 'host'>) => {
+    async (changes: Omit<RoomSettings, 'title' | 'hostMemberId' | 'hostNickname'>) => {
       if (!roomId) return;
       try {
         const response = await axios.patch(`/game/rooms/${roomId}/settings`, changes);
@@ -159,9 +170,9 @@ export const useGameLogic = () => {
         case 'PLAYER_JOIN':
         case 'PLAYER_LEAVE':
           if (roomId) {
-            if (event.player === nickname && event.type === 'PLAYER_JOIN') break;
+            if (event.memberId === myMemberId && event.type === 'PLAYER_JOIN') break;
             const action = event.type === 'PLAYER_JOIN' ? '입장' : '퇴장';
-            addLog(`[시스템] ${stripTag(event.player)}님이 ${action}하셨습니다.`);
+            addLog(`[시스템] ${stripTag(event.nickname)}님이 ${action}하셨습니다.`);
             fetchRoomUsers(roomId);
           }
           break;
@@ -173,7 +184,7 @@ export const useGameLogic = () => {
           break;
 
         case 'CHAT': {
-          const sender = event.playerName || event.player || '알 수 없음';
+          const sender = event.nickname || '알 수 없음';
           const msg = event.message || '';
           addLog(`${stripTag(sender)}: ${msg}`);
           break;
@@ -201,6 +212,7 @@ export const useGameLogic = () => {
               wrongLetters: [],
               remainingTries: 6,
               currentTurnPlayer: '대기 중...',
+              currentTurnMemberId: null,
               isGameOver: false,
               isWin: false,
             });
@@ -224,6 +236,7 @@ export const useGameLogic = () => {
                 wrongLetters: [],
                 remainingTries: 6,
                 currentTurnPlayer: '불러오는 중...',
+                currentTurnMemberId: null,
                 isGameOver: false,
                 isWin: false,
               };
@@ -252,7 +265,7 @@ export const useGameLogic = () => {
           break;
 
         case 'CORRECT_ANSWER':
-          setPlayers((prev) => prev.map((p) => (p.name === event.playerName ? { ...p, score: event.score } : p)));
+          setPlayers((prev) => prev.map((p) => (p.memberId === event.memberId ? { ...p, score: event.score } : p)));
           break;
 
         case 'ROUND_SKIP':
@@ -261,13 +274,13 @@ export const useGameLogic = () => {
         case 'ROUND_END': {
           setHint('');
           const isCsRound = gameTypeRef.current === 'CS';
-          if (event.winner && event.winner !== NO_WINNER) {
+          if (event.winnerMemberId !== null) {
             playSound('correctAnswer');
           }
           setRoundEndInfo({
             answer: event.answer,
             explanation: isCsRound && event.explanation?.trim() ? event.explanation : null,
-            winner: event.winner,
+            winner: event.winnerNickname,
           });
 
           fetchRankRef.current();
@@ -284,6 +297,7 @@ export const useGameLogic = () => {
             wrongLetters: s[1] ? s[1].split(',') : [],
             remainingTries: parseInt(s[2], 10),
             currentTurnPlayer: s[3],
+            currentTurnMemberId: s[6] ? Number(s[6]) : null,
             isGameOver: s[4] === 'true',
             isWin: s[5] === 'true',
           });
@@ -302,18 +316,18 @@ export const useGameLogic = () => {
             // 행맨 결과 처리
             addLog(`[게임 종료] 정답: ${event.answer}`);
             addLog(`[게임 종료] 최종 점수(남은 기회): ${event.score}`);
-            setPlayers([{ id: nickname, name: nickname, score: event.score, isHost: false, isReady: false }]);
-          } else if (event.rankings) {
+            setPlayers([
+              { memberId: myMemberId ?? 0, name: nickname, score: event.score, isHost: false, isReady: false },
+            ]);
+          } else if (event.rankings?.length) {
             // 기존 퀴즈 결과 처리
-            const finalRankings: Player[] = event.rankings
-              .split('\n')
-              .filter((line: string) => line.trim() !== '')
-              .map((line: string) => {
-                const colonIdx = line.lastIndexOf(':');
-                const name = line.substring(0, colonIdx).trim();
-                const score = parseInt(line.substring(colonIdx + 1).trim(), 10) || 0;
-                return { id: name, name, score, isHost: false, isReady: false };
-              });
+            const finalRankings: Player[] = event.rankings.map((entry: RankingEntry) => ({
+              memberId: entry.memberId ?? 0,
+              name: entry.nickname,
+              score: entry.score,
+              isHost: false,
+              isReady: false,
+            }));
             setPlayers(finalRankings);
           }
           break;
@@ -448,6 +462,7 @@ export const useGameLogic = () => {
         wrongLetters: data[1] ? data[1].split(',') : [],
         remainingTries: parseInt(data[2] ?? '6', 10),
         currentTurnPlayer: data[3] ?? '대기 중...',
+        currentTurnMemberId: data[6] ? Number(data[6]) : null,
         isGameOver: data[4] === 'true',
         isWin: data[5] === 'true',
       });
@@ -457,12 +472,12 @@ export const useGameLogic = () => {
 
     // 재입장자는 이전 점수를 그대로 이어받으므로 현재 순위도 함께 복원한다.
     const rankResponse = await axios.get(`/game/rooms/${targetRoomId}/play/rank`);
-    const rankData: { player: string; score: number }[] = rankResponse.data?.data ?? [];
+    const rankData: RankingEntry[] = rankResponse.data?.data ?? [];
     if (rankData.length > 0) {
       setPlayers(
-        rankData.map(({ player, score }) => ({
-          id: player,
-          name: player,
+        rankData.map(({ memberId, nickname: name, score }) => ({
+          memberId: memberId ?? 0,
+          name,
           isHost: false,
           isReady: false,
           score,
@@ -538,7 +553,7 @@ export const useGameLogic = () => {
               if (nickname) {
                 setPlayers((prev) => {
                   if (prev.length === 0) {
-                    return [{ id: nickname, name: nickname, isHost, isReady: isHost, score: 0 }];
+                    return [{ memberId: myMemberId ?? 0, name: nickname, isHost, isReady: isHost, score: 0 }];
                   }
                   return prev;
                 });
@@ -614,7 +629,8 @@ export const useGameLogic = () => {
         const mappedRooms: Room[] = response.data.data.map((r: any) => ({
           id: r.roomId,
           name: r.title,
-          hostName: r.hostName,
+          hostMemberId: r.hostMemberId,
+          hostName: r.hostNickname,
           playerCount: r.currentPlayers,
           maxPlayers: r.maxPlayers,
           status: r.status || 'WAITING',
@@ -661,8 +677,10 @@ export const useGameLogic = () => {
     };
   }, [status, fetchRooms, onSseEvent]);
 
-  const enterLobby = useCallback((name: string) => {
+  const enterLobby = useCallback((memberId: number, name: string) => {
+    localStorage.setItem(MY_MEMBER_ID_KEY, String(memberId));
     localStorage.setItem('ums_nickname', name);
+    setMyMemberId(memberId);
     setNickname(name);
     setStatus('ROOM_LIST');
   }, []);
@@ -678,7 +696,7 @@ export const useGameLogic = () => {
       clearLogs();
       localStorage.removeItem('ums_logs');
       setRoomId(room.id);
-      setIsHost(room.hostName === nickname);
+      setIsHost(room.hostMemberId === myMemberId);
 
       if (room.status === 'PLAYING') {
         // 서버가 재입장을 허용한 경우에만 여기까지 온다. 진행 중인 라운드 상태를 복원한다.
@@ -690,10 +708,10 @@ export const useGameLogic = () => {
         localStorage.removeItem('ums_currentVideoId');
         setPlayers([
           {
-            id: nickname,
+            memberId: myMemberId ?? 0,
             name: nickname,
-            isHost: room.hostName === nickname,
-            isReady: room.hostName === nickname,
+            isHost: room.hostMemberId === myMemberId,
+            isReady: room.hostMemberId === myMemberId,
             score: 0,
             colorIndex: slotIndex ?? undefined,
           },
@@ -717,7 +735,8 @@ export const useGameLogic = () => {
             {
               id: String(room.roomId),
               name: room.title,
-              hostName: room.hostName,
+              hostMemberId: room.hostMemberId,
+              hostName: room.hostNickname,
               playerCount: room.currentPlayers,
               maxPlayers: room.maxPlayers,
               status: room.status,
@@ -750,7 +769,7 @@ export const useGameLogic = () => {
           setRoomName('');
           setIsHost(false);
           setStatus('PLAYING');
-          setPlayers([{ id: nickname, name: nickname, isHost: false, isReady: false, score: 0 }]);
+          setPlayers([{ memberId: myMemberId ?? 0, name: nickname, isHost: false, isReady: false, score: 0 }]);
           connectWebSocket(redirectRoomId);
           return;
         }
@@ -794,7 +813,9 @@ export const useGameLogic = () => {
           setCurrentVideoId(''); // 이전 비디오 아이디 초기화
           setHint('');
           localStorage.removeItem('ums_currentVideoId');
-          setPlayers([{ id: nickname, name: nickname, isHost: true, isReady: true, score: 0, colorIndex: 0 }]);
+          setPlayers([
+            { memberId: myMemberId ?? 0, name: nickname, isHost: true, isReady: true, score: 0, colorIndex: 0 },
+          ]);
           connectWebSocket(newRoomId);
           window.history.pushState({ room: newRoomId }, '');
         }
@@ -850,15 +871,15 @@ export const useGameLogic = () => {
     try {
       const response = await axios.get(`/game/rooms/${roomId}/play/rank`);
       if (response.data?.result === 'SUCCESS' && Array.isArray(response.data.data)) {
-        const rankData: { player: string; score: number }[] = response.data.data;
+        const rankData: RankingEntry[] = response.data.data;
         setPlayers((prev) => {
-          const prevMap = new Map(prev.map((p) => [p.name, p]));
-          return rankData.map(({ player, score }) => ({
-            id: player,
-            name: player,
-            isHost: prevMap.get(player)?.isHost ?? false,
-            isReady: prevMap.get(player)?.isReady ?? false,
-            colorIndex: prevMap.get(player)?.colorIndex,
+          const prevMap = new Map(prev.map((p) => [p.memberId, p]));
+          return rankData.map(({ memberId, nickname: name, score }) => ({
+            memberId: memberId ?? 0,
+            name,
+            isHost: prevMap.get(memberId ?? 0)?.isHost ?? false,
+            isReady: prevMap.get(memberId ?? 0)?.isReady ?? false,
+            colorIndex: prevMap.get(memberId ?? 0)?.colorIndex,
             score,
           }));
         });
@@ -898,7 +919,6 @@ export const useGameLogic = () => {
       if (!roomId) return;
       try {
         await axios.post(`/game/rooms/${roomId}/action`, {
-          playerName: nickname,
           type: 'SUBMIT_ANSWER',
           value: letter,
         });

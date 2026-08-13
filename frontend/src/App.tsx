@@ -104,7 +104,7 @@ function AppContent() {
   // 로그인한 사용자의 닉네임을 기존 게임 로직에 연동
   useEffect(() => {
     if (isAuthenticated && user && nickname !== user.nickname) {
-      enterLobby(user.nickname);
+      enterLobby(user.id, user.nickname);
     }
   }, [isAuthenticated, user, nickname, enterLobby]);
 
@@ -230,6 +230,7 @@ function AppContent() {
               onToggleReady={toggleReady}
               onSendMessage={sendMessage}
               maxPlayers={roomMaxPlayers}
+              myMemberId={user?.id ?? null}
               roomSettings={roomSettings}
               onChangeSettings={changeRoomSettings}
               roomName={roomName}
@@ -273,7 +274,7 @@ function AppContent() {
             <HangmanPage
               status={hangmanStatus}
               onGuess={sendHangmanAction}
-              myNickname={nickname}
+              myMemberId={user?.id ?? null}
               logs={logs}
               players={players}
               onSendMessage={sendMessage}

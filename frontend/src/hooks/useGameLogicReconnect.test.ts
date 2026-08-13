@@ -37,6 +37,7 @@ const mockedAxios = axios as unknown as {
 const ROOM = {
   id: '7',
   name: '테스트방',
+  hostMemberId: 1,
   hostName: '방장',
   playerCount: 1,
   maxPlayers: 8,
@@ -59,7 +60,11 @@ describe('useGameLogic 재연결 시 참가 상태 동기화', () => {
         return Promise.resolve({
           data: {
             result: 'SUCCESS',
-            data: { players: [{ name: '나', isReady: false }], host: '방장' },
+            data: {
+              players: [{ memberId: 2, nickname: '나', isReady: false }],
+              hostMemberId: 1,
+              hostNickname: '방장',
+            },
           },
         });
       }

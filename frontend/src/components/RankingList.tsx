@@ -34,7 +34,7 @@ const RankingList: React.FC<RankingListProps> = ({ players, roundEndInfo }) => {
 
         return (
           <RankingItem
-            key={p.id}
+            key={p.memberId}
             player={p}
             rank={idx + 1}
             isWinner={isWinner}

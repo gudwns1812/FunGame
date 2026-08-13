@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fungame.songquiz.controller.ApiControllerAdvice;
 import com.fungame.songquiz.controller.api.GameController;
 import com.fungame.songquiz.domain.Category;
+import com.fungame.songquiz.domain.GameAction;
 import com.fungame.songquiz.domain.GamePlayer;
 import com.fungame.songquiz.domain.GameRoomService;
 import com.fungame.songquiz.domain.GameService;
@@ -129,5 +130,25 @@ public class GameAcceptanceTest {
                 .andExpect(status().isOk());
 
         verify(gameService).startGame(1L, 1L);
+    }
+
+    @Test
+    @DisplayName("액션의 주체는 요청 본문이 아니라 인증된 사용자로 정해진다")
+    void actionActorComesFromAuthenticatedUser() throws Exception {
+        // given: 남의 회원 번호와 닉네임을 본문에 실어 보낸다
+        Map<String, Object> request = new HashMap<>();
+        request.put("memberId", 999L);
+        request.put("playerName", "남의닉네임");
+        request.put("type", "SUBMIT_ANSWER");
+        request.put("value", "A");
+
+        // when
+        mockMvc.perform(post("/game/rooms/1/action")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk());
+
+        // then: 본문의 999 가 아니라 인증된 1 번 회원의 액션으로 처리된다
+        verify(gameService).handleAction(1L, GameAction.submitAnswer(1L, "A"));
     }
 }

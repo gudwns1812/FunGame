@@ -16,7 +16,8 @@ interface WaitingRoomProps {
   onSendMessage: (message: string) => void;
   maxPlayers: number;
   roomSettings: RoomSettings | null;
-  onChangeSettings: (changes: Omit<RoomSettings, 'title' | 'host'>) => void;
+  onChangeSettings: (changes: Omit<RoomSettings, 'title' | 'hostMemberId' | 'hostNickname'>) => void;
+  myMemberId: number | null;
 }
 
 const WaitingRoom: React.FC<WaitingRoomProps> = ({
@@ -30,6 +31,7 @@ const WaitingRoom: React.FC<WaitingRoomProps> = ({
   maxPlayers,
   roomSettings,
   onChangeSettings,
+  myMemberId,
 }) => {
   const [chatInput, setChatInput] = useState('');
   const [isEditingSettings, setIsEditingSettings] = useState(false);
@@ -103,11 +105,7 @@ const WaitingRoom: React.FC<WaitingRoomProps> = ({
 
           {!isHost &&
             (() => {
-              const me = players.find(
-                (p) =>
-                  stripTag(p.name) === localStorage.getItem('ums_nickname') ||
-                  p.name === localStorage.getItem('ums_nickname'),
-              );
+              const me = players.find((p) => p.memberId === myMemberId);
               const amIReady = me?.isReady || false;
 
               return (

@@ -14,8 +14,9 @@ interface WaitingRoomPageProps {
   onToggleReady: () => void;
   onSendMessage: (message: string) => void;
   maxPlayers: number;
+  myMemberId: number | null;
   roomSettings: RoomSettings | null;
-  onChangeSettings: (changes: Omit<RoomSettings, 'title' | 'host'>) => void;
+  onChangeSettings: (changes: Omit<RoomSettings, 'title' | 'hostMemberId' | 'hostNickname'>) => void;
   /** 헤더에 표시할 방 이름 */
   roomName?: string;
   /** 이 방으로 초대를 보낼 때 쓰는 방 번호 */
@@ -31,6 +32,7 @@ const WaitingRoomPage: React.FC<WaitingRoomPageProps> = ({
   onToggleReady,
   onSendMessage,
   maxPlayers,
+  myMemberId,
   roomSettings,
   onChangeSettings,
   roomName,
@@ -57,6 +59,7 @@ const WaitingRoomPage: React.FC<WaitingRoomPageProps> = ({
             maxPlayers={maxPlayers}
             roomSettings={roomSettings}
             onChangeSettings={onChangeSettings}
+            myMemberId={myMemberId}
           />
         </div>
 
