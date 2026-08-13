@@ -1,5 +1,6 @@
 package com.fungame.songquiz.domain.dto;
 
+import com.fungame.songquiz.domain.CSQuizDifficulty;
 import com.fungame.songquiz.domain.Category;
 import com.fungame.songquiz.domain.GameRoom;
 import com.fungame.songquiz.domain.GameType;
@@ -12,12 +13,13 @@ public record RoomSettingsInfo(
         Category category,
         int totalRound,
         int difficulty,
+        CSQuizDifficulty csDifficulty,
         Long hostMemberId,
         String hostNickname
 ) {
 
     public RoomSettings toSettings() {
-        return new RoomSettings(gameType, title, maxPlayers, category, totalRound, difficulty);
+        return new RoomSettings(gameType, title, maxPlayers, category, totalRound, difficulty, csDifficulty);
     }
 
     public static RoomSettingsInfo from(GameRoom gameRoom) {
@@ -30,6 +32,7 @@ public record RoomSettingsInfo(
                 settings.category(),
                 settings.totalRound(),
                 settings.difficulty(),
+                settings.csDifficulty(),
                 gameRoom.getPlayers().getHost(),
                 gameRoom.getPlayers().nicknameOf(gameRoom.getPlayers().getHost())
         );

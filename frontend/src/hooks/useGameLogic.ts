@@ -11,6 +11,7 @@ import type {
   HangmanStatus,
   RankingEntry,
   RoomSettings,
+  CreateRoomInput,
 } from '../types/game';
 import { stripTag } from '../utils/stringUtils';
 import { PLAYER_COLOR_INDEX_KEY } from '../utils/playerColor';
@@ -643,6 +644,8 @@ export const useGameLogic = () => {
           playerCount: r.currentPlayers,
           maxPlayers: r.maxPlayers,
           status: r.status || 'WAITING',
+          gameType: r.gameType,
+          csDifficulty: r.csDifficulty,
         }));
         setRooms(mappedRooms);
       }
@@ -759,6 +762,8 @@ export const useGameLogic = () => {
               playerCount: room.currentPlayers,
               maxPlayers: room.maxPlayers,
               status: room.status,
+              gameType: room.gameType,
+              csDifficulty: room.csDifficulty,
             },
             typeof playerSequence === 'number' ? playerSequence : null,
           );
@@ -799,23 +804,17 @@ export const useGameLogic = () => {
   );
 
   const createRoom = useCallback(
-    async (
-      title: string,
-      maxPlayers: number,
-      category: string,
-      songCount: number,
-      gameType: string,
-      difficulty?: number,
-    ) => {
+    async ({ title, maxPlayers, category, totalRound, gameType, difficulty, csDifficulty }: CreateRoomInput) => {
       setIsCreatingRoom(true);
       try {
         const response = await axios.post('/game/rooms', {
           title,
           maxPlayers,
           category,
-          totalRound: songCount,
+          totalRound,
           gameType,
           difficulty,
+          csDifficulty,
         });
         if (response.data.result === 'SUCCESS') {
           const newRoomId = response.data.data;

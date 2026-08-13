@@ -1,8 +1,10 @@
 package com.fungame.songquiz.domain.dto;
 
+import com.fungame.songquiz.domain.CSQuizDifficulty;
 import com.fungame.songquiz.domain.GamePlayers;
 import com.fungame.songquiz.domain.GameRoom;
 import com.fungame.songquiz.domain.GameRoomStatus;
+import com.fungame.songquiz.domain.GameType;
 import com.fungame.songquiz.domain.StoredRoom;
 
 public record RoomInfo(
@@ -12,7 +14,9 @@ public record RoomInfo(
         String hostNickname,
         GameRoomStatus status,
         int maxPlayers,
-        int currentPlayers
+        int currentPlayers,
+        GameType gameType,
+        CSQuizDifficulty csDifficulty
 ) {
 
     public static RoomInfo from(Long roomId, GameRoom room) {
@@ -25,7 +29,9 @@ public record RoomInfo(
                 players.nicknameOf(players.getHost()),
                 room.getStatus(),
                 room.getSettings().maxPlayers(),
-                room.getPlayerCount()
+                room.getPlayerCount(),
+                room.getSettings().gameType(),
+                room.getSettings().csDifficulty()
         );
     }
 
@@ -37,7 +43,9 @@ public record RoomInfo(
                 stored.hostNickname(),
                 stored.status(),
                 stored.settings().maxPlayers(),
-                connectedPlayers
+                connectedPlayers,
+                stored.settings().gameType(),
+                stored.settings().csDifficulty()
         );
     }
 }

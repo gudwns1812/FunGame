@@ -26,6 +26,7 @@ const settingsResponse = (maxPlayers: number) => ({
       category: 'DEFAULT',
       totalRound: 5,
       difficulty: 0,
+      csDifficulty: 'HARD',
       hostMemberId: 1,
       hostNickname: '나',
     },
@@ -56,6 +57,7 @@ describe('useGameLogic 방 설정 변경', () => {
         category: 'DEFAULT',
         totalRound: 5,
         difficulty: 0,
+        csDifficulty: 'HARD',
       });
     });
 
@@ -78,6 +80,7 @@ describe('useGameLogic 방 설정 변경', () => {
         category: 'DEFAULT',
         totalRound: 5,
         difficulty: 0,
+        csDifficulty: 'HARD',
       });
     });
 

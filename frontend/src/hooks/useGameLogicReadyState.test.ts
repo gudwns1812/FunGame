@@ -50,6 +50,8 @@ const ROOM = {
   playerCount: 2,
   maxPlayers: 8,
   status: 'WAITING' as const,
+  gameType: 'SONG',
+  csDifficulty: 'HARD',
 };
 
 const SETTINGS = {

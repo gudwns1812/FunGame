@@ -3,6 +3,7 @@ package com.fungame.songquiz.acceptance;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fungame.songquiz.controller.ApiControllerAdvice;
 import com.fungame.songquiz.controller.api.GameController;
+import com.fungame.songquiz.domain.CSQuizDifficulty;
 import com.fungame.songquiz.domain.Category;
 import com.fungame.songquiz.domain.GameAction;
 import com.fungame.songquiz.domain.GamePlayer;
@@ -94,7 +95,7 @@ public class GameAcceptanceTest {
                 .andExpect(status().isOk());
 
         verify(gameRoomService).createRoom(
-                eq(new RoomSettings(GameType.SONG, "테스트 방", 5, Category.KPOP, 10, 0)),
+                eq(new RoomSettings(GameType.SONG, "테스트 방", 5, Category.KPOP, 10, 0, CSQuizDifficulty.HARD)),
                 eq(GamePlayer.createNewPlayer(1L, "방장")));
     }
 

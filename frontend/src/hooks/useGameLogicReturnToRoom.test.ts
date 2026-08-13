@@ -100,6 +100,8 @@ describe('useGameLogic 결과창에서 게임방으로 돌아가기', () => {
         playerCount: 1,
         maxPlayers: 8,
         status: 'WAITING',
+  gameType: 'SONG',
+  csDifficulty: 'HARD',
       });
     });
 
@@ -134,6 +136,8 @@ describe('useGameLogic 결과창에서 게임방으로 돌아가기', () => {
         playerCount: 1,
         maxPlayers: 8,
         status: 'WAITING',
+  gameType: 'SONG',
+  csDifficulty: 'HARD',
       });
     });
 
@@ -208,6 +212,8 @@ describe('useGameLogic 결과창에서 게임방으로 돌아가기', () => {
         playerCount: 1,
         maxPlayers: 8,
         status: 'WAITING',
+  gameType: 'SONG',
+  csDifficulty: 'HARD',
       });
     });
 

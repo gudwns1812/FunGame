@@ -15,6 +15,18 @@ export interface Room {
   playerCount: number;
   maxPlayers: number;
   status: string;
+  gameType: string;
+  csDifficulty: string;
+}
+
+export interface CreateRoomInput {
+  title: string;
+  maxPlayers: number;
+  category: string;
+  totalRound: number;
+  gameType: string;
+  difficulty: number;
+  csDifficulty: string;
 }
 
 export interface RoomSettings {
@@ -24,6 +36,7 @@ export interface RoomSettings {
   category: string | null;
   totalRound: number;
   difficulty: number;
+  csDifficulty: string;
   hostMemberId: number;
   hostNickname: string;
 }

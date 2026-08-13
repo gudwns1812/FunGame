@@ -28,6 +28,14 @@ export const CATEGORIES = [
   ...SONG_CATEGORIES.filter((category) => !ROOM_EXCLUDED_CATEGORIES.includes(category.value)),
 ];
 
+export const CS_DIFFICULTIES = [
+  { value: 'EASY', label: '쉬움' },
+  { value: 'NORMAL', label: '보통' },
+  { value: 'HARD', label: '어려움' },
+];
+
+export const DEFAULT_CS_DIFFICULTY = 'HARD';
+
 const SONG_COUNT_OPTIONS = [10, 20, 30, 40, 50, 60, 70, 80, 90, 100];
 
 export const isSingleRound = (gameType: string) => gameType === 'HANGMAN';

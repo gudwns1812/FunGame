@@ -1,4 +1,6 @@
 package com.fungame.songquiz.domain.gamecreator;
 
-public record CsQuizGameCreateInfo(int totalRound) implements GameCreateInfo {
+import com.fungame.songquiz.domain.CSQuizDifficulty;
+
+public record CsQuizGameCreateInfo(int totalRound, CSQuizDifficulty difficulty) implements GameCreateInfo {
 }
