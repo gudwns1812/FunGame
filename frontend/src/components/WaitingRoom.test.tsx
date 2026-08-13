@@ -13,6 +13,7 @@ describe('WaitingRoom 키보드 인터랙션', () => {
         logs: [],
         onSendMessage: vi.fn(),
         roomSettings: null,
+        myMemberId: 1,
         onChangeSettings: vi.fn()
     };
 

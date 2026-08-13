@@ -10,7 +10,8 @@ const songRoom = (maxPlayers: number): RoomSettings => ({
   category: 'KPOP',
   totalRound: 10,
   difficulty: 0,
-  host: '방장',
+  hostMemberId: 1,
+  hostNickname: '방장',
 });
 
 const openModal = (currentPlayers: number, onSubmit = vi.fn()) => {

@@ -14,7 +14,7 @@ import {
 interface RoomSettingsModalProps {
   settings: RoomSettings;
   currentPlayers: number;
-  onSubmit: (changes: Omit<RoomSettings, 'title' | 'host'>) => void;
+  onSubmit: (changes: Omit<RoomSettings, 'title' | 'hostMemberId' | 'hostNickname'>) => void;
   onClose: () => void;
 }
 

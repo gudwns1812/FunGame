@@ -1,6 +1,7 @@
 export type UserRole = 'MASTER' | 'ADMIN' | 'USER';
 
 export interface MemberInfo {
+  id: number;
   loginId: string;
   nickname: string;
   email: string;
