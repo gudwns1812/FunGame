@@ -35,6 +35,12 @@ const inviteButtonOf = (nickname: string) => {
   return row.querySelector('button')!;
 };
 
+const groupHeaderOf = (label: string) => screen.getByRole('button', { name: new RegExp(label) });
+
+const expandGroup = (label: string) => fireEvent.click(groupHeaderOf(label));
+
+const memberCountIn = (label: string) => groupHeaderOf(label).querySelector('.px-chip')!.textContent;
+
 describe('OnlineUserList', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -57,6 +63,71 @@ describe('OnlineUserList', () => {
     expect(screen.getByText('게임중')).toBeInTheDocument();
   });
 
+  it('로비 유저와 그 외 유저를 각자의 그룹 아래에 나눠 보여준다', async () => {
+    renderList();
+    await screen.findByText('로비유저');
+
+    const lobbyGroup = groupHeaderOf('로비에 있음').closest('section')!;
+    const elsewhereGroup = groupHeaderOf('다른 방에 있음').closest('section')!;
+
+    expect(lobbyGroup).toHaveTextContent('로비유저');
+    expect(lobbyGroup).not.toHaveTextContent('대기유저');
+    expect(elsewhereGroup).toHaveTextContent('대기유저');
+    expect(elsewhereGroup).toHaveTextContent('게임유저');
+    expect(elsewhereGroup).not.toHaveTextContent('로비유저');
+  });
+
+  it('그룹 헤더를 누르면 접히고 다시 누르면 펼쳐진다', async () => {
+    renderList();
+    await screen.findByText('로비유저');
+
+    expandGroup('로비에 있음');
+    expect(screen.queryByText('로비유저')).not.toBeInTheDocument();
+
+    expandGroup('로비에 있음');
+    expect(screen.getByText('로비유저')).toBeInTheDocument();
+  });
+
+  it('접힌 그룹도 헤더의 인원 수는 그대로 보인다', async () => {
+    renderList();
+    await screen.findByText('로비유저');
+
+    expandGroup('다른 방에 있음');
+
+    expect(screen.queryByText('대기유저')).not.toBeInTheDocument();
+    expect(memberCountIn('다른 방에 있음')).toBe('2');
+  });
+
+  it('대기실에서는 로비 그룹만 펼쳐진 채로 시작한다', async () => {
+    renderList('7');
+    await screen.findByText('로비유저');
+
+    expect(groupHeaderOf('로비에 있음')).toHaveAttribute('aria-expanded', 'true');
+    expect(groupHeaderOf('다른 방에 있음')).toHaveAttribute('aria-expanded', 'false');
+    expect(screen.queryByText('대기유저')).not.toBeInTheDocument();
+  });
+
+  it('로비에서는 두 그룹 모두 펼쳐진 채로 시작한다', async () => {
+    renderList();
+    await screen.findByText('로비유저');
+
+    expect(groupHeaderOf('로비에 있음')).toHaveAttribute('aria-expanded', 'true');
+    expect(groupHeaderOf('다른 방에 있음')).toHaveAttribute('aria-expanded', 'true');
+    expect(screen.getByText('대기유저')).toBeInTheDocument();
+  });
+
+  it('비어 있는 그룹은 0 과 안내 문구를 보여준다', async () => {
+    mockedAxios.get = vi.fn().mockResolvedValue({
+      data: { result: 'SUCCESS', data: [members[0]] },
+    });
+
+    renderList();
+    await screen.findByText('로비유저');
+
+    expect(memberCountIn('다른 방에 있음')).toBe('0');
+    expect(screen.getByText('아무도 없습니다')).toBeInTheDocument();
+  });
+
   it('로비에서는 초대 버튼을 보여주지 않는다', async () => {
     renderList();
 
@@ -68,6 +139,8 @@ describe('OnlineUserList', () => {
     renderList('7');
 
     await screen.findByText('로비유저');
+    expandGroup('다른 방에 있음');
+
     expect(inviteButtonOf('로비유저')).toBeEnabled();
     expect(inviteButtonOf('대기유저')).toBeDisabled();
     expect(inviteButtonOf('게임유저')).toBeDisabled();

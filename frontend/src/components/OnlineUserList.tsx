@@ -22,15 +22,36 @@ const STATUS_CHIP: Record<PresenceStatus, string> = {
 
 const FALLBACK_INVITE_LIFETIME_SECONDS = 30;
 
+const GROUPS = [
+  { key: 'LOBBY', label: '로비에 있음' },
+  { key: 'ELSEWHERE', label: '다른 방에 있음' },
+] as const;
+
+type GroupKey = (typeof GROUPS)[number]['key'];
+
+const groupOf = (member: OnlineMember): GroupKey => (member.status === 'LOBBY' ? 'LOBBY' : 'ELSEWHERE');
+
+const groupsCollapsedWhileInviting = (invitingRoomId?: string | null): GroupKey[] =>
+  invitingRoomId ? ['ELSEWHERE'] : [];
+
 const OnlineUserList: React.FC<OnlineUserListProps> = ({ invitingRoomId }) => {
   const members = useOnlineMembers(true);
   const [invitedMemberIds, setInvitedMemberIds] = useState<number[]>([]);
+  const [collapsedGroups, setCollapsedGroups] = useState<GroupKey[]>(() =>
+    groupsCollapsedWhileInviting(invitingRoomId),
+  );
   const expiryTimers = useRef<Map<number, ReturnType<typeof setTimeout>>>(new Map());
 
   useEffect(() => {
     const timers = expiryTimers.current;
     return () => timers.forEach(clearTimeout);
   }, []);
+
+  const toggleGroup = (key: GroupKey) => {
+    setCollapsedGroups((collapsed) =>
+      collapsed.includes(key) ? collapsed.filter((group) => group !== key) : [...collapsed, key],
+    );
+  };
 
   const forgetInvite = (memberId: number) => {
     setInvitedMemberIds((invited) => invited.filter((id) => id !== memberId));
@@ -61,6 +82,29 @@ const OnlineUserList: React.FC<OnlineUserListProps> = ({ invitingRoomId }) => {
     }
   };
 
+  const renderMember = (member: OnlineMember) => {
+    const isInvitable = Boolean(invitingRoomId) && member.status === 'LOBBY';
+    const isAlreadyInvited = invitedMemberIds.includes(member.memberId);
+
+    return (
+      <div key={member.memberId} className="px-inset p-2 flex items-center justify-between gap-2">
+        <div className="min-w-0">
+          <p className="text-sm font-display truncate">{member.nickname}</p>
+          <span className={STATUS_CHIP[member.status]}>{STATUS_LABEL[member.status]}</span>
+        </div>
+
+        {invitingRoomId && (
+          <button
+            className="px-btn px-btn-sm px-btn-sea"
+            disabled={!isInvitable || isAlreadyInvited}
+            onClick={() => sendInvite(member)}>
+            {isAlreadyInvited ? '보냄' : '초대'}
+          </button>
+        )}
+      </div>
+    );
+  };
+
   return (
     <aside className="px-card w-full md:w-56 shrink-0 flex flex-col min-h-0">
       <div className="px-head flex items-center justify-between">
@@ -69,32 +113,37 @@ const OnlineUserList: React.FC<OnlineUserListProps> = ({ invitingRoomId }) => {
       </div>
 
       <div className="flex-1 min-h-0 scroll-y custom-scrollbar p-2 flex flex-col gap-2">
-        {members.length === 0 && (
+        {members.length === 0 ? (
           <p className="px-label text-center py-4 opacity-60">아무도 접속해 있지 않습니다</p>
-        )}
+        ) : (
+          GROUPS.map(({ key, label }) => {
+            const groupMembers = members.filter((member) => groupOf(member) === key);
+            const isCollapsed = collapsedGroups.includes(key);
 
-        {members.map((member) => {
-          const isInvitable = Boolean(invitingRoomId) && member.status === 'LOBBY';
-          const isAlreadyInvited = invitedMemberIds.includes(member.memberId);
-
-          return (
-            <div key={member.memberId} className="px-inset p-2 flex items-center justify-between gap-2">
-              <div className="min-w-0">
-                <p className="text-sm font-display truncate">{member.nickname}</p>
-                <span className={STATUS_CHIP[member.status]}>{STATUS_LABEL[member.status]}</span>
-              </div>
-
-              {invitingRoomId && (
+            return (
+              <section key={key} className="flex flex-col gap-2">
                 <button
-                  className="px-btn px-btn-sm px-btn-sea"
-                  disabled={!isInvitable || isAlreadyInvited}
-                  onClick={() => sendInvite(member)}>
-                  {isAlreadyInvited ? '보냄' : '초대'}
+                  type="button"
+                  className="px-inset px-tap w-full p-2 flex items-center justify-between gap-2"
+                  aria-expanded={!isCollapsed}
+                  onClick={() => toggleGroup(key)}>
+                  <span className="flex items-center gap-1.5 min-w-0">
+                    <span className="px-label opacity-60">{isCollapsed ? '▶' : '▼'}</span>
+                    <span className="px-label truncate">{label}</span>
+                  </span>
+                  <span className="px-chip num">{groupMembers.length}</span>
                 </button>
-              )}
-            </div>
-          );
-        })}
+
+                {!isCollapsed &&
+                  (groupMembers.length === 0 ? (
+                    <p className="px-label text-center py-2 opacity-60">아무도 없습니다</p>
+                  ) : (
+                    groupMembers.map(renderMember)
+                  ))}
+              </section>
+            );
+          })
+        )}
       </div>
     </aside>
   );
