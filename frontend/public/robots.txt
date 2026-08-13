@@ -1,0 +1,14 @@
+User-agent: *
+Allow: /
+Disallow: /admin/
+Disallow: /master/
+Disallow: /mypage
+Disallow: /rooms
+Disallow: /waiting
+Disallow: /game
+Disallow: /hangman
+Disallow: /hangman-result
+Disallow: /result
+Disallow: /reset-password
+
+Sitemap: https://www.fun-game.club/sitemap.xml

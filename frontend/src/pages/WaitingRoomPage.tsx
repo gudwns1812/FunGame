@@ -1,6 +1,8 @@
 import WaitingRoom from '../components/WaitingRoom';
 import OnlineUserList from '../components/OnlineUserList';
 import TopBar from '../components/layout/TopBar';
+import AdSlot from '../components/AdSlot';
+import { AD_SLOTS } from '../utils/adsense';
 import type { Player, RoomSettings } from '../types/game';
 
 interface WaitingRoomPageProps {
@@ -60,6 +62,13 @@ const WaitingRoomPage: React.FC<WaitingRoomPageProps> = ({
 
         <OnlineUserList invitingRoomId={roomId} />
       </main>
+
+      <AdSlot
+        slot={AD_SLOTS.waitingRoomBottom}
+        format="horizontal"
+        labeled
+        className="shrink-0 px-3 sm:px-4 pb-3 sm:pb-4"
+      />
     </div>
   );
 };

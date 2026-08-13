@@ -1,4 +1,8 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import LandingPage from './pages/LandingPage';
+import HowToPlayPage from './pages/HowToPlayPage';
+import PrivacyPage from './pages/PrivacyPage';
+import TermsPage from './pages/TermsPage';
 import SignupPage from './pages/SignupPage';
 import LoginPage from './pages/LoginPage';
 import ForgotPasswordPage from './pages/ForgotPasswordPage';
@@ -23,6 +27,13 @@ import { useEffect } from 'react';
 
 /** 방에 들어가 있는 동안은 클릭음이 게임을 방해해서 끈다 */
 const IN_ROOM_STATUSES: GameStatus[] = ['WAITING', 'PLAYING', 'RESULT'];
+
+/** 로그인 여부·게임 상태와 무관하게 항상 같은 내용을 보여주는 공개 페이지 */
+const PUBLIC_PAGES = [
+  { path: '/how-to-play', element: <HowToPlayPage /> },
+  { path: '/privacy', element: <PrivacyPage /> },
+  { path: '/terms', element: <TermsPage /> },
+];
 
 /** 부트스트랩 · 방 생성 대기 화면 */
 function LoadingScreen({ label }: { label: string }) {
@@ -86,6 +97,7 @@ function AppContent() {
 
   const { isAuthenticated, isInitialLoading, user } = useAuth();
   const { currentInvite, dropInvite, declineInvite } = useRoomInvites();
+  const location = useLocation();
 
   useButtonClickSound({ enabled: !IN_ROOM_STATUSES.includes(status) });
 
@@ -95,6 +107,11 @@ function AppContent() {
       enterLobby(user.nickname);
     }
   }, [isAuthenticated, user, nickname, enterLobby]);
+
+  const publicPage = PUBLIC_PAGES.find((page) => page.path === location.pathname);
+  if (publicPage) {
+    return publicPage.element;
+  }
 
   const statusToPath = (s: typeof status) => {
     switch (s) {
@@ -288,7 +305,7 @@ function AppContent() {
       />
 
       {/* 기본 경로 */}
-      <Route path="/" element={<Navigate to={currentPath} replace />} />
+      <Route path="/" element={isAuthenticated ? <Navigate to={currentPath} replace /> : <LandingPage />} />
       <Route path="*" element={<Navigate to={currentPath} replace />} />
       </Routes>
     </>
