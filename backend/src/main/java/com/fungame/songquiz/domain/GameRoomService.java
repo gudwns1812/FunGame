@@ -17,7 +17,6 @@ import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -39,7 +38,6 @@ public class GameRoomService {
         memberPresenceService.clearEveryLocation();
     }
 
-    @Transactional
     public Long createRoom(RoomSettings settings, GamePlayer host) {
         Long roomId = gameRoomStore.open(settings, host);
 
@@ -50,7 +48,6 @@ public class GameRoomService {
         return roomId;
     }
 
-    @Transactional
     public int joinRoom(Long roomId, GamePlayer player) {
         JoinResult result = gameRoomManager.joinRoom(roomId, player);
 
@@ -64,7 +61,6 @@ public class GameRoomService {
         return result.playerNumber();
     }
 
-    @Transactional
     public void leaveRoom(Long roomId, Long memberId) {
         LeaveResult result = gameRoomManager.leaveRoom(roomId, memberId);
 
