@@ -1,6 +1,6 @@
 package com.fungame.songquiz.domain;
 
-import com.fungame.songquiz.support.extern.YoutubeScraper;
+import com.fungame.songquiz.client.youtube.YoutubeScraper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;

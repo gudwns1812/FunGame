@@ -385,10 +385,73 @@ spring:
 
 ### D-4. clients 추출
 
-- `support/extern/YoutubeScraper` → `clients:client-youtube`
-- `HangmanRandomWordApiProvider` → `clients:client-random-word`
-- **선행 작업**: 두 클래스가 도메인 타입(`Song`, `HangmanWordProvider`)을 직접 반환하지 않도록 자체 응답 모델로 바꾸고, 도메인 변환은 `core-api`가 맡는다. clients는 어떤 프로젝트 모듈도 의존하지 않아야 한다
-- `YoutubeScraperTest`는 `external` 태그가 붙어 있으므로 태그 설정도 함께 이동
+`support/extern/YoutubeScraper` → `clients:client-youtube`.
+
+선행 작업은 [곡 등록 비동기화](#곡-등록-비동기화)에서 끝났다. `YoutubeScraper`는 이제 `Optional<String>`만 돌려주고 jsoup, Spring, slf4j 만 의존한다. 파일 이동과 build.gradle 작성만 남았다.
+
+`YoutubeScraperTest`는 `external` 태그가 붙어 있어 태그 제외 설정도 함께 옮긴다.
+
+**`clients:client-random-word`는 만들지 않는다.** `HangmanRandomWordApiProvider`는 이름과 달리 외부 API 를 호출하지 않는다. `words/difficulty_1~4.txt` 를 `ClassPathResource` 로 읽어 `@PostConstruct` 에서 메모리에 올리고 `Random` 으로 뽑는다. HTTP 호출이 한 줄도 없다.
+
+모듈로 빼면 없는 클라이언트를 위한 모듈이 되고, 게다가 `HangmanWordProvider`(domain 인터페이스)를 구현하고 `CoreException`, `ErrorType`(support)를 쓰므로 `clients → core-api` 역의존이 생긴다. "clients 는 다른 프로젝트 모듈을 의존하지 않는다"와 충돌한다.
+
+진짜 문제는 모듈이 아니라 **이름**이다. `RandomWordApi` 라는 이름이 없는 외부 의존을 있는 것처럼 보이게 한다. 번들된 단어 목록을 읽는다는 사실이 드러나는 이름으로 바꾸는 것이 맞다. 모듈 분리와 별개 작업이다.
+
+---
+
+# 곡 등록 비동기화
+
+계획에 없던 작업이지만 D-4 의 선행 조건과 겹치므로 여기에 남긴다.
+
+관리자가 곡을 저장하면 요청 경로에서 유튜브를 긁고 있었다.
+
+- Jsoup 타임아웃이 없어 기본 30초까지 매달린다
+- 스크랩이 실패하면 예외를 삼켜 `"Error: connect timed out"` 이나 빈 문자열을 `video_link` 에 저장한다. `not null` 이라 제약도 걸리지 않아 재생 불가 행이 조용히 쌓인다
+- 중복 검사를 스크랩 뒤에 해서 중복이라도 30초를 먼저 쓴다
+
+저장을 두 단계로 나눴다.
+
+1. `createSongQuiz` 는 중복만 검사하고 `song_scrape_request` 에 넣고 끝낸다. 외부 호출이 없다
+2. 스케줄러가 대기 행을 꺼내 스크랩하고, 얻은 유튜브 id 로 `song_entity` 에 `INSERT ... ON DUPLICATE KEY UPDATE` 한다. 성공하면 대기 행을 지운다
+
+스크랩은 트랜잭션 밖에서 한다. 안에서 하면 커넥션을 쥔 채 네트워크를 기다린다. DB 쓰기 둘은 각각 별도 빈의 짧은 트랜잭션이고, 중간에 실패해도 upsert 가 멱등이라 다음 회차에 다시 처리된다.
+
+`@Scheduled(fixedDelay)` 는 기동 직후 한 번 돈다. 통합 테스트가 대기 행을 남기면 실제 유튜브를 치므로 트리거를 `SongScrapeScheduler` 로 떼고 `app.song-scrape.enabled` 로 끌 수 있게 했다. `@IntegrationTest` 가 끈다.
+
+## 운영 스키마가 flyway 와 어긋나 있었다
+
+`song_entity` 의 unique 제약 셋과 인덱스 둘이 운영에만 손으로 붙어 있고 마이그레이션에는 없었다. `ddl-auto: validate` 는 제약과 인덱스를 검사하지 않아 드러나지 않았다.
+
+그대로 두면 테스트와 로컬에는 `video_link` unique 가 없어 **upsert 가 그냥 insert 로 동작한다.** 검증할 수 없는 코드가 된다.
+
+| 마이그레이션 | 내용 |
+| --- | --- |
+| `V9__song_entity_constraints.sql` | `unique (singer, title)`, `unique (video_link)`, `uq_title_date`, `idx_answers` |
+| `mysql/V10__song_entity_category_index.sql` | 다중값 함수 인덱스. MySQL 전용이라 `db/migration/{vendor}` 로 분리 |
+| `db/manual/mark_V9_V10_applied.sql` | 운영은 이미 제약이 있으므로 실행하지 않고 적용된 것으로만 기록 |
+
+V9 의 `singer`, `video_link` 제약은 이름을 붙이지 않았다. MySQL 이 첫 컬럼 이름으로 자동 명명하므로 운영에 있는 이름이 그대로 재현된다.
+
+checksum 은 손으로 쓰지 않는다. Flyway 알고리즘(줄별 개행 제거 후 CRC32 누적)으로 계산한 뒤 빈 DB 에 실제로 적용해 기록된 값과 대조한다. 기존 V1~V7 로 알고리즘이 맞는지 먼저 확인할 수 있다.
+
+**배포 전에 `mark_V9_V10_applied.sql` 을 운영에 먼저 실행해야 한다.** 안 하면 flyway 가 이미 있는 제약을 또 만들려다 실패해 기동이 안 된다. 실행 전에 `SHOW INDEX FROM song_entity` 로 제약 다섯 개가 실제로 있는지 확인한다. 하나라도 없으면 실행하면 안 된다 — 그 제약이 영구히 누락된다.
+
+## 중복 검사는 DB 제약과 같은 키를 덮어야 한다
+
+`(singer, title)` 만 보면 제목과 발매일이 같고 가수만 다른 곡이 통과한다. 그러면 upsert 가 `video_link` 가 아니라 `uq_title_date` 에 먼저 걸려 **엉뚱한 행을 갱신한다.** `ON DUPLICATE KEY UPDATE` 는 어느 unique 키에 걸렸는지 구분하지 않는다.
+
+초안 저장 시점에서 네 가지를 모두 본다. 대기 테이블에도 두 unique 를 걸어 경쟁 상황을 막았다.
+
+## 남은 것
+
+기존 오염 데이터를 정리하지 않았다. 이번 변경은 새로 들어오는 것만 막는다.
+
+```sql
+SELECT id, title, singer, video_link FROM song_entity
+WHERE video_link = '' OR video_link LIKE 'Error:%';
+```
+
+---
 
 ### D-5. support 추출
 

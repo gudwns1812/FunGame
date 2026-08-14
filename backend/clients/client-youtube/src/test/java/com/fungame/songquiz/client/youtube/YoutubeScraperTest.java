@@ -1,4 +1,4 @@
-package com.fungame.songquiz.support.extern;
+package com.fungame.songquiz.client.youtube;
 
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;

@@ -13,6 +13,7 @@ configurations {
 dependencies {
     implementation project(':backend:core:core-enum')
     implementation project(':backend:storage:db-core')
+    implementation project(':backend:clients:client-youtube')
 
     implementation 'org.springframework.boot:spring-boot-starter-web'
     implementation 'org.springframework.boot:spring-boot-starter-security'
@@ -23,7 +24,6 @@ dependencies {
     implementation 'org.springframework.session:spring-session-jdbc'
     implementation platform('software.amazon.awssdk:bom:2.31.30')
     implementation 'software.amazon.awssdk:sesv2'
-    implementation 'org.jsoup:jsoup:1.16.1'
 
     testImplementation testFixtures(project(':backend:storage:db-core'))
     testImplementation 'org.springframework.boot:spring-boot-starter-test'

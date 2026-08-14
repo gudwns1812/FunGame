@@ -1,7 +1,7 @@
 package com.fungame.songquiz.domain;
 
 import com.fungame.songquiz.storage.SongRepository;
-import com.fungame.songquiz.support.extern.YoutubeScraper;
+import com.fungame.songquiz.client.youtube.YoutubeScraper;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;

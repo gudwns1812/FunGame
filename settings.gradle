@@ -1,4 +1,5 @@
 rootProject.name = 'FunGame'
 include 'backend:core:core-enum'
 include 'backend:storage:db-core'
+include 'backend:clients:client-youtube'
 include 'backend:core:core-api'

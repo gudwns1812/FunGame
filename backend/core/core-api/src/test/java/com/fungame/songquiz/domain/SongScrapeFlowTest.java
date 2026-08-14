@@ -4,7 +4,7 @@ import com.fungame.songquiz.enums.Category;
 import com.fungame.songquiz.storage.IntegrationTest;
 import com.fungame.songquiz.support.error.CoreException;
 import com.fungame.songquiz.support.error.ErrorType;
-import com.fungame.songquiz.support.extern.YoutubeScraper;
+import com.fungame.songquiz.client.youtube.YoutubeScraper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

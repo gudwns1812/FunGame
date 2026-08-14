@@ -11,6 +11,7 @@ COPY gradlew build.gradle settings.gradle /app/
 COPY backend/build.gradle /app/backend/build.gradle
 COPY backend/core/core-api/build.gradle /app/backend/core/core-api/build.gradle
 COPY backend/storage/db-core/build.gradle /app/backend/storage/db-core/build.gradle
+COPY backend/clients/client-youtube/build.gradle /app/backend/clients/client-youtube/build.gradle
 
 # 의존성 먼저 다운로드 (코드 변경 시에도 의존성 다운로드 단계는 건너뜀)
 RUN chmod +x gradlew && ./gradlew :backend:core:core-api:dependencies --no-daemon
@@ -19,6 +20,7 @@ RUN chmod +x gradlew && ./gradlew :backend:core:core-api:dependencies --no-daemo
 COPY backend/core/core-api/src /app/backend/core/core-api/src
 COPY backend/core/core-enum/src /app/backend/core/core-enum/src
 COPY backend/storage/db-core/src /app/backend/storage/db-core/src
+COPY backend/clients/client-youtube/src /app/backend/clients/client-youtube/src
 RUN ./gradlew :backend:core:core-api:bootJar -x test --no-daemon
 
 # 2. 실행 스테이지: 실행에 필요한 JRE만 포함

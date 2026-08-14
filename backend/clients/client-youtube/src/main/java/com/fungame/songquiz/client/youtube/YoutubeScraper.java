@@ -1,4 +1,4 @@
-package com.fungame.songquiz.support.extern;
+package com.fungame.songquiz.client.youtube;
 
 import lombok.extern.slf4j.Slf4j;
 import org.jsoup.Jsoup;
