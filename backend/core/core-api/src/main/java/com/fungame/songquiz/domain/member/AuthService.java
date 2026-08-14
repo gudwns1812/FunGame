@@ -19,18 +19,19 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class AuthService {
 
-    private final MemberRepository memberRepository;
+    private final MemberReader memberReader;
+    private final MemberWriter memberWriter;
     private final PasswordEncoder passwordEncoder;
     private final AuthenticationManager authenticationManager;
 
     @Transactional(readOnly = true)
     public boolean checkIdDuplicate(String loginId) {
-        return memberRepository.existsByLoginId(loginId);
+        return memberReader.existsByLoginId(loginId);
     }
 
     @Transactional(readOnly = true)
     public boolean checkNicknameDuplicate(String nickname) {
-        return memberRepository.existsByNickname(nickname);
+        return memberReader.existsByNickname(nickname);
     }
 
     @Transactional
@@ -38,13 +39,13 @@ public class AuthService {
         if (!PasswordPolicy.isSatisfiedBy(password)) {
             throw new CoreException(ErrorType.PASSWORD_POLICY_VIOLATION);
         }
-        if (memberRepository.existsByLoginId(loginId)) {
+        if (memberReader.existsByLoginId(loginId)) {
             throw new CoreException(ErrorType.LOGIN_ID_DUPLICATED);
         }
-        if (memberRepository.existsByNickname(nickname)) {
+        if (memberReader.existsByNickname(nickname)) {
             throw new CoreException(ErrorType.NICKNAME_DUPLICATED);
         }
-        if (memberRepository.existsByEmail(email)) {
+        if (memberReader.existsByEmail(email)) {
             throw new CoreException(ErrorType.EMAIL_DUPLICATED);
         }
 
@@ -56,7 +57,7 @@ public class AuthService {
                 .role(Role.USER) // 기본 역할은 USER
                 .build();
 
-        return memberRepository.save(member).getId();
+        return memberWriter.append(member);
     }
 
     @Transactional
@@ -71,14 +72,15 @@ public class AuthService {
 
     @Transactional
     public void updateNickname(String loginId, String newNickname) {
-        if (memberRepository.existsByNickname(newNickname)) {
+        if (memberReader.existsByNickname(newNickname)) {
             throw new CoreException(ErrorType.NICKNAME_DUPLICATED);
         }
 
-        Member member = memberRepository.findByLoginId(loginId)
+        Member member = memberReader.findByLoginId(loginId)
                 .orElseThrow(() -> new CoreException(ErrorType.MEMBER_NOT_FOUND));
 
         member.changeNickname(newNickname);
+        memberWriter.update(member);
 
         // 현재 세션의 인증 정보 갱신
         MemberAdapter newAdapter = new MemberAdapter(member);
@@ -92,7 +94,7 @@ public class AuthService {
 
     @Transactional(readOnly = true)
     public MemberInfo getMyInfo(String loginId) {
-        Member member = memberRepository.findByLoginId(loginId)
+        Member member = memberReader.findByLoginId(loginId)
                 .orElseThrow(() -> new CoreException(ErrorType.MEMBER_NOT_FOUND));
 
         return MemberInfo.from(member);

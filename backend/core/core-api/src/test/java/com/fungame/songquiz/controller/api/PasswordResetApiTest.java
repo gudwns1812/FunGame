@@ -2,10 +2,12 @@ package com.fungame.songquiz.controller.api;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fungame.songquiz.domain.member.Member;
-import com.fungame.songquiz.domain.member.MemberRepository;
-import com.fungame.songquiz.domain.member.PasswordResetTokenRepository;
+import com.fungame.songquiz.storage.MemberEntity;
+import com.fungame.songquiz.storage.MemberRepository;
+import com.fungame.songquiz.storage.PasswordResetTokenRepository;
 import com.fungame.songquiz.support.MySqlIntegrationTest;
 import com.fungame.songquiz.support.mail.PasswordResetMailSender;
+import com.fungame.songquiz.enums.PlayerStatus;
 import com.fungame.songquiz.enums.Role;
 import jakarta.servlet.http.Cookie;
 import org.junit.jupiter.api.AfterEach;
@@ -66,12 +68,13 @@ class PasswordResetApiTest {
     @BeforeEach
     void setUp() {
         clearMembers();
-        memberRepository.save(Member.builder()
+        memberRepository.save(MemberEntity.builder()
                 .loginId(LOGIN_ID)
                 .password(passwordEncoder.encode(PASSWORD))
                 .nickname("세션테스터")
                 .email(EMAIL)
                 .role(Role.USER)
+                .status(PlayerStatus.LOBBY)
                 .build());
     }
 

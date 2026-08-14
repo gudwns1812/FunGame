@@ -5,6 +5,7 @@ import com.fungame.songquiz.support.MySqlIntegrationTest;
 import com.fungame.songquiz.support.error.CoreException;
 import com.fungame.songquiz.support.error.ErrorType;
 import com.fungame.songquiz.support.mail.PasswordResetMailSender;
+import com.fungame.songquiz.enums.PlayerStatus;
 import com.fungame.songquiz.enums.Role;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -31,6 +32,10 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.timeout;
 import static org.mockito.Mockito.verify;
+import com.fungame.songquiz.storage.MemberEntity;
+import com.fungame.songquiz.storage.MemberRepository;
+import com.fungame.songquiz.storage.PasswordResetTokenEntity;
+import com.fungame.songquiz.storage.PasswordResetTokenRepository;
 
 @MySqlIntegrationTest
 class PasswordResetServiceTest {
@@ -76,12 +81,13 @@ class PasswordResetServiceTest {
     void setUp() {
         mutableClock = (MutableClock) clock;
         clearMembers();
-        memberRepository.save(Member.builder()
+        memberRepository.save(MemberEntity.builder()
                 .loginId(LOGIN_ID)
                 .password(passwordEncoder.encode(OLD_PASSWORD))
                 .nickname("재설정테스터")
                 .email(EMAIL)
                 .role(Role.USER)
+                .status(PlayerStatus.LOBBY)
                 .build());
     }
 
@@ -96,7 +102,7 @@ class PasswordResetServiceTest {
         passwordResetService.requestReset(LOGIN_ID, EMAIL);
 
         String rawToken = capturedRawToken();
-        List<PasswordResetToken> tokens = passwordResetTokenRepository.findAll();
+        List<PasswordResetTokenEntity> tokens = passwordResetTokenRepository.findAll();
 
         assertThat(tokens).hasSize(1);
         assertThat(tokens.get(0).getTokenHash())
@@ -172,7 +178,7 @@ class PasswordResetServiceTest {
 
         passwordResetService.resetPassword(capturedRawToken(), NEW_PASSWORD);
 
-        Member member = memberRepository.findByLoginId(LOGIN_ID).orElseThrow();
+        MemberEntity member = memberRepository.findByLoginId(LOGIN_ID).orElseThrow();
         assertThat(passwordEncoder.matches(NEW_PASSWORD, member.getPassword())).isTrue();
         assertThat(passwordEncoder.matches(OLD_PASSWORD, member.getPassword())).isFalse();
     }

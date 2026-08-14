@@ -4,8 +4,9 @@ import com.fungame.songquiz.enums.CSQuizDifficulty;
 import com.fungame.songquiz.enums.Category;
 import com.fungame.songquiz.enums.GameRoomStatus;
 import com.fungame.songquiz.enums.GameType;
-import com.fungame.songquiz.domain.member.Member;
-import com.fungame.songquiz.domain.member.MemberRepository;
+import com.fungame.songquiz.storage.MemberEntity;
+import com.fungame.songquiz.storage.MemberRepository;
+import com.fungame.songquiz.enums.PlayerStatus;
 import com.fungame.songquiz.enums.Role;
 import com.fungame.songquiz.support.MySqlIntegrationTest;
 import org.junit.jupiter.api.DisplayName;
@@ -63,7 +64,7 @@ class GameRoomPersistenceTest {
         GamePlayer host = saveMemberAsPlayer("옛닉네임");
         Long roomId = gameRoomWriter.open(SETTINGS, host);
 
-        Member member = memberRepository.findById(host.memberId()).orElseThrow();
+        MemberEntity member = memberRepository.findById(host.memberId()).orElseThrow();
         member.changeNickname("새닉네임");
         memberRepository.saveAndFlush(member);
 
@@ -213,12 +214,13 @@ class GameRoomPersistenceTest {
     }
 
     private GamePlayer saveMemberAsPlayer(String nickname) {
-        Member member = memberRepository.save(Member.builder()
+        MemberEntity member = memberRepository.save(MemberEntity.builder()
                 .loginId(nickname)
                 .password("password")
                 .nickname(nickname)
                 .email(nickname + "@fun-game.club")
                 .role(Role.USER)
+                .status(PlayerStatus.LOBBY)
                 .build());
 
         return GamePlayer.createNewPlayer(member.getId(), nickname);

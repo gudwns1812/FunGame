@@ -25,8 +25,10 @@ public class PasswordResetService {
     private static final int EXPIRED_TOKEN_RETENTION_DAYS = 1;
     private static final String DAILY_CLEANUP_CRON = "0 0 4 * * *";
 
-    private final MemberRepository memberRepository;
-    private final PasswordResetTokenRepository passwordResetTokenRepository;
+    private final MemberReader memberReader;
+    private final MemberWriter memberWriter;
+    private final PasswordResetTokenReader passwordResetTokenReader;
+    private final PasswordResetTokenWriter passwordResetTokenWriter;
     private final PasswordResetTokenGenerator passwordResetTokenGenerator;
     private final PasswordEncoder passwordEncoder;
     private final ApplicationEventPublisher eventPublisher;
@@ -35,20 +37,19 @@ public class PasswordResetService {
 
     @Transactional
     public void requestReset(String loginId, String email) {
-        Optional<Member> requested = memberRepository.findByLoginIdAndEmail(loginId, email);
+        Optional<Member> requested = memberReader.findByLoginIdAndEmail(loginId, email);
         if (requested.isEmpty()) {
             return;
         }
 
         Member member = lockMember(requested.get().getId());
-        passwordResetTokenRepository.deleteAllByMemberId(member.getId());
+        passwordResetTokenWriter.removeAllOf(member.getId());
 
         String rawToken = passwordResetTokenGenerator.generateRawToken();
-        passwordResetTokenRepository.save(PasswordResetToken.builder()
-                .member(member)
-                .tokenHash(passwordResetTokenGenerator.hash(rawToken))
-                .expiresAt(now().plus(PasswordResetTokenGenerator.TOKEN_TTL))
-                .build());
+        passwordResetTokenWriter.append(PasswordResetToken.issue(
+                member.getId(),
+                passwordResetTokenGenerator.hash(rawToken),
+                now().plus(PasswordResetTokenGenerator.TOKEN_TTL)));
 
         eventPublisher.publishEvent(new PasswordResetRequestedEvent(email, rawToken));
     }
@@ -60,11 +61,11 @@ public class PasswordResetService {
         }
 
         String tokenHash = passwordResetTokenGenerator.hash(rawToken);
-        Long memberId = passwordResetTokenRepository.findMemberIdByTokenHash(tokenHash)
+        Long memberId = passwordResetTokenReader.findMemberIdByTokenHash(tokenHash)
                 .orElseThrow(() -> new CoreException(ErrorType.INVALID_PASSWORD_RESET_TOKEN));
 
         Member member = lockMember(memberId);
-        PasswordResetToken token = passwordResetTokenRepository.findByTokenHashForUpdate(tokenHash)
+        PasswordResetToken token = passwordResetTokenReader.findByTokenHashForUpdate(tokenHash)
                 .orElseThrow(() -> new CoreException(ErrorType.INVALID_PASSWORD_RESET_TOKEN));
 
         LocalDateTime now = now();
@@ -73,7 +74,10 @@ public class PasswordResetService {
         }
 
         member.changePassword(passwordEncoder.encode(newPassword));
+        memberWriter.update(member);
+
         token.markUsed(now);
+        passwordResetTokenWriter.markUsed(token);
 
         expireEverySessionOf(member);
     }
@@ -81,11 +85,11 @@ public class PasswordResetService {
     @Scheduled(cron = DAILY_CLEANUP_CRON)
     @Transactional
     public void deleteExpiredTokens() {
-        passwordResetTokenRepository.deleteAllExpiredBefore(now().minusDays(EXPIRED_TOKEN_RETENTION_DAYS));
+        passwordResetTokenWriter.removeExpiredBefore(now().minusDays(EXPIRED_TOKEN_RETENTION_DAYS));
     }
 
     private Member lockMember(Long memberId) {
-        return memberRepository.findByIdForUpdate(memberId)
+        return memberReader.findByIdForUpdate(memberId)
                 .orElseThrow(() -> new CoreException(ErrorType.INVALID_PASSWORD_RESET_TOKEN));
     }
 

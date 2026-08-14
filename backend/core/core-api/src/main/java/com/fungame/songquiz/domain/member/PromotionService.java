@@ -1,9 +1,9 @@
 package com.fungame.songquiz.domain.member;
 
 import com.fungame.songquiz.domain.dto.PromotionRequestInfo;
+import com.fungame.songquiz.enums.PromotionStatus;
 import com.fungame.songquiz.support.error.CoreException;
 import com.fungame.songquiz.support.error.ErrorType;
-import com.fungame.songquiz.enums.PromotionStatus;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -14,55 +14,66 @@ import java.util.List;
 @RequiredArgsConstructor
 public class PromotionService {
 
-    private final PromotionRequestRepository promotionRequestRepository;
-    private final MemberRepository memberRepository;
+    private final PromotionRequestReader promotionRequestReader;
+    private final PromotionRequestWriter promotionRequestWriter;
+    private final MemberReader memberReader;
+    private final MemberWriter memberWriter;
 
     @Transactional
     public void createPromotionRequest(String loginId) {
-        Member member = memberRepository.findByLoginId(loginId)
-                .orElseThrow(() -> new CoreException(ErrorType.MEMBER_NOT_FOUND));
+        Member member = readMember(loginId);
 
-        if (promotionRequestRepository.existsByMemberAndStatus(member, PromotionStatus.PENDING)) {
+        if (promotionRequestReader.existsPendingOf(member.getId())) {
             throw new CoreException(ErrorType.PROMOTION_ALREADY_PENDING);
         }
 
-        PromotionRequest request = PromotionRequest.builder()
-                .member(member)
-                .build();
-
-        promotionRequestRepository.save(request);
+        promotionRequestWriter.append(PromotionRequest.open(member.getId()));
     }
 
     @Transactional(readOnly = true)
     public List<PromotionRequestInfo> getPendingRequests() {
-        return promotionRequestRepository.findAllByStatusWithMember(PromotionStatus.PENDING).stream()
+        return promotionRequestReader.findAllByStatus(PromotionStatus.PENDING).stream()
                 .map(PromotionRequestInfo::from)
                 .toList();
     }
 
     @Transactional
     public void approveRequest(Long requestId) {
-        PromotionRequest request = promotionRequestRepository.findById(requestId)
-                .orElseThrow(() -> new CoreException(ErrorType.PROMOTION_NOT_FOUND));
+        PromotionRequest request = readRequest(requestId);
 
         request.approve();
+        promotionRequestWriter.update(request);
+
+        Member member = memberReader.findById(request.getMemberId())
+                .orElseThrow(() -> new CoreException(ErrorType.MEMBER_NOT_FOUND));
+        member.updateRole(request.promotedRole());
+        memberWriter.update(member);
     }
 
     @Transactional
     public void rejectRequest(Long requestId) {
-        PromotionRequest request = promotionRequestRepository.findById(requestId)
-                .orElseThrow(() -> new CoreException(ErrorType.PROMOTION_NOT_FOUND));
+        PromotionRequest request = readRequest(requestId);
 
         request.reject();
+        promotionRequestWriter.update(request);
     }
 
     @Transactional(readOnly = true)
     public PromotionStatus getCurrentStatus(String loginId) {
-        Member member = memberRepository.findByLoginId(loginId)
-                .orElseThrow(() -> new CoreException(ErrorType.MEMBER_NOT_FOUND));
+        Member member = readMember(loginId);
 
-        return promotionRequestRepository.findTopByMemberOrderByCreatedAtDesc(member)
+        return promotionRequestReader.findLatestOf(member.getId())
                 .map(PromotionRequest::getStatus)
                 .orElse(null);
+    }
+
+    private Member readMember(String loginId) {
+        return memberReader.findByLoginId(loginId)
+                .orElseThrow(() -> new CoreException(ErrorType.MEMBER_NOT_FOUND));
+    }
+
+    private PromotionRequest readRequest(Long requestId) {
+        return promotionRequestReader.findById(requestId)
+                .orElseThrow(() -> new CoreException(ErrorType.PROMOTION_NOT_FOUND));
     }
 }

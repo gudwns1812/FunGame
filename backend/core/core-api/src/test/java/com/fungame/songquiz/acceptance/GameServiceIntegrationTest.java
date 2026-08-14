@@ -10,6 +10,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import com.fungame.songquiz.support.MySqlIntegrationTest;
 import com.fungame.songquiz.enums.CSQuizDifficulty;
+import com.fungame.songquiz.enums.PlayerStatus;
 import com.fungame.songquiz.enums.Role;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -53,7 +54,7 @@ public class GameServiceIntegrationTest {
     private com.fungame.songquiz.storage.ComputerScienceRepository computerScienceRepository;
 
     @Autowired
-    private com.fungame.songquiz.domain.member.MemberRepository memberRepository;
+    private com.fungame.songquiz.storage.MemberRepository memberRepository;
 
     private Long roomId;
     private final String hostName = "host";
@@ -178,12 +179,13 @@ public class GameServiceIntegrationTest {
     }
 
     private Long saveMember(String nickname) {
-        return memberRepository.save(com.fungame.songquiz.domain.member.Member.builder()
+        return memberRepository.save(com.fungame.songquiz.storage.MemberEntity.builder()
                 .loginId(nickname)
                 .password("password")
                 .nickname(nickname)
                 .email(nickname + "@fun-game.club")
                 .role(com.fungame.songquiz.enums.Role.USER)
+                .status(PlayerStatus.LOBBY)
                 .build()).getId();
     }
 }

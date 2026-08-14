@@ -1,9 +1,9 @@
 package com.fungame.songquiz.domain.member;
 
 import com.fungame.songquiz.domain.event.MemberPresenceChangedEvent;
+import com.fungame.songquiz.enums.PlayerStatus;
 import com.fungame.songquiz.support.error.CoreException;
 import com.fungame.songquiz.support.error.ErrorType;
-import com.fungame.songquiz.enums.PlayerStatus;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
@@ -18,42 +18,52 @@ import java.util.List;
 @RequiredArgsConstructor
 public class MemberPresenceService {
 
-    private final MemberRepository memberRepository;
+    private final MemberReader memberReader;
+    private final MemberWriter memberWriter;
     private final ApplicationEventPublisher applicationEventPublisher;
 
     @Transactional
     public void enterWaitingRoom(Long memberId, Long roomId) {
-        loadMember(memberId).enterWaitingRoom(roomId);
+        Member member = loadMember(memberId);
+        member.enterWaitingRoom(roomId);
+        memberWriter.update(member);
+
         announcePresenceChange();
     }
 
     @Transactional
     public void enterPlayingRoom(Long memberId, Long roomId) {
-        loadMember(memberId).enterPlayingRoom(roomId);
+        Member member = loadMember(memberId);
+        member.enterPlayingRoom(roomId);
+        memberWriter.update(member);
+
         announcePresenceChange();
     }
 
     @Transactional
     public void leaveRoom(Long memberId) {
-        loadMember(memberId).leaveRoom();
+        Member member = loadMember(memberId);
+        member.leaveRoom();
+        memberWriter.update(member);
+
         announcePresenceChange();
     }
 
     @Transactional
     public void markRoomPlaying(Long roomId) {
-        memberRepository.updateStatusOfRoom(roomId, PlayerStatus.PLAYING);
+        memberWriter.movePresenceOfRoom(roomId, PlayerStatus.PLAYING);
         announcePresenceChange();
     }
 
     @Transactional
     public void markRoomWaiting(Long roomId) {
-        memberRepository.updateStatusOfRoom(roomId, PlayerStatus.WAITING);
+        memberWriter.movePresenceOfRoom(roomId, PlayerStatus.WAITING);
         announcePresenceChange();
     }
 
     @Transactional
     public void clearEveryLocation() {
-        int cleared = memberRepository.clearEveryLocation();
+        int cleared = memberWriter.clearEveryLocation();
 
         if (cleared > 0) {
             log.info("기동 시점에 남아 있던 회원 위치 {} 건을 로비로 되돌린다", cleared);
@@ -66,7 +76,7 @@ public class MemberPresenceService {
             return List.of();
         }
 
-        return memberRepository.findAllByIdInOrderByNicknameAsc(memberIds);
+        return memberReader.findAllInOrderByNickname(memberIds);
     }
 
     @Transactional(readOnly = true)
@@ -79,7 +89,7 @@ public class MemberPresenceService {
     }
 
     private Member loadMember(Long memberId) {
-        return memberRepository.findById(memberId)
+        return memberReader.findById(memberId)
                 .orElseThrow(() -> new CoreException(ErrorType.MEMBER_NOT_FOUND));
     }
 }

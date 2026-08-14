@@ -1,7 +1,7 @@
 package com.fungame.songquiz.domain;
 
-import com.fungame.songquiz.domain.member.Member;
-import com.fungame.songquiz.domain.member.MemberRepository;
+import com.fungame.songquiz.storage.MemberEntity;
+import com.fungame.songquiz.storage.MemberRepository;
 import com.fungame.songquiz.storage.GameRoomEntity;
 import com.fungame.songquiz.storage.GameRoomMemberEntity;
 import com.fungame.songquiz.storage.GameRoomRepository;
@@ -46,7 +46,7 @@ public class GameRoomReader {
                 .collect(Collectors.toSet());
 
         return memberRepository.findAllById(memberIds).stream()
-                .collect(Collectors.toMap(Member::getId, Member::getNickname));
+                .collect(Collectors.toMap(MemberEntity::getId, MemberEntity::getNickname));
     }
 
     private static StoredRoom toStoredRoom(GameRoomEntity entity, Map<Long, String> nicknames) {

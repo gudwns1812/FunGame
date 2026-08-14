@@ -1,4 +1,4 @@
-package com.fungame.songquiz.domain.member;
+package com.fungame.songquiz.storage;
 
 import com.fungame.songquiz.enums.PlayerStatus;
 import jakarta.persistence.LockModeType;
@@ -12,24 +12,24 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
-public interface MemberRepository extends JpaRepository<Member, Long> {
-    @Query("select m from Member m where m.loginId = :loginId")
-    Optional<Member> findByLoginId(@Param("loginId") String loginId);
+public interface MemberRepository extends JpaRepository<MemberEntity, Long> {
+    @Query("select m from MemberEntity m where m.loginId = :loginId")
+    Optional<MemberEntity> findByLoginId(@Param("loginId") String loginId);
 
-    Optional<Member> findByLoginIdAndEmail(String loginId, String email);
+    Optional<MemberEntity> findByLoginIdAndEmail(String loginId, String email);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
-    @Query("select m from Member m where m.id = :id")
-    Optional<Member> findByIdForUpdate(@Param("id") Long id);
+    @Query("select m from MemberEntity m where m.id = :id")
+    Optional<MemberEntity> findByIdForUpdate(@Param("id") Long id);
 
-    List<Member> findAllByIdInOrderByNicknameAsc(Collection<Long> ids);
+    List<MemberEntity> findAllByIdInOrderByNicknameAsc(Collection<Long> ids);
 
     @Modifying(clearAutomatically = true)
-    @Query("update Member m set m.status = :status where m.currentRoomId = :roomId")
+    @Query("update MemberEntity m set m.status = :status where m.currentRoomId = :roomId")
     void updateStatusOfRoom(@Param("roomId") Long roomId, @Param("status") PlayerStatus status);
 
     @Modifying(clearAutomatically = true)
-    @Query("update Member m set m.status = com.fungame.songquiz.enums.PlayerStatus.LOBBY, m.currentRoomId = null "
+    @Query("update MemberEntity m set m.status = com.fungame.songquiz.enums.PlayerStatus.LOBBY, m.currentRoomId = null "
             + "where m.currentRoomId is not null or m.status <> com.fungame.songquiz.enums.PlayerStatus.LOBBY")
     int clearEveryLocation();
 

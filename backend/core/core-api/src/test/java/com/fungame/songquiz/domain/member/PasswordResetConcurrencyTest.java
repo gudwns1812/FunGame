@@ -2,6 +2,7 @@ package com.fungame.songquiz.domain.member;
 
 import com.fungame.songquiz.support.MySqlIntegrationTest;
 import com.fungame.songquiz.support.mail.PasswordResetMailSender;
+import com.fungame.songquiz.enums.PlayerStatus;
 import com.fungame.songquiz.enums.Role;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -27,6 +28,9 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.timeout;
 import static org.mockito.Mockito.verify;
+import com.fungame.songquiz.storage.MemberEntity;
+import com.fungame.songquiz.storage.MemberRepository;
+import com.fungame.songquiz.storage.PasswordResetTokenRepository;
 
 @MySqlIntegrationTest
 class PasswordResetConcurrencyTest {
@@ -56,12 +60,13 @@ class PasswordResetConcurrencyTest {
     @BeforeEach
     void setUp() {
         clearMembers();
-        memberRepository.save(Member.builder()
+        memberRepository.save(MemberEntity.builder()
                 .loginId(LOGIN_ID)
                 .password(passwordEncoder.encode(PASSWORD))
                 .nickname("동시성테스터")
                 .email(EMAIL)
                 .role(Role.USER)
+                .status(PlayerStatus.LOBBY)
                 .build());
     }
 
@@ -152,7 +157,7 @@ class PasswordResetConcurrencyTest {
     private long usableTokenCount() {
         LocalDateTime now = LocalDateTime.now();
         return passwordResetTokenRepository.findAll().stream()
-                .filter(token -> token.isUsable(now))
+                .filter(token -> token.getUsedAt() == null && now.isBefore(token.getExpiresAt()))
                 .count();
     }
 

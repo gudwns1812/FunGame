@@ -1,5 +1,6 @@
 package com.fungame.songquiz.domain.member;
 
+import com.fungame.songquiz.enums.PlayerStatus;
 import com.fungame.songquiz.enums.Role;
 import com.fungame.songquiz.support.MySqlIntegrationTest;
 import org.junit.jupiter.api.DisplayName;
@@ -10,6 +11,8 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import com.fungame.songquiz.storage.MemberEntity;
+import com.fungame.songquiz.storage.MemberRepository;
 
 @MySqlIntegrationTest
 class MemberPersistenceTest {
@@ -37,12 +40,13 @@ class MemberPersistenceTest {
     }
 
     private Long saveMember(String name) {
-        return memberRepository.save(Member.builder()
+        return memberRepository.save(MemberEntity.builder()
                 .loginId(name)
                 .password("password")
                 .nickname(name)
                 .email(name + "@fun-game.club")
                 .role(Role.USER)
+                .status(PlayerStatus.LOBBY)
                 .build()).getId();
     }
 

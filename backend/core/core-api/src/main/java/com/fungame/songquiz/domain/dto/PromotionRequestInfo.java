@@ -30,8 +30,8 @@ public class PromotionRequestInfo {
     public static PromotionRequestInfo from(PromotionRequest request) {
         return PromotionRequestInfo.builder()
                 .id(request.getId())
-                .loginId(request.getMember().getLoginId())
-                .nickname(request.getMember().getNickname())
+                .loginId(request.getMemberLoginId())
+                .nickname(request.getMemberNickname())
                 .status(request.getStatus())
                 .createdAt(request.getCreatedAt())
                 .build();

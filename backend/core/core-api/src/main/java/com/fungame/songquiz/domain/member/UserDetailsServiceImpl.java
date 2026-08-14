@@ -12,12 +12,12 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class UserDetailsServiceImpl implements UserDetailsService {
 
-    private final MemberRepository memberRepository;
+    private final MemberReader memberReader;
 
     @Override
     @Transactional(readOnly = true)
     public UserDetails loadUserByUsername(String loginId) {
-        return memberRepository.findByLoginId(loginId)
+        return memberReader.findByLoginId(loginId)
                 .map(MemberAdapter::new)
                 .orElseThrow(() -> new CoreException(ErrorType.PLAYER_NOT_FOUND));
     }
