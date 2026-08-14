@@ -435,12 +435,16 @@ spring:
 | 마이그레이션 | 내용 |
 | --- | --- |
 | `V9__song_entity_constraints.sql` | `unique (singer, title)`, `unique (video_link)`, `uq_title_date`, `idx_answers` |
-| `mysql/V10__song_entity_category_index.sql` | 다중값 함수 인덱스. MySQL 전용이라 `db/migration/{vendor}` 로 분리 |
+| `vendor/mysql/V10__song_entity_category_index.sql` | 다중값 함수 인덱스. MySQL 전용이라 벤더별 위치로 분리 |
 | `db/manual/mark_V9_V10_applied.sql` | 운영은 이미 제약이 있으므로 실행하지 않고 적용된 것으로만 기록 |
 
 V9 의 `singer`, `video_link` 제약은 이름을 붙이지 않았다. MySQL 이 첫 컬럼 이름으로 자동 명명하므로 운영에 있는 이름이 그대로 재현된다.
 
 checksum 은 손으로 쓰지 않는다. Flyway 알고리즘(줄별 개행 제거 후 CRC32 누적)으로 계산한 뒤 빈 DB 에 실제로 적용해 기록된 값과 대조한다. 기존 V1~V7 로 알고리즘이 맞는지 먼저 확인할 수 있다.
+
+**벤더별 마이그레이션은 `db/migration` 밖에 둬야 한다.** 처음에 `db/migration/mysql` 에 뒀는데 Flyway 는 위치를 재귀로 스캔한다. `classpath:db/migration/{vendor}` 는 `classpath:db/migration` 의 하위라 무시되고(`Discarding location ... as it is a sub-location`), 동시에 `db/migration` 스캔에 딸려 들어가 H2 로컬에서 MySQL 전용 DDL 이 실행돼 기동이 깨졌다. 테스트는 MySQL 로만 돌아 잡히지 않았고 로컬 기동에서 드러났다. `classpath:db/vendor/{vendor}` 로 옮겨 해결했다.
+
+위치가 바뀌면 `flyway_schema_history` 의 `script` 값도 바뀐다(`mysql/V10__...` → `V10__...`). 위치는 스크립트 경로의 기준점이다.
 
 **배포 전에 `mark_V9_V10_applied.sql` 을 운영에 먼저 실행해야 한다.** 안 하면 flyway 가 이미 있는 제약을 또 만들려다 실패해 기동이 안 된다. 실행 전에 `SHOW INDEX FROM song_entity` 로 제약 다섯 개가 실제로 있는지 확인한다. 하나라도 없으면 실행하면 안 된다 — 그 제약이 영구히 누락된다.
 

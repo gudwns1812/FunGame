@@ -39,7 +39,7 @@ SELECT
     '10',
     'song entity category index',
     'SQL',
-    'mysql/V10__song_entity_category_index.sql',
+    'V10__song_entity_category_index.sql',
     -404473388,
     CURRENT_USER(),
     NOW(),
