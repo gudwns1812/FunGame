@@ -2,7 +2,7 @@ package com.fungame.songquiz.domain;
 
 import com.fungame.songquiz.enums.Category;
 import com.fungame.songquiz.storage.SongEntity;
-import com.fungame.songquiz.storage.SongRepository;
+import com.fungame.songquiz.storage.SongStore;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -30,7 +30,7 @@ class SongReaderTest {
     private static final String HINT = "세 글자";
 
     @Mock
-    private SongRepository songRepository;
+    private SongStore songStore;
 
     @InjectMocks
     private SongReader songReader;
@@ -63,7 +63,7 @@ class SongReaderTest {
     @Test
     @DisplayName("id로 조회한 엔티티의 모든 필드를 도메인으로 옮긴다.")
     void mapsEveryFieldWhenFoundById() {
-        given(songRepository.findById(1L)).willReturn(Optional.of(entity()));
+        given(songStore.findById(1L)).willReturn(Optional.of(entity()));
 
         assertMappedFrom(songReader.findById(1L));
     }
@@ -71,7 +71,7 @@ class SongReaderTest {
     @Test
     @DisplayName("id로 찾지 못하면 null을 돌려준다.")
     void returnsNullWhenNotFoundById() {
-        given(songRepository.findById(1L)).willReturn(Optional.empty());
+        given(songStore.findById(1L)).willReturn(Optional.empty());
 
         assertThat(songReader.findById(1L)).isNull();
     }
@@ -79,7 +79,7 @@ class SongReaderTest {
     @Test
     @DisplayName("개수로 조회한 엔티티의 모든 필드를 도메인으로 옮긴다.")
     void mapsEveryFieldWhenReadByCount() {
-        given(songRepository.findRandomSongs(anyInt())).willReturn(List.of(entity()));
+        given(songStore.findRandomSongs(anyInt())).willReturn(List.of(entity()));
 
         List<Song> songs = songReader.findSongWithCount(1);
 
@@ -90,7 +90,7 @@ class SongReaderTest {
     @Test
     @DisplayName("카테고리로 조회한 엔티티의 모든 필드를 도메인으로 옮긴다.")
     void mapsEveryFieldWhenReadByCategory() {
-        given(songRepository.findRandomSongsByCategory(anyString(), anyInt())).willReturn(List.of(entity()));
+        given(songStore.findRandomSongsByCategory(anyString(), anyInt())).willReturn(List.of(entity()));
 
         List<Song> songs = songReader.findSongByCategoryWithCount(Category.KPOP, 1);
 
@@ -101,7 +101,7 @@ class SongReaderTest {
     @Test
     @DisplayName("카테고리는 JSON 문자열로 감싸서 조회 조건에 넘긴다.")
     void wrapsCategoryAsJsonString() {
-        given(songRepository.findRandomSongsByCategory("\"KPOP\"", 5)).willReturn(List.of());
+        given(songStore.findRandomSongsByCategory("\"KPOP\"", 5)).willReturn(List.of());
 
         assertThat(songReader.findSongByCategoryWithCount(Category.KPOP, 5)).isEmpty();
     }

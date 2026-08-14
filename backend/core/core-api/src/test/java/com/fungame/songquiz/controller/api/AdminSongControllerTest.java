@@ -3,7 +3,7 @@ package com.fungame.songquiz.controller.api;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fungame.songquiz.domain.SongService;
 import org.junit.jupiter.api.DisplayName;
-import com.fungame.songquiz.support.MySqlIntegrationTest;
+import com.fungame.songquiz.storage.IntegrationTest;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -18,7 +18,7 @@ import java.util.Map;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@MySqlIntegrationTest
+@IntegrationTest
 @AutoConfigureMockMvc
 public class AdminSongControllerTest {
 

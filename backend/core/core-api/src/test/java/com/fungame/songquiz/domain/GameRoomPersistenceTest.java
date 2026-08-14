@@ -8,7 +8,7 @@ import com.fungame.songquiz.storage.MemberEntity;
 import com.fungame.songquiz.storage.MemberRepository;
 import com.fungame.songquiz.enums.PlayerStatus;
 import com.fungame.songquiz.enums.Role;
-import com.fungame.songquiz.support.MySqlIntegrationTest;
+import com.fungame.songquiz.storage.IntegrationTest;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,7 +18,7 @@ import java.util.List;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 
-@MySqlIntegrationTest
+@IntegrationTest
 class GameRoomPersistenceTest {
 
     private static final RoomSettings SETTINGS =

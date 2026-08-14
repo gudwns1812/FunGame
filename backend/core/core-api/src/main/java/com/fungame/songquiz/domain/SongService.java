@@ -1,7 +1,7 @@
 package com.fungame.songquiz.domain;
 
 import com.fungame.songquiz.storage.SongEntity;
-import com.fungame.songquiz.storage.SongRepository;
+import com.fungame.songquiz.storage.SongStore;
 import com.fungame.songquiz.support.error.CoreException;
 import com.fungame.songquiz.support.error.ErrorType;
 import com.fungame.songquiz.support.extern.YoutubeScraper;
@@ -20,10 +20,10 @@ import java.util.stream.Collectors;
 public class SongService {
 
     private final YoutubeScraper scraper;
-    private final SongRepository songRepository;
+    private final SongStore songStore;
 
     public List<Long> getRandomSongIds(int count) {
-        List<Long> allIds = songRepository.findAll().stream()
+        List<Long> allIds = songStore.findAll().stream()
                 .map(SongEntity::getId)
                 .collect(Collectors.toList());
 
@@ -38,7 +38,7 @@ public class SongService {
     public void createSongQuiz(Song song) {
         String videoLink = scraper.getVideoId(song.getTitle(), song.getSinger());
 
-        boolean exists = songRepository.existsBySingerAndTitle(song.getSinger(), song.getTitle());
+        boolean exists = songStore.existsBySingerAndTitle(song.getSinger(), song.getTitle());
         if (exists) {
             throw new CoreException(ErrorType.QUIZ_DUPLICATE_ERROR);
         }
@@ -54,13 +54,13 @@ public class SongService {
                 .hint(song.getHint())
                 .build();
 
-        songRepository.save(newSong);
+        songStore.save(newSong);
     }
 
     public boolean existSongQuiz(String title, LocalDate releaseDate) {
         if (releaseDate == null) {
-            return songRepository.existsByTitleContaining(title);
+            return songStore.existsByTitleContaining(title);
         }
-        return songRepository.existsByTitleContainingAndReleaseDate(title, releaseDate);
+        return songStore.existsByTitleContainingAndReleaseDate(title, releaseDate);
     }
 }

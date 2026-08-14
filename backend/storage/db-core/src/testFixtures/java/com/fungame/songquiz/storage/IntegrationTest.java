@@ -1,4 +1,4 @@
-package com.fungame.songquiz.support;
+package com.fungame.songquiz.storage;
 
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
@@ -14,5 +14,5 @@ import java.lang.annotation.Target;
 @SpringBootTest
 @Import(MySqlTestContainer.class)
 @TestPropertySource(properties = "spring.session.jdbc.initialize-schema=always")
-public @interface MySqlIntegrationTest {
+public @interface IntegrationTest {
 }

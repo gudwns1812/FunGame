@@ -1,9 +1,9 @@
 package com.fungame.songquiz;
 
-import com.fungame.songquiz.support.MySqlIntegrationTest;
+import com.fungame.songquiz.storage.IntegrationTest;
 import org.junit.jupiter.api.Test;
 
-@MySqlIntegrationTest
+@IntegrationTest
 class SongquizApplicationTests {
 
     @Test

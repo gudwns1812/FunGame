@@ -1,6 +1,6 @@
 package com.fungame.songquiz.domain.member;
 
-import com.fungame.songquiz.support.MySqlIntegrationTest;
+import com.fungame.songquiz.storage.IntegrationTest;
 import com.fungame.songquiz.support.mail.PasswordResetMailSender;
 import com.fungame.songquiz.enums.PlayerStatus;
 import com.fungame.songquiz.enums.Role;
@@ -32,7 +32,7 @@ import com.fungame.songquiz.storage.MemberEntity;
 import com.fungame.songquiz.storage.MemberRepository;
 import com.fungame.songquiz.storage.PasswordResetTokenRepository;
 
-@MySqlIntegrationTest
+@IntegrationTest
 class PasswordResetConcurrencyTest {
 
     private static final String LOGIN_ID = "racer";

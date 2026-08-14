@@ -8,7 +8,7 @@ import com.fungame.songquiz.domain.event.*;
 import com.fungame.songquiz.domain.gamecreator.CsQuizGameCreateInfo;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
-import com.fungame.songquiz.support.MySqlIntegrationTest;
+import com.fungame.songquiz.storage.IntegrationTest;
 import com.fungame.songquiz.enums.CSQuizDifficulty;
 import com.fungame.songquiz.enums.PlayerStatus;
 import com.fungame.songquiz.enums.Role;
@@ -30,7 +30,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.doAnswer;
 
-@MySqlIntegrationTest
+@IntegrationTest
 @ActiveProfiles("test")
 @Import(GameServiceIntegrationTest.TestEventCapture.class)
 public class GameServiceIntegrationTest {

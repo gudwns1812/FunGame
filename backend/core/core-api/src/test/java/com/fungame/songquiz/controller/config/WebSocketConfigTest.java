@@ -1,7 +1,7 @@
 package com.fungame.songquiz.controller.config;
 
 import org.junit.jupiter.api.DisplayName;
-import com.fungame.songquiz.support.MySqlIntegrationTest;
+import com.fungame.songquiz.storage.IntegrationTest;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -13,7 +13,7 @@ import org.springframework.security.messaging.context.SecurityContextChannelInte
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-@MySqlIntegrationTest
+@IntegrationTest
 class WebSocketConfigTest {
 
     @Autowired

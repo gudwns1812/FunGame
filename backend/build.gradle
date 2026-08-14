@@ -1,9 +1,16 @@
+plugins {
+    id 'org.springframework.boot' version '3.4.3' apply false
+    id 'io.spring.dependency-management' version '1.1.7' apply false
+    id 'org.asciidoctor.jvm.convert' version '4.0.2' apply false
+}
+
 ext {
     lombokVersion = '1.18.36'
+    queryDslVersion = '7.0'
 }
 
 subprojects {
-    apply plugin: 'java'
+    apply plugin: 'java-library'
 
     java {
         toolchain {

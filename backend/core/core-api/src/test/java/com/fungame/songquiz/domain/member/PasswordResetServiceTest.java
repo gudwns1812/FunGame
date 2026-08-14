@@ -1,7 +1,7 @@
 package com.fungame.songquiz.domain.member;
 
 import com.fungame.songquiz.support.MutableClock;
-import com.fungame.songquiz.support.MySqlIntegrationTest;
+import com.fungame.songquiz.storage.IntegrationTest;
 import com.fungame.songquiz.support.error.CoreException;
 import com.fungame.songquiz.support.error.ErrorType;
 import com.fungame.songquiz.support.mail.PasswordResetMailSender;
@@ -37,7 +37,7 @@ import com.fungame.songquiz.storage.MemberRepository;
 import com.fungame.songquiz.storage.PasswordResetTokenEntity;
 import com.fungame.songquiz.storage.PasswordResetTokenRepository;
 
-@MySqlIntegrationTest
+@IntegrationTest
 class PasswordResetServiceTest {
 
     private static final String LOGIN_ID = "resetter";

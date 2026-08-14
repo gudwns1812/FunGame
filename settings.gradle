@@ -1,3 +1,4 @@
 rootProject.name = 'FunGame'
 include 'backend:core:core-enum'
+include 'backend:storage:db-core'
 include 'backend:core:core-api'

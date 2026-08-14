@@ -8,13 +8,17 @@ WORKDIR /app
 # Gradle 래퍼와 멀티 모듈 설정은 저장소 루트에 있습니다.
 COPY gradle /app/gradle
 COPY gradlew build.gradle settings.gradle /app/
+COPY backend/build.gradle /app/backend/build.gradle
 COPY backend/core/core-api/build.gradle /app/backend/core/core-api/build.gradle
+COPY backend/storage/db-core/build.gradle /app/backend/storage/db-core/build.gradle
 
 # 의존성 먼저 다운로드 (코드 변경 시에도 의존성 다운로드 단계는 건너뜀)
 RUN chmod +x gradlew && ./gradlew :backend:core:core-api:dependencies --no-daemon
 
 # 전체 소스 코드 복사 후 빌드
 COPY backend/core/core-api/src /app/backend/core/core-api/src
+COPY backend/core/core-enum/src /app/backend/core/core-enum/src
+COPY backend/storage/db-core/src /app/backend/storage/db-core/src
 RUN ./gradlew :backend:core:core-api:bootJar -x test --no-daemon
 
 # 2. 실행 스테이지: 실행에 필요한 JRE만 포함

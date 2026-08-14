@@ -1,6 +1,6 @@
 package com.fungame.songquiz.support.config;
 
-import com.fungame.songquiz.support.MySqlIntegrationTest;
+import com.fungame.songquiz.storage.IntegrationTest;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -10,7 +10,7 @@ import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-@MySqlIntegrationTest
+@IntegrationTest
 class FlywayMigrationTest {
 
     @Autowired

@@ -5,7 +5,7 @@ import com.fungame.songquiz.domain.member.Member;
 import com.fungame.songquiz.storage.MemberEntity;
 import com.fungame.songquiz.storage.MemberRepository;
 import com.fungame.songquiz.storage.PasswordResetTokenRepository;
-import com.fungame.songquiz.support.MySqlIntegrationTest;
+import com.fungame.songquiz.storage.IntegrationTest;
 import com.fungame.songquiz.support.mail.PasswordResetMailSender;
 import com.fungame.songquiz.enums.PlayerStatus;
 import com.fungame.songquiz.enums.Role;
@@ -36,7 +36,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@MySqlIntegrationTest
+@IntegrationTest
 @AutoConfigureMockMvc
 class PasswordResetApiTest {
 

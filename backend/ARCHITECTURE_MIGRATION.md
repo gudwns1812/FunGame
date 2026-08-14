@@ -322,7 +322,45 @@ Lombok은 `compileOnly`라 `core-enum`의 런타임 의존은 비어 있다(`run
 - `storage` 패키지 + `resources/db/migration`(flyway) + `db/local` 이동
 - `implementation project(':core:core-enum')`만 의존
 - QueryDSL annotationProcessor를 이 모듈로 이동
-- Testcontainers 기반 `MySqlIntegrationTest`, `MySqlTestContainer` 이동
+- Testcontainers는 `testFixtures`로 내보낸다
+
+**flyway는 db-core만 갖는다.** 마이그레이션이 만드는 테이블이 전부 `storage` 엔티티 것이다. `classpath:db/migration`은 중첩 jar를 포함한 클래스패스 전체에서 해석되므로 `core-api` 실행에도 문제가 없다. jar 안에 실제로 들어가는지 확인해야 한다(`BOOT-INF/lib/db-core-*.jar` 안의 `db/migration/`).
+
+문서에 있던 "spring-session-jdbc 세션 테이블 DDL이 flyway와 같은 모듈에 있어야 한다"는 **틀린 걱정이었다.** 마이그레이션에 `SPRING_SESSION`이 없다. 세션 테이블은 spring-session-jdbc 자체 스키마 스크립트가 `initialize-schema`로 만든다.
+
+#### JPA 를 core-api 밖으로 밀어내기
+
+`core-api`가 `memberRepository.findById(...)`처럼 **Spring Data 상속 메서드**를 부르면 javac가 타입 계층을 해석해야 해서 spring-data-jpa가 컴파일 클래스패스에 필요해진다. 새는 것은 상속 CRUD 여섯 개뿐이다.
+
+```
+findById  save  findAll  findAllById  deleteById  getReferenceById
+```
+
+`db-core`에 Spring Data를 상속하지 않는 위임 클래스(`MemberStore`, `GameRoomStore`, `SongStore`, `ComputerScienceStore`, `CounterStore`, `PasswordResetTokenStore`, `PromotionRequestStore`)를 두고 `JpaRepository` 인터페이스는 모듈 밖으로 내보내지 않는다.
+
+도메인에 인터페이스를 두고 storage가 구현하는 방식(DIP)은 쓸 수 없다. 구현체가 도메인 모델을 알아야 해서 `db-core → core-api`가 되고, Phase B에서 없앤 역의존이 되살아나 순환이 된다. 문제는 인터페이스 위치가 아니라 **누가 Spring Data를 호출하느냐**다.
+
+`jakarta.persistence-api`만 `api`로 연다. 엔티티가 달고 있는 애노테이션이라 `db-core`가 공개하는 타입의 일부이고, 없으면 `core-api` 컴파일에 "unknown enum constant" 경고가 백 개 넘게 쏟아진다. 이 경고는 `-Xlint`로 억제되지 않는다.
+
+결과로 `core-api`의 컴파일 클래스패스에서 spring-data-jpa, hibernate, flyway, mysql-connector-j, querydsl이 사라진다.
+
+#### 테스트
+
+`@MySqlIntegrationTest`를 `@IntegrationTest`로 바꾼다. 이 애노테이션을 쓰는 12개 클래스 중 MySQL이어야만 하는 것은 넷뿐이다.
+
+| 이유 | 클래스 |
+| --- | --- |
+| `JSON_CONTAINS`, `ORDER BY RAND()` | `SongServiceIntegrationTest`, `AdminSongControllerTest` |
+| `engine = InnoDB`, `enum(...)`, `json` DDL | `FlywayMigrationTest` |
+| `innodb-lock-wait-timeout` + `PESSIMISTIC_WRITE` | `PasswordResetConcurrencyTest` |
+
+나머지 여덟은 "앱 컨텍스트 + DB"가 필요할 뿐이다. 이 애노테이션이 제공하는 것은 MySQL이 아니라 **실제 DB를 붙인 통합 테스트**이고, MySQL은 그 DB를 조달하는 방법이다.
+
+통합 테스트는 픽스처를 준비하려고 리포지토리를 직접 쓴다. `testFixturesApi`로 테스트 스코프에만 JPA를 열고 프로덕션 클래스패스는 건드리지 않는다. 프로덕션 `Store`에 테스트 전용 `deleteAll` 같은 메서드를 넣지 않기 위해서다.
+
+`@Mock`으로 리포지토리를 쓰던 단위 테스트 셋은 `Store`로 바꿔야 한다. **컴파일은 통과하고 런타임에만 터진다** — 옛 타입이 여전히 참조 가능하므로 `@Mock`은 만들어지지만 `@InjectMocks`가 주입할 곳이 없어 필드가 null로 남는다.
+
+**완료 기준**: `core-api` 컴파일 클래스패스에 spring-data-jpa·flyway·mysql-connector-j·querydsl이 없다. `bootJar` 안에 `db-core` jar와 그 안의 `db/migration/`이 있다.
 
 ### D-4. clients 추출
 
@@ -346,7 +384,6 @@ Lombok은 `compileOnly`라 `core-enum`의 런타임 의존은 비어 있다(`run
 
 - **컴포넌트 스캔**: 패키지 루트를 `com.fungame.songquiz`로 유지한다. 템플릿처럼 `com.fungame.songquiz.storage.db.core`로 바꾸면 `@SpringBootApplication` 스캔 범위 밖이 되어 각 모듈에 `@Configuration`, `@EnableJpaRepositories`, `@EntityScan`을 명시해야 한다. 어느 쪽을 택할지 D-1에서 결정한다
 - **flyway**: 마이그레이션 리소스가 `db-core`로 가면 `core-api` 실행 시 클래스패스에 포함되는지 확인
-- **spring-session-jdbc**: 세션 테이블 DDL이 flyway와 같은 모듈에 있어야 한다
 - **application.yml**: 모듈별 `application-*.yml`을 어떻게 병합할지 D-1에서 정한다
 
 ## 진행 지표
@@ -356,7 +393,7 @@ Lombok은 `compileOnly`라 `core-enum`의 런타임 의존은 비어 있다(`run
 | `storage → domain` import | **0** (A-1 시점 5개 파일) | 0 |
 | service가 repository 직접 의존 | 14개 파일 | 0 (리뷰로 확인) |
 | ArchUnit 위반 수 | **0** (A-1 시점 92) | 0 |
-| gradle 모듈 수 | 2 (`core:core-api`, `core:core-enum`) | 9 |
+| gradle 모듈 수 | 3 (`core:core-api`, `core:core-enum`, `storage:db-core`) | 9 |
 
 ArchUnit 위반이 0이 되어 B-3에서 `FreezingArchRule`을 일반 `ArchRule`로 바꿨다. `archunit_store/`와 `archunit.properties`는 지웠다. 이제 위반이 하나라도 생기면 바로 실패한다.
 

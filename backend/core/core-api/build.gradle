@@ -1,12 +1,10 @@
 plugins {
-    id 'java'
-    id 'org.springframework.boot' version '3.4.3'
-    id 'io.spring.dependency-management' version '1.1.7'
-    id 'org.asciidoctor.jvm.convert' version '4.0.2'
+    id 'org.springframework.boot'
+    id 'io.spring.dependency-management'
+    id 'org.asciidoctor.jvm.convert'
 }
 
 description = 'songquiz'
-def queryDslVersion = "7.0"
 
 configurations {
     asciidoctorExtensions
@@ -14,10 +12,8 @@ configurations {
 
 dependencies {
     implementation project(':backend:core:core-enum')
+    implementation project(':backend:storage:db-core')
 
-    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
-    implementation 'org.flywaydb:flyway-core'
-    implementation 'org.flywaydb:flyway-mysql'
     implementation 'org.springframework.boot:spring-boot-starter-web'
     implementation 'org.springframework.boot:spring-boot-starter-security'
     implementation 'org.springframework.boot:spring-boot-starter-websocket'
@@ -28,25 +24,14 @@ dependencies {
     implementation platform('software.amazon.awssdk:bom:2.31.30')
     implementation 'software.amazon.awssdk:sesv2'
     implementation 'org.jsoup:jsoup:1.16.1'
-    implementation "io.github.openfeign.querydsl:querydsl-jpa:${queryDslVersion}"
-    implementation "io.github.openfeign.querydsl:querydsl-core:${queryDslVersion}"
-    runtimeOnly 'com.mysql:mysql-connector-j'
-    
+
+    testImplementation testFixtures(project(':backend:storage:db-core'))
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
-    testImplementation 'org.springframework.boot:spring-boot-testcontainers'
-    testImplementation 'org.testcontainers:junit-jupiter'
-    testImplementation 'org.testcontainers:mysql'
     testImplementation 'org.springframework.security:spring-security-test'
     testImplementation 'org.springframework.restdocs:spring-restdocs-mockmvc'
     testImplementation 'org.awaitility:awaitility:4.2.0'
     testImplementation 'com.tngtech.archunit:archunit-junit5:1.3.0'
 
-    annotationProcessor "io.github.openfeign.querydsl:querydsl-apt:${queryDslVersion}:jpa"
-
-    annotationProcessor "jakarta.annotation:jakarta.annotation-api"
-    annotationProcessor "jakarta.persistence:jakarta.persistence-api"
-
-    runtimeOnly 'com.h2database:h2'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }
 
