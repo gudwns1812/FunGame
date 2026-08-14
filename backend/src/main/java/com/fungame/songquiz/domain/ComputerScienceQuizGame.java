@@ -3,6 +3,8 @@ package com.fungame.songquiz.domain;
 import com.fungame.songquiz.domain.dto.GameAnswerDto;
 import com.fungame.songquiz.domain.dto.GameContentDto;
 import com.fungame.songquiz.domain.dto.GameInfo;
+import com.fungame.songquiz.enums.GameType;
+import com.fungame.songquiz.enums.ActionResult;
 
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;

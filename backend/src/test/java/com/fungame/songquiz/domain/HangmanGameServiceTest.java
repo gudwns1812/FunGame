@@ -5,6 +5,7 @@ import com.fungame.songquiz.domain.dto.GameInfo;
 import com.fungame.songquiz.domain.event.GameResultEvent;
 import com.fungame.songquiz.domain.event.GameStartEvent;
 import com.fungame.songquiz.domain.event.HangmanActionEvent;
+import com.fungame.songquiz.enums.ActionType;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;

@@ -1,4 +1,4 @@
-package com.fungame.songquiz.domain;
+package com.fungame.songquiz.enums;
 
 public enum Category {
     TOTAL, KPOP, POP, BALLAD, RAP, OST,

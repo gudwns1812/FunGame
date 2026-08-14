@@ -2,7 +2,7 @@ package com.fungame.songquiz.domain.invite;
 
 import com.fungame.songquiz.domain.GamePlayer;
 import com.fungame.songquiz.domain.GameRoomService;
-import com.fungame.songquiz.domain.GameRoomStatus;
+import com.fungame.songquiz.enums.GameRoomStatus;
 import com.fungame.songquiz.domain.dto.RoomInfo;
 import com.fungame.songquiz.domain.dto.RoomSettingsInfo;
 import com.fungame.songquiz.domain.member.Member;

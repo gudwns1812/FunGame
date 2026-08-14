@@ -1,10 +1,10 @@
 package com.fungame.songquiz.storage;
 
-import com.fungame.songquiz.domain.CSQuizDifficulty;
-import com.fungame.songquiz.domain.Category;
+import com.fungame.songquiz.enums.CSQuizDifficulty;
+import com.fungame.songquiz.enums.Category;
 import com.fungame.songquiz.domain.GamePlayer;
-import com.fungame.songquiz.domain.GameRoomStatus;
-import com.fungame.songquiz.domain.GameType;
+import com.fungame.songquiz.enums.GameRoomStatus;
+import com.fungame.songquiz.enums.GameType;
 import com.fungame.songquiz.domain.RoomSettings;
 import jakarta.persistence.*;
 import lombok.AccessLevel;

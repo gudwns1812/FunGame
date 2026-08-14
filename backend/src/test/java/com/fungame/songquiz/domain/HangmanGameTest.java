@@ -1,6 +1,7 @@
 package com.fungame.songquiz.domain;
 
 import com.fungame.songquiz.support.error.CoreException;
+import com.fungame.songquiz.enums.ActionResult;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

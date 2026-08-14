@@ -1,8 +1,8 @@
 package com.fungame.songquiz.controller.request;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
-import com.fungame.songquiz.domain.Category;
 import com.fungame.songquiz.domain.Song;
+import com.fungame.songquiz.enums.Category;
 import lombok.Data;
 
 import java.time.LocalDate;

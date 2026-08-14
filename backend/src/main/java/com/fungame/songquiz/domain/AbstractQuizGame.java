@@ -1,5 +1,6 @@
 package com.fungame.songquiz.domain;
 
+import com.fungame.songquiz.enums.ActionResult;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;

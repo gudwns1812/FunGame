@@ -1,20 +1,20 @@
 package com.fungame.songquiz.controller.api;
 
-import com.fungame.songquiz.domain.CSQuizDifficulty;
+import com.fungame.songquiz.enums.CSQuizDifficulty;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fungame.songquiz.controller.request.ChangeRoomSettingsRequest;
 import com.fungame.songquiz.controller.request.CreateRoomRequest;
 import com.fungame.songquiz.domain.GameRoomService;
-import com.fungame.songquiz.domain.GameRoomStatus;
 import com.fungame.songquiz.domain.GameService;
-import com.fungame.songquiz.domain.GameType;
-import com.fungame.songquiz.domain.Category;
 import com.fungame.songquiz.domain.dto.PlayerReadyInfo;
 import com.fungame.songquiz.domain.dto.RoomInfo;
 import com.fungame.songquiz.domain.dto.RoomSettingsInfo;
 import com.fungame.songquiz.domain.member.Member;
 import com.fungame.songquiz.domain.member.MemberAdapter;
 import com.fungame.songquiz.support.MemberFixture;
+import com.fungame.songquiz.enums.Category;
+import com.fungame.songquiz.enums.GameRoomStatus;
+import com.fungame.songquiz.enums.GameType;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

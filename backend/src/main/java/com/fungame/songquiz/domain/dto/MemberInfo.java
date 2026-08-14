@@ -1,7 +1,7 @@
 package com.fungame.songquiz.domain.dto;
 
 import com.fungame.songquiz.domain.member.Member;
-import com.fungame.songquiz.domain.member.Role;
+import com.fungame.songquiz.enums.Role;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;

@@ -1,5 +1,6 @@
 package com.fungame.songquiz.domain;
 
+import com.fungame.songquiz.enums.CSQuizDifficulty;
 import lombok.Getter;
 
 import java.util.LinkedHashSet;

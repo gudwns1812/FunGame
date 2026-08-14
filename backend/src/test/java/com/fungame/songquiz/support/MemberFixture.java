@@ -1,7 +1,7 @@
 package com.fungame.songquiz.support;
 
 import com.fungame.songquiz.domain.member.Member;
-import com.fungame.songquiz.domain.member.Role;
+import com.fungame.songquiz.enums.Role;
 import org.springframework.test.util.ReflectionTestUtils;
 
 public final class MemberFixture {

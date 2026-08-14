@@ -1,11 +1,11 @@
 package com.fungame.songquiz.domain.invite;
 
-import com.fungame.songquiz.domain.CSQuizDifficulty;
-import com.fungame.songquiz.domain.Category;
+import com.fungame.songquiz.enums.CSQuizDifficulty;
+import com.fungame.songquiz.enums.Category;
 import com.fungame.songquiz.domain.GamePlayer;
 import com.fungame.songquiz.domain.GameRoomService;
-import com.fungame.songquiz.domain.GameRoomStatus;
-import com.fungame.songquiz.domain.GameType;
+import com.fungame.songquiz.enums.GameRoomStatus;
+import com.fungame.songquiz.enums.GameType;
 import com.fungame.songquiz.domain.dto.RoomInfo;
 import com.fungame.songquiz.domain.dto.RoomSettingsInfo;
 import com.fungame.songquiz.domain.member.Member;

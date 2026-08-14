@@ -4,6 +4,7 @@ import com.fungame.songquiz.domain.gamecreator.GameCreateInfo;
 import com.fungame.songquiz.domain.gamecreator.HangmanGameCreateInfo;
 import com.fungame.songquiz.support.error.CoreException;
 import com.fungame.songquiz.support.error.ErrorType;
+import com.fungame.songquiz.enums.GameType;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 

@@ -2,6 +2,7 @@ package com.fungame.songquiz.domain;
 
 import com.fungame.songquiz.support.error.CoreException;
 import com.fungame.songquiz.support.error.ErrorType;
+import com.fungame.songquiz.enums.GameType;
 import org.springframework.stereotype.Component;
 
 import java.util.List;

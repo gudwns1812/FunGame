@@ -3,6 +3,8 @@ package com.fungame.songquiz.domain.gamecreator;
 import com.fungame.songquiz.domain.*;
 import com.fungame.songquiz.support.error.CoreException;
 import com.fungame.songquiz.support.error.ErrorType;
+import com.fungame.songquiz.enums.Category;
+import com.fungame.songquiz.enums.GameType;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 

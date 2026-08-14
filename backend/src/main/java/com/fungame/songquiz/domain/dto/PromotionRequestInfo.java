@@ -1,7 +1,7 @@
 package com.fungame.songquiz.domain.dto;
 
 import com.fungame.songquiz.domain.member.PromotionRequest;
-import com.fungame.songquiz.domain.member.PromotionStatus;
+import com.fungame.songquiz.enums.PromotionStatus;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;

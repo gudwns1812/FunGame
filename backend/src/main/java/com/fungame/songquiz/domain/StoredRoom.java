@@ -1,5 +1,6 @@
 package com.fungame.songquiz.domain;
 
+import com.fungame.songquiz.enums.GameRoomStatus;
 import java.time.Instant;
 import java.util.List;
 

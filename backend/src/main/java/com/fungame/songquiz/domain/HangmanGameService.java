@@ -8,6 +8,8 @@ import com.fungame.songquiz.domain.event.HangmanActionEvent;
 import com.fungame.songquiz.domain.event.RoundStartEvent;
 import com.fungame.songquiz.support.error.CoreException;
 import com.fungame.songquiz.support.error.ErrorType;
+import com.fungame.songquiz.enums.GameType;
+import com.fungame.songquiz.enums.ActionResult;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;

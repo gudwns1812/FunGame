@@ -1,6 +1,7 @@
 package com.fungame.songquiz.domain;
 
 import com.fungame.songquiz.domain.dto.GameStateDto;
+import com.fungame.songquiz.enums.GameType;
 import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Component;
 

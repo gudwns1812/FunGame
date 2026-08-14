@@ -1,5 +1,7 @@
 package com.fungame.songquiz.domain.member;
 
+import com.fungame.songquiz.enums.PlayerStatus;
+import com.fungame.songquiz.enums.Role;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Builder;

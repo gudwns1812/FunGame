@@ -2,6 +2,7 @@ package com.fungame.songquiz.domain;
 
 import com.fungame.songquiz.storage.SongEntity;
 import com.fungame.songquiz.storage.SongRepository;
+import com.fungame.songquiz.enums.Category;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 

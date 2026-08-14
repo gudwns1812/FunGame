@@ -1,10 +1,10 @@
 package com.fungame.songquiz.domain.dto;
 
-import com.fungame.songquiz.domain.CSQuizDifficulty;
+import com.fungame.songquiz.enums.CSQuizDifficulty;
 import com.fungame.songquiz.domain.GamePlayers;
 import com.fungame.songquiz.domain.GameRoom;
-import com.fungame.songquiz.domain.GameRoomStatus;
-import com.fungame.songquiz.domain.GameType;
+import com.fungame.songquiz.enums.GameRoomStatus;
+import com.fungame.songquiz.enums.GameType;
 import com.fungame.songquiz.domain.StoredRoom;
 
 public record RoomInfo(

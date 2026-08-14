@@ -82,6 +82,8 @@ ArchRule rule = FreezingArchRule.freeze(
         .whereLayer("storage").mayOnlyBeAccessedByLayers("domain"));
 ```
 
+B-1에서 `enums` 계층이 여기 추가된다(`mayNotAccessAnyLayer`).
+
 `service`/`implement`를 별도 계층으로 넣지 않는다. implement는 도메인의 행위이므로 `domain` 패키지 안에 있는 것이 자연스럽고, 이를 ArchUnit 계층으로 쪼개면 논리적인 구분을 패키지 규칙으로 강제하게 된다.
 
 따라서 **Phase C의 `service → implement` 규율은 기계 검사 대상이 아니다.** 리뷰로 지킨다. 기계가 막아주는 것은 Phase B의 역의존뿐이다.
@@ -106,8 +108,26 @@ ArchRule rule = FreezingArchRule.freeze(
 | `GameType`, `GameRoomStatus` | `GameRoomEntity` |
 | `CSQuizDifficulty` | `ComputerScienceEntity`, `ComputerScienceRepository`, `GameRoomEntity` |
 | `Role`, `PlayerStatus`, `PromotionStatus` | member 엔티티 |
+| `ActionType`, `ActionResult` | `domain`만 (일관성 때문에 함께 이동) |
 
-조건: 이 패키지는 Spring/JPA 의존을 갖지 않는다. `ActionType`, `ActionResult`처럼 `domain`에서만 쓰는 것은 옮기지 않는다.
+조건: 이 패키지는 Spring/JPA 의존을 갖지 않는다.
+
+`ActionType`, `ActionResult`는 `storage`가 쓰지 않아 모듈 분리와는 무관하지만, enum이 두 곳에 흩어져 있는 것이 읽기 나쁘므로 함께 옮긴다. 둘 다 의존이 없어 전제를 깨지 않는다.
+
+`support`의 `ErrorType`, `ErrorCode`, `ResultType`은 옮기지 않는다. `ErrorType`이 `HttpStatus`, `LogLevel`, `domain.member.PasswordPolicy`를 의존하기 때문이다.
+
+- Spring 의존이 들어오면 D-2의 `core:core-enum`이 spring-web을 지고 가야 한다
+- `PasswordPolicy` 의존은 `enums → domain` 역의존이라 A-1 규칙 위반이다
+- `ErrorCode`만 떼면 에러 enum이 두 패키지로 갈라져 오히려 더 흩어진다
+
+세 개는 상수 모음이 아니라 HTTP에 묶인 에러 카탈로그다. D-5에서 `support`가 모듈로 갈라질 때 함께 간다.
+
+되돌아가지 않도록 A-1의 계층 규칙에 `enums` 계층을 추가하고 `mayNotAccessAnyLayer()`를 건다. Lombok은 `compileOnly`라 남겨도 되지만, D-2에서 `core:core-enum` 모듈을 만들 때 그 모듈에도 Lombok을 넣어야 한다.
+
+패키지 이동이 배포 시 깨질 수 있는 지점을 확인했다.
+
+- JPA: 모두 `@Enumerated(EnumType.STRING)`이라 DB에는 이름만 들어간다. 패키지와 무관하다
+- spring-session-jdbc: 세션에 직렬화되는 `MemberAdapter`는 `Long`/`String` 필드만 갖고, 권한은 `Role.getKey()`로 만든 `SimpleGrantedAuthority` 문자열이다. `Role` 인스턴스가 세션 바이트에 들어가지 않으므로 기존 세션이 깨지지 않는다
 
 **완료 기준**: 패키지 이동뿐이므로 동작 변경 없음. import만 바뀐다.
 
@@ -245,9 +265,9 @@ B-1에서 만든 `enums` 패키지를 그대로 모듈로 승격. 의존 없음.
 
 | 지표 | 현재 | 목표 |
 | --- | --- | --- |
-| `storage → domain` import | 5개 파일 | 0 |
+| `storage → domain` import | 4개 파일 (B-1 전 5개) | 0 |
 | service가 repository 직접 의존 | 14개 파일 | 0 (리뷰로 확인) |
-| ArchUnit freeze 위반 수 | 92 | 0 |
+| ArchUnit freeze 위반 수 | 45 (A-1 시점 92) | 0 |
 | gradle 모듈 수 | 1 | 9 |
 
 ## PR 운영

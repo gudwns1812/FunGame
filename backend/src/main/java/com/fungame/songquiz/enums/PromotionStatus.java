@@ -1,4 +1,4 @@
-package com.fungame.songquiz.domain.member;
+package com.fungame.songquiz.enums;
 
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;

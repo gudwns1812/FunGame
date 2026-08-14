@@ -1,6 +1,6 @@
 package com.fungame.songquiz.storage;
 
-import com.fungame.songquiz.domain.CSQuizDifficulty;
+import com.fungame.songquiz.enums.CSQuizDifficulty;
 import com.fungame.songquiz.domain.ComputerScienceQuiz;
 import com.fungame.songquiz.storage.converter.StringListConverter;
 import jakarta.persistence.*;

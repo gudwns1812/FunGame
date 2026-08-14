@@ -5,6 +5,8 @@ import com.fungame.songquiz.domain.dto.GameStateDto;
 import com.fungame.songquiz.domain.event.*;
 import com.fungame.songquiz.support.error.CoreException;
 import com.fungame.songquiz.support.error.ErrorType;
+import com.fungame.songquiz.enums.GameType;
+import com.fungame.songquiz.enums.ActionResult;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;

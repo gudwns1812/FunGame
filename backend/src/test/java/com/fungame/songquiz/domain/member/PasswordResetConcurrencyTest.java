@@ -2,6 +2,7 @@ package com.fungame.songquiz.domain.member;
 
 import com.fungame.songquiz.support.MySqlIntegrationTest;
 import com.fungame.songquiz.support.mail.PasswordResetMailSender;
+import com.fungame.songquiz.enums.Role;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;

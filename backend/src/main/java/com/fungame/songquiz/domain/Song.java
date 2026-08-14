@@ -1,5 +1,6 @@
 package com.fungame.songquiz.domain;
 
+import com.fungame.songquiz.enums.Category;
 import lombok.Getter;
 import lombok.With;
 

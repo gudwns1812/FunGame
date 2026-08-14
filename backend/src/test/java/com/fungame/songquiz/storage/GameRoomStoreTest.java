@@ -1,15 +1,15 @@
 package com.fungame.songquiz.storage;
 
-import com.fungame.songquiz.domain.CSQuizDifficulty;
-import com.fungame.songquiz.domain.Category;
+import com.fungame.songquiz.enums.CSQuizDifficulty;
+import com.fungame.songquiz.enums.Category;
 import com.fungame.songquiz.domain.GamePlayer;
 import com.fungame.songquiz.domain.GameRoom;
-import com.fungame.songquiz.domain.GameType;
+import com.fungame.songquiz.enums.GameType;
 import com.fungame.songquiz.domain.RoomSettings;
 import com.fungame.songquiz.domain.StoredRoom;
 import com.fungame.songquiz.domain.member.Member;
 import com.fungame.songquiz.domain.member.MemberRepository;
-import com.fungame.songquiz.domain.member.Role;
+import com.fungame.songquiz.enums.Role;
 import com.fungame.songquiz.support.MySqlIntegrationTest;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

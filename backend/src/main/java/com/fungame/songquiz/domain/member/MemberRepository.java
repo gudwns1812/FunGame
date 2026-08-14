@@ -1,5 +1,6 @@
 package com.fungame.songquiz.domain.member;
 
+import com.fungame.songquiz.enums.PlayerStatus;
 import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
@@ -28,8 +29,8 @@ public interface MemberRepository extends JpaRepository<Member, Long> {
     void updateStatusOfRoom(@Param("roomId") Long roomId, @Param("status") PlayerStatus status);
 
     @Modifying(clearAutomatically = true)
-    @Query("update Member m set m.status = com.fungame.songquiz.domain.member.PlayerStatus.LOBBY, m.currentRoomId = null "
-            + "where m.currentRoomId is not null or m.status <> com.fungame.songquiz.domain.member.PlayerStatus.LOBBY")
+    @Query("update Member m set m.status = com.fungame.songquiz.enums.PlayerStatus.LOBBY, m.currentRoomId = null "
+            + "where m.currentRoomId is not null or m.status <> com.fungame.songquiz.enums.PlayerStatus.LOBBY")
     int clearEveryLocation();
 
     boolean existsByLoginId(String loginId);

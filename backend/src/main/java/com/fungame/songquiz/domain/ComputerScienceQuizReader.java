@@ -2,6 +2,7 @@ package com.fungame.songquiz.domain;
 
 import com.fungame.songquiz.storage.ComputerScienceEntity;
 import com.fungame.songquiz.storage.ComputerScienceRepository;
+import com.fungame.songquiz.enums.CSQuizDifficulty;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 

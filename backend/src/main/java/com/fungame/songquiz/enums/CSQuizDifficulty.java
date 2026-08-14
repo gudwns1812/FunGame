@@ -1,4 +1,4 @@
-package com.fungame.songquiz.domain;
+package com.fungame.songquiz.enums;
 
 import java.util.EnumSet;
 import java.util.Set;

@@ -5,6 +5,8 @@ import com.fungame.songquiz.domain.dto.GameContentDto;
 import com.fungame.songquiz.domain.dto.GameInfo;
 import com.fungame.songquiz.support.error.CoreException;
 import com.fungame.songquiz.support.error.ErrorType;
+import com.fungame.songquiz.enums.GameType;
+import com.fungame.songquiz.enums.ActionResult;
 import lombok.Getter;
 
 import java.util.ArrayList;

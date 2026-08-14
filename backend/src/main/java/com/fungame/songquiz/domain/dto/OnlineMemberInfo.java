@@ -1,7 +1,7 @@
 package com.fungame.songquiz.domain.dto;
 
 import com.fungame.songquiz.domain.member.Member;
-import com.fungame.songquiz.domain.member.PlayerStatus;
+import com.fungame.songquiz.enums.PlayerStatus;
 
 public record OnlineMemberInfo(
         Long memberId,

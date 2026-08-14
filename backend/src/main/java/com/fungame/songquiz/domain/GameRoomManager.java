@@ -6,6 +6,7 @@ import com.fungame.songquiz.storage.GameRoomStore;
 import com.fungame.songquiz.support.error.CoreException;
 import com.fungame.songquiz.support.error.ErrorType;
 import com.fungame.songquiz.support.lock.LockContext;
+import com.fungame.songquiz.enums.GameType;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;

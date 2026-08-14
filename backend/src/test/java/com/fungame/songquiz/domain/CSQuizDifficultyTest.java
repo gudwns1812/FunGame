@@ -1,5 +1,6 @@
 package com.fungame.songquiz.domain;
 
+import com.fungame.songquiz.enums.CSQuizDifficulty;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 

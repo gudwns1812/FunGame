@@ -3,12 +3,14 @@ package com.fungame.songquiz.acceptance;
 import com.fungame.songquiz.domain.GameRoomService;
 import com.fungame.songquiz.domain.GameService;
 import com.fungame.songquiz.domain.GameTimer;
-import com.fungame.songquiz.domain.GameType;
+import com.fungame.songquiz.enums.GameType;
 import com.fungame.songquiz.domain.event.*;
 import com.fungame.songquiz.domain.gamecreator.CsQuizGameCreateInfo;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import com.fungame.songquiz.support.MySqlIntegrationTest;
+import com.fungame.songquiz.enums.CSQuizDifficulty;
+import com.fungame.songquiz.enums.Role;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Import;
@@ -72,14 +74,14 @@ public class GameServiceIntegrationTest {
                 .content("문제1")
                 .answers(List.of("정답1"))
                 .explanation("설명1")
-                .difficulty(com.fungame.songquiz.domain.CSQuizDifficulty.EASY)
+                .difficulty(com.fungame.songquiz.enums.CSQuizDifficulty.EASY)
                 .build());
         computerScienceRepository.save(com.fungame.songquiz.storage.ComputerScienceEntity.builder()
                 .field("DB")
                 .content("문제2")
                 .answers(List.of("정답2"))
                 .explanation("설명2")
-                .difficulty(com.fungame.songquiz.domain.CSQuizDifficulty.NORMAL)
+                .difficulty(com.fungame.songquiz.enums.CSQuizDifficulty.NORMAL)
                 .build());
 
         // 방 생성 및 입장
@@ -90,7 +92,7 @@ public class GameServiceIntegrationTest {
         guest = com.fungame.songquiz.domain.GamePlayer.createNewPlayer(player1Id, player1);
 
         roomId = gameRoomService.createRoom(
-                new com.fungame.songquiz.domain.RoomSettings(GameType.CS, "테스트 방", 5, null, 2, 0, com.fungame.songquiz.domain.CSQuizDifficulty.HARD),
+                new com.fungame.songquiz.domain.RoomSettings(GameType.CS, "테스트 방", 5, null, 2, 0, com.fungame.songquiz.enums.CSQuizDifficulty.HARD),
                 host
         );
         gameRoomService.joinRoom(roomId, guest);
@@ -181,7 +183,7 @@ public class GameServiceIntegrationTest {
                 .password("password")
                 .nickname(nickname)
                 .email(nickname + "@fun-game.club")
-                .role(com.fungame.songquiz.domain.member.Role.USER)
+                .role(com.fungame.songquiz.enums.Role.USER)
                 .build()).getId();
     }
 }

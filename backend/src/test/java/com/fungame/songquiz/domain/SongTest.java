@@ -1,5 +1,6 @@
 package com.fungame.songquiz.domain;
 
+import com.fungame.songquiz.enums.Category;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
 

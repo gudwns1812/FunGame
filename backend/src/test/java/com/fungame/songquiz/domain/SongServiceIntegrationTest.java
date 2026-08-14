@@ -5,6 +5,7 @@ import com.fungame.songquiz.storage.SongRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import com.fungame.songquiz.support.MySqlIntegrationTest;
+import com.fungame.songquiz.enums.Category;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ActiveProfiles;

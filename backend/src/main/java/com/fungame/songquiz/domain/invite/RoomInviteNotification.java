@@ -1,6 +1,6 @@
 package com.fungame.songquiz.domain.invite;
 
-import com.fungame.songquiz.domain.GameType;
+import com.fungame.songquiz.enums.GameType;
 
 public record RoomInviteNotification(
         String inviteId,

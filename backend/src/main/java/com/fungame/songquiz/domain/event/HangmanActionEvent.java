@@ -1,6 +1,6 @@
 package com.fungame.songquiz.domain.event;
 
-import com.fungame.songquiz.domain.ActionResult;
+import com.fungame.songquiz.enums.ActionResult;
 import com.fungame.songquiz.domain.dto.GameContentDto;
 
 /**

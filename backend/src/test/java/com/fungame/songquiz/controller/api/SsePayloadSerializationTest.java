@@ -1,13 +1,13 @@
 package com.fungame.songquiz.controller.api;
 
-import com.fungame.songquiz.domain.CSQuizDifficulty;
-import com.fungame.songquiz.domain.GameRoomStatus;
-import com.fungame.songquiz.domain.GameType;
+import com.fungame.songquiz.enums.CSQuizDifficulty;
+import com.fungame.songquiz.enums.GameRoomStatus;
+import com.fungame.songquiz.enums.GameType;
 import com.fungame.songquiz.domain.dto.OnlineMemberInfo;
 import com.fungame.songquiz.domain.dto.RoomInfo;
 import com.fungame.songquiz.domain.member.MemberAdapter;
 import com.fungame.songquiz.domain.member.MemberConnectionTracker;
-import com.fungame.songquiz.domain.member.PlayerStatus;
+import com.fungame.songquiz.enums.PlayerStatus;
 import com.fungame.songquiz.support.MemberFixture;
 import com.fungame.songquiz.support.MutableClock;
 import com.fungame.songquiz.support.sse.SseService;

@@ -1,6 +1,6 @@
 package com.fungame.songquiz.storage;
 
-import com.fungame.songquiz.domain.CSQuizDifficulty;
+import com.fungame.songquiz.enums.CSQuizDifficulty;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.Collection;

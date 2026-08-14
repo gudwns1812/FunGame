@@ -2,7 +2,7 @@ package com.fungame.songquiz.controller.api;
 
 import com.fungame.songquiz.domain.member.MemberAdapter;
 import com.fungame.songquiz.domain.member.PromotionService;
-import com.fungame.songquiz.domain.member.PromotionStatus;
+import com.fungame.songquiz.enums.PromotionStatus;
 import com.fungame.songquiz.support.response.ApiResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;

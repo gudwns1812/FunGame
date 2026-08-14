@@ -2,6 +2,9 @@ package com.fungame.songquiz.domain;
 
 import com.fungame.songquiz.domain.member.MemberPresenceService;
 import com.fungame.songquiz.storage.GameRoomStore;
+import com.fungame.songquiz.enums.CSQuizDifficulty;
+import com.fungame.songquiz.enums.Category;
+import com.fungame.songquiz.enums.GameType;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.stubbing.Answer;

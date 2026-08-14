@@ -2,6 +2,7 @@ package com.fungame.songquiz.domain;
 
 import com.fungame.songquiz.storage.ComputerScienceEntity;
 import com.fungame.songquiz.storage.ComputerScienceRepository;
+import com.fungame.songquiz.enums.CSQuizDifficulty;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;

@@ -1,11 +1,13 @@
 package com.fungame.songquiz.domain;
 
-import com.fungame.songquiz.domain.CSQuizDifficulty;
+import com.fungame.songquiz.enums.CSQuizDifficulty;
 import com.fungame.songquiz.domain.event.PlayerJoinEvent;
 import com.fungame.songquiz.domain.event.PlayerLeaveEvent;
 import com.fungame.songquiz.domain.gamecreator.SongGameFactory;
 import com.fungame.songquiz.domain.member.MemberPresenceService;
 import com.fungame.songquiz.storage.GameRoomStore;
+import com.fungame.songquiz.enums.Category;
+import com.fungame.songquiz.enums.GameType;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;

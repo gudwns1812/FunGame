@@ -4,6 +4,9 @@ import com.fungame.songquiz.domain.gamecreator.CsQuizGameCreateInfo;
 import com.fungame.songquiz.domain.gamecreator.GameCreateInfo;
 import com.fungame.songquiz.domain.gamecreator.HangmanGameCreateInfo;
 import com.fungame.songquiz.domain.gamecreator.SongGameCreateInfo;
+import com.fungame.songquiz.enums.CSQuizDifficulty;
+import com.fungame.songquiz.enums.Category;
+import com.fungame.songquiz.enums.GameType;
 
 public record RoomSettings(
         GameType gameType,
