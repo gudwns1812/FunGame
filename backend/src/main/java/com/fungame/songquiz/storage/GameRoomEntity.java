@@ -63,16 +63,10 @@ public class GameRoomEntity {
     private List<GameRoomMemberEntity> members = new ArrayList<>();
 
     private GameRoomEntity(RoomSettings settings, Long hostMemberId) {
-        this.title = settings.title();
-        this.gameType = settings.gameType();
         this.status = GameRoomStatus.WAITING;
-        this.maxPlayer = settings.maxPlayers();
         this.hostMemberId = hostMemberId;
-        this.category = settings.category();
-        this.totalRound = settings.totalRound();
-        this.difficulty = settings.difficulty();
-        this.csDifficulty = settings.csDifficulty();
         this.lastActivityTime = Instant.now();
+        applySettings(settings);
     }
 
     public static GameRoomEntity open(RoomSettings settings, Long hostMemberId) {
@@ -84,6 +78,7 @@ public class GameRoomEntity {
     }
 
     public void applySettings(RoomSettings settings) {
+        this.gameType = settings.gameType();
         this.title = settings.title();
         this.maxPlayer = settings.maxPlayers();
         this.category = settings.category();

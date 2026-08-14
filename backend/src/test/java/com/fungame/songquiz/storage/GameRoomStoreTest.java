@@ -75,6 +75,27 @@ class GameRoomStoreTest {
                 .containsExactly("새닉네임");
     }
 
+    @Test
+    @DisplayName("설정을 바꿔 저장하면 게임 종류까지 함께 저장된다.")
+    void saveKeepsChangedGameType() {
+        // given
+        GamePlayer host = saveMemberAsPlayer("설정바꾸는방장");
+        Long roomId = gameRoomStore.open(SETTINGS, host);
+
+        GameRoom room = GameRoom.create(SETTINGS, host);
+        room.changeSettings(SETTINGS.changeTo(GameType.CS, 8, Category.DEFAULT, 5, 0, CSQuizDifficulty.EASY));
+
+        // when
+        gameRoomStore.save(roomId, room);
+        RoomSettings reloaded = gameRoomStore.load(roomId).orElseThrow().settings();
+
+        // then
+        assertThat(reloaded.gameType()).isEqualTo(GameType.CS);
+        assertThat(reloaded.category()).isEqualTo(Category.DEFAULT);
+        assertThat(reloaded.totalRound()).isEqualTo(5);
+        assertThat(reloaded.csDifficulty()).isEqualTo(CSQuizDifficulty.EASY);
+    }
+
     private GamePlayer saveMemberAsPlayer(String nickname) {
         Member member = memberRepository.save(Member.builder()
                 .loginId(nickname)
