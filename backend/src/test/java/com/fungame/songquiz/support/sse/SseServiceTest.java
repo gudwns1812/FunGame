@@ -4,8 +4,6 @@ import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.read.ListAppender;
-import com.fungame.songquiz.domain.event.MemberPresenceChangedEvent;
-import com.fungame.songquiz.domain.event.RoomChangedEvent;
 import com.fungame.songquiz.domain.member.MemberConnectionTracker;
 import com.fungame.songquiz.support.MutableClock;
 import org.junit.jupiter.api.AfterEach;
@@ -14,11 +12,13 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.slf4j.LoggerFactory;
 import org.springframework.test.util.ReflectionTestUtils;
+import org.springframework.web.servlet.mvc.method.annotation.ResponseBodyEmitter.DataWithMediaType;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.io.IOException;
 import java.time.Instant;
 import java.time.ZoneId;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -107,45 +107,43 @@ class SseServiceTest {
     }
 
     @Test
-    @DisplayName("방 변경 이벤트가 발생하면 다음 주기에 모든 구독자에게 알린다.")
+    @DisplayName("브로드캐스트는 모든 구독자에게 같은 내용을 보낸다.")
     void broadcastToEverySubscriber() {
-        AtomicInteger firstSubscriberSends = new AtomicInteger();
-        AtomicInteger secondSubscriberSends = new AtomicInteger();
-        putConnection(MEMBER_ID, "first", countingEmitter(firstSubscriberSends));
-        putConnection(OTHER_MEMBER_ID, "second", countingEmitter(secondSubscriberSends));
+        List<Object> firstSubscriberData = new ArrayList<>();
+        List<Object> secondSubscriberData = new ArrayList<>();
+        putConnection(MEMBER_ID, "first", recordingEmitter(firstSubscriberData));
+        putConnection(OTHER_MEMBER_ID, "second", recordingEmitter(secondSubscriberData));
 
-        sseService.handleRoomChangedEvent(new RoomChangedEvent());
-        sseService.processPendingUpdate();
+        sseService.broadcast("room-update", List.of("방 하나"));
 
-        assertThat(firstSubscriberSends).hasValue(1);
-        assertThat(secondSubscriberSends).hasValue(1);
+        assertThat(firstSubscriberData).containsExactly(List.of("방 하나"));
+        assertThat(secondSubscriberData).containsExactly(List.of("방 하나"));
     }
 
     @Test
-    @DisplayName("한 주기에 몰린 방 변경 이벤트는 한 번으로 묶어서 알린다.")
-    void aggregateEventsWithinOneCycle() {
-        AtomicInteger sends = new AtomicInteger();
-        putConnection(MEMBER_ID, "first", countingEmitter(sends));
+    @DisplayName("받는 사람마다 다른 내용을 보낼 수 있다.")
+    void broadcastDifferentPayloadPerMember() {
+        List<Object> firstSubscriberData = new ArrayList<>();
+        List<Object> secondSubscriberData = new ArrayList<>();
+        putConnection(MEMBER_ID, "first", recordingEmitter(firstSubscriberData));
+        putConnection(OTHER_MEMBER_ID, "second", recordingEmitter(secondSubscriberData));
 
-        sseService.handleRoomChangedEvent(new RoomChangedEvent());
-        sseService.handleRoomChangedEvent(new RoomChangedEvent());
-        sseService.handleRoomChangedEvent(new RoomChangedEvent());
-        sseService.processPendingUpdate();
+        sseService.broadcastEach("presence-update", List::of);
 
-        assertThat(sends).hasValue(1);
+        assertThat(firstSubscriberData).containsExactly(List.of(MEMBER_ID));
+        assertThat(secondSubscriberData).containsExactly(List.of(OTHER_MEMBER_ID));
     }
 
     @Test
-    @DisplayName("접속 상태 변경도 다음 주기에 한 번으로 묶어서 알린다.")
-    void aggregatePresenceEvents() {
-        AtomicInteger sends = new AtomicInteger();
-        putConnection(MEMBER_ID, "first", countingEmitter(sends));
+    @DisplayName("한 회원의 여러 탭에는 같은 내용을 한 번씩만 만든다.")
+    void buildPayloadOncePerMember() {
+        AtomicInteger payloadBuilds = new AtomicInteger();
+        putConnection(MEMBER_ID, "first", countingEmitter(new AtomicInteger()));
+        putConnection(MEMBER_ID, "second", countingEmitter(new AtomicInteger()));
 
-        sseService.handleMemberPresenceChangedEvent(new MemberPresenceChangedEvent());
-        sseService.handleMemberPresenceChangedEvent(new MemberPresenceChangedEvent());
-        sseService.processPendingUpdate();
+        sseService.broadcastEach("presence-update", memberId -> payloadBuilds.incrementAndGet());
 
-        assertThat(sends).hasValue(1);
+        assertThat(payloadBuilds).hasValue(1);
     }
 
     @Test
@@ -199,6 +197,18 @@ class SseServiceTest {
 
     private List<Level> loggedLevels() {
         return capturedLogs.list.stream().map(ILoggingEvent::getLevel).toList();
+    }
+
+    private static SseEmitter recordingEmitter(List<Object> receivedData) {
+        return new SseEmitter() {
+            @Override
+            public void send(SseEventBuilder builder) {
+                builder.build().stream()
+                        .map(DataWithMediaType::getData)
+                        .filter(data -> !(data instanceof String))
+                        .forEach(receivedData::add);
+            }
+        };
     }
 
     private static SseEmitter countingEmitter(AtomicInteger sendCount) {

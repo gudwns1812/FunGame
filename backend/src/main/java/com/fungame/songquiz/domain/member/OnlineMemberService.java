@@ -1,10 +1,10 @@
 package com.fungame.songquiz.domain.member;
 
 import com.fungame.songquiz.domain.dto.OnlineMemberInfo;
+import com.fungame.songquiz.domain.dto.OnlineMembers;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
-import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -15,12 +15,15 @@ public class OnlineMemberService {
     private final MemberConnectionTracker memberConnectionTracker;
     private final MemberPresenceService memberPresenceService;
 
-    public List<OnlineMemberInfo> findOthersOnline(Long viewerMemberId) {
-        Set<Long> otherMemberIds = new HashSet<>(memberConnectionTracker.onlineMemberIds());
-        otherMemberIds.remove(viewerMemberId);
+    public OnlineMembers findAllOnline() {
+        Set<Long> onlineMemberIds = memberConnectionTracker.onlineMemberIds();
 
-        return memberPresenceService.findAllIn(otherMemberIds).stream()
+        return new OnlineMembers(memberPresenceService.findAllIn(onlineMemberIds).stream()
                 .map(OnlineMemberInfo::from)
-                .toList();
+                .toList());
+    }
+
+    public List<OnlineMemberInfo> findOthersOnline(Long viewerMemberId) {
+        return findAllOnline().excluding(viewerMemberId);
     }
 }

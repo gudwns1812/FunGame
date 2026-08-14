@@ -26,6 +26,18 @@ const setTabVisibility = (state: DocumentVisibilityState) => {
 
 const DEBOUNCE_SETTLE_MS = 400;
 
+const PUSHED_ROOM = {
+  roomId: 7,
+  title: '알림으로 온 방',
+  hostMemberId: 3,
+  hostNickname: '방장',
+  status: 'WAITING',
+  maxPlayers: 8,
+  currentPlayers: 2,
+  gameType: 'SONG',
+  csDifficulty: 'HARD',
+};
+
 const letDebounceSettle = () =>
   act(async () => {
     await new Promise((resolve) => setTimeout(resolve, DEBOUNCE_SETTLE_MS));
@@ -63,7 +75,40 @@ describe('useGameLogic 로비 방 목록 동기화', () => {
     await waitFor(() => expect(sse.listenerCountOf('room-update')).toBe(1));
   });
 
-  it('방 변경 알림을 받으면 목록을 다시 가져온다', async () => {
+  it('방 변경 알림에 실린 목록으로 갱신한다', async () => {
+    const { result } = renderInLobby();
+    await letDebounceSettle();
+
+    act(() => sse.emit('room-update', JSON.stringify([PUSHED_ROOM])));
+    await letDebounceSettle();
+
+    expect(result.current.rooms).toEqual([
+      {
+        id: PUSHED_ROOM.roomId,
+        name: PUSHED_ROOM.title,
+        hostMemberId: PUSHED_ROOM.hostMemberId,
+        hostName: PUSHED_ROOM.hostNickname,
+        playerCount: PUSHED_ROOM.currentPlayers,
+        maxPlayers: PUSHED_ROOM.maxPlayers,
+        status: PUSHED_ROOM.status,
+        gameType: PUSHED_ROOM.gameType,
+        csDifficulty: PUSHED_ROOM.csDifficulty,
+      },
+    ]);
+  });
+
+  it('알림에 목록이 실려 오면 다시 가져오지 않는다', async () => {
+    renderInLobby();
+    await letDebounceSettle();
+    const fetchesBefore = roomListFetchCount();
+
+    act(() => sse.emit('room-update', JSON.stringify([PUSHED_ROOM])));
+    await letDebounceSettle();
+
+    expect(roomListFetchCount()).toBe(fetchesBefore);
+  });
+
+  it('해석할 수 없는 알림을 받으면 목록을 다시 가져와 보정한다', async () => {
     renderInLobby();
     await letDebounceSettle();
     const fetchesBefore = roomListFetchCount();
@@ -72,17 +117,6 @@ describe('useGameLogic 로비 방 목록 동기화', () => {
     await letDebounceSettle();
 
     expect(roomListFetchCount()).toBe(fetchesBefore + 1);
-  });
-
-  it('REFRESH 가 아닌 데이터에는 반응하지 않는다', async () => {
-    renderInLobby();
-    await letDebounceSettle();
-    const fetchesBefore = roomListFetchCount();
-
-    act(() => sse.emit('room-update', 'SOMETHING_ELSE'));
-    await letDebounceSettle();
-
-    expect(roomListFetchCount()).toBe(fetchesBefore);
   });
 
   it('끊겼다 다시 연결되면 놓친 방 변경을 보정한다', async () => {
