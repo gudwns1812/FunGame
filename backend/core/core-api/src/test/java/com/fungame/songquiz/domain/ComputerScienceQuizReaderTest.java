@@ -1,7 +1,7 @@
 package com.fungame.songquiz.domain;
 
 import com.fungame.songquiz.storage.ComputerScienceEntity;
-import com.fungame.songquiz.storage.ComputerScienceStore;
+import com.fungame.songquiz.storage.ComputerScienceRepository;
 import com.fungame.songquiz.enums.CSQuizDifficulty;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -23,7 +23,7 @@ import static org.mockito.Mockito.verify;
 class ComputerScienceQuizReaderTest {
 
     @Mock
-    private ComputerScienceStore computerScienceStore;
+    private ComputerScienceRepository computerScienceRepository;
 
     @InjectMocks
     private ComputerScienceQuizReader reader;
@@ -41,12 +41,12 @@ class ComputerScienceQuizReaderTest {
     @Test
     @DisplayName("고른 난이도 이하만 조회 조건으로 넘긴다.")
     void queriesOnlyChosenDifficultyAndEasier() {
-        given(computerScienceStore.findByDifficultyIn(any())).willReturn(List.of());
+        given(computerScienceRepository.findByDifficultyIn(any())).willReturn(List.of());
 
         reader.getRandomCSQuizWithCount(5, CSQuizDifficulty.NORMAL);
 
         ArgumentCaptor<Collection<CSQuizDifficulty>> captor = ArgumentCaptor.forClass(Collection.class);
-        verify(computerScienceStore).findByDifficultyIn(captor.capture());
+        verify(computerScienceRepository).findByDifficultyIn(captor.capture());
         assertThat(captor.getValue())
                 .containsExactlyInAnyOrder(CSQuizDifficulty.EASY, CSQuizDifficulty.NORMAL);
     }
@@ -54,7 +54,7 @@ class ComputerScienceQuizReaderTest {
     @Test
     @DisplayName("후보가 넉넉하면 요청한 문제 수만큼 돌려준다.")
     void limitsToRequestedCount() {
-        given(computerScienceStore.findByDifficultyIn(any())).willReturn(List.of(
+        given(computerScienceRepository.findByDifficultyIn(any())).willReturn(List.of(
                 quizOf(CSQuizDifficulty.EASY),
                 quizOf(CSQuizDifficulty.EASY),
                 quizOf(CSQuizDifficulty.NORMAL),
@@ -67,7 +67,7 @@ class ComputerScienceQuizReaderTest {
     @Test
     @DisplayName("후보가 요청한 문제 수보다 적으면 있는 만큼만 돌려준다.")
     void shrinksWhenCandidatesRunShort() {
-        given(computerScienceStore.findByDifficultyIn(any())).willReturn(List.of(
+        given(computerScienceRepository.findByDifficultyIn(any())).willReturn(List.of(
                 quizOf(CSQuizDifficulty.EASY),
                 quizOf(CSQuizDifficulty.EASY)
         ));
@@ -78,7 +78,7 @@ class ComputerScienceQuizReaderTest {
     @Test
     @DisplayName("엔티티의 모든 필드를 도메인으로 옮긴다.")
     void mapsEveryField() {
-        given(computerScienceStore.findByDifficultyIn(any())).willReturn(List.of(
+        given(computerScienceRepository.findByDifficultyIn(any())).willReturn(List.of(
                 ComputerScienceEntity.builder()
                         .field("네트워크")
                         .content("TCP와 UDP의 차이는?")
@@ -100,7 +100,7 @@ class ComputerScienceQuizReaderTest {
     @Test
     @DisplayName("조회 결과가 불변 리스트여도 섞다가 깨지지 않는다.")
     void survivesImmutableQueryResult() {
-        given(computerScienceStore.findByDifficultyIn(any())).willReturn(List.of(
+        given(computerScienceRepository.findByDifficultyIn(any())).willReturn(List.of(
                 quizOf(CSQuizDifficulty.EASY),
                 quizOf(CSQuizDifficulty.NORMAL),
                 quizOf(CSQuizDifficulty.HARD)

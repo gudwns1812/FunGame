@@ -1,6 +1,6 @@
 package com.fungame.songquiz.domain;
 
-import com.fungame.songquiz.storage.SongStore;
+import com.fungame.songquiz.storage.SongRepository;
 import com.fungame.songquiz.support.extern.YoutubeScraper;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -21,7 +21,7 @@ class SongServiceTest {
     private SongService songService;
 
     @Mock
-    private SongStore songStore;
+    private SongRepository songRepository;
 
     @Mock
     private YoutubeScraper youtubeScraper;
@@ -32,7 +32,7 @@ class SongServiceTest {
         // given
         String title = "밤편지";
         LocalDate releaseDate = LocalDate.of(2017, 3, 24);
-        given(songStore.existsByTitleContainingAndReleaseDate(title, releaseDate)).willReturn(true);
+        given(songRepository.existsByTitleContainingAndReleaseDate(title, releaseDate)).willReturn(true);
 
         // when
         boolean result = songService.existSongQuiz(title, releaseDate);
@@ -47,7 +47,7 @@ class SongServiceTest {
         // given
         String partialTitle = "밤";
         LocalDate releaseDate = LocalDate.of(2017, 3, 24);
-        given(songStore.existsByTitleContainingAndReleaseDate(partialTitle, releaseDate)).willReturn(true);
+        given(songRepository.existsByTitleContainingAndReleaseDate(partialTitle, releaseDate)).willReturn(true);
 
         // when
         boolean result = songService.existSongQuiz(partialTitle, releaseDate);
@@ -62,7 +62,7 @@ class SongServiceTest {
         // given
         String title = "없는노래";
         LocalDate releaseDate = LocalDate.of(2024, 1, 1);
-        given(songStore.existsByTitleContainingAndReleaseDate(title, releaseDate)).willReturn(false);
+        given(songRepository.existsByTitleContainingAndReleaseDate(title, releaseDate)).willReturn(false);
 
         // when
         boolean result = songService.existSongQuiz(title, releaseDate);
@@ -76,7 +76,7 @@ class SongServiceTest {
     void existSongQuiz_withNullReleaseDate() {
         // given
         String title = "밤편지";
-        given(songStore.existsByTitleContaining(title)).willReturn(true);
+        given(songRepository.existsByTitleContaining(title)).willReturn(true);
 
         // when
         boolean result = songService.existSongQuiz(title, null);

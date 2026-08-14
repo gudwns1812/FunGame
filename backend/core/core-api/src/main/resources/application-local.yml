@@ -1,4 +1,4 @@
-# 로컬 개발용 프로파일. 외부 DB 없이 인메모리 H2 로 단독 기동합니다.
+# 로컬 개발용 프로파일. DB 설정은 db-core.yml 의 local 문서가 갖습니다.
 #
 #   ./gradlew :backend:core:core-api:bootRun --args='--spring.profiles.active=local'
 #
@@ -18,18 +18,6 @@ server:
         same-site: lax
 
 spring:
-  datasource:
-    url: jdbc:h2:mem:songquiz;DB_CLOSE_DELAY=-1;MODE=MySQL
-    driver-class-name: org.h2.Driver
-    username: sa
-    password: ""
-  jpa:
-    hibernate:
-      # 스키마는 Flyway 가 만듭니다. 엔티티와 어긋나면 기동 시점에 실패합니다.
-      ddl-auto: validate
-  flyway:
-    # db/local 은 로컬 전용 시드입니다. 운영은 db/migration 만 실행합니다.
-    locations: classpath:db/migration,classpath:db/local
   session:
     jdbc:
       initialize-schema: always

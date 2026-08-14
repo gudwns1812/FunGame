@@ -1,7 +1,7 @@
 package com.fungame.songquiz.domain.member;
 
 import com.fungame.songquiz.storage.PasswordResetTokenEntity;
-import com.fungame.songquiz.storage.PasswordResetTokenStore;
+import com.fungame.songquiz.storage.PasswordResetTokenRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -11,14 +11,14 @@ import java.util.Optional;
 @RequiredArgsConstructor
 public class PasswordResetTokenReader {
 
-    private final PasswordResetTokenStore passwordResetTokenStore;
+    private final PasswordResetTokenRepository passwordResetTokenRepository;
 
     public Optional<Long> findMemberIdByTokenHash(String tokenHash) {
-        return passwordResetTokenStore.findMemberIdByTokenHash(tokenHash);
+        return passwordResetTokenRepository.findMemberIdByTokenHash(tokenHash);
     }
 
     public Optional<PasswordResetToken> findByTokenHashForUpdate(String tokenHash) {
-        return passwordResetTokenStore.findByTokenHashForUpdate(tokenHash)
+        return passwordResetTokenRepository.findByTokenHashForUpdate(tokenHash)
                 .map(PasswordResetTokenReader::toToken);
     }
 

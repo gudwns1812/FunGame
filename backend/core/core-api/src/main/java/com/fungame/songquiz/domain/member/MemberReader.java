@@ -1,7 +1,7 @@
 package com.fungame.songquiz.domain.member;
 
 import com.fungame.songquiz.storage.MemberEntity;
-import com.fungame.songquiz.storage.MemberStore;
+import com.fungame.songquiz.storage.MemberRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -13,40 +13,40 @@ import java.util.Optional;
 @RequiredArgsConstructor
 public class MemberReader {
 
-    private final MemberStore memberStore;
+    private final MemberRepository memberRepository;
 
     public Optional<Member> findById(Long memberId) {
-        return memberStore.findById(memberId).map(MemberReader::toMember);
+        return memberRepository.findById(memberId).map(MemberReader::toMember);
     }
 
     public Optional<Member> findByLoginId(String loginId) {
-        return memberStore.findByLoginId(loginId).map(MemberReader::toMember);
+        return memberRepository.findByLoginId(loginId).map(MemberReader::toMember);
     }
 
     public Optional<Member> findByLoginIdAndEmail(String loginId, String email) {
-        return memberStore.findByLoginIdAndEmail(loginId, email).map(MemberReader::toMember);
+        return memberRepository.findByLoginIdAndEmail(loginId, email).map(MemberReader::toMember);
     }
 
     public Optional<Member> findByIdForUpdate(Long memberId) {
-        return memberStore.findByIdForUpdate(memberId).map(MemberReader::toMember);
+        return memberRepository.findByIdForUpdate(memberId).map(MemberReader::toMember);
     }
 
     public List<Member> findAllInOrderByNickname(Collection<Long> memberIds) {
-        return memberStore.findAllByIdInOrderByNicknameAsc(memberIds).stream()
+        return memberRepository.findAllByIdInOrderByNicknameAsc(memberIds).stream()
                 .map(MemberReader::toMember)
                 .toList();
     }
 
     public boolean existsByLoginId(String loginId) {
-        return memberStore.existsByLoginId(loginId);
+        return memberRepository.existsByLoginId(loginId);
     }
 
     public boolean existsByNickname(String nickname) {
-        return memberStore.existsByNickname(nickname);
+        return memberRepository.existsByNickname(nickname);
     }
 
     public boolean existsByEmail(String email) {
-        return memberStore.existsByEmail(email);
+        return memberRepository.existsByEmail(email);
     }
 
     static Member toMember(MemberEntity entity) {

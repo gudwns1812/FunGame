@@ -18,21 +18,9 @@ app:
     # 메일에 실리는 재설정 페이지 주소. 뒤에 ?token=... 이 붙습니다.
     link-base-url: ${PASSWORD_RESET_LINK_BASE_URL:https://www.fun-game.club/reset-password}
 spring:
-  datasource:
-    hikari:
-      maximum-pool-size: 30
-      connection-timeout: 30000 # 커넥션 대기 타임아웃 (ms)
-  flyway:
-    # Flyway 도입 이전부터 존재하던 운영 DB 에는 V1 을 실행하지 않고 적용된 것으로 도장만 찍습니다.
-    # 따라서 V1 은 빈 DB(로컬·테스트)에서만 실행됩니다.
-    baseline-on-migrate: true
-    baseline-version: 1
-    baseline-description: flyway 도입 이전 스키마
-  jpa:
-    hibernate:
-      # 운영 스키마가 엔티티와 어긋나면 기동 시점에 실패시킵니다.
-      # 배포가 막혀 급히 넘겨야 하면 .env 에서 JPA_DDL_AUTO=none 으로 내리세요.
-      ddl-auto: ${JPA_DDL_AUTO:validate}
+  # DB 설정은 storage:db-core 모듈이 소유합니다.
+  config:
+    import: classpath:db-core.yml
 server:
   servlet:
     session:

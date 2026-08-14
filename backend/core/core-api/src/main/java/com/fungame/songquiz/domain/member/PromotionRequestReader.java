@@ -1,9 +1,9 @@
 package com.fungame.songquiz.domain.member;
 
 import com.fungame.songquiz.enums.PromotionStatus;
-import com.fungame.songquiz.storage.MemberStore;
+import com.fungame.songquiz.storage.MemberRepository;
 import com.fungame.songquiz.storage.PromotionRequestEntity;
-import com.fungame.songquiz.storage.PromotionRequestStore;
+import com.fungame.songquiz.storage.PromotionRequestRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -14,28 +14,28 @@ import java.util.Optional;
 @RequiredArgsConstructor
 public class PromotionRequestReader {
 
-    private final PromotionRequestStore promotionRequestStore;
-    private final MemberStore memberStore;
+    private final PromotionRequestRepository promotionRequestRepository;
+    private final MemberRepository memberRepository;
 
     public List<PromotionRequest> findAllByStatus(PromotionStatus status) {
-        return promotionRequestStore.findAllByStatusWithMember(status).stream()
+        return promotionRequestRepository.findAllByStatusWithMember(status).stream()
                 .map(PromotionRequestReader::toRequest)
                 .toList();
     }
 
     public Optional<PromotionRequest> findById(Long requestId) {
-        return promotionRequestStore.findById(requestId).map(PromotionRequestReader::toRequest);
+        return promotionRequestRepository.findById(requestId).map(PromotionRequestReader::toRequest);
     }
 
     public Optional<PromotionRequest> findLatestOf(Long memberId) {
-        return memberStore.findById(memberId)
-                .flatMap(promotionRequestStore::findTopByMemberOrderByCreatedAtDesc)
+        return memberRepository.findById(memberId)
+                .flatMap(promotionRequestRepository::findTopByMemberOrderByCreatedAtDesc)
                 .map(PromotionRequestReader::toRequest);
     }
 
     public boolean existsPendingOf(Long memberId) {
-        return memberStore.findById(memberId)
-                .map(member -> promotionRequestStore.existsByMemberAndStatus(member, PromotionStatus.PENDING))
+        return memberRepository.findById(memberId)
+                .map(member -> promotionRequestRepository.existsByMemberAndStatus(member, PromotionStatus.PENDING))
                 .orElse(false);
     }
 

@@ -1,7 +1,7 @@
 package com.fungame.songquiz.domain;
 
 import com.fungame.songquiz.storage.ComputerScienceEntity;
-import com.fungame.songquiz.storage.ComputerScienceStore;
+import com.fungame.songquiz.storage.ComputerScienceRepository;
 import com.fungame.songquiz.enums.CSQuizDifficulty;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -14,11 +14,11 @@ import java.util.List;
 @RequiredArgsConstructor
 public class ComputerScienceQuizReader {
 
-    private final ComputerScienceStore computerScienceStore;
+    private final ComputerScienceRepository computerScienceRepository;
 
     public List<ComputerScienceQuiz> getRandomCSQuizWithCount(int totalRound, CSQuizDifficulty difficulty) {
         List<ComputerScienceEntity> candidates =
-                new ArrayList<>(computerScienceStore.findByDifficultyIn(difficulty.andEasier()));
+                new ArrayList<>(computerScienceRepository.findByDifficultyIn(difficulty.andEasier()));
 
         Collections.shuffle(candidates);
 

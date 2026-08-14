@@ -1,10 +1,10 @@
 package com.fungame.songquiz.domain;
 
 import com.fungame.songquiz.storage.MemberEntity;
-import com.fungame.songquiz.storage.MemberStore;
+import com.fungame.songquiz.storage.MemberRepository;
 import com.fungame.songquiz.storage.GameRoomEntity;
 import com.fungame.songquiz.storage.GameRoomMemberEntity;
-import com.fungame.songquiz.storage.GameRoomStore;
+import com.fungame.songquiz.storage.GameRoomRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -20,18 +20,18 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class GameRoomReader {
 
-    private final GameRoomStore gameRoomStore;
-    private final MemberStore memberStore;
+    private final GameRoomRepository gameRoomRepository;
+    private final MemberRepository memberRepository;
 
     @Transactional(readOnly = true)
     public Optional<StoredRoom> load(Long roomId) {
-        return gameRoomStore.findWithMembersById(roomId)
+        return gameRoomRepository.findWithMembersById(roomId)
                 .map(entity -> toStoredRoom(entity, findNicknames(List.of(entity))));
     }
 
     @Transactional(readOnly = true)
     public List<StoredRoom> loadAll() {
-        List<GameRoomEntity> entities = gameRoomStore.findAllBy();
+        List<GameRoomEntity> entities = gameRoomRepository.findAllBy();
         Map<Long, String> nicknames = findNicknames(entities);
 
         return entities.stream()
@@ -45,7 +45,7 @@ public class GameRoomReader {
                 .map(GameRoomMemberEntity::getMemberId)
                 .collect(Collectors.toSet());
 
-        return memberStore.findAllById(memberIds).stream()
+        return memberRepository.findAllById(memberIds).stream()
                 .collect(Collectors.toMap(MemberEntity::getId, MemberEntity::getNickname));
     }
 

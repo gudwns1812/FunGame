@@ -2,7 +2,7 @@ package com.fungame.songquiz.domain.member;
 
 import com.fungame.songquiz.enums.PlayerStatus;
 import com.fungame.songquiz.storage.MemberEntity;
-import com.fungame.songquiz.storage.MemberStore;
+import com.fungame.songquiz.storage.MemberRepository;
 import com.fungame.songquiz.support.error.CoreException;
 import com.fungame.songquiz.support.error.ErrorType;
 import lombok.RequiredArgsConstructor;
@@ -12,10 +12,10 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class MemberWriter {
 
-    private final MemberStore memberStore;
+    private final MemberRepository memberRepository;
 
     public Long append(Member member) {
-        return memberStore.save(MemberEntity.builder()
+        return memberRepository.save(MemberEntity.builder()
                         .loginId(member.getLoginId())
                         .password(member.getPassword())
                         .nickname(member.getNickname())
@@ -28,7 +28,7 @@ public class MemberWriter {
     }
 
     public void update(Member member) {
-        MemberEntity entity = memberStore.findById(member.getId())
+        MemberEntity entity = memberRepository.findById(member.getId())
                 .orElseThrow(() -> new CoreException(ErrorType.MEMBER_NOT_FOUND));
 
         entity.changeNickname(member.getNickname());
@@ -38,10 +38,10 @@ public class MemberWriter {
     }
 
     public void movePresenceOfRoom(Long roomId, PlayerStatus status) {
-        memberStore.updateStatusOfRoom(roomId, status);
+        memberRepository.updateStatusOfRoom(roomId, status);
     }
 
     public int clearEveryLocation() {
-        return memberStore.clearEveryLocation();
+        return memberRepository.clearEveryLocation();
     }
 }

@@ -328,21 +328,42 @@ Lombok은 `compileOnly`라 `core-enum`의 런타임 의존은 비어 있다(`run
 
 문서에 있던 "spring-session-jdbc 세션 테이블 DDL이 flyway와 같은 모듈에 있어야 한다"는 **틀린 걱정이었다.** 마이그레이션에 `SPRING_SESSION`이 없다. 세션 테이블은 spring-session-jdbc 자체 스키마 스크립트가 `initialize-schema`로 만든다.
 
-#### JPA 를 core-api 밖으로 밀어내기
+#### 의존성 분리와 JPA
 
-`core-api`가 `memberRepository.findById(...)`처럼 **Spring Data 상속 메서드**를 부르면 javac가 타입 계층을 해석해야 해서 spring-data-jpa가 컴파일 클래스패스에 필요해진다. 새는 것은 상속 CRUD 여섯 개뿐이다.
+`core-api`의 Reader/Writer가 리포지토리를 직접 쓴다. `findById`, `save` 같은 **Spring Data 상속 메서드**를 부르려면 javac가 타입 계층을 해석해야 하므로 spring-data-jpa가 컴파일 클래스패스에 있어야 한다. 그래서 `db-core`가 이것만 `api`로 공개한다.
 
+```groovy
+api 'org.springframework.boot:spring-boot-starter-data-jpa'
+implementation 'org.flywaydb:flyway-core'
+implementation 'org.flywaydb:flyway-mysql'
+implementation querydsl
+runtimeOnly 'com.mysql:mysql-connector-j'
+runtimeOnly 'com.h2database:h2'
 ```
-findById  save  findAll  findAllById  deleteById  getReferenceById
+
+`core-api`에서 flyway, mysql-connector-j, querydsl, h2가 사라진다.
+
+도메인에 인터페이스를 두고 storage가 구현하는 방식(DIP)은 이 모듈 그래프에서 쓸 수 없다. 구현체가 도메인 모델을 알아야 해서 `db-core → core-api`가 되고, Phase B에서 없앤 역의존이 되살아나 순환이 된다. 문제는 인터페이스 위치가 아니라 **누가 Spring Data를 호출하느냐**다.
+
+Spring Data를 상속하지 않는 위임 클래스를 `db-core`에 두면 JPA를 완전히 숨길 수 있다. 실제로 해봤고 동작한다(누수는 상속 CRUD 여섯 개뿐이었다). 다만 리포지토리 메서드를 늘릴 때마다 위임도 늘어나고, 그 대가가 얻는 것보다 크다고 판단해 되돌렸다.
+
+#### 설정 파일
+
+DB 설정은 `db-core/src/main/resources/db-core.yml`이 갖는다. `core-api`가 가져간다.
+
+```yaml
+spring:
+  config:
+    import: classpath:db-core.yml
 ```
 
-`db-core`에 Spring Data를 상속하지 않는 위임 클래스(`MemberStore`, `GameRoomStore`, `SongStore`, `ComputerScienceStore`, `CounterStore`, `PasswordResetTokenStore`, `PromotionRequestStore`)를 두고 `JpaRepository` 인터페이스는 모듈 밖으로 내보내지 않는다.
+`datasource.hikari`, `flyway.baseline-*`, `jpa.hibernate.ddl-auto`, 그리고 로컬 프로파일의 H2 설정과 `flyway.locations`가 여기로 왔다. 가져오는 쪽이 우선순위가 높으므로 `application.yml`이나 프로파일 파일에서 덮어쓸 수 있다.
 
-도메인에 인터페이스를 두고 storage가 구현하는 방식(DIP)은 쓸 수 없다. 구현체가 도메인 모델을 알아야 해서 `db-core → core-api`가 되고, Phase B에서 없앤 역의존이 되살아나 순환이 된다. 문제는 인터페이스 위치가 아니라 **누가 Spring Data를 호출하느냐**다.
+로컬 프로파일은 별도 파일이 아니라 같은 파일의 두 번째 문서(`spring.config.activate.on-profile: local`)로 뒀다. `spring.config.import`가 프로파일별 변형 파일을 자동으로 찾는지 확인하지 못했고 로컬 프로파일은 테스트가 없어서다.
 
-`jakarta.persistence-api`만 `api`로 연다. 엔티티가 달고 있는 애노테이션이라 `db-core`가 공개하는 타입의 일부이고, 없으면 `core-api` 컴파일에 "unknown enum constant" 경고가 백 개 넘게 쏟아진다. 이 경고는 `-Xlint`로 억제되지 않는다.
+`optional:` 접두어를 쓰지 않았으므로 파일이 없으면 기동이 `ConfigDataResourceNotFoundException`으로 실패한다. 파일을 잠시 치워 실제로 실패하는 것을 확인했다. 조용히 무시되지 않는다.
 
-결과로 `core-api`의 컴파일 클래스패스에서 spring-data-jpa, hibernate, flyway, mysql-connector-j, querydsl이 사라진다.
+`spring.session.jdbc.initialize-schema`는 세션이 웹 관심사라 `core-api`에 남긴다.
 
 #### 테스트
 
@@ -360,7 +381,7 @@ findById  save  findAll  findAllById  deleteById  getReferenceById
 
 `@Mock`으로 리포지토리를 쓰던 단위 테스트 셋은 `Store`로 바꿔야 한다. **컴파일은 통과하고 런타임에만 터진다** — 옛 타입이 여전히 참조 가능하므로 `@Mock`은 만들어지지만 `@InjectMocks`가 주입할 곳이 없어 필드가 null로 남는다.
 
-**완료 기준**: `core-api` 컴파일 클래스패스에 spring-data-jpa·flyway·mysql-connector-j·querydsl이 없다. `bootJar` 안에 `db-core` jar와 그 안의 `db/migration/`이 있다.
+**완료 기준**: `core-api` 컴파일 클래스패스에 flyway·mysql-connector-j·querydsl이 없다. `bootJar` 안의 `db-core` jar에 `db/migration/`과 `db-core.yml`이 있다.
 
 ### D-4. clients 추출
 
