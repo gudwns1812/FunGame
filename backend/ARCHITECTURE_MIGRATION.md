@@ -128,7 +128,7 @@ ArchRule rule =
 
 세 개는 상수 모음이 아니라 HTTP에 묶인 에러 카탈로그다. D-5에서 `support`가 모듈로 갈라질 때 함께 간다.
 
-되돌아가지 않도록 A-1의 계층 규칙에 `enums` 계층을 추가하고 `mayNotAccessAnyLayer()`를 건다. Lombok은 `compileOnly`라 남겨도 되지만, D-2에서 `core:core-enum` 모듈을 만들 때 그 모듈에도 Lombok을 넣어야 한다.
+되돌아가지 않도록 A-1의 계층 규칙에 `enums` 계층을 추가하고 `mayNotAccessAnyLayer()`를 건다. Lombok은 `compileOnly`라 남겨도 된다. D-2에서 이 규칙은 모듈 경계로 대체된다.
 
 패키지 이동이 배포 시 깨질 수 있는 지점을 확인했다.
 
@@ -268,7 +268,7 @@ include 'backend:core:core-api'
 - `backend/build.gradle` → `backend/core/core-api/build.gradle` (내용 그대로)
 - Gradle 경로가 `:backend`에서 `:backend:core:core-api`로 바뀐다
 
-`subprojects {}` 공통 설정은 만들지 않는다. 모듈이 하나뿐이라 공유할 것이 없다. D-2에서 두 번째 모듈이 생길 때 뽑는다.
+`subprojects {}` 공통 설정은 만들지 않는다. 모듈이 하나뿐이라 공유할 것이 없다. D-2에서 두 번째 모듈이 생길 때 뽑았다(`backend/build.gradle`).
 
 **컴포넌트 스캔**: 패키지 루트를 `com.fungame.songquiz`로 유지한다. D-1은 디렉터리만 옮기고 패키지는 건드리지 않으므로 `@SpringBootApplication` 스캔 범위가 그대로다. `@EntityScan`, `@EnableJpaRepositories`를 명시할 필요가 없다.
 
@@ -293,6 +293,29 @@ jar 이름이 프로젝트 이름을 따라 `core-api-0.0.1-SNAPSHOT.jar`로 바
 ### D-2. core:core-enum 추출
 
 B-1에서 만든 `enums` 패키지를 그대로 모듈로 승격. 의존 없음.
+
+```groovy
+rootProject.name = 'FunGame'
+include 'backend:core:core-enum'
+include 'backend:core:core-api'
+```
+
+- `core-api/src/main/java/.../enums` → `core-enum/src/main/java/.../enums` (파일 이동만)
+- `core-api`에 `implementation project(':backend:core:core-enum')` 추가
+- `core-enum`은 build.gradle이 없다. 선언할 것이 없고 공통 설정이 java 플러그인을 준다
+
+D-1에서 미뤄둔 공통 설정을 여기서 `backend/build.gradle`로 뽑는다. 모듈이 둘이 되어 공유할 것이 생겼다.
+
+**Lombok 버전을 한 곳에 고정한다.** `Role`, `PromotionStatus`가 `@Getter`를 쓰므로 `core-enum`도 Lombok이 필요한데, 이 모듈은 Boot 플러그인을 쓰지 않아 Boot BOM의 버전 관리를 받지 못한다. `org.projectlombok:lombok`을 버전 없이 쓰면 해석에 실패한다. Boot 3.4.3이 관리하던 값을 `backend/build.gradle`의 `lombokVersion`에 두고 두 모듈이 함께 쓴다. Boot를 올릴 때 이 값도 확인해야 한다.
+
+Lombok은 `compileOnly`라 `core-enum`의 런타임 의존은 비어 있다(`runtimeClasspath` → `No dependencies`). ARCHITECTURE.md의 "의존 없는 최하위 모듈"을 지킨다.
+
+여기서 검증이 두 겹이 된다.
+
+- ArchUnit은 여전히 `core-enum` jar 안의 클래스를 본다. 계층 규칙에 `withOptionalLayers`를 주지 않았으므로, 못 보면 "Layer 'enums' is empty"로 실패한다. 패키지를 없는 이름으로 바꿔 실패하는 것을 확인했다
+- 이제 **컴파일러가 먼저 막는다.** `core-enum`은 `core-api`를 의존하지 않으므로 `enums → domain`을 쓰면 `package com.fungame.songquiz.domain does not exist`로 빌드가 깨진다. 규칙이 테스트가 아니라 모듈 그래프로 강제된다
+
+**완료 기준**: `core-enum`의 `runtimeClasspath`가 비어 있고, `core-api` 테스트 그린, `bootJar` 정상.
 
 ### D-3. storage:db-core 추출
 
@@ -333,7 +356,7 @@ B-1에서 만든 `enums` 패키지를 그대로 모듈로 승격. 의존 없음.
 | `storage → domain` import | **0** (A-1 시점 5개 파일) | 0 |
 | service가 repository 직접 의존 | 14개 파일 | 0 (리뷰로 확인) |
 | ArchUnit 위반 수 | **0** (A-1 시점 92) | 0 |
-| gradle 모듈 수 | 1 (`core:core-api`) | 9 |
+| gradle 모듈 수 | 2 (`core:core-api`, `core:core-enum`) | 9 |
 
 ArchUnit 위반이 0이 되어 B-3에서 `FreezingArchRule`을 일반 `ArchRule`로 바꿨다. `archunit_store/`와 `archunit.properties`는 지웠다. 이제 위반이 하나라도 생기면 바로 실패한다.
 
