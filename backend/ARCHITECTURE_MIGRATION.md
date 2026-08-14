@@ -257,10 +257,38 @@ Phase C까지 끝나면 의존 방향이 이미 맞으므로, 여기서는 파�
 
 ### D-1. 멀티 모듈 껍데기 전환
 
-- `backend/settings.gradle`에 `include 'core:core-api'` 하나만
-- 모든 코드를 `core/core-api`로 통째 이동
-- 루트 `build.gradle`에 `subprojects {}` 공통 설정
-- 이 단계에서 동작이 안 바뀌는지 확인 (`./gradlew bootRun` + 인수 테스트)
+`backend`는 독립 Gradle 빌드가 아니라 루트 `FunGame` 빌드의 하위 프로젝트다. 그래서 `backend/settings.gradle`을 새로 만들지 않고 루트 `settings.gradle`을 고친다.
+
+```groovy
+rootProject.name = 'FunGame'
+include 'backend:core:core-api'
+```
+
+- `backend/src` → `backend/core/core-api/src`
+- `backend/build.gradle` → `backend/core/core-api/build.gradle` (내용 그대로)
+- Gradle 경로가 `:backend`에서 `:backend:core:core-api`로 바뀐다
+
+`subprojects {}` 공통 설정은 만들지 않는다. 모듈이 하나뿐이라 공유할 것이 없다. D-2에서 두 번째 모듈이 생길 때 뽑는다.
+
+**컴포넌트 스캔**: 패키지 루트를 `com.fungame.songquiz`로 유지한다. D-1은 디렉터리만 옮기고 패키지는 건드리지 않으므로 `@SpringBootApplication` 스캔 범위가 그대로다. `@EntityScan`, `@EnableJpaRepositories`를 명시할 필요가 없다.
+
+**application.yml**: 모든 리소스가 `core-api`에 그대로 있어 아직 병합할 것이 없다. flyway 리소스가 갈라지는 D-3에서 정한다.
+
+Gradle 경로가 바뀌면 배포가 조용히 깨질 수 있는 곳들을 함께 고친다.
+
+| 파일 | 고칠 것 |
+| --- | --- |
+| `backend/Dockerfile` | `COPY` 경로 3곳, gradle 태스크 2곳, jar 산출 경로 |
+| `.github/workflows/ci-backend.yml` | 테스트 태스크, 리포트 업로드 경로 |
+| `.github/workflows/deploy-backend.yml` | 테스트 태스크 |
+| `backend/.gitignore` | `/src/test/resources/...` 앵커 경로 |
+| `README.md`, `application-local.yml` | `bootRun` 명령 |
+
+`:backend:test`는 태스크가 사라져 **BUILD FAILED**가 된다. 조용히 통과하는 no-op이 아니므로 CI에서 놓칠 수 없다. 이걸 확인하는 것이 이 단계의 핵심이다.
+
+jar 이름이 프로젝트 이름을 따라 `core-api-0.0.1-SNAPSHOT.jar`로 바뀐다. Dockerfile이 `*.jar` 글롭이라 문제없다.
+
+**완료 기준**: `./gradlew :backend:core:core-api:test` 그린, `bootJar` 산출 경로가 Dockerfile과 일치, `:backend:test`는 실패.
 
 ### D-2. core:core-enum 추출
 
@@ -305,9 +333,9 @@ B-1에서 만든 `enums` 패키지를 그대로 모듈로 승격. 의존 없음.
 | `storage → domain` import | **0** (A-1 시점 5개 파일) | 0 |
 | service가 repository 직접 의존 | 14개 파일 | 0 (리뷰로 확인) |
 | ArchUnit 위반 수 | **0** (A-1 시점 92) | 0 |
+| gradle 모듈 수 | 1 (`core:core-api`) | 9 |
 
 ArchUnit 위반이 0이 되어 B-3에서 `FreezingArchRule`을 일반 `ArchRule`로 바꿨다. `archunit_store/`와 `archunit.properties`는 지웠다. 이제 위반이 하나라도 생기면 바로 실패한다.
-| gradle 모듈 수 | 1 | 9 |
 
 ## PR 운영
 
