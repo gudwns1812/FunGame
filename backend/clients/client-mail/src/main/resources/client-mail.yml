@@ -1,0 +1,6 @@
+client:
+  mail:
+    # SES 아이덴티티를 만든 리전. prod 프로파일에서만 클라이언트가 생성됩니다.
+    aws-region: ${AWS_REGION:ap-northeast-2}
+    # SES 에 verify 된 발신 주소여야 합니다.
+    from: ${MAIL_FROM:no-reply@fun-game.club}

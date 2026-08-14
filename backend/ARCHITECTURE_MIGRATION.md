@@ -461,10 +461,27 @@ WHERE video_link = '' OR video_link LIKE 'Error:%';
 
 ---
 
+### D-4b. clients:client-mail 추출
+
+메일은 원래 `support:mail`로 계획돼 있었지만 AWS SES 를 호출하므로 `clients`가 맞다. `support:logging`, `support:monitoring`은 외부 호출이 없는 설정 모듈이고 SES 는 제3자 API 다. `client-youtube`와 성격이 같다.
+
+`support/mail` 다섯 파일이 세 역할로 섞여 있었다.
+
+| 파일 | 간 곳 |
+| --- | --- |
+| `SesClientConfig`, SES 발송 코드 | `clients:client-mail` |
+| `PasswordResetMailSender`(포트), `LoggingPasswordResetMailSender` | `core-api` |
+| `PasswordResetMailListener` | `core-api` |
+
+`SesPasswordResetMailSender`가 `PasswordResetTokenGenerator.TOKEN_TTL`을 참조해 메일 본문에 "몇 분 뒤 만료"를 쓰고 있었다. 그대로 옮기면 `clients → core-api` 역의존이다. 그래서 클라이언트는 `send(to, subject, body)` 만 아는 `SesMailSender` 로 두고, 제목과 본문 조립은 `core-api` 어댑터가 맡는다. D-3의 위임 문제와 같은 구조다.
+
+설정도 모듈이 갖는다. `client-mail.yml` 이 `client.mail.aws-region`, `client.mail.from` 을 갖고 `application.yml` 이 `spring.config.import` 로 가져간다. **환경변수 이름(`AWS_REGION`, `MAIL_FROM`)은 그대로라 배포 설정은 바뀌지 않는다.**
+
+SES 경로는 `@Profile("prod")` 라 테스트가 태우지 않는다. 옮기기 전에도 그랬다. 본문 조립이 옮겨갔으므로 어댑터 단위 테스트로 링크와 만료 시간이 본문에 들어가는지 검증한다. **SES 빈 배선 자체는 여전히 미검증이다.**
+
 ### D-5. support 추출
 
 - `support:logging`, `support:monitoring` 신설 (logback, actuator)
-- `support/mail`(SES) → `support:mail`. `PasswordResetMailListener`는 이벤트 리스너라 `core-api`에 남기고, 발송기 인터페이스/구현만 모듈로 뺀다
 
 ### D-6. tests:api-docs 추출
 

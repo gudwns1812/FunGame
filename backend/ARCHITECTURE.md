@@ -51,12 +51,11 @@ backend/
 │
 ├── clients/
 │   ├── client-youtube/
-│   └── client-random-word/
+│   └── client-mail/
 │
 ├── support/
 │   ├── logging/
-│   ├── monitoring/
-│   └── mail/
+│   └── monitoring/
 │
 └── tests/
     └── api-docs/
@@ -67,10 +66,9 @@ include 'core:core-enum'
 include 'core:core-api'
 include 'storage:db-core'
 include 'clients:client-youtube'
-include 'clients:client-random-word'
+include 'clients:client-mail'
 include 'support:logging'
 include 'support:monitoring'
-include 'support:mail'
 include 'tests:api-docs'
 ```
 
@@ -82,19 +80,17 @@ graph TD
     core-enum["core:core-enum"]
     db-core["storage:db-core"]
     youtube["clients:client-youtube"]
-    randomword["clients:client-random-word"]
+    mail["clients:client-mail"]
     logging["support:logging"]
     monitoring["support:monitoring"]
-    mail["support:mail"]
     apidocs["tests:api-docs"]
 
     core-api --> core-enum
     core-api --> db-core
     core-api --> youtube
-    core-api --> randomword
+    core-api --> mail
     core-api --> logging
     core-api --> monitoring
-    core-api --> mail
     core-api -. test .-> apidocs
 
     db-core --> core-enum
@@ -108,18 +104,19 @@ graph TD
 | `storage:db-core` | `core:core-enum` |
 | `core:core-enum` | 없음 |
 | `clients:client-youtube` | 없음 |
-| `clients:client-random-word` | 없음 |
+| `clients:client-mail` | 없음 |
 | `support:logging` | 없음 |
 | `support:monitoring` | 없음 |
-| `support:mail` | 없음 |
 | `tests:api-docs` | 없음 |
 
 ### 규칙
 
 - `storage:db-core`는 `core:core-api`를 의존하지 않는다. 양방향이 되면 순환이 생기므로, 두 모듈이 함께 쓰는 타입은 `core:core-enum`에만 둔다.
 - `core:core-enum`은 어떤 모듈도 의존하지 않는 최하위 모듈이다.
-- `clients:*`는 다른 프로젝트 모듈을 의존하지 않고 격리한다. 외부 응답 모델은 각 클라이언트 모듈 안에서 끝내고, 도메인 타입으로의 변환은 `core:core-api`가 맡는다.
-- `support:*`는 서로를 의존하지 않는다. 각각 독립적으로 `core:core-api`에만 붙는다.
+- `clients:*`는 **외부 서비스를 호출하는 모듈**이다. 다른 프로젝트 모듈을 의존하지 않고 격리한다. 외부 응답 모델은 각 클라이언트 모듈 안에서 끝내고, 도메인 타입으로의 변환은 `core:core-api`가 맡는다.
+- `support:*`는 **외부 호출이 없는 횡단 관심사**다(로깅 설정, 모니터링 노출). 서로를 의존하지 않고 각각 독립적으로 `core:core-api`에만 붙는다.
+- 메일은 AWS SES 를 호출하므로 `support`가 아니라 `clients:client-mail`이다. `support`에 두면 "외부 호출 없는 횡단 관심사"라는 기준이 깨진다.
+- 각 모듈은 자기 설정을 자기 리소스에 갖고, `core:core-api`의 `application.yml`이 `spring.config.import`로 가져간다.
 - `tests:api-docs`는 `core:core-api`의 `testImplementation`으로만 붙는다.
 
 ```groovy
@@ -128,10 +125,9 @@ dependencies {
     implementation project(':core:core-enum')
     implementation project(':storage:db-core')
     implementation project(':clients:client-youtube')
-    implementation project(':clients:client-random-word')
+    implementation project(':clients:client-mail')
     implementation project(':support:logging')
     implementation project(':support:monitoring')
-    implementation project(':support:mail')
 
     testImplementation project(':tests:api-docs')
 }
@@ -213,14 +209,10 @@ storage/db-core/
 clients/
 ├── client-youtube/
 │   ├── src/main/java/com/fungame/songquiz/client/youtube/
-│   │   └── model/
-│   ├── src/main/resources/
 │   └── src/test/java/com/fungame/songquiz/client/youtube/
-└── client-random-word/
-    ├── src/main/java/com/fungame/songquiz/client/randomword/
-    │   └── model/
-    ├── src/main/resources/
-    └── src/test/java/com/fungame/songquiz/client/randomword/
+└── client-mail/
+    ├── src/main/java/com/fungame/songquiz/client/mail/
+    └── src/main/resources/          client-mail.yml
 ```
 
 ## support
@@ -230,12 +222,8 @@ support/
 ├── logging/
 │   └── src/main/resources/
 │       └── logback/
-├── monitoring/
-│   └── src/main/resources/
-└── mail/
-    ├── src/main/java/com/fungame/songquiz/support/mail/
-    ├── src/main/resources/
-    └── src/test/java/com/fungame/songquiz/support/mail/
+└── monitoring/
+    └── src/main/resources/
 ```
 
 ## tests/api-docs

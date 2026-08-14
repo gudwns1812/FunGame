@@ -14,6 +14,7 @@ dependencies {
     implementation project(':backend:core:core-enum')
     implementation project(':backend:storage:db-core')
     implementation project(':backend:clients:client-youtube')
+    implementation project(':backend:clients:client-mail')
 
     implementation 'org.springframework.boot:spring-boot-starter-web'
     implementation 'org.springframework.boot:spring-boot-starter-security'
@@ -22,8 +23,6 @@ dependencies {
     // starter-security 에는 포함되지 않는다.
     implementation 'org.springframework.security:spring-security-messaging'
     implementation 'org.springframework.session:spring-session-jdbc'
-    implementation platform('software.amazon.awssdk:bom:2.31.30')
-    implementation 'software.amazon.awssdk:sesv2'
 
     testImplementation testFixtures(project(':backend:storage:db-core'))
     testImplementation 'org.springframework.boot:spring-boot-starter-test'

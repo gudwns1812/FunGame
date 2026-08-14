@@ -1,4 +1,4 @@
-package com.fungame.songquiz.support.mail;
+package com.fungame.songquiz.client.mail;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -12,7 +12,7 @@ import software.amazon.awssdk.services.sesv2.SesV2Client;
 public class SesClientConfig {
 
     @Bean
-    public SesV2Client sesV2Client(@Value("${aws.region}") String region) {
+    public SesV2Client sesV2Client(@Value("${client.mail.aws-region}") String region) {
         return SesV2Client.builder()
                 .region(Region.of(region))
                 .build();
