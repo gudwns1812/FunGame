@@ -76,6 +76,28 @@ class ComputerScienceQuizReaderTest {
     }
 
     @Test
+    @DisplayName("엔티티의 모든 필드를 도메인으로 옮긴다.")
+    void mapsEveryField() {
+        given(computerScienceRepository.findByDifficultyIn(any())).willReturn(List.of(
+                ComputerScienceEntity.builder()
+                        .field("네트워크")
+                        .content("TCP와 UDP의 차이는?")
+                        .answers(List.of("연결성", "신뢰성"))
+                        .explanation("TCP는 연결 지향이고 UDP는 비연결 지향이다.")
+                        .difficulty(CSQuizDifficulty.NORMAL)
+                        .build()
+        ));
+
+        ComputerScienceQuiz quiz = reader.getRandomCSQuizWithCount(1, CSQuizDifficulty.NORMAL).getFirst();
+
+        assertThat(quiz.getField()).isEqualTo("네트워크");
+        assertThat(quiz.getQuestion()).isEqualTo("TCP와 UDP의 차이는?");
+        assertThat(quiz.getExplain()).isEqualTo("TCP는 연결 지향이고 UDP는 비연결 지향이다.");
+        assertThat(quiz.getDifficulty()).isEqualTo(CSQuizDifficulty.NORMAL);
+        assertThat(quiz.getAnswers()).containsExactly("연결성", "신뢰성");
+    }
+
+    @Test
     @DisplayName("조회 결과가 불변 리스트여도 섞다가 깨지지 않는다.")
     void survivesImmutableQueryResult() {
         given(computerScienceRepository.findByDifficultyIn(any())).willReturn(List.of(

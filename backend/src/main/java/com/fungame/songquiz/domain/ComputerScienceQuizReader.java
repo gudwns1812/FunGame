@@ -24,7 +24,17 @@ public class ComputerScienceQuizReader {
 
         return candidates.stream()
                 .limit(totalRound)
-                .map(ComputerScienceEntity::toDomain)
+                .map(this::toDomain)
                 .toList();
+    }
+
+    private ComputerScienceQuiz toDomain(ComputerScienceEntity entity) {
+        return ComputerScienceQuiz.of(
+                entity.getField(),
+                entity.getContent(),
+                entity.getAnswers(),
+                entity.getExplanation(),
+                entity.getDifficulty()
+        );
     }
 }

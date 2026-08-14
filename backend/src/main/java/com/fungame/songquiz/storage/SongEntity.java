@@ -1,7 +1,6 @@
 package com.fungame.songquiz.storage;
 
 import com.fungame.songquiz.enums.Category;
-import com.fungame.songquiz.domain.Song;
 import com.fungame.songquiz.storage.converter.StringListConverter;
 import jakarta.persistence.*;
 import lombok.*;
@@ -45,8 +44,4 @@ public class SongEntity {
     private List<String> answers;
 
     private String hint;
-
-    public Song toDomain() {
-        return Song.of(title, singer, categories, releaseDate, videoLink, playSeconds, answers, hint);
-    }
 }

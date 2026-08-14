@@ -1,7 +1,6 @@
 package com.fungame.songquiz.storage;
 
 import com.fungame.songquiz.enums.CSQuizDifficulty;
-import com.fungame.songquiz.domain.ComputerScienceQuiz;
 import com.fungame.songquiz.storage.converter.StringListConverter;
 import jakarta.persistence.*;
 import lombok.*;
@@ -33,8 +32,4 @@ public class ComputerScienceEntity {
 
     @Enumerated(EnumType.STRING)
     private CSQuizDifficulty difficulty;
-
-    public ComputerScienceQuiz toDomain() {
-        return ComputerScienceQuiz.of(field, content, answers, explanation, difficulty);
-    }
 }

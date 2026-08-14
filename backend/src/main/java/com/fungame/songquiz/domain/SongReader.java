@@ -20,7 +20,7 @@ public class SongReader {
         List<SongEntity> songs = songRepository.findRandomSongsByCategory(jsonCategory, count);
 
         return songs.stream()
-                .map(SongEntity::toDomain)
+                .map(this::toDomain)
                 .toList();
     }
 
@@ -45,10 +45,9 @@ public class SongReader {
 
     public List<Song> findSongWithCount(int songCount) {
         List<SongEntity> findSongs = songRepository.findRandomSongs(songCount);
-        ;
 
         return findSongs.stream()
-                .map(SongEntity::toDomain)
+                .map(this::toDomain)
                 .toList();
     }
 }

@@ -141,7 +141,16 @@ B-1에서 `enums` 계층이 여기 추가된다(`mayNotAccessAnyLayer`).
 
 엔티티는 컬럼과 JPA 매핑만 갖는다.
 
-**완료 기준**: `SongEntity`, `ComputerScienceEntity`의 `domain` import 0건.
+`SongReader`에는 이미 `SongEntity.toDomain()`과 같은 일을 하는 private `toDomain`이 있었다. 새로 만드는 것이 아니라 중복을 지우고 호출부를 한쪽으로 모으는 일이다.
+
+옮기기 전에 매핑을 테스트로 덮는다. 기존 `ComputerScienceQuizReaderTest`는 개수와 난이도만 보고 필드 매핑을 검증하지 않았고, `SongReader`는 테스트가 없었다. 변환을 옮기는 리팩토링에서 필드를 잘못 짚어도 아무 테스트도 실패하지 않는 상태였다.
+
+- `SongReaderTest` 신설. 세 조회 경로(`findById`, `findSongWithCount`, `findSongByCategoryWithCount`) 모두에서 8개 필드를 검증한다
+- `ComputerScienceQuizReaderTest`에 5개 필드 매핑 검증 추가
+
+엔티티와 도메인의 이름이 다른 지점이 있어 특히 필요하다: `videoLink` → `link`, `content` → `question`, `explanation` → `explain`. `Song.of`가 제목을 정답 집합에 넣는 것도 함께 검증한다.
+
+**완료 기준**: `SongEntity`, `ComputerScienceEntity`의 `domain` import 0건. ArchUnit baseline 45 → 41.
 
 ### B-3. GameRoomStore 해체
 
@@ -265,9 +274,9 @@ B-1에서 만든 `enums` 패키지를 그대로 모듈로 승격. 의존 없음.
 
 | 지표 | 현재 | 목표 |
 | --- | --- | --- |
-| `storage → domain` import | 4개 파일 (B-1 전 5개) | 0 |
+| `storage → domain` import | 2개 파일 (A-1 시점 5개) | 0 |
 | service가 repository 직접 의존 | 14개 파일 | 0 (리뷰로 확인) |
-| ArchUnit freeze 위반 수 | 45 (A-1 시점 92) | 0 |
+| ArchUnit freeze 위반 수 | 41 (A-1 시점 92) | 0 |
 | gradle 모듈 수 | 1 | 9 |
 
 ## PR 운영
