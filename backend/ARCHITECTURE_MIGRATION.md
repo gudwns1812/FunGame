@@ -395,7 +395,15 @@ spring:
 
 모듈로 빼면 없는 클라이언트를 위한 모듈이 되고, 게다가 `HangmanWordProvider`(domain 인터페이스)를 구현하고 `CoreException`, `ErrorType`(support)를 쓰므로 `clients → core-api` 역의존이 생긴다. "clients 는 다른 프로젝트 모듈을 의존하지 않는다"와 충돌한다.
 
-진짜 문제는 모듈이 아니라 **이름**이다. `RandomWordApi` 라는 이름이 없는 외부 의존을 있는 것처럼 보이게 한다. 번들된 단어 목록을 읽는다는 사실이 드러나는 이름으로 바꾸는 것이 맞다. 모듈 분리와 별개 작업이다.
+진짜 문제는 모듈이 아니라 **단어를 코드에 번들해 둔 것**이었다. 그래서 이름을 고치는 대신 단어를 DB 로 옮겼다.
+
+- `V11__hangman_word.sql` 이 `hangman_word` 테이블을 만들고 단어 3668개를 넣는다
+- `HangmanWordReader` 가 `ORDER BY RAND() LIMIT 1` 로 뽑는다
+- `HangmanRandomWordApiProvider`, `HangmanWordProvider`, `words/*.txt` 를 지웠다
+
+`march` 가 난이도 1과 3에 중복이라 unique 키는 `(word, difficulty)` 다. `word` 단독으로 걸면 마이그레이션이 실패하고 어느 난이도를 버릴지 정해야 한다. 현재 동작을 그대로 두는 쪽을 택했다.
+
+기존 `HangmanWordReaderTest` 는 공급자를 mock 해서 "받은 단어로 게임을 만든다" 만 봤다. 이제 검증할 것이 없으므로 통합 테스트로 바꿔 **난이도별 적재 개수**를 단정한다. 생성된 `insert` 39문 중 일부만 들어가도 잡히지 않으면 모른다.
 
 ---
 
