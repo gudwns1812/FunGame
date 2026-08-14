@@ -10,6 +10,7 @@ spring:
       maximum-pool-size: 30
       connection-timeout: 30000 # 커넥션 대기 타임아웃 (ms)
   flyway:
+    locations: classpath:db/migration,classpath:db/migration/{vendor}
     # Flyway 도입 이전부터 존재하던 운영 DB 에는 V1 을 실행하지 않고 적용된 것으로 도장만 찍습니다.
     # 따라서 V1 은 빈 DB(로컬·테스트)에서만 실행됩니다.
     baseline-on-migrate: true
@@ -34,4 +35,4 @@ spring:
     password: ""
   flyway:
     # db/local 은 로컬 전용 시드입니다. 운영은 db/migration 만 실행합니다.
-    locations: classpath:db/migration,classpath:db/local
+    locations: classpath:db/migration,classpath:db/migration/{vendor},classpath:db/local

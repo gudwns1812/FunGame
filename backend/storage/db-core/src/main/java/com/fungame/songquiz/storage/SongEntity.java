@@ -17,6 +17,17 @@ import java.util.List;
 @Builder
 public class SongEntity {
 
+    public record Quiz(
+            String title,
+            String singer,
+            List<Category> categories,
+            LocalDate releaseDate,
+            int playSeconds,
+            List<String> answers,
+            String hint
+    ) {
+    }
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -44,4 +55,22 @@ public class SongEntity {
     private List<String> answers;
 
     private String hint;
+
+    public static SongEntity open(Quiz quiz, String videoLink) {
+        SongEntity entity = new SongEntity();
+        entity.videoLink = videoLink;
+        entity.changeQuiz(quiz);
+
+        return entity;
+    }
+
+    public void changeQuiz(Quiz quiz) {
+        this.title = quiz.title();
+        this.singer = quiz.singer();
+        this.categories = quiz.categories();
+        this.releaseDate = quiz.releaseDate();
+        this.playSeconds = quiz.playSeconds();
+        this.answers = quiz.answers();
+        this.hint = quiz.hint();
+    }
 }

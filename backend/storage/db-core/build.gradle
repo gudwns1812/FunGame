@@ -16,9 +16,6 @@ jar {
 dependencies {
     implementation project(':backend:core:core-enum')
 
-    // core-api 의 Reader/Writer 가 리포지토리를 직접 쓴다. 상속 메서드
-    // (findById, save 등)를 부르려면 JpaRepository 가 컴파일 클래스패스에
-    // 있어야 하므로 api 로 공개한다. 나머지 DB 의존은 내보내지 않는다.
     api 'org.springframework.boot:spring-boot-starter-data-jpa'
     implementation 'org.flywaydb:flyway-core'
     implementation 'org.flywaydb:flyway-mysql'

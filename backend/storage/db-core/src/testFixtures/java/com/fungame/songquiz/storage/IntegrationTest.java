@@ -13,6 +13,9 @@ import java.lang.annotation.Target;
 @Retention(RetentionPolicy.RUNTIME)
 @SpringBootTest
 @Import(MySqlTestContainer.class)
-@TestPropertySource(properties = "spring.session.jdbc.initialize-schema=always")
+@TestPropertySource(properties = {
+        "spring.session.jdbc.initialize-schema=always",
+        "app.song-scrape.enabled=false"
+})
 public @interface IntegrationTest {
 }

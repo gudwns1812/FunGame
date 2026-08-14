@@ -6,6 +6,7 @@ import org.springframework.data.repository.query.Param;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
 
 public interface SongRepository extends JpaRepository<SongEntity, Long> {
 
@@ -16,6 +17,10 @@ public interface SongRepository extends JpaRepository<SongEntity, Long> {
     @Query(value = "SELECT * FROM song_entity ORDER BY RAND() LIMIT :count",
             nativeQuery = true)
     List<SongEntity> findRandomSongs(@Param("count") int count);
+
+    Optional<SongEntity> findByVideoLink(String videoLink);
+
+    boolean existsByTitleAndReleaseDate(String title, LocalDate releaseDate);
 
     boolean existsBySingerAndTitle(@Param("singer") String singer, @Param("title") String title);
 
