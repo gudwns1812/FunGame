@@ -54,7 +54,6 @@ backend/
 │   └── client-mail/
 │
 ├── support/
-│   ├── logging/
 │   └── monitoring/
 │
 └── tests/
@@ -67,7 +66,6 @@ include 'core:core-api'
 include 'storage:db-core'
 include 'clients:client-youtube'
 include 'clients:client-mail'
-include 'support:logging'
 include 'support:monitoring'
 include 'tests:api-docs'
 ```
@@ -81,7 +79,6 @@ graph TD
     db-core["storage:db-core"]
     youtube["clients:client-youtube"]
     mail["clients:client-mail"]
-    logging["support:logging"]
     monitoring["support:monitoring"]
     apidocs["tests:api-docs"]
 
@@ -89,7 +86,6 @@ graph TD
     core-api --> db-core
     core-api --> youtube
     core-api --> mail
-    core-api --> logging
     core-api --> monitoring
     core-api -. test .-> apidocs
 
@@ -105,7 +101,6 @@ graph TD
 | `core:core-enum` | 없음 |
 | `clients:client-youtube` | 없음 |
 | `clients:client-mail` | 없음 |
-| `support:logging` | 없음 |
 | `support:monitoring` | 없음 |
 | `tests:api-docs` | 없음 |
 
@@ -126,7 +121,6 @@ dependencies {
     implementation project(':storage:db-core')
     implementation project(':clients:client-youtube')
     implementation project(':clients:client-mail')
-    implementation project(':support:logging')
     implementation project(':support:monitoring')
 
     testImplementation project(':tests:api-docs')
@@ -219,11 +213,9 @@ clients/
 
 ```
 support/
-├── logging/
-│   └── src/main/resources/
-│       └── logback/
 └── monitoring/
-    └── src/main/resources/
+    ├── src/main/java/com/fungame/songquiz/support/monitoring/
+    └── src/main/resources/          monitoring.yml
 ```
 
 ## tests/api-docs

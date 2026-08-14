@@ -20,6 +20,10 @@ services:
     restart: unless-stopped
     expose:
       - "8080"
+    ports:
+      # 관리 포트. 인프라 서버의 prometheus 가 사설망으로 긁어갑니다.
+      # MANAGEMENT_BIND_IP 를 비우면 공개되므로 반드시 사설 IP 를 지정하세요.
+      - "${MANAGEMENT_BIND_IP:-127.0.0.1}:8081:8081"
     environment:
       SPRING_PROFILES_ACTIVE: prod
       CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS}

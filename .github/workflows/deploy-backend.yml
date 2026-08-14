@@ -106,8 +106,8 @@ jobs:
             wait_until_healthy() {
               for _ in $(seq 1 30); do
                 if docker exec "$CONTAINER_NAME" \
-                    wget -qO- 'http://localhost:8080/api/auth/check-id?loginId=healthcheck' \
-                    >/dev/null 2>&1; then
+                    wget -qO- 'http://localhost:8081/actuator/health' 2>/dev/null \
+                    | grep -q '"status":"UP"'; then
                   return 0
                 fi
                 sleep 3

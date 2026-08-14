@@ -479,9 +479,30 @@ WHERE video_link = '' OR video_link LIKE 'Error:%';
 
 SES 경로는 `@Profile("prod")` 라 테스트가 태우지 않는다. 옮기기 전에도 그랬다. 본문 조립이 옮겨갔으므로 어댑터 단위 테스트로 링크와 만료 시간이 본문에 들어가는지 검증한다. **SES 빈 배선 자체는 여전히 미검증이다.**
 
-### D-5. support 추출
+### D-5. support:monitoring 추출
 
-- `support:logging`, `support:monitoring` 신설 (logback, actuator)
+문서는 `support:logging`, `support:monitoring`을 "신설"한다고 했지만 **옮길 것이 없었다.** logback 설정 파일이 하나도 없고 actuator 는 의존조차 걸려 있지 않았다. 그대로 만들면 빈 껍데기 모듈 둘이 생긴다.
+
+대신 실제 결함을 고쳤다. 배포 스크립트가 헬스체크로 비즈니스 API 를 때리고 있었다.
+
+```bash
+wget -qO- 'http://localhost:8080/api/auth/check-id?loginId=healthcheck'
+```
+
+`existsByLoginId` 라 회원 테이블을 조회한다. 30초마다 30회 폴링한다. 이 엔드포인트를 지우거나 경로를 바꾸면 배포 롤백 판정이 조용히 깨진다.
+
+actuator 와 prometheus 를 넣고 `support:monitoring` 모듈로 뺐다. 모듈이 갖는 것은 `monitoring.yml` 과 actuator 전용 시큐리티 체인이다.
+
+**관리 포트를 8081 로 분리했다.** Caddyfile 이 저장소에 없어 무엇이 공개 라우팅되는지 알 수 없으므로, 포트를 나눠 Caddy 설정과 무관하게 만들었다. compose 는 `${MANAGEMENT_BIND_IP:-127.0.0.1}:8081:8081` 로 바인딩한다. 기본값이 루프백이라 환경변수를 빠뜨리면 공개되지 않고 닫힌다.
+
+추측이 두 번 틀렸고 테스트가 잡았다.
+
+- **관리 포트도 앱의 시큐리티 필터를 탄다.** 포트를 나누면 체인이 안 걸릴 줄 알았는데 전부 401 이었다. `EndpointRequest.toAnyEndpoint()` 에 `permitAll` 을 건 전용 체인을 앞 순서로 둬야 한다
+- **Boot 는 테스트에서 메트릭 export 를 끈다**(`management.defaults.metrics.export.enabled`). prometheus 엔드포인트가 등록되지 않아 401 이 났다. `@AutoConfigureObservability` 로 켠다. 운영과 무관한 테스트 전용 동작이다
+
+테스트 다섯 개 중 `servicePortHasNoActuator` 가 핵심이다. Caddy 가 프록시하는 8080 으로 메트릭이 새지 않는지 검증한다.
+
+`support:logging` 은 만들지 않는다. 현재 로깅은 Boot 기본값이고 `local` 프로파일에 레벨 세 줄이 전부다. 로그 포맷·파일 출력·레벨 정책을 정하는 것은 별도 설계 작업이고, 그때 모듈이 필요하면 만든다.
 
 ### D-6. tests:api-docs 추출
 
