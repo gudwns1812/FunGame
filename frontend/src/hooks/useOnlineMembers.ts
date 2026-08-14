@@ -5,6 +5,15 @@ import type { OnlineMember } from '../types/presence';
 
 const REFRESH_DEBOUNCE_MS = 300;
 
+const pushedMembersOf = (data: string): OnlineMember[] | null => {
+  try {
+    const parsed = JSON.parse(data);
+    return Array.isArray(parsed) ? (parsed as OnlineMember[]) : null;
+  } catch {
+    return null;
+  }
+};
+
 export const useOnlineMembers = (enabled: boolean) => {
   const { onEvent } = useSse();
   const [members, setMembers] = useState<OnlineMember[]>([]);
@@ -32,8 +41,18 @@ export const useOnlineMembers = (enabled: boolean) => {
       debounceTimer.current = setTimeout(fetchMembers, REFRESH_DEBOUNCE_MS);
     };
 
+    const applyPushedMembers = (event: MessageEvent) => {
+      const pushedMembers = pushedMembersOf(event.data);
+      if (!pushedMembers) {
+        refreshSoon();
+        return;
+      }
+
+      setMembers(pushedMembers);
+    };
+
     fetchMembers();
-    const stopListeningPresence = onEvent('presence-update', refreshSoon);
+    const stopListeningPresence = onEvent('presence-update', applyPushedMembers);
     const stopListeningConnected = onEvent('connected', refreshSoon);
 
     return () => {

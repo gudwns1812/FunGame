@@ -29,6 +29,28 @@ const HANGMAN_SOLVED_RESULT = 'CORRECT';
 /** 내 회원 번호를 담아두는 로컬스토리지 키. 방·게임의 모든 "나" 판정이 이 값으로 이뤄진다 */
 const MY_MEMBER_ID_KEY = 'ums_member_id';
 
+const toRooms = (rawRooms: any[]): Room[] =>
+  rawRooms.map((room) => ({
+    id: room.roomId,
+    name: room.title,
+    hostMemberId: room.hostMemberId,
+    hostName: room.hostNickname,
+    playerCount: room.currentPlayers,
+    maxPlayers: room.maxPlayers,
+    status: room.status || 'WAITING',
+    gameType: room.gameType,
+    csDifficulty: room.csDifficulty,
+  }));
+
+const pushedRoomsOf = (data: string): Room[] | null => {
+  try {
+    const parsed = JSON.parse(data);
+    return Array.isArray(parsed) ? toRooms(parsed) : null;
+  } catch {
+    return null;
+  }
+};
+
 export const useGameLogic = () => {
   const { onEvent: onSseEvent } = useSse();
   const [myMemberId, setMyMemberId] = useState<number | null>(() => {
@@ -636,18 +658,7 @@ export const useGameLogic = () => {
     try {
       const response = await axios.get('/game/rooms');
       if (response.data && response.data.result === 'SUCCESS') {
-        const mappedRooms: Room[] = response.data.data.map((r: any) => ({
-          id: r.roomId,
-          name: r.title,
-          hostMemberId: r.hostMemberId,
-          hostName: r.hostNickname,
-          playerCount: r.currentPlayers,
-          maxPlayers: r.maxPlayers,
-          status: r.status || 'WAITING',
-          gameType: r.gameType,
-          csDifficulty: r.csDifficulty,
-        }));
-        setRooms(mappedRooms);
+        setRooms(toRooms(response.data.data));
       }
     } catch (error) {
       console.error('Failed to fetch rooms:', error);
@@ -665,10 +676,14 @@ export const useGameLogic = () => {
       }, 300);
     };
 
-    const refreshOnRoomUpdate = (event: MessageEvent) => {
-      if (event.data === 'REFRESH') {
+    const applyPushedRooms = (event: MessageEvent) => {
+      const pushedRooms = pushedRoomsOf(event.data);
+      if (!pushedRooms) {
         debouncedFetchRooms();
+        return;
       }
+
+      setRooms(pushedRooms);
     };
 
     const resyncOnTabReturn = () => {
@@ -677,7 +692,7 @@ export const useGameLogic = () => {
     };
 
     fetchRooms();
-    const stopListeningRoomUpdate = onSseEvent('room-update', refreshOnRoomUpdate);
+    const stopListeningRoomUpdate = onSseEvent('room-update', applyPushedRooms);
     const stopListeningConnected = onSseEvent('connected', debouncedFetchRooms);
     document.addEventListener('visibilitychange', resyncOnTabReturn);
 
