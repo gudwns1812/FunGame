@@ -7,7 +7,6 @@ import com.fungame.songquiz.controller.request.PasswordResetRequest;
 import com.fungame.songquiz.controller.request.SignupRequest;
 import com.fungame.songquiz.domain.dto.MemberInfo;
 import com.fungame.songquiz.domain.member.AuthService;
-import com.fungame.songquiz.domain.member.Member;
 import com.fungame.songquiz.domain.member.MemberAdapter;
 import com.fungame.songquiz.domain.member.PasswordResetService;
 import com.fungame.songquiz.support.response.ApiResponse;
@@ -71,8 +70,7 @@ public class AuthController {
             httpRequest.changeSessionId();
         }
 
-        Member member = authService.getMyInfo(request.getLoginId());
-        return ApiResponse.success(MemberInfo.from(member));
+        return ApiResponse.success(authService.getMyInfo(request.getLoginId()));
     }
 
     @PatchMapping("/nickname")
@@ -88,7 +86,6 @@ public class AuthController {
         if (user == null) {
             return ApiResponse.success(null);
         }
-        Member member = authService.getMyInfo(user.getLoginId());
-        return ApiResponse.success(MemberInfo.from(member));
+        return ApiResponse.success(authService.getMyInfo(user.getLoginId()));
     }
 }

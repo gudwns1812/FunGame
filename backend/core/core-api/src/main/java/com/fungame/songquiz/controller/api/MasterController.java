@@ -7,7 +7,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/master")
@@ -18,9 +17,7 @@ public class MasterController {
 
     @GetMapping("/promotions")
     public ApiResponse<List<PromotionRequestInfo>> getPendingPromotions() {
-        return ApiResponse.success(promotionService.getPendingRequests().stream()
-                .map(PromotionRequestInfo::from)
-                .collect(Collectors.toList()));
+        return ApiResponse.success(promotionService.getPendingRequests());
     }
 
     @PatchMapping("/promotions/{id}/approve")

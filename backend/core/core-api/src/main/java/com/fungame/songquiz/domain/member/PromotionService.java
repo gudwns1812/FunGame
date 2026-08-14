@@ -1,5 +1,6 @@
 package com.fungame.songquiz.domain.member;
 
+import com.fungame.songquiz.domain.dto.PromotionRequestInfo;
 import com.fungame.songquiz.support.error.CoreException;
 import com.fungame.songquiz.support.error.ErrorType;
 import com.fungame.songquiz.enums.PromotionStatus;
@@ -33,8 +34,10 @@ public class PromotionService {
     }
 
     @Transactional(readOnly = true)
-    public List<PromotionRequest> getPendingRequests() {
-        return promotionRequestRepository.findAllByStatusWithMember(PromotionStatus.PENDING);
+    public List<PromotionRequestInfo> getPendingRequests() {
+        return promotionRequestRepository.findAllByStatusWithMember(PromotionStatus.PENDING).stream()
+                .map(PromotionRequestInfo::from)
+                .toList();
     }
 
     @Transactional

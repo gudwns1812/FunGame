@@ -1,5 +1,6 @@
 package com.fungame.songquiz.domain.member;
 
+import com.fungame.songquiz.domain.dto.MemberInfo;
 import com.fungame.songquiz.support.error.CoreException;
 import com.fungame.songquiz.support.error.ErrorType;
 import com.fungame.songquiz.enums.Role;
@@ -90,8 +91,10 @@ public class AuthService {
     }
 
     @Transactional(readOnly = true)
-    public Member getMyInfo(String loginId) {
-        return memberRepository.findByLoginId(loginId)
+    public MemberInfo getMyInfo(String loginId) {
+        Member member = memberRepository.findByLoginId(loginId)
                 .orElseThrow(() -> new CoreException(ErrorType.MEMBER_NOT_FOUND));
+
+        return MemberInfo.from(member);
     }
 }

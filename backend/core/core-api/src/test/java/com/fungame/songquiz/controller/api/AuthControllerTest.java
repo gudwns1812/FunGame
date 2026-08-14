@@ -3,9 +3,9 @@ package com.fungame.songquiz.controller.api;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fungame.songquiz.domain.member.AuthService;
 import com.fungame.songquiz.domain.member.PasswordResetService;
-import com.fungame.songquiz.domain.member.Member;
 import com.fungame.songquiz.controller.ApiControllerAdvice;
 import com.fungame.songquiz.controller.request.LoginRequest;
+import com.fungame.songquiz.domain.dto.MemberInfo;
 import com.fungame.songquiz.enums.Role;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -40,9 +40,8 @@ class AuthControllerTest {
                 .setControllerAdvice(new ApiControllerAdvice())
                 .build();
 
-        given(authService.getMyInfo(anyString())).willReturn(Member.builder()
+        given(authService.getMyInfo(anyString())).willReturn(MemberInfo.builder()
                 .loginId("tester")
-                .password("encoded")
                 .nickname("테스터")
                 .email("tester@fun-game.club")
                 .role(Role.USER)
