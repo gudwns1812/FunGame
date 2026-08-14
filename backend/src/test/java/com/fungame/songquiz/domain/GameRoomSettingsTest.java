@@ -1,7 +1,6 @@
 package com.fungame.songquiz.domain;
 
 import com.fungame.songquiz.enums.CSQuizDifficulty;
-import com.fungame.songquiz.storage.GameRoomStore;
 import com.fungame.songquiz.support.error.CoreException;
 import com.fungame.songquiz.support.error.ErrorType;
 import com.fungame.songquiz.support.lock.LockContext;
@@ -40,7 +39,10 @@ class GameRoomSettingsTest {
     GameSessionManager gameSessionManager;
 
     @Mock
-    GameRoomStore gameRoomStore;
+    GameRoomReader gameRoomReader;
+
+    @Mock
+    GameRoomWriter gameRoomWriter;
 
     @Mock
     GameFactories gameFactories;
@@ -54,7 +56,8 @@ class GameRoomSettingsTest {
                 applicationEventPublisher,
                 gameTimer,
                 gameSessionManager,
-                gameRoomStore,
+                gameRoomReader,
+                gameRoomWriter,
                 gameFactories
         );
         gameRoomManager.createGameRoom(ROOM_ID, SETTINGS, HOST);

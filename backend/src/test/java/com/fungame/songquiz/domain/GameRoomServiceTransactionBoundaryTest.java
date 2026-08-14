@@ -1,7 +1,6 @@
 package com.fungame.songquiz.domain;
 
 import com.fungame.songquiz.domain.member.MemberPresenceService;
-import com.fungame.songquiz.storage.GameRoomStore;
 import com.fungame.songquiz.enums.CSQuizDifficulty;
 import com.fungame.songquiz.enums.Category;
 import com.fungame.songquiz.enums.GameType;
@@ -105,8 +104,13 @@ class GameRoomServiceTransactionBoundaryTest {
         }
 
         @Bean
-        GameRoomStore gameRoomStore() {
-            return mock(GameRoomStore.class);
+        GameRoomReader gameRoomReader() {
+            return mock(GameRoomReader.class);
+        }
+
+        @Bean
+        GameRoomWriter gameRoomWriter() {
+            return mock(GameRoomWriter.class);
         }
 
         @Bean
@@ -127,14 +131,16 @@ class GameRoomServiceTransactionBoundaryTest {
         @Bean
         GameRoomService gameRoomService(
                 GameRoomManager gameRoomManager,
-                GameRoomStore gameRoomStore,
+                GameRoomReader gameRoomReader,
+                GameRoomWriter gameRoomWriter,
                 GameService gameService,
                 RoomPresence roomPresence,
                 MemberPresenceService memberPresenceService,
                 ApplicationEventPublisher applicationEventPublisher) {
             return new GameRoomService(
                     gameRoomManager,
-                    gameRoomStore,
+                    gameRoomReader,
+                    gameRoomWriter,
                     gameService,
                     roomPresence,
                     memberPresenceService,

@@ -71,18 +71,24 @@ com.fungame.songquiz
 - `FreezingArchRule`로 현재 위반을 baseline에 기록 → 신규 위반만 실패, 기존 위반은 통과
 - baseline 파일(`archunit_store/`)을 커밋
 
+baseline은 위반을 **텍스트로** 매칭한다. 메서드 시그니처에 든 타입의 패키지가 바뀌거나 줄 번호가 밀리면 같은 위반이 "신규"로 잡혀 실패한다. B-1에서 실제로 밟았다. 이럴 때는 옛 baseline과 대조해 회귀가 아님을 확인한 뒤 refreeze하고, 새 baseline이 옛 baseline의 부분집합인지 검증한다.
+
+B-3에서 위반이 0이 되어 일반 `ArchRule`로 바꿨고 baseline은 지웠다. 아래 스니펫은 그 시점 이전의 모습이다.
+
 ```java
-ArchRule rule = FreezingArchRule.freeze(
+ArchRule rule =
     layeredArchitecture().consideringOnlyDependenciesInLayers()
         .layer("controller").definedBy("..controller..")
         .layer("domain").definedBy("..domain..")
         .layer("storage").definedBy("..storage..")
+        .layer("enums").definedBy("..enums..")
         .whereLayer("controller").mayNotBeAccessedByAnyLayer()
         .whereLayer("domain").mayOnlyBeAccessedByLayers("controller")
-        .whereLayer("storage").mayOnlyBeAccessedByLayers("domain"));
+        .whereLayer("storage").mayOnlyBeAccessedByLayers("domain")
+        .whereLayer("enums").mayNotAccessAnyLayer();
 ```
 
-B-1에서 `enums` 계층이 여기 추가된다(`mayNotAccessAnyLayer`).
+`enums` 계층은 B-1에서 추가됐다.
 
 `service`/`implement`를 별도 계층으로 넣지 않는다. implement는 도메인의 행위이므로 `domain` 패키지 안에 있는 것이 자연스럽고, 이를 ArchUnit 계층으로 쪼개면 논리적인 구분을 패키지 규칙으로 강제하게 된다.
 
@@ -90,7 +96,7 @@ B-1에서 `enums` 계층이 여기 추가된다(`mayNotAccessAnyLayer`).
 
 `storage`는 `domain`을 의존하지 않는다는 규칙은 위 계층 규칙이 이미 포함한다(`domain`은 `controller`만 의존할 수 있으므로). 별도 규칙을 두지 않는다.
 
-**완료 기준**: `./gradlew test` 그린. 이후 모든 PR에서 baseline 위반 수가 줄기만 한다.
+**완료 기준**: `./gradlew test` 그린. 이후 모든 PR에서 baseline 위반 수가 줄기만 한다. (B-3에서 0에 도달해 freeze를 풀었다.)
 
 ---
 
@@ -157,10 +163,30 @@ B-1에서 `enums` 계층이 여기 추가된다(`mayNotAccessAnyLayer`).
 `GameRoomStore`는 위치만 `storage`일 뿐 실제로는 implement 계층 객체다. 도메인 변환을 하고 `MemberRepository`까지 조합한다.
 
 - `storage`에는 `GameRoomRepository`, `GameRoomEntity`, `GameRoomMemberEntity`(순수 JPA)만 남긴다
-- 변환 + 조합은 `domain/room/implement/GameRoomReader`, `GameRoomWriter`로 옮긴다
+- 변환 + 조합은 `GameRoomReader`, `GameRoomWriter`로 옮긴다
 - `GameRoomStoreTest`는 새 위치를 따라 이동
 
 가장 위험한 단계다. 이 파일만 단독 PR로 처리한다.
+
+`GameRoomEntity`가 `RoomSettings`와 `GamePlayer`를 알고 있어 이것도 함께 끊어야 한다. `RoomSettings`는 `toGameCreateInfo()`로 `gamecreator`를 의존하므로 `enums`로 내릴 수 없는 도메인 타입이다. 엔티티가 쓸 자기 모양을 중첩 레코드로 두고, 도메인 쪽 Reader/Writer가 번역한다. D-4에서 clients에 적용할 방식과 같다.
+
+- `GameRoomEntity.Settings` — 설정 일곱 컬럼
+- `GameRoomEntity.MemberState` — `memberId`, `ready`. 닉네임은 저장하지 않는다
+
+위치는 `domain/room/implement/`가 아니라 평평한 `domain`이다. `SongReader`, `ComputerScienceQuizReader`, `HangmanWordReader`가 모두 그렇고, 애그리거트 패키지 분리는 Phase C/D의 일이다.
+
+주의한 지점:
+
+- **트랜잭션 경계**. `save`는 조회 후 엔티티를 고치고 `save`를 부르지 않는다. 더티 체킹에 기대므로 `@Transactional`이 반드시 같은 메서드에 있어야 한다. `GameRoomServiceTransactionBoundaryTest`가 지킨다
+- **지연 로딩**. `findAllBy`, `findWithMembersById`는 `@EntityGraph(attributePaths = "members")`라 members가 즉시 로딩된다. 그래서 변환을 트랜잭션 안에서 하든 밖에서 하든 안전하다. 이 애노테이션을 떼면 `LazyInitializationException`이 난다
+
+옮기기 전에 `GameRoomStoreTest`를 보강했다. 기존 3개는 `loadAll`, `markInterruptedGamesWaiting`, `delete`, 준비 상태 동기화를 덮지 않았고 설정도 일곱 필드 중 넷만 봤다. 두 개의 `int`(`totalRound`, `difficulty`)가 붙어 있어 번역에서 뒤바뀌어도 잡히지 않는 상태였다.
+
+- 설정 일곱 필드 왕복을 `open` 경로와 `save` 경로 각각에서 레코드 전체 비교로 검증
+- `loadAll`, `delete`, `markInterruptedGamesWaiting` 추가
+- 준비 상태 변경과 나간 참가자가 함께 반영되는지 추가
+
+이 클래스는 `@SpringBootTest`이고 롤백이 없어 DB가 테스트 간 공유된다. `loadAll`은 전체 개수 대신 자기가 만든 방만 골라 단정한다.
 
 **완료 기준**: `grep -r "import com.fungame.songquiz.domain" storage/` 결과 0건.
 
@@ -168,7 +194,9 @@ B-1에서 `enums` 계층이 여기 추가된다(`mayNotAccessAnyLayer`).
 
 `domain/member/MemberRepository`, `PasswordResetTokenRepository`, `PromotionRequestRepository`는 Spring Data 인터페이스인데 domain 패키지에 있다. `storage`로 옮긴다.
 
-**완료 기준**: `domain` 아래에 `extends JpaRepository`가 없다. A-1의 baseline이 비므로 `FreezingArchRule`을 일반 `ArchRule`로 바꿔도 그린이다.
+B-3에서 `GameRoomStore`가 사라지면서 `storage → domain.member.MemberRepository` 위반도 함께 없어졌다. 지금 `MemberRepository`를 쓰는 것은 `domain`의 `GameRoomReader`뿐이고 `domain → domain`은 허용된 방향이다. 그래서 **B-4는 ArchUnit이 잡아주는 위반이 아니라 배치 문제다**. Spring Data 인터페이스가 `domain`에 있는 것을 정리하는 일이고, D-3에서 `storage:db-core` 모듈을 뗄 때 필요해진다.
+
+**완료 기준**: `domain` 아래에 `extends JpaRepository`가 없다.
 
 ---
 
@@ -274,9 +302,11 @@ B-1에서 만든 `enums` 패키지를 그대로 모듈로 승격. 의존 없음.
 
 | 지표 | 현재 | 목표 |
 | --- | --- | --- |
-| `storage → domain` import | 2개 파일 (A-1 시점 5개) | 0 |
+| `storage → domain` import | **0** (A-1 시점 5개 파일) | 0 |
 | service가 repository 직접 의존 | 14개 파일 | 0 (리뷰로 확인) |
-| ArchUnit freeze 위반 수 | 41 (A-1 시점 92) | 0 |
+| ArchUnit 위반 수 | **0** (A-1 시점 92) | 0 |
+
+ArchUnit 위반이 0이 되어 B-3에서 `FreezingArchRule`을 일반 `ArchRule`로 바꿨다. `archunit_store/`와 `archunit.properties`는 지웠다. 이제 위반이 하나라도 생기면 바로 실패한다.
 | gradle 모듈 수 | 1 | 9 |
 
 ## PR 운영

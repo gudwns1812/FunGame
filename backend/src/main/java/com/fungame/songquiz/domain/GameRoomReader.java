@@ -1,12 +1,10 @@
-package com.fungame.songquiz.storage;
+package com.fungame.songquiz.domain;
 
-import com.fungame.songquiz.domain.GamePlayer;
-import com.fungame.songquiz.domain.GameRoom;
-import com.fungame.songquiz.enums.GameRoomStatus;
-import com.fungame.songquiz.domain.RoomSettings;
-import com.fungame.songquiz.domain.StoredRoom;
 import com.fungame.songquiz.domain.member.Member;
 import com.fungame.songquiz.domain.member.MemberRepository;
+import com.fungame.songquiz.storage.GameRoomEntity;
+import com.fungame.songquiz.storage.GameRoomMemberEntity;
+import com.fungame.songquiz.storage.GameRoomRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -20,41 +18,10 @@ import java.util.stream.Collectors;
 
 @Component
 @RequiredArgsConstructor
-public class GameRoomStore {
+public class GameRoomReader {
 
     private final GameRoomRepository gameRoomRepository;
     private final MemberRepository memberRepository;
-
-    @Transactional
-    public Long open(RoomSettings settings, GamePlayer host) {
-        GameRoomEntity entity = GameRoomEntity.open(settings, host.memberId());
-        entity.syncMembers(List.of(host.setReady(true)));
-
-        return gameRoomRepository.save(entity).getId();
-    }
-
-    @Transactional
-    public void save(Long roomId, GameRoom room) {
-        gameRoomRepository.findWithMembersById(roomId).ifPresent(entity -> {
-            entity.applySettings(room.getSettings());
-            entity.changeStatus(room.getStatus());
-            entity.changeHost(room.getPlayers().getHost());
-            entity.touch(room.getLastActivityTime());
-            entity.syncMembers(room.getPlayers().snapshot());
-        });
-    }
-
-    @Transactional
-    public void markInterruptedGamesWaiting() {
-        gameRoomRepository.findAllBy().stream()
-                .filter(entity -> entity.getStatus() == GameRoomStatus.PLAYING)
-                .forEach(entity -> entity.changeStatus(GameRoomStatus.WAITING));
-    }
-
-    @Transactional
-    public void delete(Long roomId) {
-        gameRoomRepository.deleteById(roomId);
-    }
 
     @Transactional(readOnly = true)
     public Optional<StoredRoom> load(Long roomId) {
@@ -93,10 +60,21 @@ public class GameRoomStore {
 
         return new StoredRoom(
                 entity.getId(),
-                entity.toSettings(),
+                toRoomSettings(entity.toSettings()),
                 entity.getStatus(),
                 entity.getHostMemberId(),
                 players,
                 entity.getLastActivityTime());
+    }
+
+    private static RoomSettings toRoomSettings(GameRoomEntity.Settings settings) {
+        return new RoomSettings(
+                settings.gameType(),
+                settings.title(),
+                settings.maxPlayer(),
+                settings.category(),
+                settings.totalRound(),
+                settings.difficulty(),
+                settings.csDifficulty());
     }
 }

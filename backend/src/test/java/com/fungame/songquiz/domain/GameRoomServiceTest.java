@@ -5,7 +5,6 @@ import com.fungame.songquiz.domain.event.PlayerJoinEvent;
 import com.fungame.songquiz.domain.event.PlayerLeaveEvent;
 import com.fungame.songquiz.domain.gamecreator.SongGameFactory;
 import com.fungame.songquiz.domain.member.MemberPresenceService;
-import com.fungame.songquiz.storage.GameRoomStore;
 import com.fungame.songquiz.enums.Category;
 import com.fungame.songquiz.enums.GameType;
 import org.junit.jupiter.api.BeforeEach;
@@ -33,7 +32,10 @@ class GameRoomServiceTest {
     private static final GamePlayer LEAVER = GamePlayer.createNewPlayer(12L, "이탈자");
 
     @Mock
-    GameRoomStore gameRoomStore;
+    GameRoomReader gameRoomReader;
+
+    @Mock
+    GameRoomWriter gameRoomWriter;
 
     @Mock
     SongReader songReader;
@@ -56,7 +58,8 @@ class GameRoomServiceTest {
     void setUp() {
         service = new GameRoomService(
                 gameRoomManager,
-                gameRoomStore,
+                gameRoomReader,
+                gameRoomWriter,
                 gameService,
                 new RoomPresence(),
                 memberPresenceService,
@@ -69,7 +72,7 @@ class GameRoomServiceTest {
         // given
         RoomSettings settings = new RoomSettings(GameType.SONG, "방2", 8, Category.KPOP, 10, 0, CSQuizDifficulty.HARD);
 
-        given(gameRoomStore.open(settings, HOST)).willReturn(7L);
+        given(gameRoomWriter.open(settings, HOST)).willReturn(7L);
 
         // when
         Long roomId = service.createRoom(settings, HOST);
@@ -158,7 +161,7 @@ class GameRoomServiceTest {
     void 방을_만든_사람은_그_방의_대기실에_있는_것으로_기록된다() {
         // given
         RoomSettings settings = new RoomSettings(GameType.SONG, "방2", 8, Category.KPOP, 10, 0, CSQuizDifficulty.HARD);
-        given(gameRoomStore.open(settings, HOST)).willReturn(7L);
+        given(gameRoomWriter.open(settings, HOST)).willReturn(7L);
 
         // when
         service.createRoom(settings, HOST);
@@ -213,7 +216,7 @@ class GameRoomServiceTest {
         service.resetInterruptedGames();
 
         // then
-        verify(gameRoomStore).markInterruptedGamesWaiting();
+        verify(gameRoomWriter).markInterruptedGamesWaiting();
         verify(memberPresenceService).clearEveryLocation();
     }
 

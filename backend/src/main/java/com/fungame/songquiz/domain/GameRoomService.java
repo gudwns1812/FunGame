@@ -10,7 +10,6 @@ import com.fungame.songquiz.domain.event.PlayerReadyEvent;
 import com.fungame.songquiz.domain.event.RoomChangedEvent;
 import com.fungame.songquiz.domain.event.RoomSettingsChangedEvent;
 import com.fungame.songquiz.domain.member.MemberPresenceService;
-import com.fungame.songquiz.storage.GameRoomStore;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
@@ -26,7 +25,8 @@ import java.util.List;
 public class GameRoomService {
 
     private final GameRoomManager gameRoomManager;
-    private final GameRoomStore gameRoomStore;
+    private final GameRoomReader gameRoomReader;
+    private final GameRoomWriter gameRoomWriter;
     private final GameService gameService;
     private final RoomPresence roomPresence;
     private final MemberPresenceService memberPresenceService;
@@ -34,12 +34,12 @@ public class GameRoomService {
 
     @EventListener(ApplicationReadyEvent.class)
     public void resetInterruptedGames() {
-        gameRoomStore.markInterruptedGamesWaiting();
+        gameRoomWriter.markInterruptedGamesWaiting();
         memberPresenceService.clearEveryLocation();
     }
 
     public Long createRoom(RoomSettings settings, GamePlayer host) {
-        Long roomId = gameRoomStore.open(settings, host);
+        Long roomId = gameRoomWriter.open(settings, host);
 
         gameRoomManager.createGameRoom(roomId, settings, host);
         memberPresenceService.enterWaitingRoom(host.memberId(), roomId);
@@ -87,7 +87,7 @@ public class GameRoomService {
     }
 
     public List<RoomInfo> findAllRooms() {
-        return gameRoomStore.loadAll().stream()
+        return gameRoomReader.loadAll().stream()
                 .map(stored -> RoomInfo.of(stored, roomPresence.countConnectedIn(stored.roomId())))
                 .toList();
     }

@@ -4,7 +4,6 @@ import com.tngtech.archunit.core.importer.ImportOption;
 import com.tngtech.archunit.junit.AnalyzeClasses;
 import com.tngtech.archunit.junit.ArchTest;
 import com.tngtech.archunit.lang.ArchRule;
-import com.tngtech.archunit.library.freeze.FreezingArchRule;
 
 import static com.tngtech.archunit.library.Architectures.layeredArchitecture;
 
@@ -24,7 +23,7 @@ class LayerDependencyTest {
     private static final String ENUMS_PACKAGE = "..enums..";
 
     @ArchTest
-    static final ArchRule 의존은_controller에서_domain_storage_enums_한_방향으로만_흐른다 = FreezingArchRule.freeze(
+    static final ArchRule 의존은_controller에서_domain_storage_enums_한_방향으로만_흐른다 =
             layeredArchitecture()
                     .consideringOnlyDependenciesInLayers()
                     .layer(CONTROLLER).definedBy(CONTROLLER_PACKAGE)
@@ -35,5 +34,5 @@ class LayerDependencyTest {
                     .whereLayer(DOMAIN).mayOnlyBeAccessedByLayers(CONTROLLER)
                     .whereLayer(STORAGE).mayOnlyBeAccessedByLayers(DOMAIN)
                     .whereLayer(ENUMS).mayNotAccessAnyLayer()
-                    .as("의존은 controller에서 domain, storage, enums 한 방향으로만 흐른다"));
+                    .as("의존은 controller에서 domain, storage, enums 한 방향으로만 흐른다");
 }
