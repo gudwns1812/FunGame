@@ -504,9 +504,33 @@ actuator 와 prometheus 를 넣고 `support:monitoring` 모듈로 뺐다. 모듈
 
 `support:logging` 은 만들지 않는다. 현재 로깅은 Boot 기본값이고 `local` 프로파일에 레벨 세 줄이 전부다. 로그 포맷·파일 출력·레벨 정책을 정하는 것은 별도 설계 작업이고, 그때 모듈이 필요하면 만든다.
 
-### D-6. tests:api-docs 추출
+### D-6. tests:api-docs 추출 — 하지 않는다
 
-`RestDocsSupport`를 모듈로. `core-api`의 `testImplementation`으로만 붙인다.
+`RestDocsSupport`는 **아무도 쓰지 않는 죽은 코드였다.** 문서 테스트 셋은 `standaloneSetup` 으로 컨트롤러를 직접 만들어 쓰는데, `RestDocsSupport` 는 `@Autowired WebApplicationContext` 를 요구하는 `webAppContextSetup` 방식이다. 상속하려면 세 테스트를 전부 통합 테스트로 바꿔야 한다. BACKEND.md 의 "최대한 스텁으로 해결한다" 와도 어긋난다.
+
+그래서 모듈을 만들지 않고 `RestDocsSupport` 를 지웠다.
+
+#### 대신 끊어져 있던 문서 파이프라인을 이었다
+
+RestDocs 는 컨트롤러 테스트라고 저절로 스니펫을 만들지 않는다. `@ExtendWith(RestDocumentationExtension.class)` + `documentationConfiguration(...)` + `andDo(document(...))` 세 가지가 다 있어야 한다. 이건 이미 되어 있어 스니펫 85개가 만들어지고 있었다.
+
+문제는 그 다음이었다. asciidoctor 는 스니펫을 직접 읽지 않고 `src/docs/asciidoc/*.adoc` 문서를 변환하며 `operation::` 으로 끌어온다. **그 문서가 없었다.** 스니펫은 생성되고 아무도 쓰지 않았다.
+
+```
+테스트 -> 스니펫 85개 -> (조립할 문서 없음) -> HTML 없음 -> static/docs 비어 있음
+```
+
+세 가지가 빠져 있었다.
+
+- `src/docs/asciidoc/index.adoc` — 스니펫을 조립하는 문서
+- `asciidoctorExtensions 'org.springframework.restdocs:spring-restdocs-asciidoctor'` — `operation::` 매크로와 `{snippets}` 속성을 주는 확장. `configurations` 선언만 있고 의존이 비어 있었다
+- `attributes 'snippets': snippetsDir`
+
+그리고 `bootJar` 의 복사 경로가 틀려 있었다. `"${asciidoctor.outputDir}/html5"` 를 가리키는데 실제 출력은 `build/docs/asciidoc/` 바로 아래다. 조립된 문서가 없어서 지금까지 드러나지 않았다.
+
+이제 `bootJar` 안에 `static/docs/index.html` 이 들어간다.
+
+루트의 `api/*.md` 는 손으로 쓴 문서다. 생성물이 그리로 흘러가지 않는다. BACKEND.md 는 빌드 산출물을 `api/` 로 배포하라고 하는데 실제로는 연결되어 있지 않다. 별도로 다룰 일이다.
 
 ---
 

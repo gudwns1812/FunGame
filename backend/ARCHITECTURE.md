@@ -55,9 +55,6 @@ backend/
 │
 ├── support/
 │   └── monitoring/
-│
-└── tests/
-    └── api-docs/
 ```
 
 ```
@@ -67,7 +64,6 @@ include 'storage:db-core'
 include 'clients:client-youtube'
 include 'clients:client-mail'
 include 'support:monitoring'
-include 'tests:api-docs'
 ```
 
 ## 모듈 의존 관계
@@ -80,14 +76,12 @@ graph TD
     youtube["clients:client-youtube"]
     mail["clients:client-mail"]
     monitoring["support:monitoring"]
-    apidocs["tests:api-docs"]
 
     core-api --> core-enum
     core-api --> db-core
     core-api --> youtube
     core-api --> mail
     core-api --> monitoring
-    core-api -. test .-> apidocs
 
     db-core --> core-enum
 ```
@@ -96,13 +90,12 @@ graph TD
 
 | 모듈 | 의존하는 모듈 |
 | --- | --- |
-| `core:core-api` | `core:core-enum`, `storage:db-core`, `clients:*`, `support:*`, (테스트) `tests:api-docs` |
+| `core:core-api` | `core:core-enum`, `storage:db-core`, `clients:*`, `support:*` |
 | `storage:db-core` | `core:core-enum` |
 | `core:core-enum` | 없음 |
 | `clients:client-youtube` | 없음 |
 | `clients:client-mail` | 없음 |
 | `support:monitoring` | 없음 |
-| `tests:api-docs` | 없음 |
 
 ### 규칙
 
@@ -112,7 +105,6 @@ graph TD
 - `support:*`는 **외부 호출이 없는 횡단 관심사**다(로깅 설정, 모니터링 노출). 서로를 의존하지 않고 각각 독립적으로 `core:core-api`에만 붙는다.
 - 메일은 AWS SES 를 호출하므로 `support`가 아니라 `clients:client-mail`이다. `support`에 두면 "외부 호출 없는 횡단 관심사"라는 기준이 깨진다.
 - 각 모듈은 자기 설정을 자기 리소스에 갖고, `core:core-api`의 `application.yml`이 `spring.config.import`로 가져간다.
-- `tests:api-docs`는 `core:core-api`의 `testImplementation`으로만 붙는다.
 
 ```groovy
 // core/core-api/build.gradle
@@ -122,8 +114,6 @@ dependencies {
     implementation project(':clients:client-youtube')
     implementation project(':clients:client-mail')
     implementation project(':support:monitoring')
-
-    testImplementation project(':tests:api-docs')
 }
 
 // storage/db-core/build.gradle
@@ -218,9 +208,14 @@ support/
     └── src/main/resources/          monitoring.yml
 ```
 
-## tests/api-docs
+## API 문서
+
+RestDocs 스니펫은 `core:core-api` 의 테스트가 만든다. 별도 모듈로 빼지 않는다.
 
 ```
-tests/api-docs/
-└── src/main/java/com/fungame/songquiz/test/api/
+core/core-api/
+├── src/docs/asciidoc/index.adoc     스니펫을 조립하는 문서
+└── build/generated-snippets/        테스트가 만든 스니펫
 ```
+
+`bootJar` 가 변환 결과를 `static/docs` 로 넣는다.
