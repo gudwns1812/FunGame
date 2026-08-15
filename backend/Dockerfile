@@ -15,6 +15,10 @@ COPY backend/clients/client-youtube/build.gradle /app/backend/clients/client-you
 COPY backend/clients/client-mail/build.gradle /app/backend/clients/client-mail/build.gradle
 COPY backend/support/monitoring/build.gradle /app/backend/support/monitoring/build.gradle
 
+# core-enum 은 선언할 것이 없어 build.gradle 이 없습니다. 그래서 위 COPY 로는
+# 디렉터리가 만들어지지 않고, gradle 이 "projectDirectory does not exist" 로 죽습니다.
+RUN mkdir -p backend/core/core-enum
+
 # 의존성 먼저 다운로드 (코드 변경 시에도 의존성 다운로드 단계는 건너뜀)
 RUN chmod +x gradlew && ./gradlew :backend:core:core-api:dependencies --no-daemon
 
