@@ -73,7 +73,7 @@ DB 나 공용 개발 서버 없이 혼자 기능을 확인할 때 쓰세요.
 
 백엔드 (`local` 프로파일: H2 + 시드 데이터 + localhost CORS + Secure 쿠키 해제):
 ```bash
-./gradlew :backend:bootRun --args='--spring.profiles.active=local'
+./gradlew :backend:core:core-api:bootRun --args='--spring.profiles.active=local'
 ```
 
 프론트엔드 (`localdev` 모드: `http://localhost:8080` 을 바라보고 5199 포트로 기동):
@@ -81,7 +81,7 @@ DB 나 공용 개발 서버 없이 혼자 기능을 확인할 때 쓰세요.
 npm run dev:local --prefix frontend
 ```
 
-시드는 `backend/src/main/resources/db/local-seed.sql` 에 있습니다.
+시드는 `backend/core/core-api/src/main/resources/db/local/R__local_seed.sql` 에 있습니다.
 방 번호 채번용 카운터와 CS 퀴즈 5문제가 들어 있어 CS 퀴즈는 바로 플레이할 수 있습니다.
 음악 퀴즈는 유튜브 링크가 필요하므로 관리자 화면에서 곡을 등록한 뒤 사용하세요.
 

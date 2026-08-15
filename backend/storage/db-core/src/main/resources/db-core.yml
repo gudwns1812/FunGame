@@ -1,0 +1,38 @@
+# db-core 모듈이 소유하는 DB 설정입니다.
+# core-api 의 application.yml 이 spring.config.import 로 가져갑니다.
+#
+# 가져오는 쪽이 우선순위가 높으므로, 환경별로 달라져야 하는 값은
+# application.yml 이나 application-<profile>.yml 에서 덮어쓰면 됩니다.
+
+spring:
+  datasource:
+    hikari:
+      maximum-pool-size: 30
+      connection-timeout: 30000 # 커넥션 대기 타임아웃 (ms)
+  flyway:
+    locations: classpath:db/migration,classpath:db/vendor/{vendor}
+    # Flyway 도입 이전부터 존재하던 운영 DB 에는 V1 을 실행하지 않고 적용된 것으로 도장만 찍습니다.
+    # 따라서 V1 은 빈 DB(로컬·테스트)에서만 실행됩니다.
+    baseline-on-migrate: true
+    baseline-version: 1
+    baseline-description: flyway 도입 이전 스키마
+  jpa:
+    hibernate:
+      # 운영 스키마가 엔티티와 어긋나면 기동 시점에 실패시킵니다.
+      # 배포가 막혀 급히 넘겨야 하면 .env 에서 JPA_DDL_AUTO=none 으로 내리세요.
+      ddl-auto: ${JPA_DDL_AUTO:validate}
+
+---
+# 로컬 프로파일. 외부 DB 없이 인메모리 H2 로 단독 기동합니다.
+spring:
+  config:
+    activate:
+      on-profile: local
+  datasource:
+    url: jdbc:h2:mem:songquiz;DB_CLOSE_DELAY=-1;MODE=MySQL
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: ""
+  flyway:
+    # db/local 은 로컬 전용 시드입니다. 운영은 db/migration 만 실행합니다.
+    locations: classpath:db/migration,classpath:db/vendor/{vendor},classpath:db/local

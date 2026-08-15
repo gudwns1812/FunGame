@@ -82,18 +82,18 @@ DB에 있는 것은 `Song`, `ComputerScience`, `Counter`, 그리고 `spring-sess
 
 | # | 위치 | 문제 | 2대에서 나타나는 증상 |
 |---|---|---|---|
-| 1 | [GameRoomManager.java](backend/src/main/java/com/fungame/songquiz/domain/GameRoomManager.java) `gameRooms` | 방 레지스트리가 인메모리 | A에서 만든 방이 B의 `GET /game/rooms` 목록에 안 보임. B로 붙은 유저는 `GAME_ROOM_NOT_FOUND` |
-| 2 | [GameSessionManager.java](backend/src/main/java/com/fungame/songquiz/domain/GameSessionManager.java) `manager` | 게임 세션이 인메모리 | 채팅 정답이 B로 들어오면 세션이 없어서 조용히 무시됨 (`gameSession == null` → return) |
-| 3 | [LockContext.java](backend/src/main/java/com/fungame/songquiz/support/lock/LockContext.java) | `ReentrantLock`은 JVM 로컬 | 같은 방에 대한 join/leave/ready가 A와 B에서 동시에 실행되어 상호배제 소멸 |
-| 4 | [GameTimer.java](backend/src/main/java/com/fungame/songquiz/domain/GameTimer.java) | 타이머가 로컬 스케줄러 | 게임을 시작한 인스턴스만 라운드를 진행. 그 인스턴스가 죽으면 방이 영원히 멈춤 (복구 경로 없음) |
-| 5 | [WebSocketConfig.java](backend/src/main/java/com/fungame/songquiz/controller/config/WebSocketConfig.java) `enableSimpleBroker` | 브로커가 JVM 내부 | A가 `/topic/room/1`로 보낸 메시지가 B에 붙은 구독자에게 **전달되지 않음**. 같은 방인데 화면이 다르게 보임 |
-| 6 | [SseService.java](backend/src/main/java/com/fungame/songquiz/support/sse/SseService.java) `emitters` | emitter가 로컬 | 방 목록 `REFRESH`가 같은 인스턴스 구독자에게만 감. 로비 목록이 갱신 안 되는 유저 발생 |
-| 7 | [WebSocketEventListener.java](backend/src/main/java/com/fungame/songquiz/controller/websocket/WebSocketEventListener.java) `sessionMap` / `pendingLeaves` | 접속 추적이 로컬 | A에서 끊긴 유저가 B로 재접속하면 A의 pending leave가 취소되지 않아 **재접속 성공 후 5초 뒤 강제 퇴장** |
+| 1 | [GameRoomManager.java](backend/core/core-api/src/main/java/com/fungame/songquiz/domain/GameRoomManager.java) `gameRooms` | 방 레지스트리가 인메모리 | A에서 만든 방이 B의 `GET /game/rooms` 목록에 안 보임. B로 붙은 유저는 `GAME_ROOM_NOT_FOUND` |
+| 2 | [GameSessionManager.java](backend/core/core-api/src/main/java/com/fungame/songquiz/domain/GameSessionManager.java) `manager` | 게임 세션이 인메모리 | 채팅 정답이 B로 들어오면 세션이 없어서 조용히 무시됨 (`gameSession == null` → return) |
+| 3 | [LockContext.java](backend/core/core-api/src/main/java/com/fungame/songquiz/support/lock/LockContext.java) | `ReentrantLock`은 JVM 로컬 | 같은 방에 대한 join/leave/ready가 A와 B에서 동시에 실행되어 상호배제 소멸 |
+| 4 | [GameTimer.java](backend/core/core-api/src/main/java/com/fungame/songquiz/domain/GameTimer.java) | 타이머가 로컬 스케줄러 | 게임을 시작한 인스턴스만 라운드를 진행. 그 인스턴스가 죽으면 방이 영원히 멈춤 (복구 경로 없음) |
+| 5 | [WebSocketConfig.java](backend/core/core-api/src/main/java/com/fungame/songquiz/controller/config/WebSocketConfig.java) `enableSimpleBroker` | 브로커가 JVM 내부 | A가 `/topic/room/1`로 보낸 메시지가 B에 붙은 구독자에게 **전달되지 않음**. 같은 방인데 화면이 다르게 보임 |
+| 6 | [SseService.java](backend/core/core-api/src/main/java/com/fungame/songquiz/support/sse/SseService.java) `emitters` | emitter가 로컬 | 방 목록 `REFRESH`가 같은 인스턴스 구독자에게만 감. 로비 목록이 갱신 안 되는 유저 발생 |
+| 7 | [WebSocketEventListener.java](backend/core/core-api/src/main/java/com/fungame/songquiz/controller/websocket/WebSocketEventListener.java) `sessionMap` / `pendingLeaves` | 접속 추적이 로컬 | A에서 끊긴 유저가 B로 재접속하면 A의 pending leave가 취소되지 않아 **재접속 성공 후 5초 뒤 강제 퇴장** |
 | 8 | `ApplicationEventPublisher` 전반 | 프로세스 내부 이벤트 | 도메인 이벤트가 인스턴스 경계를 넘지 못함. 5·6번의 근본 원인 |
 | 9 | `@Scheduled` 3곳 (`cleanupIdleRooms`, `processPendingUpdate`, `sendHeartbeat`) | 모든 인스턴스에서 각각 실행 | 하트비트 N배 발송, 유휴 방 정리가 각자 로컬 맵만 보고 돌아 일관성 없음 |
-| 10 | [GameRoomService.createRoom](backend/src/main/java/com/fungame/songquiz/domain/GameRoomService.java) `counter.increment()` | read-modify-write에 락 없음 | **1대에서도 이미 버그.** 동시 생성 시 lost update로 roomId 중복 → 기존 방 덮어쓰기 |
+| 10 | [GameRoomService.createRoom](backend/core/core-api/src/main/java/com/fungame/songquiz/domain/GameRoomService.java) `counter.increment()` | read-modify-write에 락 없음 | **1대에서도 이미 버그.** 동시 생성 시 lost update로 roomId 중복 → 기존 방 덮어쓰기 |
 | 11 | `withSockJS()` | SockJS XHR 폴백은 여러 요청이 같은 인스턴스로 가야 함 | 스티키 세션 없으면 폴백 전송 자체가 실패 |
-| 12 | [YoutubeScraper.java](backend/src/main/java/com/fungame/songquiz/support/extern/YoutubeScraper.java) | 캐시 없는 외부 스크래핑 | 인스턴스 수만큼 외부 호출 증가 → 차단/레이트리밋 위험 |
+| 12 | [YoutubeScraper.java](backend/core/core-api/src/main/java/com/fungame/songquiz/support/extern/YoutubeScraper.java) | 캐시 없는 외부 스크래핑 | 인스턴스 수만큼 외부 호출 증가 → 차단/레이트리밋 위험 |
 
 ### 2.1 서버 대수와 무관하게 이미 고쳐야 하는 것 (A층)
 
@@ -125,7 +125,7 @@ tick 자체는 짧으므로 10 스레드로 방 여러 개는 감당합니다. �
 
 **(c) `@EnableAsync` 기본 executor**
 
-[AsyncConfig.java](backend/src/main/java/com/fungame/songquiz/controller/config/AsyncConfig.java)는 executor를 지정하지 않아 Boot 기본값(core 8, **큐 무제한**)을 씁니다. 부하가 올라가면 예외 대신 **브로드캐스트가 조용히 지연**됩니다. 무제한 큐는 장애를 늦게 알려주는 쪽으로 실패합니다. 큐 상한과 거부 정책, 큐 깊이 메트릭이 필요합니다.
+[AsyncConfig.java](backend/core/core-api/src/main/java/com/fungame/songquiz/controller/config/AsyncConfig.java)는 executor를 지정하지 않아 Boot 기본값(core 8, **큐 무제한**)을 씁니다. 부하가 올라가면 예외 대신 **브로드캐스트가 조용히 지연**됩니다. 무제한 큐는 장애를 늦게 알려주는 쪽으로 실패합니다. 큐 상한과 거부 정책, 큐 깊이 메트릭이 필요합니다.
 
 **(d) `LockContext`의 락 생애주기**
 

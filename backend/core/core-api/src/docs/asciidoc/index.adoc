@@ -1,0 +1,55 @@
+= FunGame API 문서
+:doctype: book
+:icons: font
+:source-highlighter: highlightjs
+:toc: left
+:toclevels: 2
+:sectlinks:
+:sectnums:
+
+이 문서는 테스트가 만든 스니펫으로 조립됩니다. 테스트에서 `document(...)` 를 부른
+요청과 응답만 실립니다. 손으로 고치지 마세요.
+
+== 인증
+
+=== 닉네임 중복 확인 - 중복인 경우
+operation::auth/check-nickname-duplicated[snippets='http-request,http-response']
+
+=== 닉네임 중복 확인 - 사용 가능한 경우
+operation::auth/check-nickname-not-duplicated[snippets='http-request,http-response']
+
+=== 비밀번호 재설정 요청
+operation::auth/password-reset-request[snippets='http-request,request-body,http-response']
+
+=== 비밀번호 재설정
+operation::auth/password-reset[snippets='http-request,request-body,http-response']
+
+== 방
+
+=== 방 생성
+operation::room-create[snippets='http-request,request-body,http-response,response-body']
+
+=== 방 목록
+operation::room-list[snippets='http-request,http-response,response-body']
+
+=== 방 참가
+operation::room-join[snippets='path-parameters,http-request,http-response,response-body']
+
+=== 방 설정 조회
+operation::room-settings[snippets='path-parameters,http-request,http-response,response-body']
+
+=== 방 설정 변경
+operation::room-settings-change[snippets='path-parameters,http-request,request-body,http-response']
+
+=== 준비 상태 변경
+operation::room-ready[snippets='path-parameters,http-request,http-response,response-body']
+
+== 게임
+
+=== 게임 시작
+operation::game-start[snippets='path-parameters,http-request,request-body,http-response,response-body']
+
+== SSE
+
+=== 방 목록 구독
+operation::sse-subscribe[snippets='http-request,http-response']

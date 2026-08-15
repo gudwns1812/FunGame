@@ -1,0 +1,191 @@
+package com.fungame.songquiz.acceptance;
+
+import com.fungame.songquiz.domain.GameRoomService;
+import com.fungame.songquiz.domain.GameService;
+import com.fungame.songquiz.domain.GameTimer;
+import com.fungame.songquiz.enums.GameType;
+import com.fungame.songquiz.domain.event.*;
+import com.fungame.songquiz.domain.gamecreator.CsQuizGameCreateInfo;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import com.fungame.songquiz.storage.IntegrationTest;
+import com.fungame.songquiz.enums.CSQuizDifficulty;
+import com.fungame.songquiz.enums.PlayerStatus;
+import com.fungame.songquiz.enums.Role;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Import;
+import org.springframework.context.event.EventListener;
+import org.springframework.stereotype.Component;
+import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.TimeUnit;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.awaitility.Awaitility.await;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.Mockito.doAnswer;
+
+@IntegrationTest
+@ActiveProfiles("test")
+@Import(GameServiceIntegrationTest.TestEventCapture.class)
+public class GameServiceIntegrationTest {
+
+    @Autowired
+    private GameService gameService;
+
+    @Autowired
+    private GameRoomService gameRoomService;
+
+    @MockitoBean
+    private GameTimer gameTimer;
+
+    @Autowired
+    private TestEventCapture eventCapture;
+
+    @Autowired
+    private com.fungame.songquiz.storage.CounterRepository counterRepository;
+
+    @Autowired
+    private com.fungame.songquiz.storage.ComputerScienceRepository computerScienceRepository;
+
+    @Autowired
+    private com.fungame.songquiz.storage.MemberRepository memberRepository;
+
+    private Long roomId;
+    private final String hostName = "host";
+    private final String player1 = "player1";
+    private com.fungame.songquiz.domain.GamePlayer host;
+    private com.fungame.songquiz.domain.GamePlayer guest;
+
+    @BeforeEach
+    void setUp() {
+        eventCapture.clear();
+
+        // 데이터 초기화
+        counterRepository.save(new com.fungame.songquiz.storage.CounterEntity(null, "GAME_ROOM_COUNTER", 0L));
+
+        // CS 문제 데이터 추가 (정답을 명시적으로 알기 위해 고정)
+        computerScienceRepository.save(com.fungame.songquiz.storage.ComputerScienceEntity.builder()
+                .field("OS")
+                .content("문제1")
+                .answers(List.of("정답1"))
+                .explanation("설명1")
+                .difficulty(com.fungame.songquiz.enums.CSQuizDifficulty.EASY)
+                .build());
+        computerScienceRepository.save(com.fungame.songquiz.storage.ComputerScienceEntity.builder()
+                .field("DB")
+                .content("문제2")
+                .answers(List.of("정답2"))
+                .explanation("설명2")
+                .difficulty(com.fungame.songquiz.enums.CSQuizDifficulty.NORMAL)
+                .build());
+
+        // 방 생성 및 입장
+        Long hostId = saveMember(hostName);
+        Long player1Id = saveMember(player1);
+
+        host = com.fungame.songquiz.domain.GamePlayer.createNewPlayer(hostId, hostName);
+        guest = com.fungame.songquiz.domain.GamePlayer.createNewPlayer(player1Id, player1);
+
+        roomId = gameRoomService.createRoom(
+                new com.fungame.songquiz.domain.RoomSettings(GameType.CS, "테스트 방", 5, null, 2, 0, com.fungame.songquiz.enums.CSQuizDifficulty.HARD),
+                host
+        );
+        gameRoomService.joinRoom(roomId, guest);
+        gameRoomService.readyPlayer(roomId, guest.memberId()); // player1도 준비 완료!
+
+        // 타이머 동작 모킹: 순서 제어를 위해 콜백을 보관하거나 즉시 실행(약간의 지연 추가)
+        doAnswer(invocation -> {
+            Runnable callback = invocation.getArgument(2);
+            // 약간의 딜레이를 주어 스레드 경쟁이나 순서 꼬임 방지
+            new Thread(() -> {
+                try {
+                    Thread.sleep(10);
+                } catch (InterruptedException e) {
+                }
+                callback.run();
+            }).start();
+            return null;
+        }).when(gameTimer).startAfter(any(), anyInt(), any());
+    }
+
+    @Test
+    @DisplayName("전체 게임 흐름(시작-정답-종료)이 올바르게 동작하는지 검증한다")
+    void fullGameFlowTest() {
+        // 1. 게임 시작
+        gameService.startGame(roomId, host.memberId());
+
+        // GameStartEvent 및 첫 라운드 시작 대기
+        await().atMost(2, TimeUnit.SECONDS).untilAsserted(() -> {
+            assertThat(eventCapture.getEvents(GameStartEvent.class)).hasSize(1);
+            assertThat(eventCapture.getEvents(RoundStartEvent.class)).hasSize(1);
+        });
+
+        // 2. 1라운드 정답 입력 ("정답1" 또는 "정답2" - shuffle 때문)
+        RoundStartEvent currentRound = eventCapture.getEvents(RoundStartEvent.class).get(0);
+        String question = currentRound.content().data().get(2);
+        String answer = question.equals("문제1") ? "정답1" : "정답2";
+
+        gameService.processAnswer(roomId, guest.memberId(), answer);
+
+        // 1라운드 종료 확인 및 2라운드 시작 대기
+        await().atMost(2, TimeUnit.SECONDS).untilAsserted(() -> {
+            assertThat(eventCapture.getEvents(RoundEndEvent.class)).hasSize(1);
+            assertThat(eventCapture.getEvents(RoundStartEvent.class)).hasSize(2);
+        });
+
+        // 3. 2라운드 정답 입력
+        RoundStartEvent nextRound = eventCapture.getEvents(RoundStartEvent.class).get(1);
+        String nextAnswer = nextRound.content().data().get(2).equals("문제1") ? "정답1" : "정답2";
+
+        gameService.processAnswer(roomId, guest.memberId(), nextAnswer);
+
+        // 4. 게임 전체 결과 및 종료 확인
+        await().atMost(5, TimeUnit.SECONDS).untilAsserted(() -> {
+            assertThat(eventCapture.getEvents(RoundEndEvent.class)).hasSize(2);
+            assertThat(eventCapture.getEvents(GameResultEvent.class)).hasSize(1);
+        });
+    }
+
+    @Component
+    public static class TestEventCapture {
+        private final List<Object> events = java.util.Collections.synchronizedList(new ArrayList<>());
+
+        @EventListener
+        public void capture(Object event) {
+            if (event.getClass().getPackageName().startsWith("com.fungame.songquiz.domain.event")) {
+                events.add(event);
+            }
+        }
+
+        public void clear() {
+            events.clear();
+        }
+
+        @SuppressWarnings("unchecked")
+        public <T> List<T> getEvents(Class<T> type) {
+            synchronized (events) {
+                return events.stream()
+                        .filter(type::isInstance)
+                        .map(e -> (T) e)
+                        .toList();
+            }
+        }
+    }
+
+    private Long saveMember(String nickname) {
+        return memberRepository.save(com.fungame.songquiz.storage.MemberEntity.builder()
+                .loginId(nickname)
+                .password("password")
+                .nickname(nickname)
+                .email(nickname + "@fun-game.club")
+                .role(com.fungame.songquiz.enums.Role.USER)
+                .status(PlayerStatus.LOBBY)
+                .build()).getId();
+    }
+}

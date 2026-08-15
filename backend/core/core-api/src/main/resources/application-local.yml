@@ -1,0 +1,32 @@
+# 로컬 개발용 프로파일. DB 설정은 db-core.yml 의 local 문서가 갖습니다.
+#
+#   ./gradlew :backend:core:core-api:bootRun --args='--spring.profiles.active=local'
+#
+# 프론트엔드는 frontend 디렉터리에서 `npm run dev:local` 로 띄우면
+# 아래 CORS 설정과 맞는 포트(5199)로 붙습니다.
+
+cors:
+  allowed-origins: "http://localhost:5199,http://127.0.0.1:5199"
+
+server:
+  port: 8080
+  servlet:
+    session:
+      cookie:
+        # http 로컬 개발에서는 Secure 쿠키가 전달되지 않으므로 반드시 false 여야 합니다.
+        secure: false
+        same-site: lax
+
+spring:
+  session:
+    jdbc:
+      initialize-schema: always
+
+app:
+  password-reset:
+    # 로컬에서는 메일을 보내지 않고 이 주소로 만든 링크를 로그로 출력합니다.
+    link-base-url: http://localhost:5199/reset-password
+
+logging:
+  level:
+    com.fungame.songquiz: DEBUG

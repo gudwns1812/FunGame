@@ -11,16 +11,6 @@ on:
       - 'gradlew'
       - 'gradlew.bat'
       - '.github/workflows/ci-backend.yml'
-  push:
-    branches: [main]
-    paths:
-      - 'backend/**'
-      - 'build.gradle'
-      - 'settings.gradle'
-      - 'gradle/**'
-      - 'gradlew'
-      - 'gradlew.bat'
-      - '.github/workflows/ci-backend.yml'
 
 concurrency:
   group: ci-backend-${{ github.ref }}
@@ -40,11 +30,11 @@ jobs:
 
       - uses: gradle/actions/setup-gradle@v4
 
-      - run: ./gradlew :backend:test
+      - run: ./gradlew :backend:core:core-api:test
 
       - if: always()
         uses: actions/upload-artifact@v4
         with:
           name: backend-test-report
-          path: backend/build/reports/tests/test
+          path: backend/core/core-api/build/reports/tests/test
           retention-days: 7

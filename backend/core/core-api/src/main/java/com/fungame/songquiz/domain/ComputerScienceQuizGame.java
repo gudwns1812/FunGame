@@ -1,0 +1,83 @@
+package com.fungame.songquiz.domain;
+
+import com.fungame.songquiz.domain.dto.GameAnswerDto;
+import com.fungame.songquiz.domain.dto.GameContentDto;
+import com.fungame.songquiz.domain.dto.GameInfo;
+import com.fungame.songquiz.enums.GameType;
+import com.fungame.songquiz.enums.ActionResult;
+
+import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
+
+public class ComputerScienceQuizGame extends AbstractQuizGame {
+
+    private static final int ROUND_NOT_STARTED = -1;
+
+    private final List<ComputerScienceQuiz> quizs;
+    private final AtomicInteger currentIdx = new AtomicInteger(ROUND_NOT_STARTED);
+
+    public ComputerScienceQuizGame(List<ComputerScienceQuiz> quizs) {
+        super(null);
+        this.quizs = quizs;
+    }
+
+    @Override
+    public GameContentDto getStatus() {
+        var quiz = quizs.get(currentIdx.get());
+
+        return GameContentDto.from(this, quiz.getField(), quiz.getDifficulty().name(), quiz.getQuestion());
+    }
+
+    @Override
+    public GameInfo getGameInfo() {
+        return new GameInfo(getType().name(), "여러가지 CS 혼합", quizs.size());
+    }
+
+    @Override
+    public GameType getType() {
+        return GameType.CS;
+    }
+
+    @Override
+    protected ActionResult processAnswer(Long memberId, String answer) {
+        int current = currentIdx.get();
+        if (current == ROUND_NOT_STARTED) {
+            return ActionResult.NO_ACTION;
+        }
+
+        var quiz = quizs.get(current);
+        return quiz.isCorrect(answer) ? ActionResult.CORRECT : ActionResult.WRONG;
+    }
+
+    @Override
+    public GameAnswerDto getAnswer() {
+        var quiz = quizs.get(currentIdx.get());
+
+        return GameAnswerDto.from(this, quiz.getAnswer(), quiz.getExplain());
+    }
+
+    @Override
+    public void startRound() {
+        currentIdx.incrementAndGet();
+    }
+
+    @Override
+    public boolean isLast() {
+        return currentIdx.get() >= quizs.size() - 1;
+    }
+
+    @Override
+    public int getCurrentRound() {
+        return currentIdx.get() + 1;
+    }
+
+    @Override
+    public int getTotalRound() {
+        return quizs.size();
+    }
+
+    @Override
+    public String getHint() {
+        return "";
+    }
+}

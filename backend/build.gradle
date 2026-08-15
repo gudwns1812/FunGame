@@ -1,93 +1,31 @@
 plugins {
-    id 'java'
-    id 'org.springframework.boot' version '3.4.3'
-    id 'io.spring.dependency-management' version '1.1.7'
-    id 'org.asciidoctor.jvm.convert' version '4.0.2'
-}
-
-group = 'com.fungame'
-version = '0.0.1-SNAPSHOT'
-description = 'songquiz'
-def queryDslVersion = "7.0"
-java {
-    toolchain {
-        languageVersion = JavaLanguageVersion.of(21)
-    }
-}
-
-configurations {
-    compileOnly {
-        extendsFrom annotationProcessor
-    }
-    asciidoctorExtensions
-}
-
-repositories {
-    mavenCentral()
-}
-
-dependencies {
-    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
-    implementation 'org.flywaydb:flyway-core'
-    implementation 'org.flywaydb:flyway-mysql'
-    implementation 'org.springframework.boot:spring-boot-starter-web'
-    implementation 'org.springframework.boot:spring-boot-starter-security'
-    implementation 'org.springframework.boot:spring-boot-starter-websocket'
-    // @MessageMapping 핸들러에서 @AuthenticationPrincipal 을 쓰기 위한 모듈.
-    // starter-security 에는 포함되지 않는다.
-    implementation 'org.springframework.security:spring-security-messaging'
-    implementation 'org.springframework.session:spring-session-jdbc'
-    implementation platform('software.amazon.awssdk:bom:2.31.30')
-    implementation 'software.amazon.awssdk:sesv2'
-    implementation 'org.jsoup:jsoup:1.16.1'
-    implementation "io.github.openfeign.querydsl:querydsl-jpa:${queryDslVersion}"
-    implementation "io.github.openfeign.querydsl:querydsl-core:${queryDslVersion}"
-    compileOnly 'org.projectlombok:lombok'
-    runtimeOnly 'com.mysql:mysql-connector-j'
-    annotationProcessor 'org.projectlombok:lombok'
-    
-    testImplementation 'org.springframework.boot:spring-boot-starter-test'
-    testImplementation 'org.springframework.boot:spring-boot-testcontainers'
-    testImplementation 'org.testcontainers:junit-jupiter'
-    testImplementation 'org.testcontainers:mysql'
-    testImplementation 'org.springframework.security:spring-security-test'
-    testImplementation 'org.springframework.restdocs:spring-restdocs-mockmvc'
-    testImplementation 'org.awaitility:awaitility:4.2.0'
-
-    annotationProcessor "io.github.openfeign.querydsl:querydsl-apt:${queryDslVersion}:jpa"
-
-    annotationProcessor "jakarta.annotation:jakarta.annotation-api"
-    annotationProcessor "jakarta.persistence:jakarta.persistence-api"
-
-    runtimeOnly 'com.h2database:h2'
-    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+    id 'org.springframework.boot' version '3.4.3' apply false
+    id 'io.spring.dependency-management' version '1.1.7' apply false
+    id 'org.asciidoctor.jvm.convert' version '4.0.2' apply false
 }
 
 ext {
-    snippetsDir = file('build/generated-snippets')
+    lombokVersion = '1.18.36'
+    queryDslVersion = '7.0'
 }
 
-tasks.named('test') {
-    outputs.dir snippetsDir
+subprojects {
+    apply plugin: 'java-library'
 
-    useJUnitPlatform {
-        // external 은 실제 외부 서비스를 호출해 결과가 우리 코드와 무관하게 바뀐다.
-        // 평소에는 제외하고, 확인이 필요할 때만 -PexternalTests 로 실행한다.
-        if (!project.hasProperty('externalTests')) {
-            excludeTags 'external'
+    java {
+        toolchain {
+            languageVersion = JavaLanguageVersion.of(21)
         }
     }
-}
 
-tasks.named('asciidoctor') {
-    inputs.dir snippetsDir
-    configurations 'asciidoctorExtensions'
-    dependsOn test
-}
+    configurations {
+        compileOnly {
+            extendsFrom annotationProcessor
+        }
+    }
 
-bootJar {
-    dependsOn asciidoctor
-    from ("${asciidoctor.outputDir}/html5") {
-        into 'static/docs'
+    dependencies {
+        compileOnly "org.projectlombok:lombok:${lombokVersion}"
+        annotationProcessor "org.projectlombok:lombok:${lombokVersion}"
     }
 }
