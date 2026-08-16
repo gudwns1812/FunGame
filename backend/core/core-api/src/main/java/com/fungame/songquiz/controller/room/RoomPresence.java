@@ -1,4 +1,4 @@
-package com.fungame.songquiz.domain.room;
+package com.fungame.songquiz.controller.room;
 
 import org.springframework.stereotype.Component;
 

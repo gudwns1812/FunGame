@@ -60,7 +60,7 @@ class GameRoomServiceTransactionBoundaryTest {
         AtomicBoolean transactionActive = new AtomicBoolean(true);
         given(gameRoomManager.joinRoom(any(), any()))
                 .willAnswer(record(transactionActive, new JoinResult(1, true)));
-        given(gameRoomManager.findRoom(ROOM_ID)).willReturn(GameRoom.create(settings(), HOST));
+        given(gameRoomManager.findRoom(ROOM_ID)).willReturn(GameRoom.create(ROOM_ID, settings(), HOST));
 
         gameRoomService.joinRoom(ROOM_ID, GUEST);
 
@@ -120,11 +120,6 @@ class GameRoomServiceTransactionBoundaryTest {
         }
 
         @Bean
-        RoomPresence roomPresence() {
-            return new RoomPresence();
-        }
-
-        @Bean
         MemberPresenceService memberPresenceService() {
             return mock(MemberPresenceService.class);
         }
@@ -135,7 +130,6 @@ class GameRoomServiceTransactionBoundaryTest {
                 GameRoomReader gameRoomReader,
                 GameRoomWriter gameRoomWriter,
                 GameService gameService,
-                RoomPresence roomPresence,
                 MemberPresenceService memberPresenceService,
                 ApplicationEventPublisher applicationEventPublisher) {
             return new GameRoomService(
@@ -143,7 +137,6 @@ class GameRoomServiceTransactionBoundaryTest {
                     gameRoomReader,
                     gameRoomWriter,
                     gameService,
-                    roomPresence,
                     memberPresenceService,
                     applicationEventPublisher);
         }

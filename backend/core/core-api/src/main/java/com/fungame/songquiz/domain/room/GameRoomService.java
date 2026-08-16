@@ -20,7 +20,6 @@ public class GameRoomService {
     private final GameRoomReader gameRoomReader;
     private final GameRoomWriter gameRoomWriter;
     private final GameService gameService;
-    private final RoomPresence roomPresence;
     private final MemberPresenceService memberPresenceService;
     private final ApplicationEventPublisher applicationEventPublisher;
 
@@ -80,12 +79,12 @@ public class GameRoomService {
 
     public List<RoomInfo> findAllRooms() {
         return gameRoomReader.loadAll().stream()
-                .map(stored -> RoomInfo.of(stored, roomPresence.countConnectedIn(stored.roomId())))
+                .map(RoomInfo::from)
                 .toList();
     }
 
     public RoomInfo findRoomInfo(Long roomId) {
-        return RoomInfo.from(roomId, gameRoomManager.findRoom(roomId));
+        return RoomInfo.from(gameRoomManager.findRoom(roomId));
     }
 
     public PlayersInfo findUsers(Long roomId) {

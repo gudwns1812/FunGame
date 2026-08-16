@@ -1,9 +1,9 @@
 package com.fungame.songquiz.domain.room;
 
-import com.fungame.songquiz.domain.quiz.CsQuizGameCreateInfo;
-import com.fungame.songquiz.domain.quiz.GameCreateInfo;
-import com.fungame.songquiz.domain.quiz.HangmanGameCreateInfo;
-import com.fungame.songquiz.domain.quiz.SongGameCreateInfo;
+import com.fungame.songquiz.domain.quiz.CsQuizCreateInfo;
+import com.fungame.songquiz.domain.quiz.QuizCreateInfo;
+import com.fungame.songquiz.domain.quiz.HangmanQuizCreateInfo;
+import com.fungame.songquiz.domain.quiz.SongQuizCreateInfo;
 import com.fungame.songquiz.enums.CSQuizDifficulty;
 import com.fungame.songquiz.enums.Category;
 import com.fungame.songquiz.enums.GameType;
@@ -18,11 +18,11 @@ public record RoomSettings(
         CSQuizDifficulty csDifficulty
 ) {
 
-    public GameCreateInfo toGameCreateInfo() {
+    public QuizCreateInfo toQuizCreateInfo() {
         return switch (gameType) {
-            case SONG -> new SongGameCreateInfo(category, totalRound);
-            case CS -> new CsQuizGameCreateInfo(totalRound, csDifficulty);
-            case HANGMAN -> new HangmanGameCreateInfo(difficulty);
+            case SONG -> new SongQuizCreateInfo(category, totalRound);
+            case CS -> new CsQuizCreateInfo(totalRound, csDifficulty);
+            case HANGMAN -> new HangmanQuizCreateInfo(difficulty);
             case NONE -> null;
         };
     }

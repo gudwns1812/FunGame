@@ -1,6 +1,6 @@
 package com.fungame.songquiz.controller.websocket;
 
-import com.fungame.songquiz.domain.quiz.GameInfo;
+import com.fungame.songquiz.domain.quiz.QuizInfo;
 import com.fungame.songquiz.domain.room.PlayerJoinEvent;
 import com.fungame.songquiz.domain.room.PlayerLeaveEvent;
 import com.fungame.songquiz.domain.room.PlayerReadyEvent;
@@ -90,18 +90,18 @@ public class GameNotifyService {
     public void handleGameStart(GameStartEvent event) {
         log.info("Broadcasting game start in room {}", event.roomId());
         String destination = StompDestination.room(event.roomId());
-        GameInfo gameInfo = event.gameInfo();
+        QuizInfo quizInfo = event.quizInfo();
 
-        String message = gameInfo.category();
+        String message = quizInfo.category();
         if (message == null) {
             message = "";
         }
 
         Object payload = Map.of(
                 "type", "GAME_START",
-                "gameType", gameInfo.gameType(),
+                "gameType", quizInfo.gameType(),
                 "category", message,
-                "songCount", gameInfo.totalCount(),
+                "songCount", quizInfo.totalCount(),
                 "message", "채팅에 정답을 입력하면 됩니다. 띄어쓰기 없이 입력해주시고 영어이름은 소문자로 입력해주세요. 게임이 5초 뒤 시작됩니다."
         );
         messagingTemplate.convertAndSend(destination, ApiResponse.success(payload));
@@ -116,7 +116,7 @@ public class GameNotifyService {
                 "type", "ROUND_START",
                 "round", event.currentRound(),
                 "totalRound", event.totalRound(),
-                "content", event.content().toString()
+                "content", event.content().description()
         );
         messagingTemplate.convertAndSend(destination, ApiResponse.success(payload));
     }
@@ -153,7 +153,7 @@ public class GameNotifyService {
 
         Map<String, Object> payload = new HashMap<>();
         payload.put("type", "ROUND_END");
-        payload.put("answer", event.answer().getAnswer());
+        payload.put("answer", event.answer().answer());
         payload.put("explanation", event.answer().explanation());
         payload.put("winnerMemberId", event.winnerMemberId());
         payload.put("winnerNickname", event.winnerNickname());

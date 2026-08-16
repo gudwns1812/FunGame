@@ -11,7 +11,7 @@ import java.util.List;
 
 @Component
 @RequiredArgsConstructor
-public class SongGameFactory implements GameFactory {
+public class SongQuizFactory implements QuizFactory {
 
     private final SongReader songReader;
 
@@ -21,17 +21,17 @@ public class SongGameFactory implements GameFactory {
     }
 
     @Override
-    public Game create(GameCreateInfo info) {
-        if (!(info instanceof SongGameCreateInfo(Category category, int songCount))) {
+    public Quiz create(QuizCreateInfo info) {
+        if (!(info instanceof SongQuizCreateInfo(Category category, int songCount))) {
             throw new CoreException(ErrorType.GAME_NOT_FOUND);
         }
 
         if (category == Category.TOTAL) {
             List<Song> songs = songReader.findSongWithCount(songCount);
-            return new SongGame(songs, Category.TOTAL);
+            return new SongQuiz(songs, Category.TOTAL);
         }
 
         List<Song> songs = songReader.findSongByCategoryWithCount(category, songCount);
-        return new SongGame(songs, category);
+        return new SongQuiz(songs, category);
     }
 }

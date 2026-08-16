@@ -56,7 +56,7 @@ public class PasswordResetService {
     @Transactional
     public void resetPassword(String rawToken, String newPassword) {
         if (!PasswordPolicy.isSatisfiedBy(newPassword)) {
-            throw new CoreException(ErrorType.PASSWORD_POLICY_VIOLATION);
+            throw new CoreException(ErrorType.PASSWORD_POLICY_VIOLATION, PasswordPolicy.violationMessage());
         }
 
         String tokenHash = passwordResetTokenGenerator.hash(rawToken);

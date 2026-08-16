@@ -1,6 +1,5 @@
 package com.fungame.songquiz.domain.room;
 
-import com.fungame.songquiz.domain.quiz.GameFactories;
 import com.fungame.songquiz.domain.session.GameSession;
 import com.fungame.songquiz.domain.session.GameSessionManager;
 import com.fungame.songquiz.domain.session.GameTimer;
@@ -30,7 +29,6 @@ public class GameRoomManager {
     private final GameSessionManager gameSessionManager;
     private final GameRoomReader gameRoomReader;
     private final GameRoomWriter gameRoomWriter;
-    private final GameFactories gameFactories;
 
     private static final long MAX_IDLE_MINUTES = 30;
 
@@ -39,16 +37,12 @@ public class GameRoomManager {
     }
 
     private GameRoom restoreFromStore(Long roomId) {
-        StoredRoom stored = gameRoomReader.load(roomId)
+        GameRoom stored = gameRoomReader.load(roomId)
                 .orElseThrow(() -> new CoreException(ErrorType.GAME_ROOM_NOT_FOUND));
 
         log.info("메모리에 없는 방을 저장소에서 복원한다: {}", roomId);
 
-        return GameRoom.restore(
-                stored.settings(),
-                stored.players(),
-                stored.hostId(),
-                stored.lastActivityTime());
+        return stored;
     }
 
     public GameRoom findRoom(Long roomId) {
@@ -56,7 +50,7 @@ public class GameRoomManager {
     }
 
     public void createGameRoom(Long roomId, RoomSettings settings, GamePlayer host) {
-        GameRoom gameRoom = GameRoom.create(settings, host);
+        GameRoom gameRoom = GameRoom.create(roomId, settings, host);
         gameRooms.put(roomId, gameRoom);
 
         lockContext.createLockWithLockKey(roomId);
@@ -71,7 +65,7 @@ public class GameRoomManager {
                     ? rejoinPlayingRoom(roomId, gameRoom, player)
                     : gameRoom.join(player);
 
-            gameRoomWriter.save(roomId, gameRoom);
+            gameRoomWriter.save(gameRoom);
             return result;
         });
     }
@@ -107,7 +101,7 @@ public class GameRoomManager {
                 return new LeaveResult(true, wasPlaying, nickname);
             }
 
-            gameRoomWriter.save(roomId, gameRoom);
+            gameRoomWriter.save(gameRoom);
             return new LeaveResult(false, wasPlaying, nickname);
         });
     }
@@ -127,8 +121,8 @@ public class GameRoomManager {
     public GameRoom startGame(Long roomId, Long memberId) {
         return lockContext.processWithLockKey(roomId, () -> {
             GameRoom gameRoom = getRoom(roomId);
-            gameRoom.start(memberId, gameFactories.create(gameRoom.getSettings()));
-            gameRoomWriter.save(roomId, gameRoom);
+            gameRoom.start(memberId);
+            gameRoomWriter.save(gameRoom);
             return gameRoom;
         });
     }
@@ -144,7 +138,7 @@ public class GameRoomManager {
             gameSessionManager.endGameSession(roomId);
             gameRoom.finishGame();
 
-            gameRoomWriter.save(roomId, gameRoom);
+            gameRoomWriter.save(gameRoom);
             applicationEventPublisher.publishEvent(new RoomChangedEvent());
         });
     }
@@ -157,7 +151,7 @@ public class GameRoomManager {
             }
 
             gameRoom.changeSettings(newSettings);
-            gameRoomWriter.save(roomId, gameRoom);
+            gameRoomWriter.save(gameRoom);
             applicationEventPublisher.publishEvent(new RoomChangedEvent());
 
             return gameRoom;
@@ -170,7 +164,7 @@ public class GameRoomManager {
 
         List<Long> idleRoomIds = gameRoomReader.loadAll().stream()
                 .filter(stored -> isIdle(stored, threshold))
-                .map(StoredRoom::roomId)
+                .map(GameRoom::getRoomId)
                 .toList();
 
         idleRoomIds.forEach(roomId -> lockContext.processWithLockKey(roomId, () -> {
@@ -179,12 +173,10 @@ public class GameRoomManager {
         }));
     }
 
-    private boolean isIdle(StoredRoom stored, Instant threshold) {
-        GameRoom liveRoom = gameRooms.get(stored.roomId());
+    private boolean isIdle(GameRoom stored, Instant threshold) {
+        GameRoom liveRoom = gameRooms.get(stored.getRoomId());
 
-        return liveRoom != null
-                ? liveRoom.isIdle(threshold)
-                : stored.lastActivityTime().isBefore(threshold);
+        return liveRoom != null ? liveRoom.isIdle(threshold) : stored.isIdle(threshold);
     }
 
     public PlayersInfo findRoomUsers(Long roomId) {
@@ -197,7 +189,7 @@ public class GameRoomManager {
             gameRoom.touch();
 
             boolean ready = gameRoom.readyPlayer(memberId);
-            gameRoomWriter.save(roomId, gameRoom);
+            gameRoomWriter.save(gameRoom);
 
             return new ReadyResult(ready, gameRoom.isAllReady(), gameRoom.nicknameOf(memberId));
         });

@@ -6,28 +6,32 @@ import com.fungame.songquiz.enums.GameType;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
-public class ComputerScienceQuizGame extends AbstractQuizGame {
+public class CsQuiz extends AbstractQuiz {
 
     private static final int ROUND_NOT_STARTED = -1;
 
-    private final List<ComputerScienceQuiz> quizs;
+    private final List<CsQuestion> quizs;
     private final AtomicInteger currentIdx = new AtomicInteger(ROUND_NOT_STARTED);
 
-    public ComputerScienceQuizGame(List<ComputerScienceQuiz> quizs) {
-        super(null);
+    public CsQuiz(List<CsQuestion> quizs) {
         this.quizs = quizs;
     }
 
     @Override
-    public GameContentDto getStatus() {
+    public QuizContent getStatus() {
         var quiz = quizs.get(currentIdx.get());
+        String difficulty = quiz.getDifficulty().name();
 
-        return GameContentDto.from(this, quiz.getField(), quiz.getDifficulty().name(), quiz.getQuestion());
+        String description = "분류: " + quiz.getField()
+                + ", 난이도: " + difficulty
+                + ", 질문: " + quiz.getQuestion();
+
+        return new QuizContent(description, List.of(quiz.getField(), difficulty, quiz.getQuestion()));
     }
 
     @Override
-    public GameInfo getGameInfo() {
-        return new GameInfo(getType().name(), "여러가지 CS 혼합", quizs.size());
+    public QuizInfo getQuizInfo() {
+        return new QuizInfo(getType().name(), "여러가지 CS 혼합", quizs.size());
     }
 
     @Override
@@ -36,7 +40,7 @@ public class ComputerScienceQuizGame extends AbstractQuizGame {
     }
 
     @Override
-    protected ActionResult processAnswer(Long memberId, String answer) {
+    public ActionResult submitAnswer(Long memberId, String answer) {
         int current = currentIdx.get();
         if (current == ROUND_NOT_STARTED) {
             return ActionResult.NO_ACTION;
@@ -47,10 +51,10 @@ public class ComputerScienceQuizGame extends AbstractQuizGame {
     }
 
     @Override
-    public GameAnswerDto getAnswer() {
+    public QuizAnswer getAnswer() {
         var quiz = quizs.get(currentIdx.get());
 
-        return GameAnswerDto.from(this, quiz.getAnswer(), quiz.getExplain());
+        return new QuizAnswer(quiz.getAnswer(), quiz.getExplain());
     }
 
     @Override

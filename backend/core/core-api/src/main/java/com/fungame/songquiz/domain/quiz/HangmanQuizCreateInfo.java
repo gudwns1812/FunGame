@@ -5,6 +5,6 @@ import lombok.RequiredArgsConstructor;
 
 @Getter
 @RequiredArgsConstructor
-public class HangmanGameCreateInfo implements GameCreateInfo {
+public class HangmanQuizCreateInfo implements QuizCreateInfo {
     private final int difficulty;
 }

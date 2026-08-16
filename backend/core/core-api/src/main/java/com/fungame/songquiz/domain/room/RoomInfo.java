@@ -16,14 +16,12 @@ public record RoomInfo(
         CSQuizDifficulty csDifficulty
 ) {
 
-    public static RoomInfo from(Long roomId, GameRoom room) {
-        GamePlayers players = room.getPlayers();
-
+    public static RoomInfo from(GameRoom room) {
         return new RoomInfo(
-                roomId,
+                room.getRoomId(),
                 room.getTitle(),
-                players.getHost(),
-                players.nicknameOf(players.getHost()),
+                room.getHostId(),
+                room.hostNickname(),
                 room.getStatus(),
                 room.getSettings().maxPlayers(),
                 room.getPlayerCount(),
@@ -32,17 +30,17 @@ public record RoomInfo(
         );
     }
 
-    public static RoomInfo of(StoredRoom stored, int connectedPlayers) {
+    public RoomInfo withConnectedPlayers(int connectedPlayers) {
         return new RoomInfo(
-                stored.roomId(),
-                stored.settings().title(),
-                stored.hostId(),
-                stored.hostNickname(),
-                stored.status(),
-                stored.settings().maxPlayers(),
+                roomId,
+                title,
+                hostMemberId,
+                hostNickname,
+                status,
+                maxPlayers,
                 connectedPlayers,
-                stored.settings().gameType(),
-                stored.settings().csDifficulty()
+                gameType,
+                csDifficulty
         );
     }
 }

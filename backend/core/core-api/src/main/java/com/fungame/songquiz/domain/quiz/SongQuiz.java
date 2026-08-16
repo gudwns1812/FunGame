@@ -9,29 +9,29 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
 @Slf4j
-public class SongGame extends AbstractQuizGame {
+public class SongQuiz extends AbstractQuiz {
 
     private static final int ROUND_NOT_STARTED = -1;
+    private static final String SINGER_TITLE_SEPARATOR = " - ";
 
     private final List<Song> songs;
     private final Category gameCategory;
     private final AtomicInteger currentIdx = new AtomicInteger(ROUND_NOT_STARTED);
 
-    public SongGame(List<Song> songs, Category gameCategory) {
-        super(null);
+    public SongQuiz(List<Song> songs, Category gameCategory) {
         this.songs = songs;
         this.gameCategory = gameCategory;
     }
 
     @Override
-    public GameContentDto getStatus() {
+    public QuizContent getStatus() {
         int current = currentIdx.get();
-        return GameContentDto.from(this, songs.get(current).getLink());
+        return QuizContent.of(songs.get(current).getLink());
     }
 
     @Override
-    public GameInfo getGameInfo() {
-        return new GameInfo(getType().name(), gameCategory.name(), songs.size());
+    public QuizInfo getQuizInfo() {
+        return new QuizInfo(getType().name(), gameCategory.name(), songs.size());
     }
 
     @Override
@@ -40,7 +40,7 @@ public class SongGame extends AbstractQuizGame {
     }
 
     @Override
-    protected ActionResult processAnswer(Long memberId, String answer) {
+    public ActionResult submitAnswer(Long memberId, String answer) {
         int current = currentIdx.get();
         if (current == ROUND_NOT_STARTED) {
             return ActionResult.NO_ACTION;
@@ -51,11 +51,13 @@ public class SongGame extends AbstractQuizGame {
     }
 
     @Override
-    public GameAnswerDto getAnswer() {
+    public QuizAnswer getAnswer() {
         int current = currentIdx.get();
         Song song = songs.get(current);
 
-        return GameAnswerDto.from(this, song.getSinger(), " - ", song.getTitle());
+        return new QuizAnswer(
+                String.join(" ", song.getSinger(), SINGER_TITLE_SEPARATOR, song.getTitle()),
+                String.join(" ", SINGER_TITLE_SEPARATOR, song.getTitle()));
     }
 
     @Override

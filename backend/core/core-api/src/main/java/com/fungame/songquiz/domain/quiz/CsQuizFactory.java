@@ -11,9 +11,9 @@ import java.util.List;
 
 @Component
 @RequiredArgsConstructor
-public class CSQuizGameFactory implements GameFactory {
+public class CsQuizFactory implements QuizFactory {
 
-    private final ComputerScienceQuizReader csQuizReader;
+    private final CsQuestionReader csQuizReader;
 
     @Override
     public GameType getSupportedType() {
@@ -21,12 +21,12 @@ public class CSQuizGameFactory implements GameFactory {
     }
 
     @Override
-    public Game create(GameCreateInfo info) {
-        if (!(info instanceof CsQuizGameCreateInfo(int totalRound, CSQuizDifficulty difficulty))) {
+    public Quiz create(QuizCreateInfo info) {
+        if (!(info instanceof CsQuizCreateInfo(int totalRound, CSQuizDifficulty difficulty))) {
             throw new CoreException(ErrorType.GAME_NOT_FOUND);
         }
 
-        List<ComputerScienceQuiz> computerScienceQuizs = csQuizReader.getRandomCSQuizWithCount(totalRound, difficulty);
-        return new ComputerScienceQuizGame(computerScienceQuizs);
+        List<CsQuestion> computerScienceQuizs = csQuizReader.getRandomCSQuizWithCount(totalRound, difficulty);
+        return new CsQuiz(computerScienceQuizs);
     }
 }

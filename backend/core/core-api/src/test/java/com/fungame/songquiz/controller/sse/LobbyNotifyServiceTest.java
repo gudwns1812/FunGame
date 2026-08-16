@@ -4,7 +4,7 @@ import com.fungame.songquiz.domain.member.MemberPresenceChangedEvent;
 import com.fungame.songquiz.domain.member.OnlineMemberInfo;
 import com.fungame.songquiz.domain.member.OnlineMemberService;
 import com.fungame.songquiz.domain.member.OnlineMembers;
-import com.fungame.songquiz.domain.room.GameRoomService;
+import com.fungame.songquiz.controller.room.RoomListReader;
 import com.fungame.songquiz.domain.room.RoomChangedEvent;
 import com.fungame.songquiz.domain.room.RoomInfo;
 import com.fungame.songquiz.enums.CSQuizDifficulty;
@@ -32,16 +32,16 @@ class LobbyNotifyServiceTest {
     private static final Long OTHER_ID = 2L;
 
     private final SseService sseService = mock(SseService.class);
-    private final GameRoomService gameRoomService = mock(GameRoomService.class);
+    private final RoomListReader roomListReader = mock(RoomListReader.class);
     private final OnlineMemberService onlineMemberService = mock(OnlineMemberService.class);
     private final LobbyNotifyService lobbyNotifyService =
-            new LobbyNotifyService(sseService, gameRoomService, onlineMemberService);
+            new LobbyNotifyService(sseService, roomListReader, onlineMemberService);
 
     @Test
     @DisplayName("방이 바뀌면 다시 물어보게 하지 않고 바뀐 방 목록을 실어 보낸다.")
     void pushRoomsOnRoomChange() {
         List<RoomInfo> rooms = List.of(room());
-        given(gameRoomService.findAllRooms()).willReturn(rooms);
+        given(roomListReader.findAllRooms()).willReturn(rooms);
 
         lobbyNotifyService.handleRoomChangedEvent(new RoomChangedEvent());
         lobbyNotifyService.processPendingUpdate();
@@ -52,14 +52,14 @@ class LobbyNotifyServiceTest {
     @Test
     @DisplayName("한 주기에 몰린 방 변경은 한 번만 조회해서 한 번만 보낸다.")
     void aggregateRoomChangesWithinOneCycle() {
-        given(gameRoomService.findAllRooms()).willReturn(List.of(room()));
+        given(roomListReader.findAllRooms()).willReturn(List.of(room()));
 
         lobbyNotifyService.handleRoomChangedEvent(new RoomChangedEvent());
         lobbyNotifyService.handleRoomChangedEvent(new RoomChangedEvent());
         lobbyNotifyService.handleRoomChangedEvent(new RoomChangedEvent());
         lobbyNotifyService.processPendingUpdate();
 
-        verify(gameRoomService, times(1)).findAllRooms();
+        verify(roomListReader, times(1)).findAllRooms();
         verify(sseService, times(1)).broadcast(eq("room-update"), any());
     }
 
@@ -98,7 +98,7 @@ class LobbyNotifyServiceTest {
     void skipWhenNothingChanged() {
         lobbyNotifyService.processPendingUpdate();
 
-        verifyNoInteractions(sseService, gameRoomService, onlineMemberService);
+        verifyNoInteractions(sseService, roomListReader, onlineMemberService);
     }
 
     private MemberPayload capturedPresencePayload() {

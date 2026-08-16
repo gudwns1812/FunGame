@@ -24,8 +24,8 @@ public class GameRoomWriter {
     }
 
     @Transactional
-    public void save(Long roomId, GameRoom room) {
-        gameRoomRepository.findWithMembersById(roomId).ifPresent(entity -> {
+    public void save(GameRoom room) {
+        gameRoomRepository.findWithMembersById(room.getRoomId()).ifPresent(entity -> {
             entity.applySettings(toEntitySettings(room.getSettings()));
             entity.changeStatus(room.getStatus());
             entity.changeHost(room.getPlayers().getHost());

@@ -26,7 +26,7 @@ class ComputerScienceQuizReaderTest {
     private ComputerScienceRepository computerScienceRepository;
 
     @InjectMocks
-    private ComputerScienceQuizReader reader;
+    private CsQuestionReader reader;
 
     private static ComputerScienceEntity quizOf(CSQuizDifficulty difficulty) {
         return ComputerScienceEntity.builder()
@@ -88,7 +88,7 @@ class ComputerScienceQuizReaderTest {
                         .build()
         ));
 
-        ComputerScienceQuiz quiz = reader.getRandomCSQuizWithCount(1, CSQuizDifficulty.NORMAL).getFirst();
+        CsQuestion quiz = reader.getRandomCSQuizWithCount(1, CSQuizDifficulty.NORMAL).getFirst();
 
         assertThat(quiz.getField()).isEqualTo("네트워크");
         assertThat(quiz.getQuestion()).isEqualTo("TCP와 UDP의 차이는?");

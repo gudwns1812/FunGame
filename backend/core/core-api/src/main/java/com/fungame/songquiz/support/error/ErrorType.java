@@ -1,6 +1,5 @@
 package com.fungame.songquiz.support.error;
 
-import com.fungame.songquiz.domain.member.PasswordPolicy;
 import lombok.Getter;
 import org.springframework.boot.logging.LogLevel;
 import org.springframework.http.HttpStatus;
@@ -37,8 +36,7 @@ public enum ErrorType {
     EMAIL_DUPLICATED(HttpStatus.BAD_REQUEST, ErrorCode.M007, "이미 사용 중인 이메일입니다.", LogLevel.DEBUG),
     INVALID_PASSWORD_RESET_TOKEN(HttpStatus.BAD_REQUEST, ErrorCode.M008,
             "링크가 만료되었거나 이미 사용되었습니다. 다시 요청해주세요.", LogLevel.DEBUG),
-    PASSWORD_POLICY_VIOLATION(HttpStatus.BAD_REQUEST, ErrorCode.M009,
-            "비밀번호는 " + PasswordPolicy.MINIMUM_LENGTH + "자 이상이어야 합니다.", LogLevel.DEBUG),
+    PASSWORD_POLICY_VIOLATION(HttpStatus.BAD_REQUEST, ErrorCode.M009, "비밀번호가 너무 짧습니다.", LogLevel.DEBUG),
 
     INVITE_NOT_FROM_WAITING_ROOM(HttpStatus.BAD_REQUEST, ErrorCode.I001, "대기실에 있을 때만 초대할 수 있습니다.", LogLevel.DEBUG),
     INVITE_TARGET_OFFLINE(HttpStatus.BAD_REQUEST, ErrorCode.I002, "상대방이 접속 중이 아닙니다.", LogLevel.DEBUG),

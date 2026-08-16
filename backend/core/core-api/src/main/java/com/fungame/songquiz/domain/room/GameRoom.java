@@ -1,6 +1,5 @@
 package com.fungame.songquiz.domain.room;
 
-import com.fungame.songquiz.domain.quiz.Game;
 import com.fungame.songquiz.enums.GameRoomStatus;
 import com.fungame.songquiz.support.error.CoreException;
 import com.fungame.songquiz.support.error.ErrorType;
@@ -11,37 +10,50 @@ import java.util.List;
 
 @Getter
 public class GameRoom {
+    private final Long roomId;
     private final GamePlayers players;
     private RoomSettings settings;
-    private Game game;
     private GameRoomStatus status;
     private Instant lastActivityTime;
 
-    private GameRoom(RoomSettings settings, GamePlayers players, GameRoomStatus status, Instant lastActivityTime) {
+    private GameRoom(Long roomId, RoomSettings settings, GamePlayers players, GameRoomStatus status,
+                     Instant lastActivityTime) {
+        this.roomId = roomId;
         this.settings = settings;
         this.players = players;
         this.status = status;
         this.lastActivityTime = lastActivityTime;
     }
 
-    public static GameRoom create(RoomSettings settings, GamePlayer host) {
+    public static GameRoom create(Long roomId, RoomSettings settings, GamePlayer host) {
         return new GameRoom(
+                roomId,
                 settings,
                 new GamePlayers(List.of(host), settings.maxPlayers(), host.memberId()),
                 GameRoomStatus.WAITING,
                 Instant.now());
     }
 
-    public static GameRoom restore(RoomSettings settings, List<GamePlayer> players, Long hostId, Instant lastActivityTime) {
+    public static GameRoom restore(Long roomId, RoomSettings settings, List<GamePlayer> players, Long hostId,
+                                   GameRoomStatus status, Instant lastActivityTime) {
         return new GameRoom(
+                roomId,
                 settings,
                 new GamePlayers(players, settings.maxPlayers(), hostId),
-                GameRoomStatus.WAITING,
+                status,
                 lastActivityTime);
     }
 
     public String getTitle() {
         return settings.title();
+    }
+
+    public Long getHostId() {
+        return players.getHost();
+    }
+
+    public String hostNickname() {
+        return players.nicknameOf(players.getHost());
     }
 
     public JoinResult join(GamePlayer player) {
@@ -69,9 +81,8 @@ public class GameRoom {
         return players.getPlayers();
     }
 
-    public void start(Long memberId, Game startingGame) {
+    public void start(Long memberId) {
         validateStart(memberId);
-        this.game = startingGame;
         this.status = GameRoomStatus.PLAYING;
     }
 
@@ -91,7 +102,6 @@ public class GameRoom {
     }
 
     public void finishGame() {
-        this.game = null;
         this.status = GameRoomStatus.WAITING;
         players.resetReady();
         touch();

@@ -10,7 +10,7 @@ import java.util.List;
 
 @Component
 @RequiredArgsConstructor
-public class HangmanGameFactory implements GameFactory {
+public class HangmanQuizFactory implements QuizFactory {
 
     private final HangmanWordReader hangmanWordReader;
 
@@ -20,8 +20,8 @@ public class HangmanGameFactory implements GameFactory {
     }
 
     @Override
-    public Game create(GameCreateInfo info) {
-        if (!(info instanceof HangmanGameCreateInfo hangmanInfo)) {
+    public Quiz create(QuizCreateInfo info) {
+        if (!(info instanceof HangmanQuizCreateInfo hangmanInfo)) {
             throw new CoreException(ErrorType.INVALID_INPUT_VALUE);
         }
 
@@ -30,6 +30,6 @@ public class HangmanGameFactory implements GameFactory {
             throw new CoreException(ErrorType.INVALID_INPUT_VALUE);
         }
 
-        return HangmanGame.create(hangmanWordReader.findRandomByDifficulty(difficulty).value());
+        return HangmanQuiz.create(hangmanWordReader.findRandomByDifficulty(difficulty).value());
     }
 }

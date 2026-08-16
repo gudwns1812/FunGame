@@ -1,34 +1,37 @@
 package com.fungame.songquiz.domain.session;
 
-import lombok.RequiredArgsConstructor;
+import com.fungame.songquiz.support.config.AppTaskScheduler;
+import org.springframework.scheduling.TaskScheduler;
 import org.springframework.stereotype.Component;
 
+import java.time.Duration;
+import java.time.Instant;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 
 @Component
-@RequiredArgsConstructor
 public class GameTimer {
 
-    private final ScheduledExecutorService scheduler;
+    private static final Duration COUNT_DOWN_INTERVAL = Duration.ofSeconds(1);
+
+    private final TaskScheduler taskScheduler;
     private final Map<Long, ScheduledFuture<?>> roomTasks = new ConcurrentHashMap<>();
+
+    public GameTimer(@AppTaskScheduler TaskScheduler taskScheduler) {
+        this.taskScheduler = taskScheduler;
+    }
 
     public void startCountDown(Long roomId, int seconds, Consumer<Integer> event) {
         stop(roomId);
 
         AtomicInteger remaining = new AtomicInteger(seconds);
 
-        ScheduledFuture<?> task = scheduler.scheduleAtFixedRate(() -> {
-            int current = remaining.getAndDecrement();
-
-            event.accept(current);
-
-        }, 0, 1, TimeUnit.SECONDS);
+        ScheduledFuture<?> task = taskScheduler.scheduleAtFixedRate(
+                () -> event.accept(remaining.getAndDecrement()),
+                COUNT_DOWN_INTERVAL);
 
         roomTasks.put(roomId, task);
     }
@@ -36,7 +39,7 @@ public class GameTimer {
     public void startAfter(Long roomId, int seconds, Runnable event) {
         stop(roomId);
 
-        ScheduledFuture<?> task = scheduler.schedule(event, seconds, TimeUnit.SECONDS);
+        ScheduledFuture<?> task = taskScheduler.schedule(event, Instant.now().plusSeconds(seconds));
 
         roomTasks.put(roomId, task);
     }

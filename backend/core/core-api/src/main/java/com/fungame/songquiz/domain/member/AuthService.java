@@ -36,7 +36,7 @@ public class AuthService {
     @Transactional
     public Long signup(String loginId, String password, String nickname, String email) {
         if (!PasswordPolicy.isSatisfiedBy(password)) {
-            throw new CoreException(ErrorType.PASSWORD_POLICY_VIOLATION);
+            throw new CoreException(ErrorType.PASSWORD_POLICY_VIOLATION, PasswordPolicy.violationMessage());
         }
         if (memberReader.existsByLoginId(loginId)) {
             throw new CoreException(ErrorType.LOGIN_ID_DUPLICATED);

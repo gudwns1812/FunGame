@@ -1,6 +1,6 @@
 package com.fungame.songquiz.domain.session;
 
-import com.fungame.songquiz.domain.quiz.GameInfo;
+import com.fungame.songquiz.domain.quiz.QuizInfo;
 import com.fungame.songquiz.domain.room.GameRoom;
 import com.fungame.songquiz.domain.room.GameRoomManager;
 import com.fungame.songquiz.enums.ActionResult;
@@ -32,8 +32,8 @@ public class QuizGameService implements GameService {
     @Override
     public void startGame(Long roomId, Long memberId) {
         GameRoom gameRoom = gameRoomManager.startGame(roomId, memberId);
-        GameInfo gameInfo = sessionManager.startGame(roomId, gameRoom.getGame(), gameRoom.getRoomPlayers());
-        publisher.publishEvent(new GameStartEvent(roomId, gameInfo));
+        GameSession gameSession = sessionManager.startGame(roomId, gameRoom.getSettings(), gameRoom.getRoomPlayers());
+        publisher.publishEvent(new GameStartEvent(roomId, gameSession.getQuizInfo()));
 
         timer.startAfter(roomId, 5, () -> startRound(roomId));
     }
@@ -162,15 +162,15 @@ public class QuizGameService implements GameService {
             throw new CoreException(ErrorType.GAME_NOT_FOUND);
         }
 
-        GameInfo gameInfo = gameSession.getGameInfo();
+        QuizInfo quizInfo = gameSession.getQuizInfo();
         int currentRound = gameSession.getCurrentRound();
 
         String content = currentRound >= 1 ? gameSession.getContent().toString() : null;
 
         return new GameStateDto(
-                gameInfo.gameType(),
-                gameInfo.category(),
-                gameInfo.totalCount(),
+                quizInfo.gameType(),
+                quizInfo.category(),
+                quizInfo.totalCount(),
                 currentRound,
                 gameSession.getTotalRound(),
                 content,

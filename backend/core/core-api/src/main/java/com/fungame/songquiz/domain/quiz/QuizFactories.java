@@ -12,21 +12,21 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Component
-public class GameFactories {
+public class QuizFactories {
 
-    private final Map<GameType, GameFactory> factories;
+    private final Map<GameType, QuizFactory> factories;
 
-    public GameFactories(List<GameFactory> factories) {
+    public QuizFactories(List<QuizFactory> factories) {
         this.factories = factories.stream()
-                .collect(Collectors.toMap(GameFactory::getSupportedType, Function.identity()));
+                .collect(Collectors.toMap(QuizFactory::getSupportedType, Function.identity()));
     }
 
-    public Game create(RoomSettings settings) {
-        GameFactory factory = factories.get(settings.gameType());
+    public Quiz create(RoomSettings settings) {
+        QuizFactory factory = factories.get(settings.gameType());
         if (factory == null) {
             throw new CoreException(ErrorType.GAME_NOT_FOUND);
         }
 
-        return factory.create(settings.toGameCreateInfo());
+        return factory.create(settings.toQuizCreateInfo());
     }
 }

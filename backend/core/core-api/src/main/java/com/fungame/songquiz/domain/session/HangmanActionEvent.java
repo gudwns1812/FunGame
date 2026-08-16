@@ -1,6 +1,6 @@
 package com.fungame.songquiz.domain.session;
 
-import com.fungame.songquiz.domain.quiz.GameContentDto;
+import com.fungame.songquiz.domain.quiz.QuizContent;
 import com.fungame.songquiz.enums.ActionResult;
 
 /**
@@ -12,6 +12,6 @@ public record HangmanActionEvent(
         String nickname,
         char letter,
         ActionResult result,
-        GameContentDto status
+        QuizContent status
 ) {
 }

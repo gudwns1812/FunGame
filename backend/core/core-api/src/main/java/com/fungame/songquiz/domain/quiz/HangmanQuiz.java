@@ -14,7 +14,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 @Getter
-public class HangmanGame extends AbstractQuizGame {
+public class HangmanQuiz extends AbstractQuiz {
     private static final int DEFAULT_TRIES = 6;
     private static final char BLANK = ' ';
     private static final String HIDDEN_LETTER = "_";
@@ -27,8 +27,7 @@ public class HangmanGame extends AbstractQuizGame {
     private int currentTurnIndex;
     private List<GamePlayer> playerOrder;
 
-    private HangmanGame(String answer) {
-        super(List.of());
+    private HangmanQuiz(String answer) {
         this.answer = answer.toUpperCase();
         this.playerOrder = new ArrayList<>();
         this.correctLetters = new LinkedHashSet<>();
@@ -37,11 +36,11 @@ public class HangmanGame extends AbstractQuizGame {
         this.currentTurnIndex = 0;
     }
 
-    public static HangmanGame create(String answer) {
+    public static HangmanQuiz create(String answer) {
         if (answer == null || answer.isBlank()) {
             throw new CoreException(ErrorType.HANGMAN_ANSWER_EMPTY);
         }
-        return new HangmanGame(answer);
+        return new HangmanQuiz(answer);
     }
 
     public void initPlayers(List<GamePlayer> players) {
@@ -102,9 +101,7 @@ public class HangmanGame extends AbstractQuizGame {
     }
 
     @Override
-    public void removePlayer(Long memberId) {
-        super.removePlayer(memberId);
-
+    public void dropPlayer(Long memberId) {
         int leaverIndex = indexOf(memberId);
         if (leaverIndex < 0) {
             return;
@@ -133,9 +130,7 @@ public class HangmanGame extends AbstractQuizGame {
     }
 
     @Override
-    public void restorePlayer(GamePlayer player) {
-        super.restorePlayer(player);
-
+    public void takeBackPlayer(GamePlayer player) {
         if (indexOf(player.memberId()) < 0) {
             playerOrder.add(player);
         }
@@ -156,7 +151,7 @@ public class HangmanGame extends AbstractQuizGame {
     }
 
     @Override
-    protected ActionResult processAnswer(Long memberId, String answer) {
+    public ActionResult submitAnswer(Long memberId, String answer) {
         if (!this.answer.equalsIgnoreCase(answer.trim())) {
             return ActionResult.WRONG;
         }
@@ -177,28 +172,29 @@ public class HangmanGame extends AbstractQuizGame {
     }
 
     @Override
-    public GameContentDto getStatus() {
+    public QuizContent getStatus() {
         GamePlayer currentTurnPlayer = getCurrentTurnPlayer();
+        String display = getCurrentDisplay();
 
-        return GameContentDto.from(this,
-                getCurrentDisplay(),
+        return new QuizContent(display, List.of(
+                display,
                 wrongLetters.stream().map(String::valueOf).collect(Collectors.joining(",")),
                 String.valueOf(remainingTries),
                 currentTurnPlayer.nickname(),
                 String.valueOf(remainingTries <= 0 || isGameWon()),
                 String.valueOf(isGameWon()),
                 String.valueOf(currentTurnPlayer.memberId())
-        );
+        ));
     }
 
     @Override
-    public GameInfo getGameInfo() {
-        return new GameInfo(getType().name(), "Hangman", DEFAULT_TRIES);
+    public QuizInfo getQuizInfo() {
+        return new QuizInfo(getType().name(), "Hangman", DEFAULT_TRIES);
     }
 
     @Override
-    public GameAnswerDto getAnswer() {
-        return new GameAnswerDto(this, List.of(answer));
+    public QuizAnswer getAnswer() {
+        return QuizAnswer.withoutExplanation(answer);
     }
 
     @Override

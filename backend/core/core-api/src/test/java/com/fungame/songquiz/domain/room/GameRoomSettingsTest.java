@@ -1,7 +1,5 @@
 package com.fungame.songquiz.domain.room;
 
-import com.fungame.songquiz.domain.quiz.Game;
-import com.fungame.songquiz.domain.quiz.GameFactories;
 import com.fungame.songquiz.domain.session.GameSessionManager;
 import com.fungame.songquiz.domain.session.GameTimer;
 import com.fungame.songquiz.enums.CSQuizDifficulty;
@@ -47,9 +45,6 @@ class GameRoomSettingsTest {
     @Mock
     GameRoomWriter gameRoomWriter;
 
-    @Mock
-    GameFactories gameFactories;
-
     GameRoomManager gameRoomManager;
 
     @BeforeEach
@@ -60,8 +55,7 @@ class GameRoomSettingsTest {
                 gameTimer,
                 gameSessionManager,
                 gameRoomReader,
-                gameRoomWriter,
-                gameFactories
+                gameRoomWriter
         );
         gameRoomManager.createGameRoom(ROOM_ID, SETTINGS, HOST);
     }
@@ -153,20 +147,4 @@ class GameRoomSettingsTest {
         assertThat(room.isAllReady()).isFalse();
     }
 
-    @Test
-    @DisplayName("게임을 시작할 때마다 소진된 문제를 재사용하지 않도록 새 게임을 만든다.")
-    void everyStartCreatesFreshGame() {
-        Game firstGame = mock(Game.class);
-        Game secondGame = mock(Game.class);
-        org.mockito.BDDMockito.given(gameFactories.create(SETTINGS)).willReturn(firstGame, secondGame);
-
-        gameRoomManager.startGame(ROOM_ID, HOST.memberId());
-        assertThat(gameRoomManager.findRoom(ROOM_ID).getGame()).isSameAs(firstGame);
-
-        gameRoomManager.endGame(ROOM_ID);
-        assertThat(gameRoomManager.findRoom(ROOM_ID).getGame()).isNull();
-
-        gameRoomManager.startGame(ROOM_ID, HOST.memberId());
-        assertThat(gameRoomManager.findRoom(ROOM_ID).getGame()).isSameAs(secondGame);
-    }
 }

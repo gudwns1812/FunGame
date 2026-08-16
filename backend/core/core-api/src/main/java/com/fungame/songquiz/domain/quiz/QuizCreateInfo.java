@@ -1,4 +1,4 @@
 package com.fungame.songquiz.domain.quiz;
 
-public interface GameCreateInfo {
+public interface QuizCreateInfo {
 }

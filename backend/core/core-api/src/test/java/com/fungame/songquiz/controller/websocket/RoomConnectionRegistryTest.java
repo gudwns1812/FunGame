@@ -1,7 +1,7 @@
 package com.fungame.songquiz.controller.websocket;
 
-import com.fungame.songquiz.domain.room.RoomMember;
-import com.fungame.songquiz.domain.room.RoomPresence;
+import com.fungame.songquiz.controller.room.RoomMember;
+import com.fungame.songquiz.controller.room.RoomPresence;
 import com.fungame.songquiz.domain.room.GameRoomService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -27,7 +27,7 @@ class RoomConnectionRegistryTest {
     private static final Long ROOM_ID = 1L;
     private static final String NICKNAME = "참가자";
     private static final Long MEMBER_ID = 11L;
-    private static final RoomMember MEMBER = new RoomMember(ROOM_ID, MEMBER_ID, NICKNAME);
+    private static final RoomMember MEMBER = RoomMember.of(ROOM_ID, MEMBER_ID, NICKNAME);
 
     @Mock
     GameRoomService gameRoomService;

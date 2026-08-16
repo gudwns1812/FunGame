@@ -1,8 +1,8 @@
 package com.fungame.songquiz.domain.session;
 
-import com.fungame.songquiz.domain.quiz.GameContentDto;
+import com.fungame.songquiz.domain.quiz.QuizContent;
 import com.fungame.songquiz.domain.quiz.Song;
-import com.fungame.songquiz.domain.quiz.SongGame;
+import com.fungame.songquiz.domain.quiz.SongQuiz;
 import com.fungame.songquiz.domain.room.GamePlayer;
 import com.fungame.songquiz.domain.room.GameRoomManager;
 import com.fungame.songquiz.enums.ActionResult;
@@ -53,7 +53,7 @@ class QuizGameServiceTest {
         // given
         GameSession session = mock(GameSession.class);
         given(sessionManager.getGameSession(ROOM_ID)).willReturn(session);
-        given(session.getContent()).willReturn(mock(GameContentDto.class));
+        given(session.getContent()).willReturn(mock(QuizContent.class));
 
         // when
         quizGameService.startRound(ROOM_ID);
@@ -68,8 +68,8 @@ class QuizGameServiceTest {
     @DisplayName("게임 중 이탈자는 랭킹과 스킵 정족수에서 제외된다.")
     void handlePlayerLeave_removes_player_from_session() {
         // given
-        SongGame game = new SongGame(List.of(mock(Song.class)), Category.KPOP);
-        GameSession session = new GameSession(game, List.of(P1, P2, P3));
+        SongQuiz quiz = new SongQuiz(List.of(mock(Song.class)), Category.KPOP);
+        GameSession session = new GameSession(quiz, List.of(P1, P2, P3));
         given(sessionManager.getGameSession(ROOM_ID)).willReturn(session);
 
         // when
@@ -99,8 +99,8 @@ class QuizGameServiceTest {
     @DisplayName("첫 라운드가 시작되기 전에 들어온 채팅은 예외 없이 무시된다.")
     void processAnswer_before_first_round_is_ignored() {
         // given
-        SongGame game = new SongGame(Stream.of(mock(Song.class)).toList(), Category.KPOP);
-        GameSession session = new GameSession(game, List.of(P1));
+        SongQuiz quiz = new SongQuiz(Stream.of(mock(Song.class)).toList(), Category.KPOP);
+        GameSession session = new GameSession(quiz, List.of(P1));
         given(sessionManager.getGameSession(ROOM_ID)).willReturn(session);
 
         // when & then: 예외 없이 통과

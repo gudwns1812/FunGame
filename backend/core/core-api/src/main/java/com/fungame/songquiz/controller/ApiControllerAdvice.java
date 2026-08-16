@@ -22,12 +22,12 @@ public class ApiControllerAdvice {
     public ResponseEntity<ApiResponse<Void>> handleCoreException(CoreException e) {
         ErrorType type = e.getType();
         switch (type.getLogLevel()) {
-            case DEBUG -> log.debug("{} : {}", type.getCode(), type.getMessage());
-            case WARN -> log.warn("{} : {}", type.getCode(), type.getMessage());
-            case ERROR -> log.error("{} : {}", type.getCode(), type.getMessage(), e);
+            case DEBUG -> log.debug("{} : {}", type.getCode(), e.getMessage());
+            case WARN -> log.warn("{} : {}", type.getCode(), e.getMessage());
+            case ERROR -> log.error("{} : {}", type.getCode(), e.getMessage(), e);
         }
 
-        return new ResponseEntity<>(ApiResponse.fail(type), type.getStatus());
+        return new ResponseEntity<>(ApiResponse.fail(e), type.getStatus());
     }
 
     @ExceptionHandler(AuthenticationException.class)
