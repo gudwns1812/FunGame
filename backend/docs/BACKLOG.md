@@ -4,32 +4,14 @@
 
 ---
 
-## 구조
+### 1. 회원 탈퇴가 방에 막힌다
 
-### 1. client 모듈 의존 (결론: 현행 유지)
+약관과 개인정보처리방침은 "언제든지 탈퇴", "지체 없이 파기"를 약속하는데 백엔드에 회원 삭제 코드가 없다. 지금 하드 삭제를 하면 `fk_game_room_member_member`(V6, `ON DELETE` 없음 = RESTRICT)가 막는다. 방에 들어가 있는 동안에는 삭제가 실패한다.
 
-`core-api → clients:*`는 `ARCHITECTURE.md`가 의도한 구조다. 이걸 끊으려면 `clients`가 `core-api`를 의존해야 하는데, 그러면 조립을 맡을 제3 모듈이 필요하다(Gradle이 순환을 거부한다). 그 모듈은 `SongquizApplication`을 가져가므로 **`@SpringBootTest` 통합테스트 15개가 부팅 지점을 잃고**, Dockerfile 3줄이 바뀐다. 비용 대비 이득이 없어 원래대로 뒀다.
+방은 30분 유휴면 정리되니 영구 장애는 아니지만, 게임 중에 탈퇴를 누르면 그대로 에러가 난다. 탈퇴를 구현할 때 셋 중 하나를 골라야 한다.
 
----
+- 탈퇴 전에 방에서 내보낸다 (`GameRoomService.leaveRoom` 재사용)
+- FK를 `ON DELETE CASCADE`로 바꾼다 — 방장이 사라지면 `game_room.host_member_id`가 유령을 가리킨다. 이쪽엔 FK가 없어서 DB가 막아주지 않는다
+- 소프트 삭제로 바꾼다 — "지체 없이 파기"와 어긋나는지 확인 필요
 
-## 남은 것
-
-### 2. `GameRoomReader`가 방을 읽을 때마다 닉네임을 손 조인한다
-
-방은 memberId만 영속하므로 `findNicknames()`로 회원을 따로 읽어 붙인다. 이 자체는 정규화된 구조라 그대로 두는 게 맞지만, 회원 행이 사라진 참가자를 `nickname != null`로 조용히 걸러내는 건 의도한 동작인지 확인이 필요하다.
-
----
-
-## 인프라
-
-### 3. Redis 도입 시점
-
-**스크랩 큐 때문이 아니다.** `song_scrape_request` 테이블이 이미 내구성 있는 큐고, `BLPOP`으로 바꾸면 워커 크래시 시 요청이 증발해 오히려 보장이 약해진다.
-
-진짜 트리거는 **다중 인스턴스**다. 지금 아래 셋은 전부 단일 JVM 메모리에 있어서 인스턴스를 2대로 늘리는 순간 깨진다.
-
-- `LockContext` — `ReentrantLock` 맵
-- `SseService` — 인메모리 연결 맵
-- `GameRoomManager` / `GameSessionManager` — 인메모리 게임 상태
-
-설계는 `docs/design/20260808-backend-scalability-design.md`에 있다.
+관련해서 `GameRoomReader.toGameRoom()`의 `nickname != null` 필터는 FK 덕분에 지금은 도달하지 않는 방어 코드다. CASCADE를 택하면 그때부터 실제로 동작하기 시작한다.
