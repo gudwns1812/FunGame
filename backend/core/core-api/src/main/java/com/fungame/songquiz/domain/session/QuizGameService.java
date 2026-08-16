@@ -165,7 +165,7 @@ public class QuizGameService implements GameService {
         QuizInfo quizInfo = gameSession.getQuizInfo();
         int currentRound = gameSession.getCurrentRound();
 
-        String content = currentRound >= 1 ? gameSession.getContent().toString() : null;
+        String content = currentRound >= 1 ? gameSession.getContent().description() : null;
 
         return new GameStateDto(
                 quizInfo.gameType(),
