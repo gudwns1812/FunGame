@@ -20,9 +20,10 @@ vi.mock('@stomp/stompjs', () => ({
   TickerStrategy: { Interval: 'interval', Worker: 'worker' },
   Client: class {
     connected = true;
+    active = true;
     config: unknown;
     activate = vi.fn();
-    deactivate = vi.fn();
+    deactivate = vi.fn().mockResolvedValue(undefined);
     subscribe = vi.fn();
     publish = vi.fn();
 

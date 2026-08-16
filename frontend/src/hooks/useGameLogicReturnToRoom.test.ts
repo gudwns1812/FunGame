@@ -14,6 +14,7 @@ vi.mock('@stomp/stompjs', () => ({
   TickerStrategy: { Interval: 'interval', Worker: 'worker' },
   Client: class {
     connected = true;
+    active = true;
     private readonly config: { onConnect?: (frame: unknown) => void };
 
     constructor(config: { onConnect?: (frame: unknown) => void }) {
@@ -24,7 +25,7 @@ vi.mock('@stomp/stompjs', () => ({
       this.config.onConnect?.(undefined);
     }
 
-    deactivate = vi.fn();
+    deactivate = vi.fn().mockResolvedValue(undefined);
     publish = vi.fn();
 
     subscribe(_destination: string, handler: RoomMessageHandler) {

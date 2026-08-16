@@ -22,6 +22,12 @@ public class RoomPresence {
         return membersBySessionId.containsValue(member);
     }
 
+    public int countSessionsOf(RoomMember member) {
+        return (int) membersBySessionId.values().stream()
+                .filter(member::equals)
+                .count();
+    }
+
     public int countConnectedIn(Long roomId) {
         return (int) membersBySessionId.values().stream()
                 .filter(member -> member.roomId().equals(roomId))

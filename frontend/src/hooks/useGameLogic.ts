@@ -51,6 +51,16 @@ const pushedRoomsOf = (data: string): Room[] | null => {
   }
 };
 
+const closeWithoutWaitingForServer = async (client: Client | null) => {
+  if (!client) return;
+
+  try {
+    await client.deactivate({ force: true });
+  } catch (error) {
+    console.warn('이전 WebSocket 연결을 닫지 못했습니다.', error);
+  }
+};
+
 export const useGameLogic = () => {
   const { onEvent: onSseEvent } = useSse();
   const [myMemberId, setMyMemberId] = useState<number | null>(() => {
@@ -377,9 +387,7 @@ export const useGameLogic = () => {
 
   const connectWebSocket = useCallback(
     (targetRoomId: string, options?: { resyncOnConnect?: boolean }) => {
-      if (stompClient.current) {
-        stompClient.current.deactivate();
-      }
+      const previousClient = stompClient.current;
 
       let shouldResync = options?.resyncOnConnect ?? false;
 
@@ -411,8 +419,12 @@ export const useGameLogic = () => {
         },
       });
 
-      client.activate();
       stompClient.current = client;
+
+      closeWithoutWaitingForServer(previousClient).then(() => {
+        if (stompClient.current !== client) return;
+        client.activate();
+      });
     },
     [addLog],
   );
@@ -425,9 +437,8 @@ export const useGameLogic = () => {
         console.error('Leave room failed:', error);
       }
     }
-    if (stompClient.current) {
-      stompClient.current.deactivate();
-    }
+    await closeWithoutWaitingForServer(stompClient.current);
+    stompClient.current = null;
     setRoomId(null);
     setRoomName('');
     setStatus('ROOM_LIST');
@@ -622,16 +633,16 @@ export const useGameLogic = () => {
   useEffect(() => {
     if (!roomId || (status !== 'WAITING' && status !== 'PLAYING')) return;
 
-    const reconnectImmediatelyIfDropped = () => {
+    const reconnectImmediatelyIfAbandoned = () => {
       if (document.visibilityState !== 'visible') return;
-      if (stompClient.current?.connected) return;
+      if (stompClient.current?.active) return;
 
-      console.warn('탭 복귀 시점에 연결이 끊겨 있어 즉시 재연결합니다.');
+      console.warn('탭 복귀 시점에 연결이 버려져 있어 즉시 재연결합니다.');
       connectWebSocket(roomId, { resyncOnConnect: true });
     };
 
-    document.addEventListener('visibilitychange', reconnectImmediatelyIfDropped);
-    return () => document.removeEventListener('visibilitychange', reconnectImmediatelyIfDropped);
+    document.addEventListener('visibilitychange', reconnectImmediatelyIfAbandoned);
+    return () => document.removeEventListener('visibilitychange', reconnectImmediatelyIfAbandoned);
   }, [roomId, status, connectWebSocket]);
 
   useEffect(() => {
