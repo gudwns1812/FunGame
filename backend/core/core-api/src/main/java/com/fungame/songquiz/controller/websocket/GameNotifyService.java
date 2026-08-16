@@ -15,6 +15,7 @@ import com.fungame.songquiz.domain.session.RoundEndEvent;
 import com.fungame.songquiz.domain.session.RoundStartEvent;
 import com.fungame.songquiz.domain.session.TimerTickEvent;
 import com.fungame.songquiz.controller.response.ApiResponse;
+import com.fungame.songquiz.controller.response.RoomSettingsResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.event.EventListener;
@@ -52,7 +53,8 @@ public class GameNotifyService {
     public void handleRoomSettingsChanged(RoomSettingsChangedEvent event) {
         log.info("Broadcasting room settings change in room {}", event.roomId());
         String destination = StompDestination.room(event.roomId());
-        Object payload = Map.of("type", "ROOM_SETTINGS_CHANGED", "settings", event.settings());
+        Object payload = Map.of("type", "ROOM_SETTINGS_CHANGED",
+                "settings", RoomSettingsResponse.from(event.settings()));
         messagingTemplate.convertAndSend(destination, ApiResponse.success(payload));
     }
 
