@@ -70,6 +70,7 @@ class QuizGameServiceTest {
         // given
         SongQuiz quiz = new SongQuiz(List.of(mock(Song.class)), Category.KPOP);
         GameSession session = new GameSession(quiz, List.of(P1, P2, P3));
+        session.startRound();
         given(sessionManager.getGameSession(ROOM_ID)).willReturn(session);
 
         // when
@@ -107,6 +108,21 @@ class QuizGameServiceTest {
         quizGameService.processAnswer(ROOM_ID, P1.memberId(), "아무 채팅");
 
         verify(publisher, never()).publishEvent(any(RoundEndEvent.class));
+    }
+
+    @Test
+    @DisplayName("첫 라운드가 시작되기 전에 들어온 스킵 투표는 무시되고 첫 라운드 예약을 취소하지 않는다.")
+    void increaseSkipVote_before_first_round_is_ignored() {
+        // given
+        SongQuiz quiz = new SongQuiz(Stream.of(mock(Song.class)).toList(), Category.KPOP);
+        GameSession session = new GameSession(quiz, List.of(P1));
+        given(sessionManager.getGameSession(ROOM_ID)).willReturn(session);
+
+        // when & then: 예외 없이 통과
+        quizGameService.increaseSkipVote(ROOM_ID, P1.memberId());
+
+        verify(publisher, never()).publishEvent(any(RoundEndEvent.class));
+        verify(timer, never()).stop(ROOM_ID);
     }
 
     @Test

@@ -41,12 +41,11 @@ public class SongQuiz extends AbstractQuiz {
 
     @Override
     public ActionResult submitAnswer(Long memberId, String answer) {
-        int current = currentIdx.get();
-        if (current == ROUND_NOT_STARTED) {
+        if (!isRoundStarted()) {
             return ActionResult.NO_ACTION;
         }
 
-        Song song = songs.get(current);
+        Song song = songs.get(currentIdx.get());
         return song.isCorrect(answer) ? ActionResult.CORRECT : ActionResult.WRONG;
     }
 
@@ -63,6 +62,11 @@ public class SongQuiz extends AbstractQuiz {
     @Override
     public void startRound() {
         currentIdx.incrementAndGet();
+    }
+
+    @Override
+    public boolean isRoundStarted() {
+        return currentIdx.get() != ROUND_NOT_STARTED;
     }
 
     @Override

@@ -10,10 +10,11 @@ import org.junit.jupiter.api.Test;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoInteractions;
 
 class GameSessionTest {
 
@@ -49,6 +50,7 @@ class GameSessionTest {
     @DisplayName("스킵 투표는 quiz 에 묻지 않고 세션이 명단을 보고 판단한다.")
     void skipVoteIsDecidedBySession() {
         // given: 세 명 중 두 명이 투표해야 스킵된다
+        given(quiz.isRoundStarted()).willReturn(true);
         assertThat(gameSession.handleAction(GameAction.skipVote(1L))).isEqualTo(ActionResult.ACTION_SUCCESS);
 
         // when
@@ -56,13 +58,23 @@ class GameSessionTest {
 
         // then
         assertThat(result).isEqualTo(ActionResult.SKIP_VOTE_SUCCESS);
-        verifyNoInteractions(quiz);
+        verify(quiz, never()).submitAnswer(any(), any());
     }
 
     @Test
     @DisplayName("게임에 없는 사람의 스킵 투표는 세지 않는다.")
     void skipVoteFromStrangerIsIgnored() {
+        given(quiz.isRoundStarted()).willReturn(true);
+
         assertThat(gameSession.handleAction(GameAction.skipVote(99L))).isEqualTo(ActionResult.NO_ACTION);
+    }
+
+    @Test
+    @DisplayName("첫 라운드가 시작되기 전의 스킵 투표는 세지 않는다.")
+    void skipVoteBeforeRoundStartIsIgnored() {
+        given(quiz.isRoundStarted()).willReturn(false);
+
+        assertThat(gameSession.handleAction(GameAction.skipVote(1L))).isEqualTo(ActionResult.NO_ACTION);
     }
 
     @Test

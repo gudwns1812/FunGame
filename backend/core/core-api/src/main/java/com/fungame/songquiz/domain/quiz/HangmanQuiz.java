@@ -202,6 +202,11 @@ public class HangmanQuiz extends AbstractQuiz {
     }
 
     @Override
+    public boolean isRoundStarted() {
+        return true;
+    }
+
+    @Override
     public boolean isLast() {
         return true;
     }
