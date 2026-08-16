@@ -1,6 +1,5 @@
 package com.fungame.songquiz.domain.session;
 
-import com.fungame.songquiz.domain.quiz.Game;
 import com.fungame.songquiz.domain.quiz.GameInfo;
 import com.fungame.songquiz.domain.quiz.HangmanGame;
 import com.fungame.songquiz.domain.room.GamePlayer;
@@ -35,29 +34,30 @@ public class HangmanGameService implements GameService {
     @Override
     public void startGame(Long roomId, Long memberId) {
         GameRoom gameRoom = gameRoomManager.startGame(roomId, memberId);
+        GameSession gameSession =
+                gameSessionManager.startGame(roomId, gameRoom.getSettings(), gameRoom.getRoomPlayers());
 
-        if (gameRoom.getGame() instanceof HangmanGame hangmanGame) {
-            hangmanGame.initPlayers(gameRoom.getRoomPlayers());
+        HangmanGame hangmanGame = hangmanGameOf(gameSession);
+        hangmanGame.initPlayers(gameRoom.getRoomPlayers());
 
-            GameInfo gameInfo = gameSessionManager.startGame(roomId, hangmanGame, gameRoom.getRoomPlayers());
-            eventPublisher.publishEvent(new GameStartEvent(roomId, gameInfo));
+        eventPublisher.publishEvent(new GameStartEvent(roomId, gameSession.getGameInfo()));
+        eventPublisher.publishEvent(new RoundStartEvent(roomId, hangmanGame.getStatus(), 1, 1));
 
-            eventPublisher.publishEvent(new RoundStartEvent(roomId, hangmanGame.getStatus(), 1, 1));
+        GamePlayer starter = hangmanGame.getCurrentTurnPlayer();
+        eventPublisher.publishEvent(new HangmanActionEvent(roomId, starter.memberId(), starter.nickname(),
+                NO_LETTER, ActionResult.ACTION_SUCCESS, hangmanGame.getStatus()));
+    }
 
-            GamePlayer starter = hangmanGame.getCurrentTurnPlayer();
-            eventPublisher.publishEvent(new HangmanActionEvent(roomId, starter.memberId(), starter.nickname(),
-                    NO_LETTER, ActionResult.ACTION_SUCCESS, hangmanGame.getStatus()));
+    private HangmanGame hangmanGameOf(GameSession gameSession) {
+        if (gameSession == null || !(gameSession.getGame() instanceof HangmanGame hangmanGame)) {
+            throw new CoreException(ErrorType.GAME_NOT_FOUND);
         }
+        return hangmanGame;
     }
 
     @Override
     public void handleAction(Long roomId, GameAction action) {
-        GameRoom room = gameRoomManager.findRoom(roomId);
-        Game game = room.getGame();
-
-        if (!(game instanceof HangmanGame hangmanGame)) {
-            throw new CoreException(ErrorType.GAME_NOT_FOUND);
-        }
+        HangmanGame hangmanGame = hangmanGameOf(gameSessionManager.getGameSession(roomId));
 
         String payload = action.value();
         if (payload == null || payload.length() != 1) {
@@ -106,11 +106,7 @@ public class HangmanGameService implements GameService {
 
     @Override
     public GameStateDto getPlayState(Long roomId) {
-        GameRoom room = gameRoomManager.findRoom(roomId);
-
-        if (!(room.getGame() instanceof HangmanGame hangmanGame)) {
-            throw new CoreException(ErrorType.GAME_NOT_FOUND);
-        }
+        HangmanGame hangmanGame = hangmanGameOf(gameSessionManager.getGameSession(roomId));
 
         GameInfo gameInfo = hangmanGame.getGameInfo();
         return new GameStateDto(
@@ -138,8 +134,7 @@ public class HangmanGameService implements GameService {
             return;
         }
 
-        GameRoom room = gameRoomManager.findRoom(roomId);
-        if (!(room.getGame() instanceof HangmanGame hangmanGame)) {
+        if (!(session.getGame() instanceof HangmanGame hangmanGame)) {
             return;
         }
 

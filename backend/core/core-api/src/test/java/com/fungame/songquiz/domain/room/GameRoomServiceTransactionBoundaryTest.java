@@ -60,7 +60,7 @@ class GameRoomServiceTransactionBoundaryTest {
         AtomicBoolean transactionActive = new AtomicBoolean(true);
         given(gameRoomManager.joinRoom(any(), any()))
                 .willAnswer(record(transactionActive, new JoinResult(1, true)));
-        given(gameRoomManager.findRoom(ROOM_ID)).willReturn(GameRoom.create(settings(), HOST));
+        given(gameRoomManager.findRoom(ROOM_ID)).willReturn(GameRoom.create(ROOM_ID, settings(), HOST));
 
         gameRoomService.joinRoom(ROOM_ID, GUEST);
 

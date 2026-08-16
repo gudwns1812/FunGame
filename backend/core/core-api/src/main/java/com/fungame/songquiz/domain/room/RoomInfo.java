@@ -16,33 +16,17 @@ public record RoomInfo(
         CSQuizDifficulty csDifficulty
 ) {
 
-    public static RoomInfo from(Long roomId, GameRoom room) {
-        GamePlayers players = room.getPlayers();
-
+    public static RoomInfo from(GameRoom room) {
         return new RoomInfo(
-                roomId,
+                room.getRoomId(),
                 room.getTitle(),
-                players.getHost(),
-                players.nicknameOf(players.getHost()),
+                room.getHostId(),
+                room.hostNickname(),
                 room.getStatus(),
                 room.getSettings().maxPlayers(),
                 room.getPlayerCount(),
                 room.getSettings().gameType(),
                 room.getSettings().csDifficulty()
-        );
-    }
-
-    public static RoomInfo of(StoredRoom stored) {
-        return new RoomInfo(
-                stored.roomId(),
-                stored.settings().title(),
-                stored.hostId(),
-                stored.hostNickname(),
-                stored.status(),
-                stored.settings().maxPlayers(),
-                stored.players().size(),
-                stored.settings().gameType(),
-                stored.settings().csDifficulty()
         );
     }
 

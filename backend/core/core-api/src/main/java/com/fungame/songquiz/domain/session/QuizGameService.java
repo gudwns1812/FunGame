@@ -32,8 +32,8 @@ public class QuizGameService implements GameService {
     @Override
     public void startGame(Long roomId, Long memberId) {
         GameRoom gameRoom = gameRoomManager.startGame(roomId, memberId);
-        GameInfo gameInfo = sessionManager.startGame(roomId, gameRoom.getGame(), gameRoom.getRoomPlayers());
-        publisher.publishEvent(new GameStartEvent(roomId, gameInfo));
+        GameSession gameSession = sessionManager.startGame(roomId, gameRoom.getSettings(), gameRoom.getRoomPlayers());
+        publisher.publishEvent(new GameStartEvent(roomId, gameSession.getGameInfo()));
 
         timer.startAfter(roomId, 5, () -> startRound(roomId));
     }

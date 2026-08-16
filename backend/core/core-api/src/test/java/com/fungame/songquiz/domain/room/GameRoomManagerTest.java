@@ -1,6 +1,5 @@
 package com.fungame.songquiz.domain.room;
 
-import com.fungame.songquiz.domain.quiz.GameFactories;
 import com.fungame.songquiz.domain.session.GameSession;
 import com.fungame.songquiz.domain.session.GameSessionManager;
 import com.fungame.songquiz.domain.session.GameTimer;
@@ -53,9 +52,6 @@ class GameRoomManagerTest {
     @Mock
     GameRoomWriter gameRoomWriter;
 
-    @Mock
-    GameFactories gameFactories;
-
     GameRoomManager gameRoomManager;
 
     @BeforeEach
@@ -66,8 +62,7 @@ class GameRoomManagerTest {
                 gameTimer,
                 gameSessionManager,
                 gameRoomReader,
-                gameRoomWriter,
-                gameFactories
+                gameRoomWriter
         );
     }
 
@@ -78,7 +73,7 @@ class GameRoomManagerTest {
 
     private void storeHasRoom() {
         given(gameRoomReader.loadAll()).willReturn(List.of(
-                new StoredRoom(ROOM_ID, SETTINGS, GameRoomStatus.WAITING, HOST.memberId(), List.of(HOST),
+                GameRoom.restore(ROOM_ID, SETTINGS, List.of(HOST), HOST.memberId(), GameRoomStatus.WAITING,
                         Instant.now())));
     }
 

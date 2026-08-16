@@ -1,8 +1,5 @@
 package com.fungame.songquiz.domain.room;
 
-import com.fungame.songquiz.domain.quiz.Game;
-import com.fungame.songquiz.domain.quiz.Song;
-import com.fungame.songquiz.domain.quiz.SongGame;
 import com.fungame.songquiz.enums.CSQuizDifficulty;
 import com.fungame.songquiz.enums.Category;
 import com.fungame.songquiz.enums.GameType;
@@ -12,7 +9,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-import java.time.LocalDate;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -24,15 +20,13 @@ class GameRoomTest {
     private static final GamePlayer PLAYER2 = GamePlayer.createNewPlayer(2L, "player2");
     private static final GamePlayer PLAYER3 = GamePlayer.createNewPlayer(3L, "player3");
     private static final Long NOT_HOST_ID = 99L;
+    private static final Long ROOM_ID = 1L;
 
     GameRoom gameRoom;
-    Game game;
 
     @BeforeEach
     void setUp() {
-        var songs = List.of(Song.of("정답", "", List.of(Category.KPOP), LocalDate.of(2015, 1, 1), "", 30, List.of(), ""));
-        game = new SongGame(songs, Category.KPOP);
-        gameRoom = GameRoom.create(new RoomSettings(GameType.SONG, "방제목", 2, Category.KPOP, 1, 0, CSQuizDifficulty.HARD), HOST);
+        gameRoom = GameRoom.create(ROOM_ID, new RoomSettings(GameType.SONG, "방제목", 2, Category.KPOP, 1, 0, CSQuizDifficulty.HARD), HOST);
     }
 
     @Test
@@ -96,7 +90,7 @@ class GameRoomTest {
     @DisplayName("게임이 이미 진행 중인 방에는 입장할 수 없다.")
     void join_fail_already_playing() {
         // given
-        gameRoom.start(HOST.memberId(), game);
+        gameRoom.start(HOST.memberId());
 
         // when // then
         assertThatThrownBy(() -> gameRoom.join(PLAYER2))
@@ -108,7 +102,7 @@ class GameRoomTest {
     @DisplayName("방장이 아닌 사용자가 게임을 시작하면 예외가 발생한다.")
     void start_fail_not_host() {
         // when // then
-        assertThatThrownBy(() -> gameRoom.start(NOT_HOST_ID, game))
+        assertThatThrownBy(() -> gameRoom.start(NOT_HOST_ID))
                 .isInstanceOf(CoreException.class)
                 .hasMessageContaining(ErrorType.NOT_VALID_HOST.getMessage());
     }

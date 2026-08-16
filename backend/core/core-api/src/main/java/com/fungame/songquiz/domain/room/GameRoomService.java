@@ -79,12 +79,12 @@ public class GameRoomService {
 
     public List<RoomInfo> findAllRooms() {
         return gameRoomReader.loadAll().stream()
-                .map(RoomInfo::of)
+                .map(RoomInfo::from)
                 .toList();
     }
 
     public RoomInfo findRoomInfo(Long roomId) {
-        return RoomInfo.from(roomId, gameRoomManager.findRoom(roomId));
+        return RoomInfo.from(gameRoomManager.findRoom(roomId));
     }
 
     public PlayersInfo findUsers(Long roomId) {

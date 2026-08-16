@@ -1,6 +1,5 @@
 package com.fungame.songquiz.domain.room;
 
-import com.fungame.songquiz.domain.quiz.Game;
 import com.fungame.songquiz.enums.CSQuizDifficulty;
 import com.fungame.songquiz.enums.Category;
 import com.fungame.songquiz.enums.GameRoomStatus;
@@ -17,7 +16,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.mock;
 
 @IntegrationTest
 class GameRoomPersistenceTest {
@@ -42,17 +40,17 @@ class GameRoomPersistenceTest {
         GamePlayer guest = saveMemberAsPlayer("참가자");
 
         Long roomId = gameRoomWriter.open(SETTINGS, host);
-        GameRoom room = GameRoom.create(SETTINGS, host);
+        GameRoom room = GameRoom.create(roomId, SETTINGS, host);
         room.join(guest);
-        gameRoomWriter.save(roomId, room);
+        gameRoomWriter.save(room);
 
         // when
-        StoredRoom stored = gameRoomReader.load(roomId).orElseThrow();
+        GameRoom stored = gameRoomReader.load(roomId).orElseThrow();
 
         // then
-        assertThat(stored.hostId()).isEqualTo(host.memberId());
+        assertThat(stored.getHostId()).isEqualTo(host.memberId());
         assertThat(stored.hostNickname()).isEqualTo("방장");
-        assertThat(stored.players())
+        assertThat(stored.getRoomPlayers())
                 .containsExactlyInAnyOrder(
                         new GamePlayer(host.memberId(), "방장", true),
                         new GamePlayer(guest.memberId(), "참가자", false));
@@ -70,10 +68,10 @@ class GameRoomPersistenceTest {
         memberRepository.saveAndFlush(member);
 
         // when
-        StoredRoom stored = gameRoomReader.load(roomId).orElseThrow();
+        GameRoom stored = gameRoomReader.load(roomId).orElseThrow();
 
         // then
-        assertThat(stored.players())
+        assertThat(stored.getRoomPlayers())
                 .extracting(GamePlayer::nickname)
                 .containsExactly("새닉네임");
     }
@@ -85,12 +83,12 @@ class GameRoomPersistenceTest {
         GamePlayer host = saveMemberAsPlayer("설정바꾸는방장");
         Long roomId = gameRoomWriter.open(SETTINGS, host);
 
-        GameRoom room = GameRoom.create(SETTINGS, host);
+        GameRoom room = GameRoom.create(roomId, SETTINGS, host);
         room.changeSettings(SETTINGS.changeTo(GameType.CS, 8, Category.DEFAULT, 5, 0, CSQuizDifficulty.EASY));
 
         // when
-        gameRoomWriter.save(roomId, room);
-        RoomSettings reloaded = gameRoomReader.load(roomId).orElseThrow().settings();
+        gameRoomWriter.save(room);
+        RoomSettings reloaded = gameRoomReader.load(roomId).orElseThrow().getSettings();
 
         // then
         assertThat(reloaded.gameType()).isEqualTo(GameType.CS);
@@ -109,7 +107,7 @@ class GameRoomPersistenceTest {
 
         // when
         Long roomId = gameRoomWriter.open(everyFieldDistinct, host);
-        RoomSettings reloaded = gameRoomReader.load(roomId).orElseThrow().settings();
+        RoomSettings reloaded = gameRoomReader.load(roomId).orElseThrow().getSettings();
 
         // then
         assertThat(reloaded).isEqualTo(everyFieldDistinct);
@@ -123,12 +121,12 @@ class GameRoomPersistenceTest {
         Long roomId = gameRoomWriter.open(SETTINGS, host);
         RoomSettings changed = SETTINGS.changeTo(GameType.HANGMAN, 6, Category.OST, 4, 2, CSQuizDifficulty.EASY);
 
-        GameRoom room = GameRoom.create(SETTINGS, host);
+        GameRoom room = GameRoom.create(roomId, SETTINGS, host);
         room.changeSettings(changed);
 
         // when
-        gameRoomWriter.save(roomId, room);
-        RoomSettings reloaded = gameRoomReader.load(roomId).orElseThrow().settings();
+        gameRoomWriter.save(room);
+        RoomSettings reloaded = gameRoomReader.load(roomId).orElseThrow().getSettings();
 
         // then
         assertThat(reloaded).isEqualTo(changed);
@@ -144,14 +142,14 @@ class GameRoomPersistenceTest {
         Long secondRoomId = gameRoomWriter.open(SETTINGS, secondHost);
 
         // when
-        List<StoredRoom> rooms = gameRoomReader.loadAll();
+        List<GameRoom> rooms = gameRoomReader.loadAll();
 
         // then
         assertThat(rooms)
-                .filteredOn(room -> List.of(firstRoomId, secondRoomId).contains(room.roomId()))
+                .filteredOn(room -> List.of(firstRoomId, secondRoomId).contains(room.getRoomId()))
                 .hasSize(2)
-                .allSatisfy(room -> assertThat(room.players()).hasSize(1))
-                .extracting(StoredRoom::hostNickname)
+                .allSatisfy(room -> assertThat(room.getRoomPlayers()).hasSize(1))
+                .extracting(GameRoom::hostNickname)
                 .containsExactlyInAnyOrder("첫째방장", "둘째방장");
     }
 
@@ -164,18 +162,18 @@ class GameRoomPersistenceTest {
         GamePlayer leaver = saveMemberAsPlayer("나가는사람");
 
         Long roomId = gameRoomWriter.open(SETTINGS, host);
-        GameRoom room = GameRoom.create(SETTINGS, host);
+        GameRoom room = GameRoom.create(roomId, SETTINGS, host);
         room.join(stayer);
         room.join(leaver);
-        gameRoomWriter.save(roomId, room);
+        gameRoomWriter.save(room);
 
         // when
         room.readyPlayer(stayer.memberId());
         room.leave(leaver.memberId());
-        gameRoomWriter.save(roomId, room);
+        gameRoomWriter.save(room);
 
         // then
-        assertThat(gameRoomReader.load(roomId).orElseThrow().players())
+        assertThat(gameRoomReader.load(roomId).orElseThrow().getRoomPlayers())
                 .containsExactlyInAnyOrder(
                         new GamePlayer(host.memberId(), "동기화방장", true),
                         new GamePlayer(stayer.memberId(), "남는사람", true));
@@ -188,16 +186,16 @@ class GameRoomPersistenceTest {
         GamePlayer host = saveMemberAsPlayer("중단된방장");
         Long roomId = gameRoomWriter.open(SETTINGS, host);
 
-        GameRoom room = GameRoom.create(SETTINGS, host);
-        room.start(host.memberId(), mock(Game.class));
-        gameRoomWriter.save(roomId, room);
-        assertThat(gameRoomReader.load(roomId).orElseThrow().status()).isEqualTo(GameRoomStatus.PLAYING);
+        GameRoom room = GameRoom.create(roomId, SETTINGS, host);
+        room.start(host.memberId());
+        gameRoomWriter.save(room);
+        assertThat(gameRoomReader.load(roomId).orElseThrow().getStatus()).isEqualTo(GameRoomStatus.PLAYING);
 
         // when
         gameRoomWriter.markInterruptedGamesWaiting();
 
         // then
-        assertThat(gameRoomReader.load(roomId).orElseThrow().status()).isEqualTo(GameRoomStatus.WAITING);
+        assertThat(gameRoomReader.load(roomId).orElseThrow().getStatus()).isEqualTo(GameRoomStatus.WAITING);
     }
 
     @Test

@@ -24,18 +24,18 @@ public class GameRoomReader {
     private final MemberRepository memberRepository;
 
     @Transactional(readOnly = true)
-    public Optional<StoredRoom> load(Long roomId) {
+    public Optional<GameRoom> load(Long roomId) {
         return gameRoomRepository.findWithMembersById(roomId)
-                .map(entity -> toStoredRoom(entity, findNicknames(List.of(entity))));
+                .map(entity -> toGameRoom(entity, findNicknames(List.of(entity))));
     }
 
     @Transactional(readOnly = true)
-    public List<StoredRoom> loadAll() {
+    public List<GameRoom> loadAll() {
         List<GameRoomEntity> entities = gameRoomRepository.findAllBy();
         Map<Long, String> nicknames = findNicknames(entities);
 
         return entities.stream()
-                .map(entity -> toStoredRoom(entity, nicknames))
+                .map(entity -> toGameRoom(entity, nicknames))
                 .toList();
     }
 
@@ -49,7 +49,7 @@ public class GameRoomReader {
                 .collect(Collectors.toMap(MemberEntity::getId, MemberEntity::getNickname));
     }
 
-    private static StoredRoom toStoredRoom(GameRoomEntity entity, Map<Long, String> nicknames) {
+    private static GameRoom toGameRoom(GameRoomEntity entity, Map<Long, String> nicknames) {
         List<GamePlayer> players = entity.getMembers().stream()
                 .map(member -> new GamePlayer(
                         member.getMemberId(),
@@ -58,12 +58,12 @@ public class GameRoomReader {
                 .filter(player -> player.nickname() != null)
                 .toList();
 
-        return new StoredRoom(
+        return GameRoom.restore(
                 entity.getId(),
                 toRoomSettings(entity.toSettings()),
-                entity.getStatus(),
-                entity.getHostMemberId(),
                 players,
+                entity.getHostMemberId(),
+                entity.getStatus(),
                 entity.getLastActivityTime());
     }
 

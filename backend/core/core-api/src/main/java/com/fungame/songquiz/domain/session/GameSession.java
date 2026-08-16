@@ -19,6 +19,10 @@ public class GameSession {
         this.rank = new GameRank(players);
     }
 
+    public Game getGame() {
+        return game;
+    }
+
     public ActionResult handleAction(GameAction action) {
         return game.handleAction(action);
     }
