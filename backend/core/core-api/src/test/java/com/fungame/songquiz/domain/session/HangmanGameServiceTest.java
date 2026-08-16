@@ -41,7 +41,7 @@ class HangmanGameServiceTest {
     private ApplicationEventPublisher eventPublisher;
 
     @InjectMocks
-    private HangmanQuizService hangmanGameService;
+    private HangmanGameService hangmanGameService;
 
     @Test
     @DisplayName("게임 시작 시 GameStartEvent를 발행한다.")

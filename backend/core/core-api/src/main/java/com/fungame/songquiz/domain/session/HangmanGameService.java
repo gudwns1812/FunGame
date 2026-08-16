@@ -17,7 +17,7 @@ import java.util.List;
 
 @Service
 @RequiredArgsConstructor
-public class HangmanQuizService implements GameService {
+public class HangmanGameService implements GameService {
 
     private static final char NO_LETTER = ' ';
     private static final int NO_SCORE = 0;
