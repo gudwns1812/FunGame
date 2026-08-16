@@ -7,10 +7,11 @@ import org.springframework.scheduling.concurrent.ConcurrentTaskScheduler;
 
 import java.time.Clock;
 import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
 
 @Configuration
 public class AppConfig {
+
+    private static final int SCHEDULER_POOL_SIZE = 10;
 
     @Bean
     public Clock clock() {
@@ -18,13 +19,8 @@ public class AppConfig {
     }
 
     @Bean
-    public ScheduledExecutorService scheduledExecutorService() {
-        return Executors.newScheduledThreadPool(10);
-    }
-
-    @Bean
     @AppTaskScheduler
-    public TaskScheduler taskScheduler(ScheduledExecutorService scheduledExecutorService) {
-        return new ConcurrentTaskScheduler(scheduledExecutorService);
+    public TaskScheduler taskScheduler() {
+        return new ConcurrentTaskScheduler(Executors.newScheduledThreadPool(SCHEDULER_POOL_SIZE));
     }
 }
