@@ -1,4 +1,4 @@
-package com.fungame.songquiz.support.sse;
+package com.fungame.songquiz.controller.sse;
 
 import com.fungame.songquiz.domain.member.MemberConnectionTracker;
 import lombok.RequiredArgsConstructor;

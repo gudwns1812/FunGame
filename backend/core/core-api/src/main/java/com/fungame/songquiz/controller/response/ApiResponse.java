@@ -1,4 +1,4 @@
-package com.fungame.songquiz.support.response;
+package com.fungame.songquiz.controller.response;
 
 import com.fungame.songquiz.support.error.ErrorMessage;
 import com.fungame.songquiz.support.error.ErrorType;

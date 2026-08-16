@@ -1,7 +1,6 @@
-package com.fungame.songquiz.support.mail;
+package com.fungame.songquiz.domain.member;
 
 import com.fungame.songquiz.client.mail.SesMailSender;
-import com.fungame.songquiz.domain.member.PasswordResetTokenGenerator;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;

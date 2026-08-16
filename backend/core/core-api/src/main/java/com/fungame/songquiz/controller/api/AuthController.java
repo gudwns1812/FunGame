@@ -9,7 +9,7 @@ import com.fungame.songquiz.domain.dto.MemberInfo;
 import com.fungame.songquiz.domain.member.AuthService;
 import com.fungame.songquiz.domain.member.MemberAdapter;
 import com.fungame.songquiz.domain.member.PasswordResetService;
-import com.fungame.songquiz.support.response.ApiResponse;
+import com.fungame.songquiz.controller.response.ApiResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;

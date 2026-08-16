@@ -1,4 +1,4 @@
-package com.fungame.songquiz.support.sse;
+package com.fungame.songquiz.controller.sse;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;

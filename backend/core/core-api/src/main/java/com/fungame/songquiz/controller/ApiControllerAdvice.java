@@ -2,7 +2,7 @@ package com.fungame.songquiz.controller;
 
 import com.fungame.songquiz.support.error.CoreException;
 import com.fungame.songquiz.support.error.ErrorType;
-import com.fungame.songquiz.support.response.ApiResponse;
+import com.fungame.songquiz.controller.response.ApiResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;

@@ -1,4 +1,4 @@
-package com.fungame.songquiz.support.lock;
+package com.fungame.songquiz.domain.lock;
 
 import org.springframework.stereotype.Component;
 

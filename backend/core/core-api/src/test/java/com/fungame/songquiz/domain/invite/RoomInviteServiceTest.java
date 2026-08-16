@@ -15,11 +15,12 @@ import com.fungame.songquiz.support.MemberFixture;
 import com.fungame.songquiz.support.MutableClock;
 import com.fungame.songquiz.support.error.CoreException;
 import com.fungame.songquiz.support.error.ErrorType;
-import com.fungame.songquiz.support.sse.SseService;
+import com.fungame.songquiz.domain.event.RoomInviteCreatedEvent;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.springframework.context.ApplicationEventPublisher;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -29,8 +30,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -44,7 +43,7 @@ class RoomInviteServiceTest {
 
     private final GameRoomService gameRoomService = mock(GameRoomService.class);
     private final MemberPresenceService memberPresenceService = mock(MemberPresenceService.class);
-    private final SseService sseService = mock(SseService.class);
+    private final ApplicationEventPublisher eventPublisher = mock(ApplicationEventPublisher.class);
     private final MemberConnectionTracker memberConnectionTracker = mock(MemberConnectionTracker.class);
     private final MutableClock clock = new MutableClock(Instant.parse("2026-08-13T00:00:00Z"), ZoneId.of("UTC"));
 
@@ -56,7 +55,7 @@ class RoomInviteServiceTest {
     @BeforeEach
     void setUp() {
         roomInviteService = new RoomInviteService(
-                gameRoomService, memberPresenceService, sseService, memberConnectionTracker, clock);
+                gameRoomService, memberPresenceService, eventPublisher, memberConnectionTracker, clock);
 
         inviter = MemberFixture.withId(INVITER_ID, "방장");
         inviter.enterWaitingRoom(ROOM_ID);
@@ -82,7 +81,7 @@ class RoomInviteServiceTest {
             assertThat(notification.roomTitle()).isEqualTo("테스트 방");
             assertThat(notification.inviterNickname()).isEqualTo("방장");
             assertThat(notification.expiresInSeconds()).isEqualTo(30);
-            verify(sseService).sendTo(eq(TARGET_ID), eq("room-invite"), eq(notification));
+            verify(eventPublisher).publishEvent(new RoomInviteCreatedEvent(TARGET_ID, notification));
         }
 
         @Test
@@ -161,7 +160,7 @@ class RoomInviteServiceTest {
             assertThatThrownBy(() -> roomInviteService.invite(ROOM_ID, INVITER_ID, TARGET_ID))
                     .isInstanceOf(CoreException.class);
 
-            verify(sseService, never()).sendTo(anyLong(), anyString(), org.mockito.ArgumentMatchers.any());
+            verify(eventPublisher, never()).publishEvent(any(RoomInviteCreatedEvent.class));
         }
     }
 

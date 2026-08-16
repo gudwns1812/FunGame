@@ -4,7 +4,7 @@ import com.fungame.songquiz.domain.dto.PlayersInfo;
 import com.fungame.songquiz.domain.event.RoomChangedEvent;
 import com.fungame.songquiz.support.error.CoreException;
 import com.fungame.songquiz.support.error.ErrorType;
-import com.fungame.songquiz.support.lock.LockContext;
+import com.fungame.songquiz.domain.lock.LockContext;
 import com.fungame.songquiz.enums.GameType;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

@@ -3,7 +3,7 @@ package com.fungame.songquiz.controller.api;
 import com.fungame.songquiz.domain.dto.OnlineMemberInfo;
 import com.fungame.songquiz.domain.member.MemberAdapter;
 import com.fungame.songquiz.domain.member.OnlineMemberService;
-import com.fungame.songquiz.support.response.ApiResponse;
+import com.fungame.songquiz.controller.response.ApiResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;

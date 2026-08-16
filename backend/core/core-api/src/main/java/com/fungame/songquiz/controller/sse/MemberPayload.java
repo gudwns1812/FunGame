@@ -1,4 +1,4 @@
-package com.fungame.songquiz.support.sse;
+package com.fungame.songquiz.controller.sse;
 
 @FunctionalInterface
 public interface MemberPayload {

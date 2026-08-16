@@ -1,4 +1,4 @@
-package com.fungame.songquiz.support.sse;
+package com.fungame.songquiz.controller.sse;
 
 import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.Logger;

@@ -1,7 +1,6 @@
 package com.fungame.songquiz.domain.member;
 
 import com.fungame.songquiz.storage.IntegrationTest;
-import com.fungame.songquiz.support.mail.PasswordResetMailSender;
 import com.fungame.songquiz.enums.PlayerStatus;
 import com.fungame.songquiz.enums.Role;
 import org.junit.jupiter.api.AfterEach;

@@ -1,7 +1,7 @@
 package com.fungame.songquiz.controller.api;
 
 import com.fungame.songquiz.domain.member.MemberAdapter;
-import com.fungame.songquiz.support.sse.SseService;
+import com.fungame.songquiz.controller.sse.SseService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;

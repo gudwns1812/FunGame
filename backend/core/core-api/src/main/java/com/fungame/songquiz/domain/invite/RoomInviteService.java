@@ -5,14 +5,15 @@ import com.fungame.songquiz.domain.GameRoomService;
 import com.fungame.songquiz.enums.GameRoomStatus;
 import com.fungame.songquiz.domain.dto.RoomInfo;
 import com.fungame.songquiz.domain.dto.RoomSettingsInfo;
+import com.fungame.songquiz.domain.event.RoomInviteCreatedEvent;
 import com.fungame.songquiz.domain.member.Member;
 import com.fungame.songquiz.domain.member.MemberConnectionTracker;
 import com.fungame.songquiz.domain.member.MemberPresenceService;
 import com.fungame.songquiz.support.error.CoreException;
 import com.fungame.songquiz.support.error.ErrorType;
-import com.fungame.songquiz.support.sse.SseService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
@@ -29,13 +30,12 @@ import java.util.concurrent.ConcurrentHashMap;
 public class RoomInviteService {
 
     private static final Duration INVITE_LIFETIME = Duration.ofSeconds(30);
-    private static final String INVITE_EVENT = "room-invite";
 
     private final Map<String, RoomInvite> invitesById = new ConcurrentHashMap<>();
 
     private final GameRoomService gameRoomService;
     private final MemberPresenceService memberPresenceService;
-    private final SseService sseService;
+    private final ApplicationEventPublisher eventPublisher;
     private final MemberConnectionTracker memberConnectionTracker;
     private final Clock clock;
 
@@ -56,7 +56,7 @@ public class RoomInviteService {
         invitesById.put(invite.inviteId(), invite);
 
         RoomInviteNotification notification = notificationOf(invite);
-        sseService.sendTo(targetMemberId, INVITE_EVENT, notification);
+        eventPublisher.publishEvent(new RoomInviteCreatedEvent(targetMemberId, notification));
 
         return notification;
     }

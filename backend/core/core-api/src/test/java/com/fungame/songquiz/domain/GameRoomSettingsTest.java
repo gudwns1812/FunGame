@@ -3,7 +3,7 @@ package com.fungame.songquiz.domain;
 import com.fungame.songquiz.enums.CSQuizDifficulty;
 import com.fungame.songquiz.support.error.CoreException;
 import com.fungame.songquiz.support.error.ErrorType;
-import com.fungame.songquiz.support.lock.LockContext;
+import com.fungame.songquiz.domain.lock.LockContext;
 import com.fungame.songquiz.enums.Category;
 import com.fungame.songquiz.enums.GameRoomStatus;
 import com.fungame.songquiz.enums.GameType;

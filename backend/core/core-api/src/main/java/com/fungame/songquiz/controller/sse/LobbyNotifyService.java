@@ -5,7 +5,6 @@ import com.fungame.songquiz.domain.dto.OnlineMembers;
 import com.fungame.songquiz.domain.event.MemberPresenceChangedEvent;
 import com.fungame.songquiz.domain.event.RoomChangedEvent;
 import com.fungame.songquiz.domain.member.OnlineMemberService;
-import com.fungame.songquiz.support.sse.SseService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Async;

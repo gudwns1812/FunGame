@@ -3,7 +3,7 @@ package com.fungame.songquiz.controller.websocket;
 import com.fungame.songquiz.domain.PlayerScore;
 import com.fungame.songquiz.domain.dto.GameInfo;
 import com.fungame.songquiz.domain.event.*;
-import com.fungame.songquiz.support.response.ApiResponse;
+import com.fungame.songquiz.controller.response.ApiResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.event.EventListener;

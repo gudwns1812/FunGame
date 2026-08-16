@@ -1,4 +1,4 @@
-package com.fungame.songquiz.support.mail;
+package com.fungame.songquiz.domain.member;
 
 public interface PasswordResetMailSender {
 

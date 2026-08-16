@@ -1,4 +1,4 @@
-package com.fungame.songquiz.support.mail;
+package com.fungame.songquiz.domain.member;
 
 import com.fungame.songquiz.domain.event.PasswordResetRequestedEvent;
 import lombok.extern.slf4j.Slf4j;
