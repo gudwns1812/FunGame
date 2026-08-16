@@ -1,6 +1,6 @@
 package com.fungame.songquiz.controller.websocket;
 
-import com.fungame.songquiz.domain.room.RoomMember;
+import com.fungame.songquiz.controller.room.RoomMember;
 import com.fungame.songquiz.domain.member.MemberAdapter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

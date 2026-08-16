@@ -32,7 +32,7 @@ public record RoomInfo(
         );
     }
 
-    public static RoomInfo of(StoredRoom stored, int connectedPlayers) {
+    public static RoomInfo of(StoredRoom stored) {
         return new RoomInfo(
                 stored.roomId(),
                 stored.settings().title(),
@@ -40,9 +40,23 @@ public record RoomInfo(
                 stored.hostNickname(),
                 stored.status(),
                 stored.settings().maxPlayers(),
-                connectedPlayers,
+                stored.players().size(),
                 stored.settings().gameType(),
                 stored.settings().csDifficulty()
+        );
+    }
+
+    public RoomInfo withConnectedPlayers(int connectedPlayers) {
+        return new RoomInfo(
+                roomId,
+                title,
+                hostMemberId,
+                hostNickname,
+                status,
+                maxPlayers,
+                connectedPlayers,
+                gameType,
+                csDifficulty
         );
     }
 }

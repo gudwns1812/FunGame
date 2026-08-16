@@ -11,6 +11,7 @@ import com.fungame.songquiz.domain.room.RoomSettingsInfo;
 import com.fungame.songquiz.domain.session.GameService;
 import com.fungame.songquiz.domain.session.GameStateDto;
 import com.fungame.songquiz.domain.session.PlayerScore;
+import com.fungame.songquiz.controller.room.RoomListReader;
 import com.fungame.songquiz.controller.request.ChangeRoomSettingsRequest;
 import com.fungame.songquiz.controller.request.CreateRoomRequest;
 import com.fungame.songquiz.controller.request.GameActionRequest;
@@ -30,10 +31,11 @@ public class GameController {
 
     private final GameRoomService gameRoomService;
     private final GameService gameService;
+    private final RoomListReader roomListReader;
 
     @GetMapping
     public ApiResponse<List<RoomInfo>> findAllRoom() {
-        List<RoomInfo> rooms = gameRoomService.findAllRooms();
+        List<RoomInfo> rooms = roomListReader.findAllRooms();
         return ApiResponse.success(rooms);
     }
 

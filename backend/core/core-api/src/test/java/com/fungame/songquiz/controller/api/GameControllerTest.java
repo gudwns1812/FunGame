@@ -5,6 +5,7 @@ import com.fungame.songquiz.domain.room.GameRoomService;
 import com.fungame.songquiz.domain.room.PlayerReadyInfo;
 import com.fungame.songquiz.domain.room.RoomInfo;
 import com.fungame.songquiz.domain.room.RoomSettingsInfo;
+import com.fungame.songquiz.controller.room.RoomListReader;
 import com.fungame.songquiz.domain.session.GameService;
 import com.fungame.songquiz.controller.request.ChangeRoomSettingsRequest;
 import com.fungame.songquiz.controller.request.CreateRoomRequest;
@@ -51,11 +52,12 @@ class GameControllerTest {
     private MockMvc mockMvc;
     private final GameRoomService gameRoomService = mock(GameRoomService.class);
     private final GameService gameService = mock(GameService.class);
+    private final RoomListReader roomListReader = mock(RoomListReader.class);
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     @BeforeEach
     void setUp(RestDocumentationContextProvider restDocumentation) {
-        this.mockMvc = MockMvcBuilders.standaloneSetup(new GameController(gameRoomService, gameService))
+        this.mockMvc = MockMvcBuilders.standaloneSetup(new GameController(gameRoomService, gameService, roomListReader))
                 .apply(documentationConfiguration(restDocumentation))
                 .setCustomArgumentResolvers(new HandlerMethodArgumentResolver() {
                     @Override
@@ -75,7 +77,7 @@ class GameControllerTest {
     @DisplayName("방 목록을 조회한다.")
     void findAllRoom() throws Exception {
         // given
-        given(gameRoomService.findAllRooms()).willReturn(List.of(
+        given(roomListReader.findAllRooms()).willReturn(List.of(
                 new RoomInfo(1L, "K-POP 퀴즈방", 2L, "방장닉네임", GameRoomStatus.WAITING, 8, 3, GameType.SONG, CSQuizDifficulty.HARD)
         ));
 

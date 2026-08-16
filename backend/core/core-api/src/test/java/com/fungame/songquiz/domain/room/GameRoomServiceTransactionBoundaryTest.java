@@ -120,11 +120,6 @@ class GameRoomServiceTransactionBoundaryTest {
         }
 
         @Bean
-        RoomPresence roomPresence() {
-            return new RoomPresence();
-        }
-
-        @Bean
         MemberPresenceService memberPresenceService() {
             return mock(MemberPresenceService.class);
         }
@@ -135,7 +130,6 @@ class GameRoomServiceTransactionBoundaryTest {
                 GameRoomReader gameRoomReader,
                 GameRoomWriter gameRoomWriter,
                 GameService gameService,
-                RoomPresence roomPresence,
                 MemberPresenceService memberPresenceService,
                 ApplicationEventPublisher applicationEventPublisher) {
             return new GameRoomService(
@@ -143,7 +137,6 @@ class GameRoomServiceTransactionBoundaryTest {
                     gameRoomReader,
                     gameRoomWriter,
                     gameService,
-                    roomPresence,
                     memberPresenceService,
                     applicationEventPublisher);
         }

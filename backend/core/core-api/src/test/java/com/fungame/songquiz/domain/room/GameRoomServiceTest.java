@@ -60,7 +60,6 @@ class GameRoomServiceTest {
                 gameRoomReader,
                 gameRoomWriter,
                 gameService,
-                new RoomPresence(),
                 memberPresenceService,
                 applicationEventPublisher
         );
