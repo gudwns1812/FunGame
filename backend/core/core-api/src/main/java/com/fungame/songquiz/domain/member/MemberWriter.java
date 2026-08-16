@@ -7,6 +7,7 @@ import com.fungame.songquiz.support.error.CoreException;
 import com.fungame.songquiz.support.error.ErrorType;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 @Component
 @RequiredArgsConstructor
@@ -14,6 +15,7 @@ public class MemberWriter {
 
     private final MemberRepository memberRepository;
 
+    @Transactional
     public Long append(Member member) {
         return memberRepository.save(MemberEntity.builder()
                         .loginId(member.getLoginId())
@@ -27,6 +29,7 @@ public class MemberWriter {
                 .getId();
     }
 
+    @Transactional
     public void update(Member member) {
         MemberEntity entity = memberRepository.findById(member.getId())
                 .orElseThrow(() -> new CoreException(ErrorType.MEMBER_NOT_FOUND));
@@ -37,10 +40,12 @@ public class MemberWriter {
         entity.changePresence(member.getStatus(), member.getCurrentRoomId());
     }
 
+    @Transactional
     public void movePresenceOfRoom(Long roomId, PlayerStatus status) {
         memberRepository.updateStatusOfRoom(roomId, status);
     }
 
+    @Transactional
     public int clearEveryLocation() {
         return memberRepository.clearEveryLocation();
     }

@@ -4,6 +4,8 @@ import com.fungame.songquiz.storage.PasswordResetTokenEntity;
 import com.fungame.songquiz.storage.PasswordResetTokenRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Optional;
 
@@ -13,10 +15,12 @@ public class PasswordResetTokenReader {
 
     private final PasswordResetTokenRepository passwordResetTokenRepository;
 
+    @Transactional(readOnly = true)
     public Optional<Long> findMemberIdByTokenHash(String tokenHash) {
         return passwordResetTokenRepository.findMemberIdByTokenHash(tokenHash);
     }
 
+    @Transactional(propagation = Propagation.MANDATORY)
     public Optional<PasswordResetToken> findByTokenHashForUpdate(String tokenHash) {
         return passwordResetTokenRepository.findByTokenHashForUpdate(tokenHash)
                 .map(PasswordResetTokenReader::toToken);

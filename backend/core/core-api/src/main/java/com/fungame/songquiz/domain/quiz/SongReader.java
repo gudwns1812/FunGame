@@ -5,6 +5,7 @@ import com.fungame.songquiz.storage.SongEntity;
 import com.fungame.songquiz.storage.SongRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -15,6 +16,7 @@ public class SongReader {
     public static final String JSON_SUFFIX = "\"";
     private final SongRepository songRepository;
 
+    @Transactional(readOnly = true)
     public List<Song> findSongByCategoryWithCount(Category category, int count) {
         String jsonCategory = JSON_PREFIX + category.name() + JSON_SUFFIX;
         List<SongEntity> songs = songRepository.findRandomSongsByCategory(jsonCategory, count);
@@ -24,10 +26,20 @@ public class SongReader {
                 .toList();
     }
 
+    @Transactional(readOnly = true)
     public Song findById(Long id) {
         return songRepository.findById(id)
                 .map(this::toDomain)
                 .orElse(null);
+    }
+
+    @Transactional(readOnly = true)
+    public List<Song> findSongWithCount(int songCount) {
+        List<SongEntity> findSongs = songRepository.findRandomSongs(songCount);
+
+        return findSongs.stream()
+                .map(this::toDomain)
+                .toList();
     }
 
     private Song toDomain(SongEntity entity) {
@@ -41,13 +53,5 @@ public class SongReader {
                 entity.getAnswers(),
                 entity.getHint()
         );
-    }
-
-    public List<Song> findSongWithCount(int songCount) {
-        List<SongEntity> findSongs = songRepository.findRandomSongs(songCount);
-
-        return findSongs.stream()
-                .map(this::toDomain)
-                .toList();
     }
 }
