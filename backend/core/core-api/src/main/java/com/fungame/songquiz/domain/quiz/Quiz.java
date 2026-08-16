@@ -25,6 +25,8 @@ public interface Quiz {
 
     void startRound();
 
+    boolean isRoundStarted();
+
     boolean isLast();
 
     int getCurrentRound();

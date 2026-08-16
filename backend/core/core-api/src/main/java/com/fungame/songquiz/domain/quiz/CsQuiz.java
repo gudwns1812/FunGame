@@ -41,12 +41,11 @@ public class CsQuiz extends AbstractQuiz {
 
     @Override
     public ActionResult submitAnswer(Long memberId, String answer) {
-        int current = currentIdx.get();
-        if (current == ROUND_NOT_STARTED) {
+        if (!isRoundStarted()) {
             return ActionResult.NO_ACTION;
         }
 
-        var quiz = quizs.get(current);
+        var quiz = quizs.get(currentIdx.get());
         return quiz.isCorrect(answer) ? ActionResult.CORRECT : ActionResult.WRONG;
     }
 
@@ -60,6 +59,11 @@ public class CsQuiz extends AbstractQuiz {
     @Override
     public void startRound() {
         currentIdx.incrementAndGet();
+    }
+
+    @Override
+    public boolean isRoundStarted() {
+        return currentIdx.get() != ROUND_NOT_STARTED;
     }
 
     @Override

@@ -59,6 +59,7 @@ const Game: React.FC<GameProps> = ({
   const inputRef = useRef<HTMLInputElement>(null);
   const progressPercent = Math.max(0, Math.min(100, (timeLeft / totalTime) * 100));
   const isUrgent = timeLeft < 10;
+  const isRoundStarted = currentRound >= 1;
   const playbackVideoId = gameType === 'CS' ? CS_BACKGROUND_VIDEO_ID : gameType === 'SONG' ? currentVideoId : '';
 
   useEffect(() => {
@@ -319,7 +320,12 @@ const Game: React.FC<GameProps> = ({
           <button type="submit" className="px-btn px-btn-sm px-btn-primary">
             입력
           </button>
-          <button type="button" onClick={onSkipRound} className="px-btn px-btn-sm px-btn-paper" title="문제 건너뛰기 투표">
+          <button
+            type="button"
+            onClick={onSkipRound}
+            disabled={!isRoundStarted}
+            className="px-btn px-btn-sm px-btn-paper"
+            title={isRoundStarted ? '문제 건너뛰기 투표' : '첫 문제가 시작되면 투표할 수 있습니다'}>
             스킵
           </button>
         </form>

@@ -10,6 +10,7 @@ vi.mock('react-player', () => ({
 
 afterEach(() => {
   cleanup();
+  vi.clearAllMocks();
 });
 
 describe('Game UI 렌더링과 상호작용', () => {
@@ -82,6 +83,26 @@ describe('Game UI 렌더링과 상호작용', () => {
     );
 
     expect(screen.getByText('아이유 - 좋은날')).toBeTruthy();
+  });
+
+  it('첫 문제가 시작되기 전에는 스킵 버튼을 누를 수 없다', () => {
+    render(<Game {...mockProps} currentRound={0} />);
+
+    const skipButton = screen.getByRole('button', { name: '스킵' }) as HTMLButtonElement;
+    expect(skipButton.disabled).toBe(true);
+
+    fireEvent.click(skipButton);
+    expect(mockProps.onSkipRound).not.toHaveBeenCalled();
+  });
+
+  it('라운드가 시작되면 스킵 버튼으로 투표할 수 있다', () => {
+    render(<Game {...mockProps} currentRound={1} />);
+
+    const skipButton = screen.getByRole('button', { name: '스킵' }) as HTMLButtonElement;
+    expect(skipButton.disabled).toBe(false);
+
+    fireEvent.click(skipButton);
+    expect(mockProps.onSkipRound).toHaveBeenCalled();
   });
 
   it('전역에서 Enter 입력 시 채팅 입력창으로 포커스가 이동해야 한다', () => {

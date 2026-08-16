@@ -32,7 +32,7 @@ public class GameSession {
     }
 
     private ActionResult voteToSkip(Long memberId) {
-        if (!rank.hasPlayer(memberId)) {
+        if (!canVoteToSkip(memberId)) {
             return ActionResult.NO_ACTION;
         }
 
@@ -40,6 +40,10 @@ public class GameSession {
         return skipVotes.isThresholdReached(rank.playerCount())
                 ? ActionResult.SKIP_VOTE_SUCCESS
                 : ActionResult.ACTION_SUCCESS;
+    }
+
+    private boolean canVoteToSkip(Long memberId) {
+        return quiz.isRoundStarted() && rank.hasPlayer(memberId);
     }
 
     public void updatePlayerPoint(Long memberId) {
