@@ -26,7 +26,7 @@ class RoomListReaderTest {
     @DisplayName("방 목록의 인원수는 저장된 참가자가 아니라 실제 접속자 수다.")
     void currentPlayersCountsConnectedSessions() {
         given(gameRoomService.findAllRooms()).willReturn(List.of(roomWithStoredPlayers(3)));
-        roomPresence.arrive("session-1", new RoomMember(ROOM_ID, 1L, "접속자"));
+        roomPresence.arrive("session-1", RoomMember.of(ROOM_ID, 1L, "접속자"));
 
         assertThat(roomListReader.findAllRooms())
                 .extracting(RoomInfo::currentPlayers)
