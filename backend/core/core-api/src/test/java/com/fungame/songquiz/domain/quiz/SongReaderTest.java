@@ -105,4 +105,59 @@ class SongReaderTest {
 
         assertThat(songReader.findSongByCategoryWithCount(Category.KPOP, 5)).isEmpty();
     }
+
+    @Test
+    @DisplayName("제목과 발매일로 곡 존재 여부를 확인한다.")
+    void existsByTitleAndReleaseDate() {
+        given(songRepository.existsByTitleContainingAndReleaseDate(TITLE, RELEASE_DATE)).willReturn(true);
+
+        assertThat(songReader.existsByTitleLike(TITLE, RELEASE_DATE)).isTrue();
+    }
+
+    @Test
+    @DisplayName("존재하지 않는 제목이면 false 를 돌려준다.")
+    void doesNotExistByTitle() {
+        given(songRepository.existsByTitleContainingAndReleaseDate("없는노래", RELEASE_DATE)).willReturn(false);
+
+        assertThat(songReader.existsByTitleLike("없는노래", RELEASE_DATE)).isFalse();
+    }
+
+    @Test
+    @DisplayName("발매일이 없으면 제목만으로 존재 여부를 확인한다.")
+    void existsByTitleOnlyWhenReleaseDateIsMissing() {
+        given(songRepository.existsByTitleContaining(TITLE)).willReturn(true);
+
+        assertThat(songReader.existsByTitleLike(TITLE, null)).isTrue();
+    }
+
+    @Test
+    @DisplayName("가수와 제목이 같으면 같은 곡으로 본다.")
+    void findsSameSongBySingerAndTitle() {
+        given(songRepository.existsBySingerAndTitle(SINGER, TITLE)).willReturn(true);
+
+        assertThat(songReader.existsSameSong(song())).isTrue();
+    }
+
+    @Test
+    @DisplayName("제목과 발매일이 같으면 가수가 달라도 같은 곡으로 본다.")
+    void findsSameSongByTitleAndReleaseDate() {
+        given(songRepository.existsBySingerAndTitle(SINGER, TITLE)).willReturn(false);
+        given(songRepository.existsByTitleAndReleaseDate(TITLE, RELEASE_DATE)).willReturn(true);
+
+        assertThat(songReader.existsSameSong(song())).isTrue();
+    }
+
+    @Test
+    @DisplayName("가수도 발매일도 겹치지 않으면 다른 곡이다.")
+    void findsNoSameSong() {
+        given(songRepository.existsBySingerAndTitle(SINGER, TITLE)).willReturn(false);
+        given(songRepository.existsByTitleAndReleaseDate(TITLE, RELEASE_DATE)).willReturn(false);
+
+        assertThat(songReader.existsSameSong(song())).isFalse();
+    }
+
+    private static Song song() {
+        return Song.of(TITLE, SINGER, List.of(Category.KPOP), RELEASE_DATE, VIDEO_LINK, PLAY_SECONDS,
+                List.of("밤 편지"), HINT);
+    }
 }

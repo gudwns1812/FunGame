@@ -82,7 +82,6 @@ public class PasswordResetService {
     }
 
     @Scheduled(cron = DAILY_CLEANUP_CRON)
-    @Transactional
     public void deleteExpiredTokens() {
         passwordResetTokenWriter.removeExpiredBefore(now().minusDays(EXPIRED_TOKEN_RETENTION_DAYS));
     }

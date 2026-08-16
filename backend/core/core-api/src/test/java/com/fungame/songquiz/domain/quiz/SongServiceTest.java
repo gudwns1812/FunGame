@@ -1,7 +1,8 @@
 package com.fungame.songquiz.domain.quiz;
 
-import com.fungame.songquiz.client.youtube.YoutubeScraper;
-import com.fungame.songquiz.storage.SongRepository;
+import com.fungame.songquiz.enums.Category;
+import com.fungame.songquiz.support.error.CoreException;
+import com.fungame.songquiz.support.error.ErrorType;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -10,78 +11,76 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDate;
+import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 
 @ExtendWith(MockitoExtension.class)
 class SongServiceTest {
+
+    private static final String TITLE = "밤편지";
+    private static final LocalDate RELEASE_DATE = LocalDate.of(2017, 3, 24);
 
     @InjectMocks
     private SongService songService;
 
     @Mock
-    private SongRepository songRepository;
+    private SongReader songReader;
 
     @Mock
-    private YoutubeScraper youtubeScraper;
+    private SongScrapeRequestReader songScrapeRequestReader;
 
-    @Test
-    @DisplayName("정확한 제목과 발매일로 곡 존재 여부를 확인한다.")
-    void existSongQuiz_withExactTitleAndReleaseDate() {
-        // given
-        String title = "밤편지";
-        LocalDate releaseDate = LocalDate.of(2017, 3, 24);
-        given(songRepository.existsByTitleContainingAndReleaseDate(title, releaseDate)).willReturn(true);
+    @Mock
+    private SongScrapeRequestWriter songScrapeRequestWriter;
 
-        // when
-        boolean result = songService.existSongQuiz(title, releaseDate);
-
-        // then
-        assertThat(result).isTrue();
+    private static Song song() {
+        return Song.of(TITLE, "아이유", List.of(Category.KPOP), RELEASE_DATE, null, 30, List.of("밤 편지"), "힌트");
     }
 
     @Test
-    @DisplayName("제목의 일부와 발매일로 곡 존재 여부를 확인한다 (Containing).")
-    void existSongQuiz_withPartialTitleAndReleaseDate() {
-        // given
-        String partialTitle = "밤";
-        LocalDate releaseDate = LocalDate.of(2017, 3, 24);
-        given(songRepository.existsByTitleContainingAndReleaseDate(partialTitle, releaseDate)).willReturn(true);
+    @DisplayName("곡 존재 여부는 저장된 곡에서 찾는다.")
+    void existSongQuiz() {
+        given(songReader.existsByTitleLike(TITLE, RELEASE_DATE)).willReturn(true);
 
-        // when
-        boolean result = songService.existSongQuiz(partialTitle, releaseDate);
-
-        // then
-        assertThat(result).isTrue();
+        assertThat(songService.existSongQuiz(TITLE, RELEASE_DATE)).isTrue();
     }
 
     @Test
-    @DisplayName("존재하지 않는 제목으로 검색 시 false를 반환한다.")
-    void existSongQuiz_withNonExistentTitle() {
-        // given
-        String title = "없는노래";
-        LocalDate releaseDate = LocalDate.of(2024, 1, 1);
-        given(songRepository.existsByTitleContainingAndReleaseDate(title, releaseDate)).willReturn(false);
+    @DisplayName("겹치는 곡이 없으면 스크랩 대기열에 넣는다.")
+    void queuesNewSong() {
+        given(songReader.existsSameSong(any())).willReturn(false);
+        given(songScrapeRequestReader.existsSameSong(any())).willReturn(false);
 
-        // when
-        boolean result = songService.existSongQuiz(title, releaseDate);
+        songService.createSongQuiz(song());
 
-        // then
-        assertThat(result).isFalse();
+        verify(songScrapeRequestWriter).append(any());
     }
 
     @Test
-    @DisplayName("발매일이 null인 경우 제목으로만 존재 여부를 확인한다.")
-    void existSongQuiz_withNullReleaseDate() {
-        // given
-        String title = "밤편지";
-        given(songRepository.existsByTitleContaining(title)).willReturn(true);
+    @DisplayName("이미 저장된 곡이면 대기열에 넣지 않고 거부한다.")
+    void rejectsSongAlreadySaved() {
+        given(songReader.existsSameSong(any())).willReturn(true);
 
-        // when
-        boolean result = songService.existSongQuiz(title, null);
+        assertThatThrownBy(() -> songService.createSongQuiz(song()))
+                .isInstanceOf(CoreException.class)
+                .hasFieldOrPropertyWithValue("type", ErrorType.QUIZ_DUPLICATE_ERROR);
+        verify(songScrapeRequestWriter, never()).append(any());
+    }
 
-        // then
-        assertThat(result).isTrue();
+    @Test
+    @DisplayName("이미 대기열에 있는 곡이면 거부한다.")
+    void rejectsSongAlreadyQueued() {
+        given(songReader.existsSameSong(any())).willReturn(false);
+        given(songScrapeRequestReader.existsSameSong(any())).willReturn(true);
+
+        assertThatThrownBy(() -> songService.createSongQuiz(song()))
+                .isInstanceOf(CoreException.class)
+                .hasFieldOrPropertyWithValue("type", ErrorType.QUIZ_DUPLICATE_ERROR);
+        verify(songScrapeRequestWriter, never()).append(any());
     }
 }

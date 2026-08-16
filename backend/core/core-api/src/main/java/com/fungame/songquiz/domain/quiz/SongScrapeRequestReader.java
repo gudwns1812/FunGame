@@ -5,8 +5,8 @@ import com.fungame.songquiz.storage.SongScrapeRequestRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Limit;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDate;
 import java.util.List;
 
 @Component
@@ -15,18 +15,17 @@ public class SongScrapeRequestReader {
 
     private final SongScrapeRequestRepository songScrapeRequestRepository;
 
+    @Transactional(readOnly = true)
     public List<SongScrapeRequest> findOldest(int count) {
         return songScrapeRequestRepository.findAllByOrderByCreatedAtAsc(Limit.of(count)).stream()
                 .map(SongScrapeRequestReader::toRequest)
                 .toList();
     }
 
-    public boolean existsBySingerAndTitle(String singer, String title) {
-        return songScrapeRequestRepository.existsBySingerAndTitle(singer, title);
-    }
-
-    public boolean existsByTitleAndReleaseDate(String title, LocalDate releaseDate) {
-        return songScrapeRequestRepository.existsByTitleAndReleaseDate(title, releaseDate);
+    @Transactional(readOnly = true)
+    public boolean existsSameSong(Song song) {
+        return songScrapeRequestRepository.existsBySingerAndTitle(song.getSinger(), song.getTitle())
+                || songScrapeRequestRepository.existsByTitleAndReleaseDate(song.getTitle(), song.getReleaseDate());
     }
 
     private static SongScrapeRequest toRequest(SongScrapeRequestEntity entity) {

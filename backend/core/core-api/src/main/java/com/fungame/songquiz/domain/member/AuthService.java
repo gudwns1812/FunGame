@@ -11,7 +11,6 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 @Slf4j
 @Service
@@ -23,17 +22,14 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final AuthenticationManager authenticationManager;
 
-    @Transactional(readOnly = true)
     public boolean checkIdDuplicate(String loginId) {
         return memberReader.existsByLoginId(loginId);
     }
 
-    @Transactional(readOnly = true)
     public boolean checkNicknameDuplicate(String nickname) {
         return memberReader.existsByNickname(nickname);
     }
 
-    @Transactional
     public Long signup(String loginId, String password, String nickname, String email) {
         if (!PasswordPolicy.isSatisfiedBy(password)) {
             throw new CoreException(ErrorType.PASSWORD_POLICY_VIOLATION, PasswordPolicy.violationMessage());
@@ -59,7 +55,6 @@ public class AuthService {
         return memberWriter.append(member);
     }
 
-    @Transactional
     public void login(String loginId, String password) {
         UsernamePasswordAuthenticationToken authenticationToken =
                 new UsernamePasswordAuthenticationToken(loginId, password);
@@ -69,7 +64,6 @@ public class AuthService {
         SecurityContextHolder.getContext().setAuthentication(authentication);
     }
 
-    @Transactional
     public void updateNickname(String loginId, String newNickname) {
         if (memberReader.existsByNickname(newNickname)) {
             throw new CoreException(ErrorType.NICKNAME_DUPLICATED);
@@ -81,21 +75,24 @@ public class AuthService {
         member.changeNickname(newNickname);
         memberWriter.update(member);
 
-        // 현재 세션의 인증 정보 갱신
-        MemberAdapter newAdapter = new MemberAdapter(member);
-        Authentication newAuth = new UsernamePasswordAuthenticationToken(
-                newAdapter,
-                member.getPassword(),
-                newAdapter.getAuthorities()
-        );
-        SecurityContextHolder.getContext().setAuthentication(newAuth);
+        refreshAuthenticationOf(member);
     }
 
-    @Transactional(readOnly = true)
     public MemberInfo getMyInfo(String loginId) {
         Member member = memberReader.findByLoginId(loginId)
                 .orElseThrow(() -> new CoreException(ErrorType.MEMBER_NOT_FOUND));
 
         return member.getInfo();
+    }
+
+    private static void refreshAuthenticationOf(Member member) {
+        MemberAdapter adapter = new MemberAdapter(member);
+        Authentication refreshed = new UsernamePasswordAuthenticationToken(
+                adapter,
+                member.getPassword(),
+                adapter.getAuthorities()
+        );
+
+        SecurityContextHolder.getContext().setAuthentication(refreshed);
     }
 }

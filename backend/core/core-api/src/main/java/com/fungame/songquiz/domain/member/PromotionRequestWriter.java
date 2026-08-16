@@ -7,6 +7,7 @@ import com.fungame.songquiz.support.error.CoreException;
 import com.fungame.songquiz.support.error.ErrorType;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 @Component
 @RequiredArgsConstructor
@@ -15,12 +16,14 @@ public class PromotionRequestWriter {
     private final PromotionRequestRepository promotionRequestRepository;
     private final MemberRepository memberRepository;
 
+    @Transactional
     public void append(PromotionRequest request) {
         promotionRequestRepository.save(PromotionRequestEntity.open(
                 memberRepository.getReferenceById(request.getMemberId()),
                 request.getStatus()));
     }
 
+    @Transactional
     public void update(PromotionRequest request) {
         PromotionRequestEntity entity = promotionRequestRepository.findById(request.getId())
                 .orElseThrow(() -> new CoreException(ErrorType.PROMOTION_NOT_FOUND));
