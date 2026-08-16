@@ -12,6 +12,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class SongGame extends AbstractQuizGame {
 
     private static final int ROUND_NOT_STARTED = -1;
+    private static final String SINGER_TITLE_SEPARATOR = " - ";
 
     private final List<Song> songs;
     private final Category gameCategory;
@@ -50,11 +51,13 @@ public class SongGame extends AbstractQuizGame {
     }
 
     @Override
-    public GameAnswerDto getAnswer() {
+    public GameAnswer getAnswer() {
         int current = currentIdx.get();
         Song song = songs.get(current);
 
-        return GameAnswerDto.from(this, song.getSinger(), " - ", song.getTitle());
+        return new GameAnswer(
+                String.join(" ", song.getSinger(), SINGER_TITLE_SEPARATOR, song.getTitle()),
+                String.join(" ", SINGER_TITLE_SEPARATOR, song.getTitle()));
     }
 
     @Override

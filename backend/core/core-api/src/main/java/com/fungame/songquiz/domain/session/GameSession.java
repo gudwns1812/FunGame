@@ -1,7 +1,7 @@
 package com.fungame.songquiz.domain.session;
 
 import com.fungame.songquiz.domain.quiz.Game;
-import com.fungame.songquiz.domain.quiz.GameAnswerDto;
+import com.fungame.songquiz.domain.quiz.GameAnswer;
 import com.fungame.songquiz.domain.quiz.GameContentDto;
 import com.fungame.songquiz.domain.quiz.GameInfo;
 import com.fungame.songquiz.domain.room.GamePlayer;
@@ -73,7 +73,7 @@ public class GameSession {
         return rank.getPlayerScores();
     }
 
-    public GameAnswerDto getAnswer() {
+    public GameAnswer getAnswer() {
         return game.getAnswer();
     }
 

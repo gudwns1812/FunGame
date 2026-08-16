@@ -81,7 +81,7 @@ public class HangmanGameService implements GameService {
 
         var playerScore = List.of(
                 new PlayerScore(null, result, hangmanGame.getRemainingTries()),
-                new PlayerScore(null, hangmanGame.getAnswer().getAnswer(), NO_SCORE));
+                new PlayerScore(null, hangmanGame.getAnswer().answer(), NO_SCORE));
         eventPublisher.publishEvent(new GameResultEvent(roomId, playerScore));
 
         gameRoomManager.endGame(roomId);

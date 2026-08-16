@@ -21,7 +21,7 @@ public interface Game {
 
     void takeBackPlayer(GamePlayer player);
 
-    GameAnswerDto getAnswer();
+    GameAnswer getAnswer();
 
     void startRound();
 

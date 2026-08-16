@@ -46,10 +46,10 @@ public class ComputerScienceQuizGame extends AbstractQuizGame {
     }
 
     @Override
-    public GameAnswerDto getAnswer() {
+    public GameAnswer getAnswer() {
         var quiz = quizs.get(currentIdx.get());
 
-        return GameAnswerDto.from(this, quiz.getAnswer(), quiz.getExplain());
+        return new GameAnswer(quiz.getAnswer(), quiz.getExplain());
     }
 
     @Override

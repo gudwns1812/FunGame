@@ -192,8 +192,8 @@ public class HangmanGame extends AbstractQuizGame {
     }
 
     @Override
-    public GameAnswerDto getAnswer() {
-        return new GameAnswerDto(this, List.of(answer));
+    public GameAnswer getAnswer() {
+        return GameAnswer.withoutExplanation(answer);
     }
 
     @Override

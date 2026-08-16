@@ -153,7 +153,7 @@ public class GameNotifyService {
 
         Map<String, Object> payload = new HashMap<>();
         payload.put("type", "ROUND_END");
-        payload.put("answer", event.answer().getAnswer());
+        payload.put("answer", event.answer().answer());
         payload.put("explanation", event.answer().explanation());
         payload.put("winnerMemberId", event.winnerMemberId());
         payload.put("winnerNickname", event.winnerNickname());
