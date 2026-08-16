@@ -1,5 +1,6 @@
 package com.fungame.songquiz.controller.response;
 
+import com.fungame.songquiz.support.error.CoreException;
 import com.fungame.songquiz.support.error.ErrorMessage;
 import com.fungame.songquiz.support.error.ErrorType;
 import lombok.Getter;
@@ -26,5 +27,9 @@ public class ApiResponse<T> {
 
     public static ApiResponse<Void> fail(ErrorType error) {
         return new ApiResponse<>(ResultType.FAIL, null, new ErrorMessage(error.getCode(), error.getMessage()));
+    }
+
+    public static ApiResponse<Void> fail(CoreException e) {
+        return new ApiResponse<>(ResultType.FAIL, null, new ErrorMessage(e.getType().getCode(), e.getMessage()));
     }
 }

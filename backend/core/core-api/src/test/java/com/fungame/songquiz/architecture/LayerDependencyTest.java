@@ -30,5 +30,6 @@ class LayerDependencyTest {
                     .whereLayer(CONTROLLER).mayNotBeAccessedByAnyLayer()
                     .whereLayer(DOMAIN).mayOnlyBeAccessedByLayers(CONTROLLER)
                     .whereLayer(SUPPORT).mayOnlyBeAccessedByLayers(CONTROLLER, DOMAIN)
+                    .whereLayer(SUPPORT).mayNotAccessAnyLayer()
                     .as("domain 은 controller 를 모르고, support 는 모든 레이어가 쓰는 공유 커널이다");
 }
