@@ -78,7 +78,7 @@ public class GameRoom {
     }
 
     public List<GamePlayer> getRoomPlayers() {
-        return players.getPlayers();
+        return players.snapshot();
     }
 
     public void start(Long memberId) {

@@ -4,7 +4,7 @@ package com.fungame.songquiz.domain.room;
 import java.util.List;
 
 public record PlayersInfo(
-        List<GamePlayerInfo> players,
+        List<GamePlayer> players,
         Long hostMemberId,
         String hostNickname
 ) {
@@ -13,7 +13,7 @@ public record PlayersInfo(
         Long hostMemberId = gamePlayers.getHost();
 
         return new PlayersInfo(
-                gamePlayers.getPlayersWithReadyStatus(),
+                gamePlayers.snapshot(),
                 hostMemberId,
                 gamePlayers.nicknameOf(hostMemberId)
         );

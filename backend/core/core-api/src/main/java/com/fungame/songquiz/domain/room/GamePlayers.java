@@ -90,10 +90,6 @@ public class GamePlayers {
         return players.size() >= maxPlayer;
     }
 
-    public List<GamePlayer> getPlayers() {
-        return List.copyOf(players.values());
-    }
-
     public boolean hasPlayer(Long memberId) {
         return players.containsKey(memberId);
     }
@@ -101,12 +97,6 @@ public class GamePlayers {
     public String nicknameOf(Long memberId) {
         GamePlayer player = players.get(memberId);
         return player == null ? null : player.nickname();
-    }
-
-    public List<GamePlayerInfo> getPlayersWithReadyStatus() {
-        return players.values().stream()
-                .map(GamePlayerInfo::from)
-                .toList();
     }
 
     public int getCurrentCount() {
