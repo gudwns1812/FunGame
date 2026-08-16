@@ -1,9 +1,9 @@
 package com.fungame.songquiz.controller.config;
 
+import com.fungame.songquiz.support.monitoring.ActuatorSecurityConfig;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
-import com.fungame.songquiz.support.monitoring.ActuatorSecurityConfig;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
 import org.springframework.http.HttpStatus;

@@ -1,6 +1,6 @@
 package com.fungame.songquiz.domain.invite;
 
-import com.fungame.songquiz.domain.dto.RoomInfo;
+import com.fungame.songquiz.domain.room.RoomInfo;
 
 public record AcceptedInvite(
         RoomInfo room,

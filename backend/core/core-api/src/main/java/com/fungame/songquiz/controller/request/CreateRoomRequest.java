@@ -1,9 +1,9 @@
 package com.fungame.songquiz.controller.request;
 
+import com.fungame.songquiz.domain.room.RoomSettings;
 import com.fungame.songquiz.enums.CSQuizDifficulty;
 import com.fungame.songquiz.enums.Category;
 import com.fungame.songquiz.enums.GameType;
-import com.fungame.songquiz.domain.RoomSettings;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;

@@ -1,7 +1,7 @@
 package com.fungame.songquiz.domain.member;
 
-import com.fungame.songquiz.domain.event.GameResultEvent;
-import com.fungame.songquiz.domain.event.GameStartEvent;
+import com.fungame.songquiz.domain.session.GameResultEvent;
+import com.fungame.songquiz.domain.session.GameStartEvent;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 

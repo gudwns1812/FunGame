@@ -1,0 +1,12 @@
+package com.fungame.songquiz.domain.room;
+
+public record RoomMember(Long roomId, Long memberId, String nickname) {
+
+    public String key() {
+        return roomId + ":" + memberId;
+    }
+
+    public GamePlayer toPlayer() {
+        return GamePlayer.createNewPlayer(memberId, nickname);
+    }
+}

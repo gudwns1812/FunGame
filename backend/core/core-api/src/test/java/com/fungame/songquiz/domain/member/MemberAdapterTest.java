@@ -1,7 +1,7 @@
 package com.fungame.songquiz.domain.member;
 
-import com.fungame.songquiz.support.MemberFixture;
 import com.fungame.songquiz.enums.Role;
+import com.fungame.songquiz.support.MemberFixture;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 

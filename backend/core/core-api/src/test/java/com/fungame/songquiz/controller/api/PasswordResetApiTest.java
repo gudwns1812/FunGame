@@ -1,14 +1,13 @@
 package com.fungame.songquiz.controller.api;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fungame.songquiz.domain.member.Member;
+import com.fungame.songquiz.domain.member.PasswordResetMailSender;
+import com.fungame.songquiz.enums.PlayerStatus;
+import com.fungame.songquiz.enums.Role;
+import com.fungame.songquiz.storage.IntegrationTest;
 import com.fungame.songquiz.storage.MemberEntity;
 import com.fungame.songquiz.storage.MemberRepository;
 import com.fungame.songquiz.storage.PasswordResetTokenRepository;
-import com.fungame.songquiz.storage.IntegrationTest;
-import com.fungame.songquiz.support.mail.PasswordResetMailSender;
-import com.fungame.songquiz.enums.PlayerStatus;
-import com.fungame.songquiz.enums.Role;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.Cookie;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;

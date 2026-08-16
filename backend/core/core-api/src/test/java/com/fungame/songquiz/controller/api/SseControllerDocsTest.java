@@ -1,8 +1,8 @@
 package com.fungame.songquiz.controller.api;
 
 import com.fungame.songquiz.domain.member.MemberAdapter;
+import com.fungame.songquiz.controller.sse.SseService;
 import com.fungame.songquiz.support.MemberFixture;
-import com.fungame.songquiz.support.sse.SseService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
