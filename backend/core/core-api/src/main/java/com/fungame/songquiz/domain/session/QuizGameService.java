@@ -162,15 +162,11 @@ public class QuizGameService implements GameService {
             throw new CoreException(ErrorType.GAME_NOT_FOUND);
         }
 
-        QuizInfo quizInfo = gameSession.getQuizInfo();
         int currentRound = gameSession.getCurrentRound();
-
         String content = currentRound >= 1 ? gameSession.getContent().description() : null;
 
         return new GameStateDto(
-                quizInfo.gameType(),
-                quizInfo.category(),
-                quizInfo.totalCount(),
+                gameSession.getQuizInfo(),
                 currentRound,
                 gameSession.getTotalRound(),
                 content,

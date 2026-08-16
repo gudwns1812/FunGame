@@ -90,6 +90,10 @@ public class GamePlayers {
         return players.size() >= maxPlayer;
     }
 
+    public GamePlayer hostPlayer() {
+        return players.get(host);
+    }
+
     public boolean hasPlayer(Long memberId) {
         return players.containsKey(memberId);
     }

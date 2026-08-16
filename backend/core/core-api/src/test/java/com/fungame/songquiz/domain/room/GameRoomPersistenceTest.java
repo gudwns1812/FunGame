@@ -49,7 +49,7 @@ class GameRoomPersistenceTest {
 
         // then
         assertThat(stored.getHostId()).isEqualTo(host.memberId());
-        assertThat(stored.hostNickname()).isEqualTo("방장");
+        assertThat(stored.getHost().nickname()).isEqualTo("방장");
         assertThat(stored.getRoomPlayers())
                 .containsExactlyInAnyOrder(
                         new GamePlayer(host.memberId(), "방장", true),
@@ -149,7 +149,7 @@ class GameRoomPersistenceTest {
                 .filteredOn(room -> List.of(firstRoomId, secondRoomId).contains(room.getRoomId()))
                 .hasSize(2)
                 .allSatisfy(room -> assertThat(room.getRoomPlayers()).hasSize(1))
-                .extracting(GameRoom::hostNickname)
+                .extracting(room -> room.getHost().nickname())
                 .containsExactlyInAnyOrder("첫째방장", "둘째방장");
     }
 

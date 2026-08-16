@@ -1,5 +1,7 @@
 package com.fungame.songquiz.controller.response;
 
+import com.fungame.songquiz.domain.room.GamePlayer;
+import com.fungame.songquiz.domain.room.RoomSettings;
 import com.fungame.songquiz.domain.room.RoomSettingsInfo;
 import com.fungame.songquiz.enums.CSQuizDifficulty;
 import com.fungame.songquiz.enums.Category;
@@ -18,15 +20,18 @@ public record RoomSettingsResponse(
 ) {
 
     public static RoomSettingsResponse from(RoomSettingsInfo settings) {
+        RoomSettings roomSettings = settings.settings();
+        GamePlayer host = settings.host();
+
         return new RoomSettingsResponse(
-                settings.title(),
-                settings.gameType(),
-                settings.maxPlayers(),
-                settings.category(),
-                settings.totalRound(),
-                settings.difficulty(),
-                settings.csDifficulty(),
-                settings.hostMemberId(),
-                settings.hostNickname());
+                roomSettings.title(),
+                roomSettings.gameType(),
+                roomSettings.maxPlayers(),
+                roomSettings.category(),
+                roomSettings.totalRound(),
+                roomSettings.difficulty(),
+                roomSettings.csDifficulty(),
+                host.memberId(),
+                host.nickname());
     }
 }

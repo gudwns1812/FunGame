@@ -13,7 +13,7 @@ public record RoomPlayersResponse(
     public static RoomPlayersResponse from(PlayersInfo players) {
         return new RoomPlayersResponse(
                 GamePlayerResponse.listFrom(players.players()),
-                players.hostMemberId(),
-                players.hostNickname());
+                players.host().memberId(),
+                players.host().nickname());
     }
 }

@@ -48,12 +48,12 @@ public class GameRoom {
         return settings.title();
     }
 
-    public Long getHostId() {
-        return players.getHost();
+    public GamePlayer getHost() {
+        return players.hostPlayer();
     }
 
-    public String hostNickname() {
-        return players.nicknameOf(players.getHost());
+    public Long getHostId() {
+        return players.getHost();
     }
 
     public JoinResult join(GamePlayer player) {

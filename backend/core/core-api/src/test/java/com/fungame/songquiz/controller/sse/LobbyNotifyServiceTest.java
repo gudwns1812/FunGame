@@ -26,6 +26,9 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
+import com.fungame.songquiz.enums.Category;
+import com.fungame.songquiz.domain.room.RoomSettings;
+import com.fungame.songquiz.domain.room.GamePlayer;
 
 class LobbyNotifyServiceTest {
 
@@ -110,7 +113,9 @@ class LobbyNotifyServiceTest {
     }
 
     private static RoomInfo room() {
-        return new RoomInfo(9L, "방 제목", VIEWER_ID, "방장", GameRoomStatus.WAITING, 8, 1, GameType.SONG, CSQuizDifficulty.HARD);
+        return new RoomInfo(9L,
+                new RoomSettings(GameType.SONG, "방 제목", 8, Category.KPOP, 10, 0, CSQuizDifficulty.HARD),
+                GamePlayer.createNewPlayer(VIEWER_ID, "방장"), GameRoomStatus.WAITING, 1);
     }
 
     private static OnlineMemberInfo onlineMember(Long memberId) {

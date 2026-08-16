@@ -25,6 +25,6 @@ record Participant(GamePlayer player, int score, boolean playing) {
     }
 
     PlayerScore toPlayerScore() {
-        return new PlayerScore(player.memberId(), player.nickname(), score);
+        return new PlayerScore(player, score);
     }
 }

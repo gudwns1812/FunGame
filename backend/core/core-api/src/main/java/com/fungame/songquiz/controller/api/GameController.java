@@ -53,7 +53,7 @@ public class GameController {
             @PathVariable Long roomId,
             @RequestBody ChangeRoomSettingsRequest request,
             @AuthenticationPrincipal MemberAdapter memberAdapter) {
-        RoomSettings current = gameRoomService.findSettings(roomId).toSettings();
+        RoomSettings current = gameRoomService.findSettings(roomId).settings();
         return ApiResponse.success(RoomSettingsResponse.from(gameRoomService.changeSettings(
                 roomId, memberAdapter.getId(), request.applyTo(current))));
     }

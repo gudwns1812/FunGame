@@ -1,11 +1,11 @@
 package com.fungame.songquiz.domain.session;
 
+import com.fungame.songquiz.domain.quiz.QuizInfo;
+
 import java.util.List;
 
 public record GameStateDto(
-        String gameType,
-        String category,
-        int totalCount,
+        QuizInfo quizInfo,
         int currentRound,
         int totalRound,
         String content,
