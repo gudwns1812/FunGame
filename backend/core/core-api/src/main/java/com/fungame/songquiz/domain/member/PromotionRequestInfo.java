@@ -29,8 +29,8 @@ public class PromotionRequestInfo {
     public static PromotionRequestInfo from(PromotionRequest request) {
         return PromotionRequestInfo.builder()
                 .id(request.getId())
-                .loginId(request.getMemberLoginId())
-                .nickname(request.getMemberNickname())
+                .loginId(request.getMember().loginId())
+                .nickname(request.getMember().nickname())
                 .status(request.getStatus())
                 .createdAt(request.getCreatedAt())
                 .build();

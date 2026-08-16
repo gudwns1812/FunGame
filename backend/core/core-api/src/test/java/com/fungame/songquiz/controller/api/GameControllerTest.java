@@ -1,8 +1,11 @@
 package com.fungame.songquiz.controller.api;
 
 import com.fungame.songquiz.domain.member.MemberAdapter;
+import com.fungame.songquiz.domain.room.GamePlayer;
+import com.fungame.songquiz.domain.room.RoomSettings;
 import com.fungame.songquiz.domain.room.GameRoomService;
 import com.fungame.songquiz.domain.room.PlayerReadyInfo;
+import com.fungame.songquiz.domain.room.PlayersInfo;
 import com.fungame.songquiz.domain.room.RoomInfo;
 import com.fungame.songquiz.domain.room.RoomSettingsInfo;
 import com.fungame.songquiz.controller.room.RoomListReader;
@@ -78,13 +81,37 @@ class GameControllerTest {
     void findAllRoom() throws Exception {
         // given
         given(roomListReader.findAllRooms()).willReturn(List.of(
-                new RoomInfo(1L, "K-POP 퀴즈방", 2L, "방장닉네임", GameRoomStatus.WAITING, 8, 3, GameType.SONG, CSQuizDifficulty.HARD)
+                new RoomInfo(1L,
+                        new RoomSettings(GameType.SONG, "K-POP 퀴즈방", 8, Category.KPOP, 10, 0, CSQuizDifficulty.HARD),
+                        GamePlayer.createNewPlayer(2L, "방장닉네임"), GameRoomStatus.WAITING, 3)
         ));
 
         // when // then
         mockMvc.perform(get("/game/rooms"))
                 .andExpect(status().isOk())
                 .andDo(document("room-list",
+                        preprocessResponse(prettyPrint())
+                ));
+    }
+
+    @Test
+    @DisplayName("방 참가자 목록의 각 참가자는 memberId, nickname, isReady 로 내려간다.")
+    void findUsers() throws Exception {
+        // given
+        given(gameRoomService.findUsers(1L)).willReturn(new PlayersInfo(
+                List.of(new GamePlayer(2L, "방장닉네임", true), new GamePlayer(3L, "참가자닉네임", false)),
+                new GamePlayer(2L, "방장닉네임", true)));
+
+        // when // then
+        mockMvc.perform(get("/game/rooms/1/users"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.hostMemberId").value(2))
+                .andExpect(jsonPath("$.data.hostNickname").value("방장닉네임"))
+                .andExpect(jsonPath("$.data.players[0].memberId").value(2))
+                .andExpect(jsonPath("$.data.players[0].nickname").value("방장닉네임"))
+                .andExpect(jsonPath("$.data.players[0].isReady").value(true))
+                .andExpect(jsonPath("$.data.players[1].isReady").value(false))
+                .andDo(document("room-users",
                         preprocessResponse(prettyPrint())
                 ));
     }
@@ -172,7 +199,9 @@ class GameControllerTest {
     void findSettings() throws Exception {
         // given
         given(gameRoomService.findSettings(1L)).willReturn(
-                new RoomSettingsInfo("K-POP 퀴즈방", GameType.SONG, 8, Category.KPOP, 10, 0, CSQuizDifficulty.HARD, 2L, "방장닉네임"));
+                new RoomSettingsInfo(
+                        new RoomSettings(GameType.SONG, "K-POP 퀴즈방", 8, Category.KPOP, 10, 0, CSQuizDifficulty.HARD),
+                        GamePlayer.createNewPlayer(2L, "방장닉네임")));
 
         // when // then
         mockMvc.perform(get("/game/rooms/{roomId}/settings", 1L))
@@ -192,9 +221,13 @@ class GameControllerTest {
     void changeSettings() throws Exception {
         // given
         RoomSettingsInfo current =
-                new RoomSettingsInfo("K-POP 퀴즈방", GameType.SONG, 8, Category.KPOP, 10, 0, CSQuizDifficulty.HARD, 1L, "테스트유저");
+                new RoomSettingsInfo(
+                        new RoomSettings(GameType.SONG, "K-POP 퀴즈방", 8, Category.KPOP, 10, 0, CSQuizDifficulty.HARD),
+                        GamePlayer.createNewPlayer(1L, "테스트유저"));
         RoomSettingsInfo changed =
-                new RoomSettingsInfo("K-POP 퀴즈방", GameType.SONG, 6, Category.BALLAD, 5, 0, CSQuizDifficulty.HARD, 1L, "테스트유저");
+                new RoomSettingsInfo(
+                        new RoomSettings(GameType.SONG, "K-POP 퀴즈방", 6, Category.BALLAD, 5, 0, CSQuizDifficulty.HARD),
+                        GamePlayer.createNewPlayer(1L, "테스트유저"));
 
         given(gameRoomService.findSettings(1L)).willReturn(current);
         given(gameRoomService.changeSettings(eq(1L), eq(1L), any())).willReturn(changed);

@@ -1,12 +1,13 @@
 package com.fungame.songquiz.domain.invite;
 
+import com.fungame.songquiz.domain.room.GamePlayer;
+
 import java.time.LocalDateTime;
 
 public record RoomInvite(
         String inviteId,
         Long roomId,
-        Long inviterMemberId,
-        String inviterNickname,
+        GamePlayer inviter,
         Long targetMemberId,
         LocalDateTime expiresAt
 ) {

@@ -1,6 +1,5 @@
 package com.fungame.songquiz.domain.session;
 
-import com.fungame.songquiz.domain.quiz.QuizInfo;
 import com.fungame.songquiz.domain.quiz.HangmanQuiz;
 import com.fungame.songquiz.domain.room.GamePlayer;
 import com.fungame.songquiz.domain.room.GameRoom;
@@ -21,6 +20,7 @@ public class HangmanGameService implements GameService {
 
     private static final char NO_LETTER = ' ';
     private static final int NO_SCORE = 0;
+    private static final Long NO_MEMBER = null;
 
     private final GameRoomManager gameRoomManager;
     private final GameSessionManager gameSessionManager;
@@ -77,14 +77,18 @@ public class HangmanGameService implements GameService {
     }
 
     private void submitResult(Long roomId, HangmanQuiz hangmanQuiz) {
-        var result = hangmanQuiz.getRemainingTries() == 0 ? "실패" : "성공";
+        String result = hangmanQuiz.getRemainingTries() == 0 ? "실패" : "성공";
 
-        var playerScore = List.of(
-                new PlayerScore(null, result, hangmanQuiz.getRemainingTries()),
-                new PlayerScore(null, hangmanQuiz.getAnswer().answer(), NO_SCORE));
-        eventPublisher.publishEvent(new GameResultEvent(roomId, playerScore));
+        List<PlayerScore> resultRows = List.of(
+                resultRow(result, hangmanQuiz.getRemainingTries()),
+                resultRow(hangmanQuiz.getAnswer().answer(), NO_SCORE));
+        eventPublisher.publishEvent(new GameResultEvent(roomId, resultRows));
 
         gameRoomManager.endGame(roomId);
+    }
+
+    private static PlayerScore resultRow(String label, int value) {
+        return new PlayerScore(GamePlayer.createNewPlayer(NO_MEMBER, label), value);
     }
 
     @Override
@@ -108,11 +112,8 @@ public class HangmanGameService implements GameService {
     public GameStateDto getPlayState(Long roomId) {
         HangmanQuiz hangmanQuiz = hangmanQuizOf(gameSessionManager.getGameSession(roomId));
 
-        QuizInfo quizInfo = hangmanQuiz.getQuizInfo();
         return new GameStateDto(
-                quizInfo.gameType(),
-                quizInfo.category(),
-                quizInfo.totalCount(),
+                hangmanQuiz.getQuizInfo(),
                 1,
                 1,
                 null,

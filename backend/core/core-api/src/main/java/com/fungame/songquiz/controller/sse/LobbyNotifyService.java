@@ -3,6 +3,7 @@ package com.fungame.songquiz.controller.sse;
 import com.fungame.songquiz.domain.member.MemberPresenceChangedEvent;
 import com.fungame.songquiz.domain.member.OnlineMemberService;
 import com.fungame.songquiz.domain.member.OnlineMembers;
+import com.fungame.songquiz.controller.response.OnlineMemberResponse;
 import com.fungame.songquiz.controller.room.RoomListReader;
 import com.fungame.songquiz.domain.room.RoomChangedEvent;
 import lombok.RequiredArgsConstructor;
@@ -47,7 +48,8 @@ public class LobbyNotifyService {
 
         if (hasPendingPresenceUpdate.compareAndSet(true, false)) {
             OnlineMembers onlineMembers = onlineMemberService.findAllOnline();
-            sseService.broadcastEach(PRESENCE_UPDATE_EVENT, onlineMembers::excluding);
+            sseService.broadcastEach(PRESENCE_UPDATE_EVENT,
+                    viewerId -> OnlineMemberResponse.listFrom(onlineMembers.excluding(viewerId)));
         }
     }
 }

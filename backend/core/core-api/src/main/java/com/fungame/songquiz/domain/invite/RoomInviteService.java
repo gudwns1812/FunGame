@@ -6,7 +6,7 @@ import com.fungame.songquiz.domain.member.MemberPresenceService;
 import com.fungame.songquiz.domain.room.GamePlayer;
 import com.fungame.songquiz.domain.room.GameRoomService;
 import com.fungame.songquiz.domain.room.RoomInfo;
-import com.fungame.songquiz.domain.room.RoomSettingsInfo;
+import com.fungame.songquiz.domain.room.RoomSettings;
 import com.fungame.songquiz.enums.GameRoomStatus;
 import com.fungame.songquiz.support.error.CoreException;
 import com.fungame.songquiz.support.error.ErrorType;
@@ -119,22 +119,21 @@ public class RoomInviteService {
         return new RoomInvite(
                 UUID.randomUUID().toString(),
                 roomId,
-                inviter.getId(),
-                inviter.getNickname(),
+                GamePlayer.createNewPlayer(inviter.getId(), inviter.getNickname()),
                 targetMemberId,
                 now().plus(INVITE_LIFETIME)
         );
     }
 
     private RoomInviteNotification notificationOf(RoomInvite invite) {
-        RoomSettingsInfo settings = gameRoomService.findSettings(invite.roomId());
+        RoomSettings settings = gameRoomService.findSettings(invite.roomId()).settings();
 
         return new RoomInviteNotification(
                 invite.inviteId(),
                 invite.roomId(),
                 settings.title(),
                 settings.gameType(),
-                invite.inviterNickname(),
+                invite.inviter().nickname(),
                 INVITE_LIFETIME.toSeconds()
         );
     }

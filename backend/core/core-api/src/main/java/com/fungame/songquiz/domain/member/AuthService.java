@@ -96,6 +96,6 @@ public class AuthService {
         Member member = memberReader.findByLoginId(loginId)
                 .orElseThrow(() -> new CoreException(ErrorType.MEMBER_NOT_FOUND));
 
-        return MemberInfo.from(member);
+        return member.getInfo();
     }
 }

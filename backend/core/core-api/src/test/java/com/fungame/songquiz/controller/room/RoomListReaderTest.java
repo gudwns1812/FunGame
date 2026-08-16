@@ -13,6 +13,9 @@ import java.util.List;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.mock;
+import com.fungame.songquiz.enums.Category;
+import com.fungame.songquiz.domain.room.RoomSettings;
+import com.fungame.songquiz.domain.room.GamePlayer;
 
 class RoomListReaderTest {
 
@@ -44,7 +47,8 @@ class RoomListReaderTest {
     }
 
     private static RoomInfo roomWithStoredPlayers(int storedPlayers) {
-        return new RoomInfo(ROOM_ID, "방 제목", 1L, "방장", GameRoomStatus.WAITING, 8, storedPlayers,
-                GameType.SONG, CSQuizDifficulty.HARD);
+        return new RoomInfo(ROOM_ID,
+                new RoomSettings(GameType.SONG, "방 제목", 8, Category.KPOP, 10, 0, CSQuizDifficulty.HARD),
+                GamePlayer.createNewPlayer(1L, "방장"), GameRoomStatus.WAITING, storedPlayers);
     }
 }

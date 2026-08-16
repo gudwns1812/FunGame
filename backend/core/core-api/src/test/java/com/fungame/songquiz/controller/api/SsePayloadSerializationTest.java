@@ -32,6 +32,9 @@ import java.util.List;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.request;
+import com.fungame.songquiz.enums.Category;
+import com.fungame.songquiz.domain.room.RoomSettings;
+import com.fungame.songquiz.domain.room.GamePlayer;
 
 @DisplayName("SSE 로 실어 보내는 목록은 JSON 으로 전달된다")
 class SsePayloadSerializationTest {
@@ -101,7 +104,9 @@ class SsePayloadSerializationTest {
     }
 
     private static RoomInfo room() {
-        return new RoomInfo(9L, "방 제목", 3L, "방장", GameRoomStatus.WAITING, 8, 2, GameType.SONG, CSQuizDifficulty.HARD);
+        return new RoomInfo(9L,
+                new RoomSettings(GameType.SONG, "방 제목", 8, Category.KPOP, 10, 0, CSQuizDifficulty.HARD),
+                GamePlayer.createNewPlayer(3L, "방장"), GameRoomStatus.WAITING, 2);
     }
 
     private static OnlineMemberInfo onlineMember(Long memberId) {

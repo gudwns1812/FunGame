@@ -9,23 +9,14 @@ import org.springframework.util.Assert;
 @Getter
 public class Member {
 
-    private final Long id;
-    private final String loginId;
-    private final String email;
+    private MemberInfo info;
     private String password;
-    private String nickname;
-    private Role role;
     private PlayerStatus status;
     private Long currentRoomId;
 
-    private Member(Long id, String loginId, String password, String nickname, String email, Role role,
-                   PlayerStatus status, Long currentRoomId) {
-        this.id = id;
-        this.loginId = loginId;
+    private Member(MemberInfo info, String password, PlayerStatus status, Long currentRoomId) {
+        this.info = info;
         this.password = password;
-        this.nickname = nickname;
-        this.email = email;
-        this.role = role;
         this.status = status;
         this.currentRoomId = currentRoomId;
     }
@@ -38,12 +29,36 @@ public class Member {
         Assert.hasText(email, "이메일은 필수입니다.");
         Assert.notNull(role, "역할은 필수입니다.");
 
-        return new Member(null, loginId, password, nickname, email, role, PlayerStatus.LOBBY, null);
+        return new Member(
+                new MemberInfo(null, loginId, nickname, email, role),
+                password,
+                PlayerStatus.LOBBY,
+                null);
     }
 
     public static Member restore(Long id, String loginId, String password, String nickname, String email, Role role,
                                  PlayerStatus status, Long currentRoomId) {
-        return new Member(id, loginId, password, nickname, email, role, status, currentRoomId);
+        return new Member(new MemberInfo(id, loginId, nickname, email, role), password, status, currentRoomId);
+    }
+
+    public Long getId() {
+        return info.id();
+    }
+
+    public String getLoginId() {
+        return info.loginId();
+    }
+
+    public String getNickname() {
+        return info.nickname();
+    }
+
+    public String getEmail() {
+        return info.email();
+    }
+
+    public Role getRole() {
+        return info.role();
     }
 
     public void enterWaitingRoom(Long roomId) {
@@ -73,7 +88,7 @@ public class Member {
 
     public void changeNickname(String newNickname) {
         Assert.hasText(newNickname, "새 닉네임은 비어있을 수 없습니다.");
-        this.nickname = newNickname;
+        this.info = info.withNickname(newNickname);
     }
 
     public void changePassword(String newPassword) {
@@ -83,6 +98,6 @@ public class Member {
 
     public void updateRole(Role role) {
         Assert.notNull(role, "역할은 필수입니다.");
-        this.role = role;
+        this.info = info.withRole(role);
     }
 }

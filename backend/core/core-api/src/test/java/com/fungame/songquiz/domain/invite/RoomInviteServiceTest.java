@@ -33,6 +33,7 @@ import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import com.fungame.songquiz.domain.room.RoomSettings;
 
 class RoomInviteServiceTest {
 
@@ -177,7 +178,7 @@ class RoomInviteServiceTest {
 
             assertThat(accepted.playerSequence()).isEqualTo(3);
             assertThat(accepted.room().roomId()).isEqualTo(ROOM_ID);
-            assertThat(accepted.room().title()).isEqualTo("테스트 방");
+            assertThat(accepted.room().settings().title()).isEqualTo("테스트 방");
         }
 
         @Test
@@ -295,14 +296,18 @@ class RoomInviteServiceTest {
     }
 
     private static RoomInfo waitingRoomInfo() {
-        return new RoomInfo(ROOM_ID, "테스트 방", INVITER_ID, "방장", GameRoomStatus.WAITING, 8, 2, GameType.SONG, CSQuizDifficulty.HARD);
+        return new RoomInfo(ROOM_ID, settings(), GamePlayer.createNewPlayer(INVITER_ID, "방장"), GameRoomStatus.WAITING, 2);
     }
 
     private static RoomInfo playingRoomInfo() {
-        return new RoomInfo(ROOM_ID, "테스트 방", INVITER_ID, "방장", GameRoomStatus.PLAYING, 8, 2, GameType.SONG, CSQuizDifficulty.HARD);
+        return new RoomInfo(ROOM_ID, settings(), GamePlayer.createNewPlayer(INVITER_ID, "방장"), GameRoomStatus.PLAYING, 2);
     }
 
     private static RoomSettingsInfo roomSettings() {
-        return new RoomSettingsInfo("테스트 방", GameType.SONG, 8, Category.KPOP, 10, 0, CSQuizDifficulty.HARD, INVITER_ID, "방장");
+        return new RoomSettingsInfo(settings(), GamePlayer.createNewPlayer(INVITER_ID, "방장"));
+    }
+
+    private static RoomSettings settings() {
+        return new RoomSettings(GameType.SONG, "테스트 방", 8, Category.KPOP, 10, 0, CSQuizDifficulty.HARD);
     }
 }

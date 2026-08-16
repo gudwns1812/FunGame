@@ -46,7 +46,7 @@ public class GameRoomService {
 
         if (result.newlyJoined()) {
             applicationEventPublisher.publishEvent(
-                    new PlayerJoinEvent(roomId, player.memberId(), player.nickname()));
+                    new PlayerJoinEvent(roomId, player));
         }
 
         return result.playerNumber();
@@ -65,7 +65,8 @@ public class GameRoomService {
             gameService.handlePlayerLeave(roomId, memberId);
         }
 
-        applicationEventPublisher.publishEvent(new PlayerLeaveEvent(roomId, memberId, result.nickname()));
+        applicationEventPublisher.publishEvent(new PlayerLeaveEvent(roomId,
+                GamePlayer.createNewPlayer(memberId, result.nickname())));
     }
 
     private void rememberWhereMemberIs(Long roomId, Long memberId) {
@@ -109,7 +110,8 @@ public class GameRoomService {
         ReadyResult result = gameRoomManager.readyPlayer(roomId, memberId);
 
         applicationEventPublisher.publishEvent(
-                new PlayerReadyEvent(roomId, memberId, result.nickname(), result.ready(), result.isAllReady()));
+                new PlayerReadyEvent(roomId,
+                        new GamePlayer(memberId, result.nickname(), result.ready()), result.isAllReady()));
 
         return PlayerReadyInfo.of(memberId, result);
     }

@@ -3,19 +3,19 @@ package com.fungame.songquiz.controller.api;
 import com.fungame.songquiz.domain.member.MemberAdapter;
 import com.fungame.songquiz.domain.room.GamePlayer;
 import com.fungame.songquiz.domain.room.GameRoomService;
-import com.fungame.songquiz.domain.room.PlayerReadyInfo;
-import com.fungame.songquiz.domain.room.PlayersInfo;
-import com.fungame.songquiz.domain.room.RoomInfo;
 import com.fungame.songquiz.domain.room.RoomSettings;
-import com.fungame.songquiz.domain.room.RoomSettingsInfo;
 import com.fungame.songquiz.domain.session.GameService;
-import com.fungame.songquiz.domain.session.GameStateDto;
-import com.fungame.songquiz.domain.session.PlayerScore;
 import com.fungame.songquiz.controller.room.RoomListReader;
 import com.fungame.songquiz.controller.request.ChangeRoomSettingsRequest;
 import com.fungame.songquiz.controller.request.CreateRoomRequest;
 import com.fungame.songquiz.controller.request.GameActionRequest;
 import com.fungame.songquiz.controller.response.ApiResponse;
+import com.fungame.songquiz.controller.response.GameStateResponse;
+import com.fungame.songquiz.controller.response.PlayerReadyResponse;
+import com.fungame.songquiz.controller.response.PlayerScoreResponse;
+import com.fungame.songquiz.controller.response.RoomPlayersResponse;
+import com.fungame.songquiz.controller.response.RoomResponse;
+import com.fungame.songquiz.controller.response.RoomSettingsResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -34,32 +34,28 @@ public class GameController {
     private final RoomListReader roomListReader;
 
     @GetMapping
-    public ApiResponse<List<RoomInfo>> findAllRoom() {
-        List<RoomInfo> rooms = roomListReader.findAllRooms();
-        return ApiResponse.success(rooms);
+    public ApiResponse<List<RoomResponse>> findAllRoom() {
+        return ApiResponse.success(RoomResponse.listFrom(roomListReader.findAllRooms()));
     }
 
     @GetMapping("/{roomId}/users")
-    public ApiResponse<PlayersInfo> findUsers(@PathVariable Long roomId) {
-        PlayersInfo users = gameRoomService.findUsers(roomId);
-        return ApiResponse.success(users);
+    public ApiResponse<RoomPlayersResponse> findUsers(@PathVariable Long roomId) {
+        return ApiResponse.success(RoomPlayersResponse.from(gameRoomService.findUsers(roomId)));
     }
 
     @GetMapping("/{roomId}/settings")
-    public ApiResponse<RoomSettingsInfo> findSettings(@PathVariable Long roomId) {
-        return ApiResponse.success(gameRoomService.findSettings(roomId));
+    public ApiResponse<RoomSettingsResponse> findSettings(@PathVariable Long roomId) {
+        return ApiResponse.success(RoomSettingsResponse.from(gameRoomService.findSettings(roomId)));
     }
 
     @PatchMapping("/{roomId}/settings")
-    public ApiResponse<RoomSettingsInfo> changeSettings(
+    public ApiResponse<RoomSettingsResponse> changeSettings(
             @PathVariable Long roomId,
             @RequestBody ChangeRoomSettingsRequest request,
             @AuthenticationPrincipal MemberAdapter memberAdapter) {
-        RoomSettings current = gameRoomService.findSettings(roomId).toSettings();
-        RoomSettingsInfo changed = gameRoomService.changeSettings(
-                roomId, memberAdapter.getId(), request.applyTo(current));
-
-        return ApiResponse.success(changed);
+        RoomSettings current = gameRoomService.findSettings(roomId).settings();
+        return ApiResponse.success(RoomSettingsResponse.from(gameRoomService.changeSettings(
+                roomId, memberAdapter.getId(), request.applyTo(current))));
     }
 
     @GetMapping("/{roomId}/health")
@@ -69,13 +65,13 @@ public class GameController {
     }
 
     @GetMapping("/{roomId}/play/state")
-    public ApiResponse<GameStateDto> findPlayState(@PathVariable Long roomId) {
-        return ApiResponse.success(gameService.getPlayState(roomId));
+    public ApiResponse<GameStateResponse> findPlayState(@PathVariable Long roomId) {
+        return ApiResponse.success(GameStateResponse.from(gameService.getPlayState(roomId)));
     }
 
     @GetMapping("/{roomId}/play/rank")
-    public ApiResponse<List<PlayerScore>> findPlayingUsers(@PathVariable Long roomId) {
-        List<PlayerScore> users = gameService.getPlayerRanks(roomId);
+    public ApiResponse<List<PlayerScoreResponse>> findPlayingUsers(@PathVariable Long roomId) {
+        List<PlayerScoreResponse> users = PlayerScoreResponse.listFrom(gameService.getPlayerRanks(roomId));
         return ApiResponse.success(users);
     }
 
@@ -120,10 +116,11 @@ public class GameController {
     }
 
     @PostMapping("/{roomId}/ready")
-    public ApiResponse<PlayerReadyInfo> playerReady(
+    public ApiResponse<PlayerReadyResponse> playerReady(
             @PathVariable Long roomId,
             @AuthenticationPrincipal MemberAdapter memberAdapter) {
-        return ApiResponse.success(gameRoomService.readyPlayer(roomId, memberAdapter.getId()));
+        return ApiResponse.success(
+                PlayerReadyResponse.from(gameRoomService.readyPlayer(roomId, memberAdapter.getId())));
     }
 
     @PostMapping("/{roomId}/action")

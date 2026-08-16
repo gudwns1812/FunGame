@@ -26,7 +26,7 @@ public class PromotionService {
             throw new CoreException(ErrorType.PROMOTION_ALREADY_PENDING);
         }
 
-        promotionRequestWriter.append(PromotionRequest.open(member.getId()));
+        promotionRequestWriter.append(PromotionRequest.open(member.getInfo()));
     }
 
     @Transactional(readOnly = true)

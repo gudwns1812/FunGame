@@ -2,7 +2,6 @@ package com.fungame.songquiz.controller.api;
 
 import com.fungame.songquiz.domain.member.AuthService;
 import com.fungame.songquiz.domain.member.MemberAdapter;
-import com.fungame.songquiz.domain.member.MemberInfo;
 import com.fungame.songquiz.domain.member.PasswordResetService;
 import com.fungame.songquiz.controller.request.LoginRequest;
 import com.fungame.songquiz.controller.request.NicknameRequest;
@@ -10,6 +9,7 @@ import com.fungame.songquiz.controller.request.PasswordResetLinkRequest;
 import com.fungame.songquiz.controller.request.PasswordResetRequest;
 import com.fungame.songquiz.controller.request.SignupRequest;
 import com.fungame.songquiz.controller.response.ApiResponse;
+import com.fungame.songquiz.controller.response.MemberResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -56,7 +56,7 @@ public class AuthController {
     }
 
     @PostMapping("/login")
-    public ApiResponse<MemberInfo> login(
+    public ApiResponse<MemberResponse> login(
             @RequestBody LoginRequest request,
             HttpServletRequest httpRequest) {
 
@@ -70,7 +70,7 @@ public class AuthController {
             httpRequest.changeSessionId();
         }
 
-        return ApiResponse.success(authService.getMyInfo(request.getLoginId()));
+        return ApiResponse.success(MemberResponse.from(authService.getMyInfo(request.getLoginId())));
     }
 
     @PatchMapping("/nickname")
@@ -82,10 +82,10 @@ public class AuthController {
     }
 
     @GetMapping("/me")
-    public ApiResponse<MemberInfo> getMe(@AuthenticationPrincipal MemberAdapter user) {
+    public ApiResponse<MemberResponse> getMe(@AuthenticationPrincipal MemberAdapter user) {
         if (user == null) {
             return ApiResponse.success(null);
         }
-        return ApiResponse.success(authService.getMyInfo(user.getLoginId()));
+        return ApiResponse.success(MemberResponse.from(authService.getMyInfo(user.getLoginId())));
     }
 }
