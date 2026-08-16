@@ -23,6 +23,7 @@ import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { SseProvider } from './contexts/SseContext';
 import { useRoomInvites } from './hooks/useRoomInvites';
 import InviteToast from './components/InviteToast';
+import KickedNotice from './components/KickedNotice';
 import { useEffect } from 'react';
 
 /** 방에 들어가 있는 동안은 클릭음이 게임을 방해해서 끈다 */
@@ -79,6 +80,9 @@ function AppContent() {
     acceptInvite,
     createRoom,
     leaveRoom,
+    kickPlayer,
+    kickedNotice,
+    dismissKickedNotice,
     returnToLobby,
     returnToWaitingRoom,
     roomSettings,
@@ -152,6 +156,8 @@ function AppContent() {
 
   return (
     <>
+      {kickedNotice && <KickedNotice message={kickedNotice} onClose={dismissKickedNotice} />}
+
       {currentInvite && (
         <InviteToast
           key={currentInvite.inviteId}
@@ -237,6 +243,7 @@ function AppContent() {
               onStart={startGame}
               onLeave={leaveRoom}
               onToggleReady={toggleReady}
+              onKickPlayer={kickPlayer}
               onSendMessage={sendMessage}
               maxPlayers={roomMaxPlayers}
               myMemberId={user?.id ?? null}

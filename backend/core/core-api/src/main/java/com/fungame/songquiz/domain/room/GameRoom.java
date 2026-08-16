@@ -77,6 +77,31 @@ public class GameRoom {
         players.remove(memberId);
     }
 
+    public GamePlayer kick(Long hostId, Long targetId) {
+        validateKick(hostId, targetId);
+
+        GamePlayer target = players.playerOf(targetId);
+        players.remove(targetId);
+        touch();
+
+        return target;
+    }
+
+    private void validateKick(Long hostId, Long targetId) {
+        if (!isHost(hostId)) {
+            throw new CoreException(ErrorType.NOT_VALID_HOST);
+        }
+        if (status == GameRoomStatus.PLAYING) {
+            throw new CoreException(ErrorType.GAME_ALREADY_PLAYING);
+        }
+        if (hostId.equals(targetId)) {
+            throw new CoreException(ErrorType.KICK_SELF);
+        }
+        if (!hasPlayer(targetId)) {
+            throw new CoreException(ErrorType.PLAYER_NOT_FOUND);
+        }
+    }
+
     public List<GamePlayer> getRoomPlayers() {
         return players.snapshot();
     }

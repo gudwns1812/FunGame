@@ -12,6 +12,7 @@ import com.fungame.songquiz.controller.room.RoomListReader;
 import com.fungame.songquiz.domain.session.GameService;
 import com.fungame.songquiz.controller.request.ChangeRoomSettingsRequest;
 import com.fungame.songquiz.controller.request.CreateRoomRequest;
+import com.fungame.songquiz.controller.request.KickPlayerRequest;
 import com.fungame.songquiz.enums.CSQuizDifficulty;
 import com.fungame.songquiz.enums.Category;
 import com.fungame.songquiz.enums.GameRoomStatus;
@@ -38,6 +39,7 @@ import java.util.List;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.document;
 import static org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.documentationConfiguration;
 import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.get;
@@ -171,6 +173,25 @@ class GameControllerTest {
                                 parameterWithName("roomId").description("방 ID")
                         )
                 ));
+    }
+
+    @Test
+    @DisplayName("방장이 대기실에서 다른 플레이어를 내보낸다.")
+    void kickPlayer() throws Exception {
+        // when // then
+        mockMvc.perform(post("/game/rooms/{roomId}/kick", 1L)
+                        .content(objectMapper.writeValueAsString(new KickPlayerRequest(2L)))
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andDo(document("room-kick",
+                        preprocessRequest(prettyPrint()),
+                        preprocessResponse(prettyPrint()),
+                        pathParameters(
+                                parameterWithName("roomId").description("방 ID")
+                        )
+                ));
+
+        verify(gameRoomService).kickPlayer(1L, 1L, 2L);
     }
 
     @Test

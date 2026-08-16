@@ -9,6 +9,7 @@ import com.fungame.songquiz.controller.room.RoomListReader;
 import com.fungame.songquiz.controller.request.ChangeRoomSettingsRequest;
 import com.fungame.songquiz.controller.request.CreateRoomRequest;
 import com.fungame.songquiz.controller.request.GameActionRequest;
+import com.fungame.songquiz.controller.request.KickPlayerRequest;
 import com.fungame.songquiz.controller.response.ApiResponse;
 import com.fungame.songquiz.controller.response.GameStateResponse;
 import com.fungame.songquiz.controller.response.PlayerReadyResponse;
@@ -96,6 +97,15 @@ public class GameController {
             @PathVariable Long roomId,
             @AuthenticationPrincipal MemberAdapter memberAdapter) {
         gameRoomService.leaveRoom(roomId, memberAdapter.getId());
+        return ApiResponse.success();
+    }
+
+    @PostMapping("/{roomId}/kick")
+    public ApiResponse<Void> kickPlayer(
+            @PathVariable Long roomId,
+            @RequestBody KickPlayerRequest request,
+            @AuthenticationPrincipal MemberAdapter memberAdapter) {
+        gameRoomService.kickPlayer(roomId, memberAdapter.getId(), request.targetMemberId());
         return ApiResponse.success();
     }
 

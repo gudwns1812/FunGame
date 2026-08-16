@@ -98,6 +98,10 @@ public class GamePlayers {
         return players.containsKey(memberId);
     }
 
+    public GamePlayer playerOf(Long memberId) {
+        return players.get(memberId);
+    }
+
     public String nicknameOf(Long memberId) {
         GamePlayer player = players.get(memberId);
         return player == null ? null : player.nickname();

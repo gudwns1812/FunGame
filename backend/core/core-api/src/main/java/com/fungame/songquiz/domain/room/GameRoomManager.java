@@ -106,6 +106,17 @@ public class GameRoomManager {
         });
     }
 
+    public GamePlayer kickPlayer(Long roomId, Long hostId, Long targetId) {
+        return lockContext.processWithLockKey(roomId, () -> {
+            GameRoom gameRoom = getRoom(roomId);
+
+            GamePlayer kicked = gameRoom.kick(hostId, targetId);
+            gameRoomWriter.save(gameRoom);
+
+            return kicked;
+        });
+    }
+
     private void deleteRoom(Long roomId) {
         if (gameRooms.remove(roomId) == null && gameRoomReader.load(roomId).isEmpty()) {
             return;

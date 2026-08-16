@@ -209,6 +209,19 @@ class GameRoomServiceTest {
     }
 
     @Test
+    void 강퇴한_사람의_위치를_비우고_강퇴_이벤트를_발행한다() {
+        // given
+        given(gameRoomManager.kickPlayer(1L, HOST.memberId(), GUEST.memberId())).willReturn(GUEST);
+
+        // when
+        service.kickPlayer(1L, HOST.memberId(), GUEST.memberId());
+
+        // then
+        verify(memberPresenceService).leaveRoom(GUEST.memberId());
+        verify(applicationEventPublisher).publishEvent(new PlayerKickedEvent(1L, GUEST));
+    }
+
+    @Test
     void 기동_시점에_남아있던_회원_위치를_로비로_되돌린다() {
         // when
         service.resetInterruptedGames();

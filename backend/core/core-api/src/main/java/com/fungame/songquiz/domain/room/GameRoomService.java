@@ -69,6 +69,14 @@ public class GameRoomService {
                 GamePlayer.createNewPlayer(memberId, result.nickname())));
     }
 
+    public void kickPlayer(Long roomId, Long hostId, Long targetId) {
+        GamePlayer kicked = gameRoomManager.kickPlayer(roomId, hostId, targetId);
+
+        memberPresenceService.leaveRoom(targetId);
+
+        applicationEventPublisher.publishEvent(new PlayerKickedEvent(roomId, kicked));
+    }
+
     private void rememberWhereMemberIs(Long roomId, Long memberId) {
         if (gameRoomManager.findRoom(roomId).isPlaying()) {
             memberPresenceService.enterPlayingRoom(memberId, roomId);

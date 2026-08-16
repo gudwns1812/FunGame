@@ -11,6 +11,7 @@ interface WaitingRoomProps {
   onStart: () => void;
   onLeave: () => void;
   onToggleReady: () => void;
+  onKickPlayer: (targetMemberId: number) => void;
   isHost: boolean;
   logs: string[];
   onSendMessage: (message: string) => void;
@@ -25,6 +26,7 @@ const WaitingRoom: React.FC<WaitingRoomProps> = ({
   onStart,
   onLeave,
   onToggleReady,
+  onKickPlayer,
   isHost,
   logs,
   onSendMessage,
@@ -35,6 +37,7 @@ const WaitingRoom: React.FC<WaitingRoomProps> = ({
 }) => {
   const [chatInput, setChatInput] = useState('');
   const [isEditingSettings, setIsEditingSettings] = useState(false);
+  const [playerToKick, setPlayerToKick] = useState<Player | null>(null);
   const logContainerRef = useRef<HTMLDivElement>(null);
   const chatInputRef = useRef<HTMLInputElement>(null);
   const SLOTS = maxPlayers || 12;
@@ -69,6 +72,15 @@ const WaitingRoom: React.FC<WaitingRoomProps> = ({
 
   const readyCount = players.filter((p) => p.isReady || p.isHost).length;
 
+  const canKick = (player: Player) => isHost && player.memberId !== myMemberId;
+
+  const kickConfirmedPlayer = () => {
+    if (playerToKick) {
+      onKickPlayer(playerToKick.memberId);
+    }
+    setPlayerToKick(null);
+  };
+
   return (
     <div className="h-full min-h-0 max-w-5xl w-full mx-auto flex flex-col gap-3">
       {roomSettings && (
@@ -85,6 +97,31 @@ const WaitingRoom: React.FC<WaitingRoomProps> = ({
           }}
           onClose={() => setIsEditingSettings(false)}
         />
+      )}
+
+      {playerToKick && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/60 p-4 animate-fade-in">
+          <div className="px-card w-full max-w-xs p-6 space-y-4 animate-scale-up">
+            <h2 className="px-title text-lg border-b-[3px] border-ink pb-2">참가자 내보내기</h2>
+
+            <p className="text-sm">
+              <strong>{stripTag(playerToKick.name)}</strong> 님을 방에서 내보낼까요?
+            </p>
+            <p className="px-label text-[10px]">내보낸 뒤에도 다시 들어올 수 있습니다.</p>
+
+            <div className="flex items-center gap-2 pt-1">
+              <button type="button" className="px-btn px-btn-primary flex-1 py-2.5" onClick={kickConfirmedPlayer}>
+                내보내기
+              </button>
+              <button
+                type="button"
+                className="px-btn px-btn-paper flex-1 py-2.5"
+                onClick={() => setPlayerToKick(null)}>
+                취소
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* 상단: 인원 · 준비 현황 + 액션 */}
@@ -164,6 +201,16 @@ const WaitingRoom: React.FC<WaitingRoomProps> = ({
                     {player.isHost ? '방장' : isReady ? '준비' : '대기'}
                   </span>
                 </div>
+
+                {canKick(player) && (
+                  <button
+                    type="button"
+                    aria-label={`${stripTag(player.name)} 내보내기`}
+                    className="absolute top-0 right-0 w-5 h-5 border-l-2 border-b-2 border-ink bg-cherry text-white leading-none text-[11px]"
+                    onClick={() => setPlayerToKick(player)}>
+                    ✕
+                  </button>
+                )}
               </div>
             );
           })}

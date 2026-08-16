@@ -119,4 +119,65 @@ class GameRoomTest {
         // then
         assertThat(gameRoom.getPlayers().getHost()).isEqualTo(PLAYER2.memberId());
     }
+
+    @Test
+    @DisplayName("방장이 내보낸 플레이어는 방에서 제거된다.")
+    void kick_success() {
+        // given
+        gameRoom.join(PLAYER2);
+
+        // when
+        GamePlayer kicked = gameRoom.kick(HOST.memberId(), PLAYER2.memberId());
+
+        // then
+        assertThat(kicked.memberId()).isEqualTo(PLAYER2.memberId());
+        assertThat(kicked.nickname()).isEqualTo(PLAYER2.nickname());
+        assertThat(gameRoom.getRoomPlayers())
+                .extracting(GamePlayer::memberId)
+                .containsExactly(HOST.memberId());
+    }
+
+    @Test
+    @DisplayName("방장이 아닌 사용자는 다른 플레이어를 내보낼 수 없다.")
+    void kick_fail_not_host() {
+        // given
+        gameRoom.join(PLAYER2);
+
+        // when // then
+        assertThatThrownBy(() -> gameRoom.kick(PLAYER2.memberId(), HOST.memberId()))
+                .isInstanceOf(CoreException.class)
+                .hasMessageContaining(ErrorType.NOT_VALID_HOST.getMessage());
+    }
+
+    @Test
+    @DisplayName("게임이 진행 중이면 플레이어를 내보낼 수 없다.")
+    void kick_fail_already_playing() {
+        // given
+        gameRoom.join(PLAYER2);
+        gameRoom.readyPlayer(PLAYER2.memberId());
+        gameRoom.start(HOST.memberId());
+
+        // when // then
+        assertThatThrownBy(() -> gameRoom.kick(HOST.memberId(), PLAYER2.memberId()))
+                .isInstanceOf(CoreException.class)
+                .hasMessageContaining(ErrorType.GAME_ALREADY_PLAYING.getMessage());
+    }
+
+    @Test
+    @DisplayName("방장은 자기 자신을 내보낼 수 없다.")
+    void kick_fail_self() {
+        // when // then
+        assertThatThrownBy(() -> gameRoom.kick(HOST.memberId(), HOST.memberId()))
+                .isInstanceOf(CoreException.class)
+                .hasMessageContaining(ErrorType.KICK_SELF.getMessage());
+    }
+
+    @Test
+    @DisplayName("방에 없는 사람은 내보낼 수 없다.")
+    void kick_fail_player_not_found() {
+        // when // then
+        assertThatThrownBy(() -> gameRoom.kick(HOST.memberId(), PLAYER3.memberId()))
+                .isInstanceOf(CoreException.class)
+                .hasMessageContaining(ErrorType.PLAYER_NOT_FOUND.getMessage());
+    }
 }
