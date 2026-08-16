@@ -1,14 +1,14 @@
 package com.fungame.songquiz.controller.api;
 
+import com.fungame.songquiz.domain.member.AuthService;
+import com.fungame.songquiz.domain.member.MemberAdapter;
+import com.fungame.songquiz.domain.member.MemberInfo;
+import com.fungame.songquiz.domain.member.PasswordResetService;
 import com.fungame.songquiz.controller.request.LoginRequest;
 import com.fungame.songquiz.controller.request.NicknameRequest;
 import com.fungame.songquiz.controller.request.PasswordResetLinkRequest;
 import com.fungame.songquiz.controller.request.PasswordResetRequest;
 import com.fungame.songquiz.controller.request.SignupRequest;
-import com.fungame.songquiz.domain.dto.MemberInfo;
-import com.fungame.songquiz.domain.member.AuthService;
-import com.fungame.songquiz.domain.member.MemberAdapter;
-import com.fungame.songquiz.domain.member.PasswordResetService;
 import com.fungame.songquiz.controller.response.ApiResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;

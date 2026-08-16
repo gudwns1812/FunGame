@@ -1,0 +1,30 @@
+package com.fungame.songquiz.domain.session;
+
+import com.fungame.songquiz.domain.quiz.Game;
+import com.fungame.songquiz.domain.quiz.GameInfo;
+import com.fungame.songquiz.domain.room.GamePlayer;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Component;
+
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+
+@Component
+@RequiredArgsConstructor
+public class GameSessionManager {
+    private final Map<Long, GameSession> manager = new ConcurrentHashMap<>();
+
+    public GameInfo startGame(Long roomId, Game game, List<GamePlayer> players) {
+        manager.put(roomId, new GameSession(game, players));
+        return game.getGameInfo();
+    }
+
+    public GameSession getGameSession(Long roomId) {
+        return manager.get(roomId);
+    }
+
+    public void endGameSession(Long roomId) {
+        manager.remove(roomId);
+    }
+}

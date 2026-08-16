@@ -1,9 +1,8 @@
 package com.fungame.songquiz.domain.member;
 
-import com.fungame.songquiz.domain.dto.MemberInfo;
+import com.fungame.songquiz.enums.Role;
 import com.fungame.songquiz.support.error.CoreException;
 import com.fungame.songquiz.support.error.ErrorType;
-import com.fungame.songquiz.enums.Role;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.AuthenticationManager;

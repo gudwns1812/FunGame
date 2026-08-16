@@ -1,11 +1,15 @@
 package com.fungame.songquiz.domain.member;
 
-import com.fungame.songquiz.support.MutableClock;
-import com.fungame.songquiz.storage.IntegrationTest;
-import com.fungame.songquiz.support.error.CoreException;
-import com.fungame.songquiz.support.error.ErrorType;
 import com.fungame.songquiz.enums.PlayerStatus;
 import com.fungame.songquiz.enums.Role;
+import com.fungame.songquiz.storage.IntegrationTest;
+import com.fungame.songquiz.storage.MemberEntity;
+import com.fungame.songquiz.storage.MemberRepository;
+import com.fungame.songquiz.storage.PasswordResetTokenEntity;
+import com.fungame.songquiz.storage.PasswordResetTokenRepository;
+import com.fungame.songquiz.support.MutableClock;
+import com.fungame.songquiz.support.error.CoreException;
+import com.fungame.songquiz.support.error.ErrorType;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -31,10 +35,6 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.timeout;
 import static org.mockito.Mockito.verify;
-import com.fungame.songquiz.storage.MemberEntity;
-import com.fungame.songquiz.storage.MemberRepository;
-import com.fungame.songquiz.storage.PasswordResetTokenEntity;
-import com.fungame.songquiz.storage.PasswordResetTokenRepository;
 
 @IntegrationTest
 class PasswordResetServiceTest {

@@ -1,6 +1,5 @@
 package com.fungame.songquiz.domain.member;
 
-import com.fungame.songquiz.domain.event.PasswordResetRequestedEvent;
 import com.fungame.songquiz.support.error.CoreException;
 import com.fungame.songquiz.support.error.ErrorType;
 import lombok.RequiredArgsConstructor;

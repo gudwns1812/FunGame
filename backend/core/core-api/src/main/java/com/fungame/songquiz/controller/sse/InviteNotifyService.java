@@ -1,6 +1,6 @@
 package com.fungame.songquiz.controller.sse;
 
-import com.fungame.songquiz.domain.event.RoomInviteCreatedEvent;
+import com.fungame.songquiz.domain.invite.RoomInviteCreatedEvent;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;

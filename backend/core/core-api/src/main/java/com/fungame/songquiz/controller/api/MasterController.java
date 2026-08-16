@@ -1,6 +1,6 @@
 package com.fungame.songquiz.controller.api;
 
-import com.fungame.songquiz.domain.dto.PromotionRequestInfo;
+import com.fungame.songquiz.domain.member.PromotionRequestInfo;
 import com.fungame.songquiz.domain.member.PromotionService;
 import com.fungame.songquiz.controller.response.ApiResponse;
 import lombok.RequiredArgsConstructor;

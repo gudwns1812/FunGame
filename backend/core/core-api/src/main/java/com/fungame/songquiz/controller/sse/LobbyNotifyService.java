@@ -1,10 +1,10 @@
 package com.fungame.songquiz.controller.sse;
 
-import com.fungame.songquiz.domain.GameRoomService;
-import com.fungame.songquiz.domain.dto.OnlineMembers;
-import com.fungame.songquiz.domain.event.MemberPresenceChangedEvent;
-import com.fungame.songquiz.domain.event.RoomChangedEvent;
+import com.fungame.songquiz.domain.member.MemberPresenceChangedEvent;
 import com.fungame.songquiz.domain.member.OnlineMemberService;
+import com.fungame.songquiz.domain.member.OnlineMembers;
+import com.fungame.songquiz.domain.room.GameRoomService;
+import com.fungame.songquiz.domain.room.RoomChangedEvent;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Async;

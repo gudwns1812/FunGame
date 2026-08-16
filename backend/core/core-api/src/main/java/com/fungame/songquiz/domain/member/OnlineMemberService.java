@@ -1,7 +1,5 @@
 package com.fungame.songquiz.domain.member;
 
-import com.fungame.songquiz.domain.dto.OnlineMemberInfo;
-import com.fungame.songquiz.domain.dto.OnlineMembers;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 

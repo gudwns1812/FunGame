@@ -3,6 +3,8 @@ package com.fungame.songquiz.domain.member;
 import com.fungame.songquiz.enums.PlayerStatus;
 import com.fungame.songquiz.enums.Role;
 import com.fungame.songquiz.storage.IntegrationTest;
+import com.fungame.songquiz.storage.MemberEntity;
+import com.fungame.songquiz.storage.MemberRepository;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -11,8 +13,6 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import com.fungame.songquiz.storage.MemberEntity;
-import com.fungame.songquiz.storage.MemberRepository;
 
 @IntegrationTest
 class MemberPersistenceTest {

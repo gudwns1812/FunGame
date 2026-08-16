@@ -1,12 +1,12 @@
 package com.fungame.songquiz.controller.websocket;
 
+import com.fungame.songquiz.domain.member.MemberAdapter;
+import com.fungame.songquiz.domain.room.GameRoomManager;
+import com.fungame.songquiz.domain.session.GameService;
 import com.fungame.songquiz.controller.request.ChatRequest;
 import com.fungame.songquiz.controller.request.GameActionRequest;
-import com.fungame.songquiz.domain.GameRoomManager;
-import com.fungame.songquiz.domain.GameService;
-import com.fungame.songquiz.domain.member.MemberAdapter;
-import com.fungame.songquiz.support.error.CoreException;
 import com.fungame.songquiz.controller.response.ApiResponse;
+import com.fungame.songquiz.support.error.CoreException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.messaging.handler.annotation.DestinationVariable;

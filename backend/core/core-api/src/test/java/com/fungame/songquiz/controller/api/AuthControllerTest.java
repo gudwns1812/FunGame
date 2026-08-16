@@ -1,12 +1,12 @@
 package com.fungame.songquiz.controller.api;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fungame.songquiz.domain.member.AuthService;
+import com.fungame.songquiz.domain.member.MemberInfo;
 import com.fungame.songquiz.domain.member.PasswordResetService;
 import com.fungame.songquiz.controller.ApiControllerAdvice;
 import com.fungame.songquiz.controller.request.LoginRequest;
-import com.fungame.songquiz.domain.dto.MemberInfo;
 import com.fungame.songquiz.enums.Role;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

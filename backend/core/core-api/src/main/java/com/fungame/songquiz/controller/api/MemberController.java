@@ -1,7 +1,7 @@
 package com.fungame.songquiz.controller.api;
 
-import com.fungame.songquiz.domain.dto.OnlineMemberInfo;
 import com.fungame.songquiz.domain.member.MemberAdapter;
+import com.fungame.songquiz.domain.member.OnlineMemberInfo;
 import com.fungame.songquiz.domain.member.OnlineMemberService;
 import com.fungame.songquiz.controller.response.ApiResponse;
 import lombok.RequiredArgsConstructor;

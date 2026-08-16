@@ -1,14 +1,13 @@
 package com.fungame.songquiz.domain.invite;
 
-import com.fungame.songquiz.domain.GamePlayer;
-import com.fungame.songquiz.domain.GameRoomService;
-import com.fungame.songquiz.enums.GameRoomStatus;
-import com.fungame.songquiz.domain.dto.RoomInfo;
-import com.fungame.songquiz.domain.dto.RoomSettingsInfo;
-import com.fungame.songquiz.domain.event.RoomInviteCreatedEvent;
 import com.fungame.songquiz.domain.member.Member;
 import com.fungame.songquiz.domain.member.MemberConnectionTracker;
 import com.fungame.songquiz.domain.member.MemberPresenceService;
+import com.fungame.songquiz.domain.room.GamePlayer;
+import com.fungame.songquiz.domain.room.GameRoomService;
+import com.fungame.songquiz.domain.room.RoomInfo;
+import com.fungame.songquiz.domain.room.RoomSettingsInfo;
+import com.fungame.songquiz.enums.GameRoomStatus;
 import com.fungame.songquiz.support.error.CoreException;
 import com.fungame.songquiz.support.error.ErrorType;
 import lombok.RequiredArgsConstructor;

@@ -1,9 +1,9 @@
 package com.fungame.songquiz.controller.config;
 
-import org.junit.jupiter.api.DisplayName;
 import com.fungame.songquiz.storage.IntegrationTest;
-import org.junit.jupiter.api.Test;
 import com.fungame.songquiz.support.config.AppTaskScheduler;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
 import org.springframework.scheduling.TaskScheduler;

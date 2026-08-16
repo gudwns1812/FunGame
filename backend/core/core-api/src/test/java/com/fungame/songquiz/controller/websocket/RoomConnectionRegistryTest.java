@@ -1,8 +1,8 @@
 package com.fungame.songquiz.controller.websocket;
 
-import com.fungame.songquiz.domain.GameRoomService;
-import com.fungame.songquiz.domain.RoomMember;
-import com.fungame.songquiz.domain.RoomPresence;
+import com.fungame.songquiz.domain.room.RoomMember;
+import com.fungame.songquiz.domain.room.RoomPresence;
+import com.fungame.songquiz.domain.room.GameRoomService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;

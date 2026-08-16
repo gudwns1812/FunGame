@@ -1,17 +1,21 @@
 package com.fungame.songquiz.acceptance;
 
-import com.fungame.songquiz.domain.GameRoomService;
-import com.fungame.songquiz.domain.GameService;
-import com.fungame.songquiz.domain.GameTimer;
-import com.fungame.songquiz.enums.GameType;
-import com.fungame.songquiz.domain.event.*;
-import com.fungame.songquiz.domain.gamecreator.CsQuizGameCreateInfo;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
-import com.fungame.songquiz.storage.IntegrationTest;
+import com.fungame.songquiz.domain.room.GamePlayer;
+import com.fungame.songquiz.domain.room.GameRoomService;
+import com.fungame.songquiz.domain.room.RoomSettings;
+import com.fungame.songquiz.domain.session.GameResultEvent;
+import com.fungame.songquiz.domain.session.GameService;
+import com.fungame.songquiz.domain.session.GameStartEvent;
+import com.fungame.songquiz.domain.session.GameTimer;
+import com.fungame.songquiz.domain.session.RoundEndEvent;
+import com.fungame.songquiz.domain.session.RoundStartEvent;
 import com.fungame.songquiz.enums.CSQuizDifficulty;
+import com.fungame.songquiz.enums.GameType;
 import com.fungame.songquiz.enums.PlayerStatus;
 import com.fungame.songquiz.enums.Role;
+import com.fungame.songquiz.storage.IntegrationTest;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Import;
@@ -59,8 +63,8 @@ public class GameServiceIntegrationTest {
     private Long roomId;
     private final String hostName = "host";
     private final String player1 = "player1";
-    private com.fungame.songquiz.domain.GamePlayer host;
-    private com.fungame.songquiz.domain.GamePlayer guest;
+    private com.fungame.songquiz.domain.room.GamePlayer host;
+    private com.fungame.songquiz.domain.room.GamePlayer guest;
 
     @BeforeEach
     void setUp() {
@@ -89,11 +93,11 @@ public class GameServiceIntegrationTest {
         Long hostId = saveMember(hostName);
         Long player1Id = saveMember(player1);
 
-        host = com.fungame.songquiz.domain.GamePlayer.createNewPlayer(hostId, hostName);
-        guest = com.fungame.songquiz.domain.GamePlayer.createNewPlayer(player1Id, player1);
+        host = com.fungame.songquiz.domain.room.GamePlayer.createNewPlayer(hostId, hostName);
+        guest = com.fungame.songquiz.domain.room.GamePlayer.createNewPlayer(player1Id, player1);
 
         roomId = gameRoomService.createRoom(
-                new com.fungame.songquiz.domain.RoomSettings(GameType.CS, "테스트 방", 5, null, 2, 0, com.fungame.songquiz.enums.CSQuizDifficulty.HARD),
+                new com.fungame.songquiz.domain.room.RoomSettings(GameType.CS, "테스트 방", 5, null, 2, 0, com.fungame.songquiz.enums.CSQuizDifficulty.HARD),
                 host
         );
         gameRoomService.joinRoom(roomId, guest);
@@ -158,7 +162,7 @@ public class GameServiceIntegrationTest {
 
         @EventListener
         public void capture(Object event) {
-            if (event.getClass().getPackageName().startsWith("com.fungame.songquiz.domain.event")) {
+            if (event.getClass().getPackageName().startsWith("com.fungame.songquiz.domain")) {
                 events.add(event);
             }
         }

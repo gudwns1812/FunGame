@@ -1,6 +1,5 @@
 package com.fungame.songquiz.domain.member;
 
-import com.fungame.songquiz.domain.event.MemberPresenceChangedEvent;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.scheduling.annotation.Scheduled;

@@ -1,6 +1,5 @@
 package com.fungame.songquiz.domain.member;
 
-import com.fungame.songquiz.domain.dto.PromotionRequestInfo;
 import com.fungame.songquiz.enums.PromotionStatus;
 import com.fungame.songquiz.support.error.CoreException;
 import com.fungame.songquiz.support.error.ErrorType;

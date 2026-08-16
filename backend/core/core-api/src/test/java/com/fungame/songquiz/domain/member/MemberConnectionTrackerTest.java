@@ -1,6 +1,5 @@
 package com.fungame.songquiz.domain.member;
 
-import com.fungame.songquiz.domain.event.MemberPresenceChangedEvent;
 import com.fungame.songquiz.support.MutableClock;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
