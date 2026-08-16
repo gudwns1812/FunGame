@@ -1,6 +1,6 @@
 package com.fungame.songquiz.domain.session;
 
-import com.fungame.songquiz.domain.quiz.GameContentDto;
+import com.fungame.songquiz.domain.quiz.GameContent;
 import com.fungame.songquiz.domain.quiz.Song;
 import com.fungame.songquiz.domain.quiz.SongGame;
 import com.fungame.songquiz.domain.room.GamePlayer;
@@ -53,7 +53,7 @@ class QuizGameServiceTest {
         // given
         GameSession session = mock(GameSession.class);
         given(sessionManager.getGameSession(ROOM_ID)).willReturn(session);
-        given(session.getContent()).willReturn(mock(GameContentDto.class));
+        given(session.getContent()).willReturn(mock(GameContent.class));
 
         // when
         quizGameService.startRound(ROOM_ID);

@@ -2,7 +2,7 @@ package com.fungame.songquiz.domain.session;
 
 import com.fungame.songquiz.domain.quiz.Game;
 import com.fungame.songquiz.domain.quiz.GameAnswer;
-import com.fungame.songquiz.domain.quiz.GameContentDto;
+import com.fungame.songquiz.domain.quiz.GameContent;
 import com.fungame.songquiz.domain.quiz.GameInfo;
 import com.fungame.songquiz.domain.room.GamePlayer;
 import com.fungame.songquiz.enums.ActionResult;
@@ -81,7 +81,7 @@ public class GameSession {
         return game.startProcessing();
     }
 
-    public GameContentDto getContent() {
+    public GameContent getContent() {
         return game.getStatus();
     }
 

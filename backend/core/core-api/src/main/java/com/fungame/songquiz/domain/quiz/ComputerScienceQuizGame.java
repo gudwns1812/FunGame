@@ -18,10 +18,15 @@ public class ComputerScienceQuizGame extends AbstractQuizGame {
     }
 
     @Override
-    public GameContentDto getStatus() {
+    public GameContent getStatus() {
         var quiz = quizs.get(currentIdx.get());
+        String difficulty = quiz.getDifficulty().name();
 
-        return GameContentDto.from(this, quiz.getField(), quiz.getDifficulty().name(), quiz.getQuestion());
+        String description = "분류: " + quiz.getField()
+                + ", 난이도: " + difficulty
+                + ", 질문: " + quiz.getQuestion();
+
+        return new GameContent(description, List.of(quiz.getField(), difficulty, quiz.getQuestion()));
     }
 
     @Override

@@ -116,7 +116,7 @@ public class GameNotifyService {
                 "type", "ROUND_START",
                 "round", event.currentRound(),
                 "totalRound", event.totalRound(),
-                "content", event.content().toString()
+                "content", event.content().description()
         );
         messagingTemplate.convertAndSend(destination, ApiResponse.success(payload));
     }

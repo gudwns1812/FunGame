@@ -172,18 +172,19 @@ public class HangmanGame extends AbstractQuizGame {
     }
 
     @Override
-    public GameContentDto getStatus() {
+    public GameContent getStatus() {
         GamePlayer currentTurnPlayer = getCurrentTurnPlayer();
+        String display = getCurrentDisplay();
 
-        return GameContentDto.from(this,
-                getCurrentDisplay(),
+        return new GameContent(display, List.of(
+                display,
                 wrongLetters.stream().map(String::valueOf).collect(Collectors.joining(",")),
                 String.valueOf(remainingTries),
                 currentTurnPlayer.nickname(),
                 String.valueOf(remainingTries <= 0 || isGameWon()),
                 String.valueOf(isGameWon()),
                 String.valueOf(currentTurnPlayer.memberId())
-        );
+        ));
     }
 
     @Override

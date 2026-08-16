@@ -24,9 +24,9 @@ public class SongGame extends AbstractQuizGame {
     }
 
     @Override
-    public GameContentDto getStatus() {
+    public GameContent getStatus() {
         int current = currentIdx.get();
-        return GameContentDto.from(this, songs.get(current).getLink());
+        return GameContent.of(songs.get(current).getLink());
     }
 
     @Override

@@ -5,7 +5,7 @@ import com.fungame.songquiz.enums.ActionResult;
 import com.fungame.songquiz.enums.GameType;
 
 public interface Game {
-    GameContentDto getStatus();
+    GameContent getStatus();
 
     GameInfo getGameInfo();
 
