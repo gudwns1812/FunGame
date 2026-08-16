@@ -1,36 +1,22 @@
 package com.fungame.songquiz.domain.member;
 
 import com.fungame.songquiz.enums.Role;
-import lombok.AccessLevel;
 import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
 
-@Getter
-@NoArgsConstructor(access = AccessLevel.PRIVATE)
-public class MemberInfo {
-    private Long id;
-    private String loginId;
-    private String nickname;
-    private String email;
-    private Role role;
+@Builder
+public record MemberInfo(
+        Long id,
+        String loginId,
+        String nickname,
+        String email,
+        Role role
+) {
 
-    @Builder
-    private MemberInfo(Long id, String loginId, String nickname, String email, Role role) {
-        this.id = id;
-        this.loginId = loginId;
-        this.nickname = nickname;
-        this.email = email;
-        this.role = role;
+    public MemberInfo withNickname(String newNickname) {
+        return new MemberInfo(id, loginId, newNickname, email, role);
     }
 
-    public static MemberInfo from(Member member) {
-        return MemberInfo.builder()
-                .id(member.getId())
-                .loginId(member.getLoginId())
-                .nickname(member.getNickname())
-                .email(member.getEmail())
-                .role(member.getRole())
-                .build();
+    public MemberInfo withRole(Role newRole) {
+        return new MemberInfo(id, loginId, nickname, email, newRole);
     }
 }

@@ -53,6 +53,20 @@ class AuthControllerTest {
     }
 
     @Test
+    @DisplayName("로그인 응답은 회원 정보만 담고 비밀번호는 담지 않는다")
+    void login_returnsMemberInfoWithoutPassword() throws Exception {
+        mockMvc.perform(post("/api/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(loginBody()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.loginId").value("tester"))
+                .andExpect(jsonPath("$.data.nickname").value("테스터"))
+                .andExpect(jsonPath("$.data.email").value("tester@fun-game.club"))
+                .andExpect(jsonPath("$.data.role").value("USER"))
+                .andExpect(jsonPath("$.data.password").doesNotExist());
+    }
+
+    @Test
     @DisplayName("로그인에 성공하면 세션 고정 공격 방지를 위해 세션 ID를 교체한다")
     void login_changesSessionId() throws Exception {
         MockHttpSession session = new MockHttpSession();
