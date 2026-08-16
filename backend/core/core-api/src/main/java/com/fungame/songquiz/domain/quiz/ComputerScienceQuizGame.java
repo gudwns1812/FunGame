@@ -14,7 +14,6 @@ public class ComputerScienceQuizGame extends AbstractQuizGame {
     private final AtomicInteger currentIdx = new AtomicInteger(ROUND_NOT_STARTED);
 
     public ComputerScienceQuizGame(List<ComputerScienceQuiz> quizs) {
-        super(null);
         this.quizs = quizs;
     }
 
@@ -36,7 +35,7 @@ public class ComputerScienceQuizGame extends AbstractQuizGame {
     }
 
     @Override
-    protected ActionResult processAnswer(Long memberId, String answer) {
+    public ActionResult submitAnswer(Long memberId, String answer) {
         int current = currentIdx.get();
         if (current == ROUND_NOT_STARTED) {
             return ActionResult.NO_ACTION;

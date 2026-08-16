@@ -28,7 +28,6 @@ public class HangmanGame extends AbstractQuizGame {
     private List<GamePlayer> playerOrder;
 
     private HangmanGame(String answer) {
-        super(List.of());
         this.answer = answer.toUpperCase();
         this.playerOrder = new ArrayList<>();
         this.correctLetters = new LinkedHashSet<>();
@@ -102,9 +101,7 @@ public class HangmanGame extends AbstractQuizGame {
     }
 
     @Override
-    public void removePlayer(Long memberId) {
-        super.removePlayer(memberId);
-
+    public void dropPlayer(Long memberId) {
         int leaverIndex = indexOf(memberId);
         if (leaverIndex < 0) {
             return;
@@ -133,9 +130,7 @@ public class HangmanGame extends AbstractQuizGame {
     }
 
     @Override
-    public void restorePlayer(GamePlayer player) {
-        super.restorePlayer(player);
-
+    public void takeBackPlayer(GamePlayer player) {
         if (indexOf(player.memberId()) < 0) {
             playerOrder.add(player);
         }
@@ -156,7 +151,7 @@ public class HangmanGame extends AbstractQuizGame {
     }
 
     @Override
-    protected ActionResult processAnswer(Long memberId, String answer) {
+    public ActionResult submitAnswer(Long memberId, String answer) {
         if (!this.answer.equalsIgnoreCase(answer.trim())) {
             return ActionResult.WRONG;
         }

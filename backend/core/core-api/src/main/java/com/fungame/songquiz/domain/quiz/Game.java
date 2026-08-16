@@ -1,11 +1,8 @@
 package com.fungame.songquiz.domain.quiz;
 
 import com.fungame.songquiz.domain.room.GamePlayer;
-import com.fungame.songquiz.domain.session.GameAction;
 import com.fungame.songquiz.enums.ActionResult;
 import com.fungame.songquiz.enums.GameType;
-
-import java.util.List;
 
 public interface Game {
     GameContentDto getStatus();
@@ -14,17 +11,15 @@ public interface Game {
 
     GameType getType();
 
-    ActionResult handleAction(GameAction action);
+    ActionResult submitAnswer(Long memberId, String answer);
 
     boolean startProcessing();
 
     void resetRoundState();
 
-    void setPlayers(List<GamePlayer> players);
+    void dropPlayer(Long memberId);
 
-    void removePlayer(Long memberId);
-
-    void restorePlayer(GamePlayer player);
+    void takeBackPlayer(GamePlayer player);
 
     GameAnswerDto getAnswer();
 

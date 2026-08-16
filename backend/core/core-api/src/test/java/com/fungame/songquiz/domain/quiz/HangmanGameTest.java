@@ -151,7 +151,7 @@ class HangmanGameTest {
         game.initPlayers(List.of(PLAYER1, PLAYER2, PLAYER3));
 
         // when
-        game.removePlayer(PLAYER1.memberId());
+        game.dropPlayer(PLAYER1.memberId());
 
         // then
         assertThat(game.getPlayerOrder())
@@ -170,7 +170,7 @@ class HangmanGameTest {
         assertThat(game.getCurrentTurnPlayer().nickname()).isEqualTo("player2");
 
         // when
-        game.removePlayer(PLAYER1.memberId());
+        game.dropPlayer(PLAYER1.memberId());
 
         // then
         assertThat(game.getCurrentTurnPlayer().nickname()).isEqualTo("player2");
@@ -184,7 +184,7 @@ class HangmanGameTest {
         assertThat(game.getCurrentTurnPlayer().nickname()).isEqualTo("player2");
 
         // when
-        game.removePlayer(PLAYER2.memberId());
+        game.dropPlayer(PLAYER2.memberId());
 
         // then
         assertThat(game.getCurrentTurnPlayer().nickname()).isEqualTo("player1");

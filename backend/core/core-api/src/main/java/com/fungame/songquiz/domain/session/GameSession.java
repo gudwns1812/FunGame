@@ -12,10 +12,10 @@ import java.util.List;
 public class GameSession {
     private final Game game;
     private final GameRank rank;
+    private final SkipVotes skipVotes = new SkipVotes();
 
     public GameSession(Game game, List<GamePlayer> players) {
         this.game = game;
-        this.game.setPlayers(players);
         this.rank = new GameRank(players);
     }
 
@@ -24,7 +24,22 @@ public class GameSession {
     }
 
     public ActionResult handleAction(GameAction action) {
-        return game.handleAction(action);
+        return switch (action.type()) {
+            case SUBMIT_ANSWER -> game.submitAnswer(action.memberId(), action.value());
+            case SKIP_VOTE -> voteToSkip(action.memberId());
+            default -> ActionResult.NO_ACTION;
+        };
+    }
+
+    private ActionResult voteToSkip(Long memberId) {
+        if (!rank.hasPlayer(memberId)) {
+            return ActionResult.NO_ACTION;
+        }
+
+        skipVotes.add(memberId);
+        return skipVotes.isThresholdReached(rank.playerCount())
+                ? ActionResult.SKIP_VOTE_SUCCESS
+                : ActionResult.ACTION_SUCCESS;
     }
 
     public void updatePlayerPoint(Long memberId) {
@@ -36,8 +51,9 @@ public class GameSession {
     }
 
     public void removePlayer(Long memberId) {
-        game.removePlayer(memberId);
         rank.deactivate(memberId);
+        skipVotes.remove(memberId);
+        game.dropPlayer(memberId);
     }
 
     public boolean canRejoin(Long memberId) {
@@ -45,8 +61,8 @@ public class GameSession {
     }
 
     public void restorePlayer(GamePlayer player) {
-        game.restorePlayer(player);
         rank.activate(player);
+        game.takeBackPlayer(player);
     }
 
     public GameInfo getGameInfo() {
@@ -76,6 +92,7 @@ public class GameSession {
     public void startRound() {
         game.startRound();
         game.resetRoundState();
+        skipVotes.clear();
     }
 
     public int getTotalRound() {

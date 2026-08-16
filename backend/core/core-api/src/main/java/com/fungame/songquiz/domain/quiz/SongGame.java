@@ -18,7 +18,6 @@ public class SongGame extends AbstractQuizGame {
     private final AtomicInteger currentIdx = new AtomicInteger(ROUND_NOT_STARTED);
 
     public SongGame(List<Song> songs, Category gameCategory) {
-        super(null);
         this.songs = songs;
         this.gameCategory = gameCategory;
     }
@@ -40,7 +39,7 @@ public class SongGame extends AbstractQuizGame {
     }
 
     @Override
-    protected ActionResult processAnswer(Long memberId, String answer) {
+    public ActionResult submitAnswer(Long memberId, String answer) {
         int current = currentIdx.get();
         if (current == ROUND_NOT_STARTED) {
             return ActionResult.NO_ACTION;

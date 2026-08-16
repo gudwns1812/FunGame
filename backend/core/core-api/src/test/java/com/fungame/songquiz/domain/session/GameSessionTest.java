@@ -13,6 +13,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 
 class GameSessionTest {
 
@@ -30,18 +31,38 @@ class GameSessionTest {
     }
 
     @Test
-    @DisplayName("handleAction 호출 시 game의 handleAction으로 위임된다.")
-    void handleAction_delegates_to_game() {
+    @DisplayName("정답 제출은 game 의 submitAnswer 로 위임된다.")
+    void submitAnswer_delegates_to_game() {
         // given
         GameAction action = GameAction.submitAnswer(1L, "answer");
-        given(game.handleAction(action)).willReturn(ActionResult.CORRECT);
+        given(game.submitAnswer(1L, "answer")).willReturn(ActionResult.CORRECT);
 
         // when
         ActionResult result = gameSession.handleAction(action);
 
         // then
         assertThat(result).isEqualTo(ActionResult.CORRECT);
-        verify(game).handleAction(action);
+        verify(game).submitAnswer(1L, "answer");
+    }
+
+    @Test
+    @DisplayName("스킵 투표는 game 에 묻지 않고 세션이 명단을 보고 판단한다.")
+    void skipVoteIsDecidedBySession() {
+        // given: 세 명 중 두 명이 투표해야 스킵된다
+        assertThat(gameSession.handleAction(GameAction.skipVote(1L))).isEqualTo(ActionResult.ACTION_SUCCESS);
+
+        // when
+        ActionResult result = gameSession.handleAction(GameAction.skipVote(2L));
+
+        // then
+        assertThat(result).isEqualTo(ActionResult.SKIP_VOTE_SUCCESS);
+        verifyNoInteractions(game);
+    }
+
+    @Test
+    @DisplayName("게임에 없는 사람의 스킵 투표는 세지 않는다.")
+    void skipVoteFromStrangerIsIgnored() {
+        assertThat(gameSession.handleAction(GameAction.skipVote(99L))).isEqualTo(ActionResult.NO_ACTION);
     }
 
     @Test

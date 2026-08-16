@@ -57,6 +57,10 @@ public class GameRank {
         return activePlayers.contains(memberId);
     }
 
+    public int playerCount() {
+        return activePlayers.size();
+    }
+
     public boolean hasParticipant(Long memberId) {
         return scores.containsKey(memberId);
     }
