@@ -14,25 +14,21 @@ class LayerDependencyTest {
 
     private static final String CONTROLLER = "controller";
     private static final String DOMAIN = "domain";
-    private static final String STORAGE = "storage";
-    private static final String ENUMS = "enums";
+    private static final String SUPPORT = "support";
 
     private static final String CONTROLLER_PACKAGE = "..controller..";
     private static final String DOMAIN_PACKAGE = "..domain..";
-    private static final String STORAGE_PACKAGE = "..storage..";
-    private static final String ENUMS_PACKAGE = "..enums..";
+    private static final String SUPPORT_PACKAGE = "..support..";
 
     @ArchTest
-    static final ArchRule 의존은_controller에서_domain_storage_enums_한_방향으로만_흐른다 =
+    static final ArchRule domain은_controller를_모르고_support는_공유_커널이다 =
             layeredArchitecture()
                     .consideringOnlyDependenciesInLayers()
                     .layer(CONTROLLER).definedBy(CONTROLLER_PACKAGE)
                     .layer(DOMAIN).definedBy(DOMAIN_PACKAGE)
-                    .layer(STORAGE).definedBy(STORAGE_PACKAGE)
-                    .layer(ENUMS).definedBy(ENUMS_PACKAGE)
+                    .layer(SUPPORT).definedBy(SUPPORT_PACKAGE)
                     .whereLayer(CONTROLLER).mayNotBeAccessedByAnyLayer()
                     .whereLayer(DOMAIN).mayOnlyBeAccessedByLayers(CONTROLLER)
-                    .whereLayer(STORAGE).mayOnlyBeAccessedByLayers(DOMAIN)
-                    .whereLayer(ENUMS).mayNotAccessAnyLayer()
-                    .as("의존은 controller에서 domain, storage, enums 한 방향으로만 흐른다");
+                    .whereLayer(SUPPORT).mayOnlyBeAccessedByLayers(CONTROLLER, DOMAIN)
+                    .as("domain 은 controller 를 모르고, support 는 모든 레이어가 쓰는 공유 커널이다");
 }
