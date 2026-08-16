@@ -4,6 +4,7 @@ import com.fungame.songquiz.domain.member.MemberPresenceChangedEvent;
 import com.fungame.songquiz.domain.member.OnlineMemberInfo;
 import com.fungame.songquiz.domain.member.OnlineMemberService;
 import com.fungame.songquiz.domain.member.OnlineMembers;
+import com.fungame.songquiz.controller.response.OnlineMemberResponse;
 import com.fungame.songquiz.controller.room.RoomListReader;
 import com.fungame.songquiz.domain.room.RoomChangedEvent;
 import com.fungame.songquiz.domain.room.RoomInfo;
@@ -73,7 +74,7 @@ class LobbyNotifyServiceTest {
         lobbyNotifyService.processPendingUpdate();
 
         assertThat(capturedPresencePayload().of(VIEWER_ID))
-                .isEqualTo(List.of(onlineMember(OTHER_ID)));
+                .isEqualTo(List.of(OnlineMemberResponse.from(onlineMember(OTHER_ID))));
     }
 
     @Test
