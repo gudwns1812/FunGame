@@ -7,7 +7,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Collection;
 import java.util.List;
@@ -21,46 +20,34 @@ public class MemberPresenceService {
     private final MemberWriter memberWriter;
     private final ApplicationEventPublisher applicationEventPublisher;
 
-    @Transactional
     public void enterWaitingRoom(Long memberId, Long roomId) {
-        Member member = loadMember(memberId);
-        member.enterWaitingRoom(roomId);
-        memberWriter.update(member);
+        memberWriter.moveToWaitingRoom(memberId, roomId);
 
         announcePresenceChange();
     }
 
-    @Transactional
     public void enterPlayingRoom(Long memberId, Long roomId) {
-        Member member = loadMember(memberId);
-        member.enterPlayingRoom(roomId);
-        memberWriter.update(member);
+        memberWriter.moveToPlayingRoom(memberId, roomId);
 
         announcePresenceChange();
     }
 
-    @Transactional
     public void leaveRoom(Long memberId) {
-        Member member = loadMember(memberId);
-        member.leaveRoom();
-        memberWriter.update(member);
+        memberWriter.moveToLobby(memberId);
 
         announcePresenceChange();
     }
 
-    @Transactional
     public void markRoomPlaying(Long roomId) {
         memberWriter.movePresenceOfRoom(roomId, PlayerStatus.PLAYING);
         announcePresenceChange();
     }
 
-    @Transactional
     public void markRoomWaiting(Long roomId) {
         memberWriter.movePresenceOfRoom(roomId, PlayerStatus.WAITING);
         announcePresenceChange();
     }
 
-    @Transactional
     public void clearEveryLocation() {
         int cleared = memberWriter.clearEveryLocation();
 
@@ -69,7 +56,6 @@ public class MemberPresenceService {
         }
     }
 
-    @Transactional(readOnly = true)
     public List<Member> findAllIn(Collection<Long> memberIds) {
         if (memberIds.isEmpty()) {
             return List.of();
@@ -78,17 +64,12 @@ public class MemberPresenceService {
         return memberReader.findAllInOrderByNickname(memberIds);
     }
 
-    @Transactional(readOnly = true)
     public Member findMember(Long memberId) {
-        return loadMember(memberId);
+        return memberReader.findById(memberId)
+                .orElseThrow(() -> new CoreException(ErrorType.MEMBER_NOT_FOUND));
     }
 
     private void announcePresenceChange() {
         applicationEventPublisher.publishEvent(new MemberPresenceChangedEvent());
-    }
-
-    private Member loadMember(Long memberId) {
-        return memberReader.findById(memberId)
-                .orElseThrow(() -> new CoreException(ErrorType.MEMBER_NOT_FOUND));
     }
 }

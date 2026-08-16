@@ -18,7 +18,6 @@ public class PromotionService {
     private final MemberReader memberReader;
     private final MemberWriter memberWriter;
 
-    @Transactional
     public void createPromotionRequest(String loginId) {
         Member member = readMember(loginId);
 
@@ -29,7 +28,6 @@ public class PromotionService {
         promotionRequestWriter.append(PromotionRequest.open(member.getInfo()));
     }
 
-    @Transactional(readOnly = true)
     public List<PromotionRequestInfo> getPendingRequests() {
         return promotionRequestReader.findAllByStatus(PromotionStatus.PENDING).stream()
                 .map(PromotionRequestInfo::from)
@@ -49,7 +47,6 @@ public class PromotionService {
         memberWriter.update(member);
     }
 
-    @Transactional
     public void rejectRequest(Long requestId) {
         PromotionRequest request = readRequest(requestId);
 
@@ -57,7 +54,6 @@ public class PromotionService {
         promotionRequestWriter.update(request);
     }
 
-    @Transactional(readOnly = true)
     public PromotionStatus getCurrentStatus(String loginId) {
         Member member = readMember(loginId);
 

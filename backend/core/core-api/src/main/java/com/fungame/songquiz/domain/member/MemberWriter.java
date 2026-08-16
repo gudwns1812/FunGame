@@ -31,13 +31,41 @@ public class MemberWriter {
 
     @Transactional
     public void update(Member member) {
-        MemberEntity entity = memberRepository.findById(member.getId())
-                .orElseThrow(() -> new CoreException(ErrorType.MEMBER_NOT_FOUND));
+        MemberEntity entity = findEntity(member.getId());
 
         entity.changeNickname(member.getNickname());
         entity.changePassword(member.getPassword());
         entity.changeRole(member.getRole());
-        entity.changePresence(member.getStatus(), member.getCurrentRoomId());
+    }
+
+    @Transactional
+    public void moveToWaitingRoom(Long memberId, Long roomId) {
+        MemberEntity entity = findEntity(memberId);
+        Member member = MemberReader.toMember(entity);
+
+        member.enterWaitingRoom(roomId);
+
+        applyPresence(entity, member);
+    }
+
+    @Transactional
+    public void moveToPlayingRoom(Long memberId, Long roomId) {
+        MemberEntity entity = findEntity(memberId);
+        Member member = MemberReader.toMember(entity);
+
+        member.enterPlayingRoom(roomId);
+
+        applyPresence(entity, member);
+    }
+
+    @Transactional
+    public void moveToLobby(Long memberId) {
+        MemberEntity entity = findEntity(memberId);
+        Member member = MemberReader.toMember(entity);
+
+        member.leaveRoom();
+
+        applyPresence(entity, member);
     }
 
     @Transactional
@@ -48,5 +76,14 @@ public class MemberWriter {
     @Transactional
     public int clearEveryLocation() {
         return memberRepository.clearEveryLocation();
+    }
+
+    private MemberEntity findEntity(Long memberId) {
+        return memberRepository.findById(memberId)
+                .orElseThrow(() -> new CoreException(ErrorType.MEMBER_NOT_FOUND));
+    }
+
+    private static void applyPresence(MemberEntity entity, Member member) {
+        entity.changePresence(member.getStatus(), member.getCurrentRoomId());
     }
 }

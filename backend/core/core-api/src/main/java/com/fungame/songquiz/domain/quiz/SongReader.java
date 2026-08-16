@@ -7,6 +7,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.util.List;
 
 @Component
@@ -40,6 +41,21 @@ public class SongReader {
         return findSongs.stream()
                 .map(this::toDomain)
                 .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public boolean existsSameSong(Song song) {
+        return songRepository.existsBySingerAndTitle(song.getSinger(), song.getTitle())
+                || songRepository.existsByTitleAndReleaseDate(song.getTitle(), song.getReleaseDate());
+    }
+
+    @Transactional(readOnly = true)
+    public boolean existsByTitleLike(String title, LocalDate releaseDate) {
+        if (releaseDate == null) {
+            return songRepository.existsByTitleContaining(title);
+        }
+
+        return songRepository.existsByTitleContainingAndReleaseDate(title, releaseDate);
     }
 
     private Song toDomain(SongEntity entity) {
