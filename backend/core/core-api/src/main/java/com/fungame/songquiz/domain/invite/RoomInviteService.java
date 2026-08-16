@@ -119,8 +119,7 @@ public class RoomInviteService {
         return new RoomInvite(
                 UUID.randomUUID().toString(),
                 roomId,
-                inviter.getId(),
-                inviter.getNickname(),
+                GamePlayer.createNewPlayer(inviter.getId(), inviter.getNickname()),
                 targetMemberId,
                 now().plus(INVITE_LIFETIME)
         );
@@ -134,7 +133,7 @@ public class RoomInviteService {
                 invite.roomId(),
                 settings.title(),
                 settings.gameType(),
-                invite.inviterNickname(),
+                invite.inviter().nickname(),
                 INVITE_LIFETIME.toSeconds()
         );
     }

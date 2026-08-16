@@ -1,6 +1,7 @@
 package com.fungame.songquiz.domain.member;
 
 import com.fungame.songquiz.enums.PromotionStatus;
+import com.fungame.songquiz.storage.MemberEntity;
 import com.fungame.songquiz.storage.MemberRepository;
 import com.fungame.songquiz.storage.PromotionRequestEntity;
 import com.fungame.songquiz.storage.PromotionRequestRepository;
@@ -40,11 +41,12 @@ public class PromotionRequestReader {
     }
 
     private static PromotionRequest toRequest(PromotionRequestEntity entity) {
+        MemberEntity member = entity.getMember();
+
         return PromotionRequest.restore(
                 entity.getId(),
-                entity.getMember().getId(),
-                entity.getMember().getLoginId(),
-                entity.getMember().getNickname(),
+                new MemberInfo(member.getId(), member.getLoginId(), member.getNickname(), member.getEmail(),
+                        member.getRole()),
                 entity.getStatus(),
                 entity.getCreatedAt(),
                 entity.getProcessedAt());

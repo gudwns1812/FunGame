@@ -60,29 +60,32 @@ public class GameNotifyService {
 
     @EventListener
     public void handlePlayerJoin(PlayerJoinEvent event) {
-        log.info("Broadcasting player join: {} in room {}", event.memberId(), event.roomId());
+        log.info("Broadcasting player join: {} in room {}", event.player().memberId(), event.roomId());
         String destination = StompDestination.room(event.roomId());
-        Object payload = Map.of("type", "PLAYER_JOIN", "memberId", event.memberId(), "nickname", event.nickname());
+        Object payload = Map.of("type", "PLAYER_JOIN",
+                "memberId", event.player().memberId(), "nickname", event.player().nickname());
         messagingTemplate.convertAndSend(destination, ApiResponse.success(payload));
     }
 
     @EventListener
     public void handlePlayerLeave(PlayerLeaveEvent event) {
-        log.info("Broadcasting player leave: {} in room {}", event.memberId(), event.roomId());
+        log.info("Broadcasting player leave: {} in room {}", event.player().memberId(), event.roomId());
         String destination = StompDestination.room(event.roomId());
-        Object payload = Map.of("type", "PLAYER_LEAVE", "memberId", event.memberId(), "nickname", event.nickname());
+        Object payload = Map.of("type", "PLAYER_LEAVE",
+                "memberId", event.player().memberId(), "nickname", event.player().nickname());
         messagingTemplate.convertAndSend(destination, ApiResponse.success(payload));
     }
 
     @EventListener
     public void handlePlayerReady(PlayerReadyEvent event) {
-        log.info("Broadcasting player ready: member {} is now {} in room {}", event.memberId(), event.ready(), event.roomId());
+        log.info("Broadcasting player ready: member {} is now {} in room {}",
+                event.player().memberId(), event.player().isReady(), event.roomId());
         String destination = StompDestination.room(event.roomId());
         Object payload = Map.of(
                 "type", "PLAYER_READY",
-                "memberId", event.memberId(),
-                "nickname", event.nickname(),
-                "ready", event.ready(),
+                "memberId", event.player().memberId(),
+                "nickname", event.player().nickname(),
+                "ready", event.player().isReady(),
                 "isAllReady", event.isAllReady()
         );
         messagingTemplate.convertAndSend(destination, ApiResponse.success(payload));
