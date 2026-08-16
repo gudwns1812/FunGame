@@ -9,8 +9,9 @@ vi.mock('@stomp/stompjs', () => {
   return {
     Client: vi.fn().mockImplementation((config) => {
       return {
+        active: true,
         activate: vi.fn(),
-        deactivate: vi.fn(),
+        deactivate: vi.fn().mockResolvedValue(undefined),
         subscribe: vi.fn(),
         publish: vi.fn(),
         // mock to trigger events

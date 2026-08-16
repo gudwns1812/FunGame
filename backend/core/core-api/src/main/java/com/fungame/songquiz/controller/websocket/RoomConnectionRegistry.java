@@ -37,7 +37,7 @@ public class RoomConnectionRegistry {
     public void connected(String sessionId, RoomMember member) {
         roomPresence.arrive(sessionId, member);
         cancelPendingLeave(member);
-        log.info("연결 등록: {} (room {}, session {})", member.nickname(), member.roomId(), sessionId);
+        logArrival(sessionId, member);
     }
 
     public void disconnected(String sessionId) {
@@ -47,7 +47,7 @@ public class RoomConnectionRegistry {
         }
 
         if (isConnected(member)) {
-            log.info("세션 {} 종료, 다른 연결이 살아있어 유예를 예약하지 않는다: {}", sessionId, member.nickname());
+            log.debug("세션 {} 종료, 다른 연결이 살아있어 유예를 예약하지 않는다: {}", sessionId, member.nickname());
             return;
         }
 
@@ -58,8 +58,19 @@ public class RoomConnectionRegistry {
         return roomPresence.isConnected(member);
     }
 
+    private void logArrival(String sessionId, RoomMember member) {
+        int sessionCount = roomPresence.countSessionsOf(member);
+        if (sessionCount > 1) {
+            log.info("연결 등록: {} (room {}, session {}), 같은 방에 세션이 {} 개 열려 있다",
+                    member.nickname(), member.roomId(), sessionId, sessionCount);
+            return;
+        }
+
+        log.debug("연결 등록: {} (room {}, session {})", member.nickname(), member.roomId(), sessionId);
+    }
+
     private void scheduleLeaveAfterGrace(RoomMember member) {
-        log.info("연결 종료: {} (room {}), {}초 안에 돌아오지 않으면 이탈 처리",
+        log.debug("연결 종료: {} (room {}), {}초 안에 돌아오지 않으면 이탈 처리",
                 member.nickname(), member.roomId(), LEAVE_GRACE_SECONDS);
 
         pendingLeavesByMember.compute(member.key(), (key, alreadyScheduled) -> {
@@ -73,7 +84,7 @@ public class RoomConnectionRegistry {
     private void cancelPendingLeave(RoomMember member) {
         pendingLeavesByMember.computeIfPresent(member.key(), (key, scheduled) -> {
             cancelWithoutInterrupting(scheduled);
-            log.info("재연결 감지, 이탈 유예 취소: {}", member.nickname());
+            log.debug("재연결 감지, 이탈 유예 취소: {}", member.nickname());
             return null;
         });
     }
@@ -93,6 +104,8 @@ public class RoomConnectionRegistry {
 
         try {
             gameRoomService.leaveRoom(member.roomId(), member.memberId());
+            log.info("{}초 안에 돌아오지 않아 방 {} 에서 내보낸다: {}",
+                    LEAVE_GRACE_SECONDS, member.roomId(), member.nickname());
         } catch (CoreException e) {
             log.info("이탈 처리 시점에 방 {} 이 이미 없음: {}", member.roomId(), member.nickname());
         } catch (Exception e) {

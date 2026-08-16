@@ -13,17 +13,27 @@ type CapturedConfig = Required<Pick<StompConfig, 'onConnect' | 'onWebSocketClose
   Pick<StompConfig, 'heartbeatStrategy' | 'reconnectDelay'>;
 const clientConfigs: CapturedConfig[] = [];
 
+type FakeClient = {
+  active: boolean;
+  connected: boolean;
+  activate: ReturnType<typeof vi.fn>;
+  deactivate: ReturnType<typeof vi.fn>;
+};
+const clients: FakeClient[] = [];
+
 vi.mock('@stomp/stompjs', () => ({
   TickerStrategy: { Interval: 'interval', Worker: 'worker' },
   Client: class {
     connected = true;
+    active = true;
     activate = vi.fn();
-    deactivate = vi.fn();
+    deactivate = vi.fn().mockResolvedValue(undefined);
     subscribe = vi.fn();
     publish = vi.fn();
 
     constructor(config: CapturedConfig) {
       clientConfigs.push(config);
+      clients.push(this as unknown as FakeClient);
     }
   },
 }));
@@ -49,10 +59,20 @@ const ROOM = {
 const joinCallsFor = (roomId: string) =>
   mockedAxios.post.mock.calls.filter((call) => call[0] === `/game/rooms/${roomId}/join`);
 
+const abandonConnection = () => {
+  clients[clients.length - 1].active = false;
+};
+
+const returnToTab = () => {
+  Object.defineProperty(document, 'visibilityState', { configurable: true, get: () => 'visible' });
+  document.dispatchEvent(new Event('visibilitychange'));
+};
+
 describe('useGameLogic 재연결 시 참가 상태 동기화', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     clientConfigs.length = 0;
+    clients.length = 0;
     localStorage.clear();
     localStorage.setItem('ums_nickname', '나');
 
@@ -132,6 +152,31 @@ describe('useGameLogic 재연결 시 참가 상태 동기화', () => {
       expect(joinCallsFor(ROOM.id)).toHaveLength(2);
     });
     expect(mockedAxios.get).toHaveBeenCalledWith(`/game/rooms/${ROOM.id}/users`);
+  });
+
+  it('새로 연결하기 전에 이전 연결을 서버 응답을 기다리지 않고 닫는다', async () => {
+    await joinAndGetConfig();
+
+    await act(async () => {
+      abandonConnection();
+      returnToTab();
+    });
+
+    expect(clients).toHaveLength(2);
+    expect(clients[0].deactivate).toHaveBeenCalledWith({ force: true });
+    expect(clients[1].activate).toHaveBeenCalled();
+  });
+
+  it('탭에 돌아왔을 때 클라이언트가 스스로 재연결 중이면 새로 연결하지 않는다', async () => {
+    await joinAndGetConfig();
+
+    await act(async () => {
+      clients[0].connected = false;
+      clients[0].active = true;
+      returnToTab();
+    });
+
+    expect(clients).toHaveLength(1);
   });
 
   it('재연결 후 join 이 거부되면 로비로 돌려보낸다', async () => {
