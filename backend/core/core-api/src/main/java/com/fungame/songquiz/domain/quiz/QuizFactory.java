@@ -2,8 +2,8 @@ package com.fungame.songquiz.domain.quiz;
 
 import com.fungame.songquiz.enums.GameType;
 
-public interface GameFactory {
+public interface QuizFactory {
     GameType getSupportedType();
 
-    Game create(GameCreateInfo info);
+    Quiz create(QuizCreateInfo info);
 }

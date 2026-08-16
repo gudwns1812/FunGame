@@ -1,31 +1,31 @@
 package com.fungame.songquiz.domain.session;
 
-import com.fungame.songquiz.domain.quiz.Game;
-import com.fungame.songquiz.domain.quiz.GameAnswer;
-import com.fungame.songquiz.domain.quiz.GameContent;
-import com.fungame.songquiz.domain.quiz.GameInfo;
+import com.fungame.songquiz.domain.quiz.Quiz;
+import com.fungame.songquiz.domain.quiz.QuizAnswer;
+import com.fungame.songquiz.domain.quiz.QuizContent;
+import com.fungame.songquiz.domain.quiz.QuizInfo;
 import com.fungame.songquiz.domain.room.GamePlayer;
 import com.fungame.songquiz.enums.ActionResult;
 
 import java.util.List;
 
 public class GameSession {
-    private final Game game;
+    private final Quiz quiz;
     private final GameRank rank;
     private final SkipVotes skipVotes = new SkipVotes();
 
-    public GameSession(Game game, List<GamePlayer> players) {
-        this.game = game;
+    public GameSession(Quiz quiz, List<GamePlayer> players) {
+        this.quiz = quiz;
         this.rank = new GameRank(players);
     }
 
-    public Game getGame() {
-        return game;
+    public Quiz getQuiz() {
+        return quiz;
     }
 
     public ActionResult handleAction(GameAction action) {
         return switch (action.type()) {
-            case SUBMIT_ANSWER -> game.submitAnswer(action.memberId(), action.value());
+            case SUBMIT_ANSWER -> quiz.submitAnswer(action.memberId(), action.value());
             case SKIP_VOTE -> voteToSkip(action.memberId());
             default -> ActionResult.NO_ACTION;
         };
@@ -53,7 +53,7 @@ public class GameSession {
     public void removePlayer(Long memberId) {
         rank.deactivate(memberId);
         skipVotes.remove(memberId);
-        game.dropPlayer(memberId);
+        quiz.dropPlayer(memberId);
     }
 
     public boolean canRejoin(Long memberId) {
@@ -62,41 +62,41 @@ public class GameSession {
 
     public void restorePlayer(GamePlayer player) {
         rank.activate(player);
-        game.takeBackPlayer(player);
+        quiz.takeBackPlayer(player);
     }
 
-    public GameInfo getGameInfo() {
-        return game.getGameInfo();
+    public QuizInfo getQuizInfo() {
+        return quiz.getQuizInfo();
     }
 
     public List<PlayerScore> getPlayerRanks() {
         return rank.getPlayerScores();
     }
 
-    public GameAnswer getAnswer() {
-        return game.getAnswer();
+    public QuizAnswer getAnswer() {
+        return quiz.getAnswer();
     }
 
     public boolean startProcessing() {
-        return game.startProcessing();
+        return quiz.startProcessing();
     }
 
-    public GameContent getContent() {
-        return game.getStatus();
+    public QuizContent getContent() {
+        return quiz.getStatus();
     }
 
     public boolean isLastRound() {
-        return game.isLast();
+        return quiz.isLast();
     }
 
     public void startRound() {
-        game.startRound();
-        game.resetRoundState();
+        quiz.startRound();
+        quiz.resetRoundState();
         skipVotes.clear();
     }
 
     public int getTotalRound() {
-        return game.getTotalRound();
+        return quiz.getTotalRound();
     }
 
     public boolean hasPlayer(Long memberId) {
@@ -104,10 +104,10 @@ public class GameSession {
     }
 
     public int getCurrentRound() {
-        return game.getCurrentRound();
+        return quiz.getCurrentRound();
     }
 
     public String getHint() {
-        return game.getHint();
+        return quiz.getHint();
     }
 }

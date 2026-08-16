@@ -1,6 +1,6 @@
 package com.fungame.songquiz.domain.session;
 
-import com.fungame.songquiz.domain.quiz.GameFactories;
+import com.fungame.songquiz.domain.quiz.QuizFactories;
 import com.fungame.songquiz.domain.room.GamePlayer;
 import com.fungame.songquiz.domain.room.RoomSettings;
 import lombok.RequiredArgsConstructor;
@@ -13,11 +13,11 @@ import java.util.concurrent.ConcurrentHashMap;
 @Component
 @RequiredArgsConstructor
 public class GameSessionManager {
-    private final GameFactories gameFactories;
+    private final QuizFactories quizFactories;
     private final Map<Long, GameSession> manager = new ConcurrentHashMap<>();
 
     public GameSession startGame(Long roomId, RoomSettings settings, List<GamePlayer> players) {
-        GameSession gameSession = new GameSession(gameFactories.create(settings), players);
+        GameSession gameSession = new GameSession(quizFactories.create(settings), players);
         manager.put(roomId, gameSession);
 
         return gameSession;

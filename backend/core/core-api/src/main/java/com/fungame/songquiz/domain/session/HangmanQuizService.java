@@ -1,7 +1,7 @@
 package com.fungame.songquiz.domain.session;
 
-import com.fungame.songquiz.domain.quiz.GameInfo;
-import com.fungame.songquiz.domain.quiz.HangmanGame;
+import com.fungame.songquiz.domain.quiz.QuizInfo;
+import com.fungame.songquiz.domain.quiz.HangmanQuiz;
 import com.fungame.songquiz.domain.room.GamePlayer;
 import com.fungame.songquiz.domain.room.GameRoom;
 import com.fungame.songquiz.domain.room.GameRoomManager;
@@ -17,7 +17,7 @@ import java.util.List;
 
 @Service
 @RequiredArgsConstructor
-public class HangmanGameService implements GameService {
+public class HangmanQuizService implements GameService {
 
     private static final char NO_LETTER = ' ';
     private static final int NO_SCORE = 0;
@@ -37,51 +37,51 @@ public class HangmanGameService implements GameService {
         GameSession gameSession =
                 gameSessionManager.startGame(roomId, gameRoom.getSettings(), gameRoom.getRoomPlayers());
 
-        HangmanGame hangmanGame = hangmanGameOf(gameSession);
-        hangmanGame.initPlayers(gameRoom.getRoomPlayers());
+        HangmanQuiz hangmanQuiz = hangmanQuizOf(gameSession);
+        hangmanQuiz.initPlayers(gameRoom.getRoomPlayers());
 
-        eventPublisher.publishEvent(new GameStartEvent(roomId, gameSession.getGameInfo()));
-        eventPublisher.publishEvent(new RoundStartEvent(roomId, hangmanGame.getStatus(), 1, 1));
+        eventPublisher.publishEvent(new GameStartEvent(roomId, gameSession.getQuizInfo()));
+        eventPublisher.publishEvent(new RoundStartEvent(roomId, hangmanQuiz.getStatus(), 1, 1));
 
-        GamePlayer starter = hangmanGame.getCurrentTurnPlayer();
+        GamePlayer starter = hangmanQuiz.getCurrentTurnPlayer();
         eventPublisher.publishEvent(new HangmanActionEvent(roomId, starter.memberId(), starter.nickname(),
-                NO_LETTER, ActionResult.ACTION_SUCCESS, hangmanGame.getStatus()));
+                NO_LETTER, ActionResult.ACTION_SUCCESS, hangmanQuiz.getStatus()));
     }
 
-    private HangmanGame hangmanGameOf(GameSession gameSession) {
-        if (gameSession == null || !(gameSession.getGame() instanceof HangmanGame hangmanGame)) {
+    private HangmanQuiz hangmanQuizOf(GameSession gameSession) {
+        if (gameSession == null || !(gameSession.getQuiz() instanceof HangmanQuiz hangmanQuiz)) {
             throw new CoreException(ErrorType.GAME_NOT_FOUND);
         }
-        return hangmanGame;
+        return hangmanQuiz;
     }
 
     @Override
     public void handleAction(Long roomId, GameAction action) {
-        HangmanGame hangmanGame = hangmanGameOf(gameSessionManager.getGameSession(roomId));
+        HangmanQuiz hangmanQuiz = hangmanQuizOf(gameSessionManager.getGameSession(roomId));
 
         String payload = action.value();
         if (payload == null || payload.length() != 1) {
             throw new CoreException(ErrorType.INVALID_INPUT_VALUE);
         }
 
-        GamePlayer actor = hangmanGame.getCurrentTurnPlayer();
+        GamePlayer actor = hangmanQuiz.getCurrentTurnPlayer();
         char letter = payload.charAt(0);
-        ActionResult result = hangmanGame.guess(action.memberId(), letter);
+        ActionResult result = hangmanQuiz.guess(action.memberId(), letter);
 
         eventPublisher.publishEvent(new HangmanActionEvent(roomId, actor.memberId(), actor.nickname(), letter, result,
-                hangmanGame.getStatus()));
+                hangmanQuiz.getStatus()));
 
         if (result == ActionResult.CORRECT || result == ActionResult.WRONG) {
-            submitResult(roomId, hangmanGame);
+            submitResult(roomId, hangmanQuiz);
         }
     }
 
-    private void submitResult(Long roomId, HangmanGame hangmanGame) {
-        var result = hangmanGame.getRemainingTries() == 0 ? "실패" : "성공";
+    private void submitResult(Long roomId, HangmanQuiz hangmanQuiz) {
+        var result = hangmanQuiz.getRemainingTries() == 0 ? "실패" : "성공";
 
         var playerScore = List.of(
-                new PlayerScore(null, result, hangmanGame.getRemainingTries()),
-                new PlayerScore(null, hangmanGame.getAnswer().answer(), NO_SCORE));
+                new PlayerScore(null, result, hangmanQuiz.getRemainingTries()),
+                new PlayerScore(null, hangmanQuiz.getAnswer().answer(), NO_SCORE));
         eventPublisher.publishEvent(new GameResultEvent(roomId, playerScore));
 
         gameRoomManager.endGame(roomId);
@@ -106,17 +106,17 @@ public class HangmanGameService implements GameService {
 
     @Override
     public GameStateDto getPlayState(Long roomId) {
-        HangmanGame hangmanGame = hangmanGameOf(gameSessionManager.getGameSession(roomId));
+        HangmanQuiz hangmanQuiz = hangmanQuizOf(gameSessionManager.getGameSession(roomId));
 
-        GameInfo gameInfo = hangmanGame.getGameInfo();
+        QuizInfo quizInfo = hangmanQuiz.getQuizInfo();
         return new GameStateDto(
-                gameInfo.gameType(),
-                gameInfo.category(),
-                gameInfo.totalCount(),
+                quizInfo.gameType(),
+                quizInfo.category(),
+                quizInfo.totalCount(),
                 1,
                 1,
                 null,
-                hangmanGame.getStatus().data()
+                hangmanQuiz.getStatus().data()
         );
     }
 
@@ -134,11 +134,11 @@ public class HangmanGameService implements GameService {
             return;
         }
 
-        if (!(session.getGame() instanceof HangmanGame hangmanGame)) {
+        if (!(session.getQuiz() instanceof HangmanQuiz hangmanQuiz)) {
             return;
         }
 
         eventPublisher.publishEvent(new HangmanActionEvent(
-                roomId, memberId, leaverNickname, NO_LETTER, ActionResult.ACTION_SUCCESS, hangmanGame.getStatus()));
+                roomId, memberId, leaverNickname, NO_LETTER, ActionResult.ACTION_SUCCESS, hangmanQuiz.getStatus()));
     }
 }

@@ -8,7 +8,7 @@ import java.util.List;
 import java.util.Set;
 
 @Getter
-public class ComputerScienceQuiz {
+public class CsQuestion {
 
     private final String field;
     private final String question;
@@ -16,7 +16,7 @@ public class ComputerScienceQuiz {
     private final String explain;
     private final CSQuizDifficulty difficulty;
 
-    private ComputerScienceQuiz(String field, String question, Set<String> answers, String explain,
+    private CsQuestion(String field, String question, Set<String> answers, String explain,
                                 CSQuizDifficulty difficulty) {
         this.field = field;
         this.question = question;
@@ -34,8 +34,8 @@ public class ComputerScienceQuiz {
         return answers.contains(answer);
     }
 
-    public static ComputerScienceQuiz of(String field, String question, List<String> answers, String explain,
+    public static CsQuestion of(String field, String question, List<String> answers, String explain,
                                          CSQuizDifficulty difficulty) {
-        return new ComputerScienceQuiz(field, question, new LinkedHashSet<>(answers), explain, difficulty);
+        return new CsQuestion(field, question, new LinkedHashSet<>(answers), explain, difficulty);
     }
 }

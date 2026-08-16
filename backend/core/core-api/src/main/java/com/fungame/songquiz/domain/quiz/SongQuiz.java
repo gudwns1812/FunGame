@@ -9,7 +9,7 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
 @Slf4j
-public class SongGame extends AbstractQuizGame {
+public class SongQuiz extends AbstractQuiz {
 
     private static final int ROUND_NOT_STARTED = -1;
     private static final String SINGER_TITLE_SEPARATOR = " - ";
@@ -18,20 +18,20 @@ public class SongGame extends AbstractQuizGame {
     private final Category gameCategory;
     private final AtomicInteger currentIdx = new AtomicInteger(ROUND_NOT_STARTED);
 
-    public SongGame(List<Song> songs, Category gameCategory) {
+    public SongQuiz(List<Song> songs, Category gameCategory) {
         this.songs = songs;
         this.gameCategory = gameCategory;
     }
 
     @Override
-    public GameContent getStatus() {
+    public QuizContent getStatus() {
         int current = currentIdx.get();
-        return GameContent.of(songs.get(current).getLink());
+        return QuizContent.of(songs.get(current).getLink());
     }
 
     @Override
-    public GameInfo getGameInfo() {
-        return new GameInfo(getType().name(), gameCategory.name(), songs.size());
+    public QuizInfo getQuizInfo() {
+        return new QuizInfo(getType().name(), gameCategory.name(), songs.size());
     }
 
     @Override
@@ -51,11 +51,11 @@ public class SongGame extends AbstractQuizGame {
     }
 
     @Override
-    public GameAnswer getAnswer() {
+    public QuizAnswer getAnswer() {
         int current = currentIdx.get();
         Song song = songs.get(current);
 
-        return new GameAnswer(
+        return new QuizAnswer(
                 String.join(" ", song.getSinger(), SINGER_TITLE_SEPARATOR, song.getTitle()),
                 String.join(" ", SINGER_TITLE_SEPARATOR, song.getTitle()));
     }

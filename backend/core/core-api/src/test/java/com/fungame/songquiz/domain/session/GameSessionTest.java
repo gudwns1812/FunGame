@@ -1,6 +1,6 @@
 package com.fungame.songquiz.domain.session;
 
-import com.fungame.songquiz.domain.quiz.Game;
+import com.fungame.songquiz.domain.quiz.Quiz;
 import com.fungame.songquiz.domain.room.GamePlayer;
 import com.fungame.songquiz.enums.ActionResult;
 import org.junit.jupiter.api.BeforeEach;
@@ -18,35 +18,35 @@ import static org.mockito.Mockito.verifyNoInteractions;
 class GameSessionTest {
 
     GameSession gameSession;
-    Game game;
+    Quiz quiz;
 
     @BeforeEach
     void setUp() {
-        game = mock(Game.class);
+        quiz = mock(Quiz.class);
         List<GamePlayer> players = List.of(
                 GamePlayer.createNewPlayer(1L, "p1"),
                 GamePlayer.createNewPlayer(2L, "p2"),
                 GamePlayer.createNewPlayer(3L, "p3"));
-        gameSession = new GameSession(game, players);
+        gameSession = new GameSession(quiz, players);
     }
 
     @Test
-    @DisplayName("정답 제출은 game 의 submitAnswer 로 위임된다.")
+    @DisplayName("정답 제출은 quiz 의 submitAnswer 로 위임된다.")
     void submitAnswer_delegates_to_game() {
         // given
         GameAction action = GameAction.submitAnswer(1L, "answer");
-        given(game.submitAnswer(1L, "answer")).willReturn(ActionResult.CORRECT);
+        given(quiz.submitAnswer(1L, "answer")).willReturn(ActionResult.CORRECT);
 
         // when
         ActionResult result = gameSession.handleAction(action);
 
         // then
         assertThat(result).isEqualTo(ActionResult.CORRECT);
-        verify(game).submitAnswer(1L, "answer");
+        verify(quiz).submitAnswer(1L, "answer");
     }
 
     @Test
-    @DisplayName("스킵 투표는 game 에 묻지 않고 세션이 명단을 보고 판단한다.")
+    @DisplayName("스킵 투표는 quiz 에 묻지 않고 세션이 명단을 보고 판단한다.")
     void skipVoteIsDecidedBySession() {
         // given: 세 명 중 두 명이 투표해야 스킵된다
         assertThat(gameSession.handleAction(GameAction.skipVote(1L))).isEqualTo(ActionResult.ACTION_SUCCESS);
@@ -56,7 +56,7 @@ class GameSessionTest {
 
         // then
         assertThat(result).isEqualTo(ActionResult.SKIP_VOTE_SUCCESS);
-        verifyNoInteractions(game);
+        verifyNoInteractions(quiz);
     }
 
     @Test
@@ -69,13 +69,13 @@ class GameSessionTest {
     @DisplayName("startProcessing 호출 시 game의 startProcessing으로 위임된다.")
     void startProcessing_delegates_to_game() {
         // given
-        given(game.startProcessing()).willReturn(true);
+        given(quiz.startProcessing()).willReturn(true);
 
         // when
         boolean result = gameSession.startProcessing();
 
         // then
         assertThat(result).isTrue();
-        verify(game).startProcessing();
+        verify(quiz).startProcessing();
     }
 }

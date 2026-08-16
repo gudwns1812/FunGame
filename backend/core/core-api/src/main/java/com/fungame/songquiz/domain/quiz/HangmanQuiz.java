@@ -14,7 +14,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 @Getter
-public class HangmanGame extends AbstractQuizGame {
+public class HangmanQuiz extends AbstractQuiz {
     private static final int DEFAULT_TRIES = 6;
     private static final char BLANK = ' ';
     private static final String HIDDEN_LETTER = "_";
@@ -27,7 +27,7 @@ public class HangmanGame extends AbstractQuizGame {
     private int currentTurnIndex;
     private List<GamePlayer> playerOrder;
 
-    private HangmanGame(String answer) {
+    private HangmanQuiz(String answer) {
         this.answer = answer.toUpperCase();
         this.playerOrder = new ArrayList<>();
         this.correctLetters = new LinkedHashSet<>();
@@ -36,11 +36,11 @@ public class HangmanGame extends AbstractQuizGame {
         this.currentTurnIndex = 0;
     }
 
-    public static HangmanGame create(String answer) {
+    public static HangmanQuiz create(String answer) {
         if (answer == null || answer.isBlank()) {
             throw new CoreException(ErrorType.HANGMAN_ANSWER_EMPTY);
         }
-        return new HangmanGame(answer);
+        return new HangmanQuiz(answer);
     }
 
     public void initPlayers(List<GamePlayer> players) {
@@ -172,11 +172,11 @@ public class HangmanGame extends AbstractQuizGame {
     }
 
     @Override
-    public GameContent getStatus() {
+    public QuizContent getStatus() {
         GamePlayer currentTurnPlayer = getCurrentTurnPlayer();
         String display = getCurrentDisplay();
 
-        return new GameContent(display, List.of(
+        return new QuizContent(display, List.of(
                 display,
                 wrongLetters.stream().map(String::valueOf).collect(Collectors.joining(",")),
                 String.valueOf(remainingTries),
@@ -188,13 +188,13 @@ public class HangmanGame extends AbstractQuizGame {
     }
 
     @Override
-    public GameInfo getGameInfo() {
-        return new GameInfo(getType().name(), "Hangman", DEFAULT_TRIES);
+    public QuizInfo getQuizInfo() {
+        return new QuizInfo(getType().name(), "Hangman", DEFAULT_TRIES);
     }
 
     @Override
-    public GameAnswer getAnswer() {
-        return GameAnswer.withoutExplanation(answer);
+    public QuizAnswer getAnswer() {
+        return QuizAnswer.withoutExplanation(answer);
     }
 
     @Override

@@ -12,11 +12,11 @@ import java.util.List;
 
 @Component
 @RequiredArgsConstructor
-public class ComputerScienceQuizReader {
+public class CsQuestionReader {
 
     private final ComputerScienceRepository computerScienceRepository;
 
-    public List<ComputerScienceQuiz> getRandomCSQuizWithCount(int totalRound, CSQuizDifficulty difficulty) {
+    public List<CsQuestion> getRandomCSQuizWithCount(int totalRound, CSQuizDifficulty difficulty) {
         List<ComputerScienceEntity> candidates =
                 new ArrayList<>(computerScienceRepository.findByDifficultyIn(difficulty.andEasier()));
 
@@ -28,8 +28,8 @@ public class ComputerScienceQuizReader {
                 .toList();
     }
 
-    private ComputerScienceQuiz toDomain(ComputerScienceEntity entity) {
-        return ComputerScienceQuiz.of(
+    private CsQuestion toDomain(ComputerScienceEntity entity) {
+        return CsQuestion.of(
                 entity.getField(),
                 entity.getContent(),
                 entity.getAnswers(),

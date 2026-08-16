@@ -1,8 +1,8 @@
 package com.fungame.songquiz.domain.session;
 
-import com.fungame.songquiz.domain.quiz.HangmanGame;
+import com.fungame.songquiz.domain.quiz.HangmanQuiz;
 import com.fungame.songquiz.domain.quiz.Song;
-import com.fungame.songquiz.domain.quiz.SongGame;
+import com.fungame.songquiz.domain.quiz.SongQuiz;
 import com.fungame.songquiz.domain.room.GamePlayer;
 import com.fungame.songquiz.enums.Category;
 import org.junit.jupiter.api.DisplayName;
@@ -22,8 +22,8 @@ class GameSessionRejoinTest {
     private static final Long OUTSIDER_ID = 99L;
 
     private GameSession quizSession(GamePlayer... players) {
-        SongGame game = new SongGame(List.of(mock(Song.class)), Category.KPOP);
-        return new GameSession(game, Arrays.asList(players));
+        SongQuiz quiz = new SongQuiz(List.of(mock(Song.class)), Category.KPOP);
+        return new GameSession(quiz, Arrays.asList(players));
     }
 
     @Test
@@ -69,20 +69,20 @@ class GameSessionRejoinTest {
     @DisplayName("행맨 재입장자는 턴 순서 맨 뒤에 붙어 진행 중인 차례를 흐트러뜨리지 않는다.")
     void hangman_rejoin_appends_to_turn_order() {
         // given: p1, p2, p3 중 p2 차례
-        HangmanGame game = HangmanGame.create("APPLE");
-        game.initPlayers(List.of(P1, P2, P3));
-        GameSession session = new GameSession(game, List.of(P1, P2, P3));
-        game.guess(P1.memberId(), 'A');
-        assertThat(game.getCurrentTurnPlayer().memberId()).isEqualTo(P2.memberId());
+        HangmanQuiz quiz = HangmanQuiz.create("APPLE");
+        quiz.initPlayers(List.of(P1, P2, P3));
+        GameSession session = new GameSession(quiz, List.of(P1, P2, P3));
+        quiz.guess(P1.memberId(), 'A');
+        assertThat(quiz.getCurrentTurnPlayer().memberId()).isEqualTo(P2.memberId());
 
         // when: p1 이 나갔다 돌아온다
         session.removePlayer(P1.memberId());
-        assertThat(game.getCurrentTurnPlayer().memberId()).isEqualTo(P2.memberId());
+        assertThat(quiz.getCurrentTurnPlayer().memberId()).isEqualTo(P2.memberId());
         session.restorePlayer(P1);
 
         // then: 차례는 그대로 p2, p1 은 순서 맨 뒤
-        assertThat(game.getCurrentTurnPlayer().memberId()).isEqualTo(P2.memberId());
-        assertThat(game.getPlayerOrder())
+        assertThat(quiz.getCurrentTurnPlayer().memberId()).isEqualTo(P2.memberId());
+        assertThat(quiz.getPlayerOrder())
                 .extracting(GamePlayer::memberId)
                 .containsExactly(P2.memberId(), P3.memberId(), P1.memberId());
     }

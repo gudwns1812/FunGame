@@ -3,7 +3,7 @@ package com.fungame.songquiz.domain.quiz;
 import com.fungame.songquiz.domain.room.GamePlayer;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-public abstract class AbstractQuizGame implements Game {
+public abstract class AbstractQuiz implements Quiz {
     protected final AtomicBoolean isRoundProcessing = new AtomicBoolean(false);
 
     @Override

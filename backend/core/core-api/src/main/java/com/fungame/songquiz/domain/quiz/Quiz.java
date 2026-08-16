@@ -4,10 +4,10 @@ import com.fungame.songquiz.domain.room.GamePlayer;
 import com.fungame.songquiz.enums.ActionResult;
 import com.fungame.songquiz.enums.GameType;
 
-public interface Game {
-    GameContent getStatus();
+public interface Quiz {
+    QuizContent getStatus();
 
-    GameInfo getGameInfo();
+    QuizInfo getQuizInfo();
 
     GameType getType();
 
@@ -21,7 +21,7 @@ public interface Game {
 
     void takeBackPlayer(GamePlayer player);
 
-    GameAnswer getAnswer();
+    QuizAnswer getAnswer();
 
     void startRound();
 

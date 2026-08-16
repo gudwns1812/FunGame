@@ -1,10 +1,10 @@
 package com.fungame.songquiz.domain.session;
 
-import com.fungame.songquiz.domain.quiz.GameContent;
+import com.fungame.songquiz.domain.quiz.QuizContent;
 
 public record RoundStartEvent(
         Long roomId,
-        GameContent content,
+        QuizContent content,
         int currentRound,
         int totalRound
 ) {
