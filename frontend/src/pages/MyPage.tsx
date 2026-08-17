@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { useAuth } from '../contexts/AuthContext';
 import TopBar from '../components/layout/TopBar';
+import { notifyError, notifySuccess } from '../utils/toast';
+import { askConfirm } from '../utils/confirm';
 
 type PromotionStatus = 'PENDING' | 'APPROVED' | 'REJECTED' | null;
 
@@ -49,17 +51,17 @@ const MyPage: React.FC = () => {
   };
 
   const handleRequestPromotion = async () => {
-    if (!window.confirm('관리자 승급을 신청하시겠습니까?')) return;
+    if (!(await askConfirm('관리자 승급을 신청하시겠습니까?'))) return;
 
     setIsRequestingPromotion(true);
     try {
       const response = await axios.post('/api/promotions');
       if (response.data.result === 'SUCCESS') {
-        window.alert('승급 신청이 완료되었습니다. MASTER의 승인을 기다려주세요.');
+        notifySuccess('승급 신청이 완료되었습니다. MASTER의 승인을 기다려주세요.');
         fetchPromotionStatus();
       }
     } catch (err: any) {
-      window.alert(err.response?.data?.error?.message || '승급 신청 중 오류가 발생했습니다.');
+      notifyError(err.response?.data?.error?.message || '승급 신청 중 오류가 발생했습니다.');
     } finally {
       setIsRequestingPromotion(false);
     }

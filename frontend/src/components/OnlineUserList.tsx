@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import axios from 'axios';
 import { useOnlineMembers } from '../hooks/useOnlineMembers';
+import { notifyError } from '../utils/toast';
 import type { OnlineMember, PresenceStatus } from '../types/presence';
 
 interface OnlineUserListProps {
@@ -78,7 +79,7 @@ const OnlineUserList: React.FC<OnlineUserListProps> = ({ invitingRoomId }) => {
       forgetWhenInviteExpires(member.memberId, expiresInSeconds);
     } catch (error: any) {
       forgetInvite(member.memberId);
-      window.alert(error?.response?.data?.error?.message || '초대를 보내지 못했습니다.');
+      notifyError(error?.response?.data?.error?.message || '초대를 보내지 못했습니다.');
     }
   };
 

@@ -3,8 +3,10 @@ import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import axios from 'axios';
 import OnlineUserList from './OnlineUserList';
+import ToastStack from './ToastStack';
 import { createStompStub } from '../test/stompTestUtils';
 import { PRESENCE_QUEUE } from '../utils/stompDestination';
+import { clearToasts } from '../utils/toast';
 import type { OnlineMember } from '../types/presence';
 
 vi.mock('axios');
@@ -26,6 +28,7 @@ const renderList = (invitingRoomId?: string | null) => {
   render(
     <Wrapper>
       <OnlineUserList invitingRoomId={invitingRoomId} />
+      <ToastStack />
     </Wrapper>,
   );
   return stomp;
@@ -45,6 +48,7 @@ const memberCountIn = (label: string) => groupHeaderOf(label).querySelector('.px
 describe('OnlineUserList', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    clearToasts();
     mockedAxios.get = vi.fn().mockResolvedValue({ data: { result: 'SUCCESS', data: members } });
     mockedAxios.post = vi.fn().mockResolvedValue({
       data: { result: 'SUCCESS', data: { expiresInSeconds: 30 } },
@@ -202,7 +206,6 @@ describe('OnlineUserList', () => {
 
   it('초대에 실패하면 사유를 알리고 다시 보낼 수 있게 되돌린다', async () => {
     const user = userEvent.setup();
-    const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
     mockedAxios.post = vi.fn().mockRejectedValue({
       response: { data: { error: { message: '로비에 있는 사용자만 초대할 수 있습니다.' } } },
     });
@@ -211,7 +214,7 @@ describe('OnlineUserList', () => {
 
     await user.click(inviteButtonOf('로비유저'));
 
-    await waitFor(() => expect(alertSpy).toHaveBeenCalledWith('로비에 있는 사용자만 초대할 수 있습니다.'));
+    expect(await screen.findByRole('alert')).toHaveTextContent('로비에 있는 사용자만 초대할 수 있습니다.');
     expect(inviteButtonOf('로비유저')).toBeEnabled();
   });
 

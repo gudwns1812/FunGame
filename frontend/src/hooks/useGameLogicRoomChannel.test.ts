@@ -3,6 +3,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import axios from 'axios';
 import { useGameLogic } from './useGameLogic';
 import { createStompStub } from '../test/stompTestUtils';
+import { clearToasts, stackedToasts } from '../utils/toast';
 import { roomTopic } from '../utils/stompDestination';
 
 vi.mock('axios');
@@ -72,7 +73,7 @@ describe('useGameLogic 방 채널 열기', () => {
       return Promise.resolve({ data: { result: 'SUCCESS', data: [] } });
     });
     mockedAxios.defaults = { baseURL: '', withCredentials: true };
-    vi.spyOn(window, 'alert').mockImplementation(() => {});
+    clearToasts();
   });
 
   const joinAndConnect = async () => {
@@ -136,7 +137,7 @@ describe('useGameLogic 방 채널 열기', () => {
 
     await waitFor(() => expect(result.current.status).toBe('ROOM_LIST'));
     expect(result.current.roomId).toBeNull();
-    expect(window.alert).toHaveBeenCalledWith('방이 종료되었습니다.');
+    expect(stackedToasts().map((toast) => toast.message)).toContain('방이 종료되었습니다.');
   });
 
   it('방을 떠날 때는 구독을 먼저 끊고 그 다음 leave 를 보낸다', async () => {
