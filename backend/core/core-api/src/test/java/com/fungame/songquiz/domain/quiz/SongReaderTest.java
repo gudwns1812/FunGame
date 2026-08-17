@@ -50,6 +50,7 @@ class SongReaderTest {
     }
 
     private static void assertMappedFrom(Song song) {
+        assertThat(song.getId()).isEqualTo(1L);
         assertThat(song.getTitle()).isEqualTo(TITLE);
         assertThat(song.getSinger()).isEqualTo(SINGER);
         assertThat(song.getCategories()).containsExactly(Category.KPOP, Category.BALLAD);

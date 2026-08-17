@@ -39,6 +39,7 @@ class HangmanWordReaderTest {
     void readsWordForEveryDifficulty(int difficulty) {
         HangmanWord word = hangmanWordReader.findRandomByDifficulty(difficulty);
 
+        assertThat(word.id()).isNotNull();
         assertThat(word.value()).isNotBlank();
         assertThat(word.difficulty()).isEqualTo(difficulty);
     }

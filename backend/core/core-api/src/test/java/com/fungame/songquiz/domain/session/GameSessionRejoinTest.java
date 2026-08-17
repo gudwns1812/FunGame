@@ -1,6 +1,7 @@
 package com.fungame.songquiz.domain.session;
 
 import com.fungame.songquiz.domain.quiz.HangmanQuiz;
+import com.fungame.songquiz.domain.quiz.HangmanWord;
 import com.fungame.songquiz.domain.quiz.Song;
 import com.fungame.songquiz.domain.quiz.SongQuiz;
 import com.fungame.songquiz.domain.room.GamePlayer;
@@ -69,7 +70,7 @@ class GameSessionRejoinTest {
     @DisplayName("행맨 재입장자는 턴 순서 맨 뒤에 붙어 진행 중인 차례를 흐트러뜨리지 않는다.")
     void hangman_rejoin_appends_to_turn_order() {
         // given: p1, p2, p3 중 p2 차례
-        HangmanQuiz quiz = HangmanQuiz.create("APPLE");
+        HangmanQuiz quiz = HangmanQuiz.create(new HangmanWord(1L, "APPLE", 1));
         quiz.initPlayers(List.of(P1, P2, P3));
         GameSession session = new GameSession(quiz, List.of(P1, P2, P3));
         quiz.guess(P1.memberId(), 'A');

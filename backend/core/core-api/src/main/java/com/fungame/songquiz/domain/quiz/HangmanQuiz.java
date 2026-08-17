@@ -20,6 +20,7 @@ public class HangmanQuiz extends AbstractQuiz {
     private static final String HIDDEN_LETTER = "_";
     private static final String LETTER_DELIMITER = " ";
 
+    private final Long wordId;
     private final String answer;
     private final Set<Character> correctLetters;
     private final Set<Character> wrongLetters;
@@ -27,7 +28,8 @@ public class HangmanQuiz extends AbstractQuiz {
     private int currentTurnIndex;
     private List<GamePlayer> playerOrder;
 
-    private HangmanQuiz(String answer) {
+    private HangmanQuiz(Long wordId, String answer) {
+        this.wordId = wordId;
         this.answer = answer.toUpperCase();
         this.playerOrder = new ArrayList<>();
         this.correctLetters = new LinkedHashSet<>();
@@ -36,11 +38,11 @@ public class HangmanQuiz extends AbstractQuiz {
         this.currentTurnIndex = 0;
     }
 
-    public static HangmanQuiz create(String answer) {
-        if (answer == null || answer.isBlank()) {
+    public static HangmanQuiz create(HangmanWord word) {
+        if (word == null || word.value() == null || word.value().isBlank()) {
             throw new CoreException(ErrorType.HANGMAN_ANSWER_EMPTY);
         }
-        return new HangmanQuiz(answer);
+        return new HangmanQuiz(word.id(), word.value());
     }
 
     public void initPlayers(List<GamePlayer> players) {
@@ -190,6 +192,11 @@ public class HangmanQuiz extends AbstractQuiz {
     @Override
     public QuizInfo getQuizInfo() {
         return new QuizInfo(getType().name(), "Hangman", DEFAULT_TRIES);
+    }
+
+    @Override
+    public Long getCurrentContentId() {
+        return wordId;
     }
 
     @Override

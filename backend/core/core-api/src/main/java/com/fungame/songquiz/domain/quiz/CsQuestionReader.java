@@ -32,6 +32,7 @@ public class CsQuestionReader {
 
     private CsQuestion toDomain(ComputerScienceEntity entity) {
         return CsQuestion.of(
+                entity.getId(),
                 entity.getField(),
                 entity.getContent(),
                 entity.getAnswers(),

@@ -9,6 +9,8 @@ public interface Quiz {
 
     QuizInfo getQuizInfo();
 
+    Long getCurrentContentId();
+
     GameType getType();
 
     ActionResult submitAnswer(Long memberId, String answer);

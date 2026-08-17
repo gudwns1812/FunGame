@@ -30,6 +30,6 @@ public class HangmanQuizFactory implements QuizFactory {
             throw new CoreException(ErrorType.INVALID_INPUT_VALUE);
         }
 
-        return HangmanQuiz.create(hangmanWordReader.findRandomByDifficulty(difficulty).value());
+        return HangmanQuiz.create(hangmanWordReader.findRandomByDifficulty(difficulty));
     }
 }

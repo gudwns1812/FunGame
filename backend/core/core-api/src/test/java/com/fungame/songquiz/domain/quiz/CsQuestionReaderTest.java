@@ -80,6 +80,7 @@ class ComputerScienceQuizReaderTest {
     void mapsEveryField() {
         given(computerScienceRepository.findByDifficultyIn(any())).willReturn(List.of(
                 ComputerScienceEntity.builder()
+                        .id(7L)
                         .field("네트워크")
                         .content("TCP와 UDP의 차이는?")
                         .answers(List.of("연결성", "신뢰성"))
@@ -90,6 +91,7 @@ class ComputerScienceQuizReaderTest {
 
         CsQuestion quiz = reader.getRandomCSQuizWithCount(1, CSQuizDifficulty.NORMAL).getFirst();
 
+        assertThat(quiz.getId()).isEqualTo(7L);
         assertThat(quiz.getField()).isEqualTo("네트워크");
         assertThat(quiz.getQuestion()).isEqualTo("TCP와 UDP의 차이는?");
         assertThat(quiz.getExplain()).isEqualTo("TCP는 연결 지향이고 UDP는 비연결 지향이다.");

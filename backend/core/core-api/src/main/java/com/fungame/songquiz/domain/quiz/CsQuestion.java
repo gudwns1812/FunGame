@@ -10,14 +10,16 @@ import java.util.Set;
 @Getter
 public class CsQuestion {
 
+    private final Long id;
     private final String field;
     private final String question;
     private final Set<String> answers;
     private final String explain;
     private final CSQuizDifficulty difficulty;
 
-    private CsQuestion(String field, String question, Set<String> answers, String explain,
+    private CsQuestion(Long id, String field, String question, Set<String> answers, String explain,
                                 CSQuizDifficulty difficulty) {
+        this.id = id;
         this.field = field;
         this.question = question;
         this.answers = answers;
@@ -34,8 +36,8 @@ public class CsQuestion {
         return answers.contains(answer);
     }
 
-    public static CsQuestion of(String field, String question, List<String> answers, String explain,
+    public static CsQuestion of(Long id, String field, String question, List<String> answers, String explain,
                                          CSQuizDifficulty difficulty) {
-        return new CsQuestion(field, question, new LinkedHashSet<>(answers), explain, difficulty);
+        return new CsQuestion(id, field, question, new LinkedHashSet<>(answers), explain, difficulty);
     }
 }
