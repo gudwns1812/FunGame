@@ -160,7 +160,6 @@ const OnlineUserList: React.FC<OnlineUserListProps> = ({ invitingRoomId }) => {
         )}
 
         <span className="flex items-center gap-1.5 shrink-0">
-          <span className="px-chip">{members.length}</span>
           <button
             type="button"
             aria-label="닉네임 검색"
@@ -169,6 +168,7 @@ const OnlineUserList: React.FC<OnlineUserListProps> = ({ invitingRoomId }) => {
             onClick={toggleSearch}>
             <MagnifierIcon />
           </button>
+          <span className="px-chip">{members.length}</span>
         </span>
       </div>
 
