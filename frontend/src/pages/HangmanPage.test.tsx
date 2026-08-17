@@ -1,4 +1,5 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import axios from 'axios';
@@ -19,7 +20,7 @@ const STATUS: HangmanStatus = {
   isWin: false,
 };
 
-const renderHangmanPage = (roomId: string) =>
+const renderHangmanPage = (roomId: string, onLeave = vi.fn()) =>
   render(
     <MemoryRouter>
       <HangmanPage
@@ -30,6 +31,7 @@ const renderHangmanPage = (roomId: string) =>
         players={[]}
         onSendMessage={vi.fn()}
         roomId={roomId}
+        onLeave={onLeave}
       />
     </MemoryRouter>,
   );
@@ -50,5 +52,36 @@ describe('HangmanPage', () => {
     renderHangmanPage('');
 
     expect(screen.queryByRole('button', { name: '신고' })).not.toBeInTheDocument();
+  });
+
+  it('나가기를 눌러도 확인하기 전에는 방을 떠나지 않는다', async () => {
+    const onLeave = vi.fn();
+    renderHangmanPage('42', onLeave);
+
+    await userEvent.click(screen.getByRole('button', { name: '나가기' }));
+
+    expect(screen.getByRole('dialog', { name: '게임 나가기' })).toBeInTheDocument();
+    expect(onLeave).not.toHaveBeenCalled();
+  });
+
+  it('확인 모달에서 나가기를 누르면 방을 떠난다', async () => {
+    const onLeave = vi.fn();
+    renderHangmanPage('42', onLeave);
+
+    await userEvent.click(screen.getByRole('button', { name: '나가기' }));
+    await userEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: '나가기' }));
+
+    expect(onLeave).toHaveBeenCalledTimes(1);
+  });
+
+  it('확인 모달에서 취소하면 게임 화면이 그대로 남는다', async () => {
+    const onLeave = vi.fn();
+    renderHangmanPage('42', onLeave);
+
+    await userEvent.click(screen.getByRole('button', { name: '나가기' }));
+    await userEvent.click(screen.getByRole('button', { name: '취소' }));
+
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(onLeave).not.toHaveBeenCalled();
   });
 });

@@ -274,6 +274,7 @@ function AppContent() {
               currentRound={currentRound}
               totalRound={totalRound}
               hint={hint}
+              onLeave={leaveRoom}
             />
           ) : (
             <Navigate to={isAuthenticated ? currentPath : "/login"} replace />
@@ -292,6 +293,7 @@ function AppContent() {
               players={players}
               onSendMessage={sendMessage}
               roomId={roomId || ''}
+              onLeave={leaveRoom}
             />
           ) : (
             <Navigate to={isAuthenticated ? currentPath : "/login"} replace />
