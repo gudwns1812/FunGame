@@ -45,6 +45,7 @@ class SongScrapeFlowTest {
     @BeforeEach
     void clearSongs() {
         jdbcTemplate.update("delete from song_scrape_request");
+        jdbcTemplate.update("delete from song_category");
         jdbcTemplate.update("delete from song_entity");
     }
 
@@ -55,6 +56,14 @@ class SongScrapeFlowTest {
 
     private int countIn(String table) {
         return jdbcTemplate.queryForObject("select count(*) from " + table, Integer.class);
+    }
+
+    private List<String> categoriesOfOnlySong() {
+        return jdbcTemplate.queryForList("""
+                select song_category.category
+                from song_category
+                         join song_entity on song_entity.id = song_category.song_id
+                """, String.class);
     }
 
     @Test
@@ -113,16 +122,27 @@ class SongScrapeFlowTest {
 
         songScrapeService.fillPendingSongs();
 
-        Map<String, Object> row = jdbcTemplate.queryForMap(
-                "select categories, answers from song_entity");
-        assertThat(row.get("categories").toString())
-                .contains("KPOP")
-                .contains("BALLAD");
-        assertThat(row.get("answers").toString())
+        assertThat(categoriesOfOnlySong())
+                .containsExactlyInAnyOrder("KPOP", "BALLAD");
+        assertThat(jdbcTemplate.queryForObject("select answers from song_entity", String.class))
                 .as("StringListConverter 는 콤마로 잇는다. Song.of 가 제목을 정답에 넣는다")
                 .contains("다른 정답")
                 .contains("밤편지")
                 .contains(",");
+    }
+
+    @Test
+    @DisplayName("같은 영상을 다시 저장하면 카테고리도 새 내용으로 갈아 끼운다.")
+    void replacesCategoriesOnUpsert() {
+        given(youtubeScraper.findVideoId(anyString(), anyString())).willReturn(Optional.of(VIDEO_ID));
+        songService.createSongQuiz(song("밤편지", "아이유", RELEASE_DATE));
+        songScrapeService.fillPendingSongs();
+
+        songService.createSongQuiz(Song.of("좋은날", "가수둘", List.of(Category.POP), LocalDate.of(2021, 2, 2),
+                null, 30, List.of("다른 정답"), "힌트"));
+        songScrapeService.fillPendingSongs();
+
+        assertThat(categoriesOfOnlySong()).containsExactly("POP");
     }
 
     @Test

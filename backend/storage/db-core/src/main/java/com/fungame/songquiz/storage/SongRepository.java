@@ -10,8 +10,12 @@ import java.util.Optional;
 
 public interface SongRepository extends JpaRepository<SongEntity, Long> {
 
-    @Query(value = "SELECT * FROM song_entity WHERE JSON_CONTAINS(categories, CAST(:category AS JSON)) ORDER BY RAND() LIMIT :count",
-            nativeQuery = true)
+    @Query(value = """
+            SELECT song_entity.* FROM song_entity
+            JOIN song_category ON song_category.song_id = song_entity.id
+            WHERE song_category.category = :category
+            ORDER BY RAND() LIMIT :count
+            """, nativeQuery = true)
     List<SongEntity> findRandomSongsByCategory(@Param("category") String category, @Param("count") int count);
 
     @Query(value = "SELECT * FROM song_entity ORDER BY RAND() LIMIT :count",
