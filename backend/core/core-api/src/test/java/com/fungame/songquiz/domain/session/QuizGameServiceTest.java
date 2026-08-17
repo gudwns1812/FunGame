@@ -42,6 +42,7 @@ class QuizGameServiceTest {
     private static final GamePlayer P1 = GamePlayer.createNewPlayer(1L, "p1");
     private static final GamePlayer P2 = GamePlayer.createNewPlayer(2L, "p2");
     private static final GamePlayer P3 = GamePlayer.createNewPlayer(3L, "p3");
+    private static final GamePlayer P4 = GamePlayer.createNewPlayer(4L, "p4");
     private static final RoomSettings SETTINGS =
             new RoomSettings(GameType.SONG, "방", 8, Category.KPOP, 3, 0, CSQuizDifficulty.EASY);
 
@@ -94,6 +95,37 @@ class QuizGameServiceTest {
         // 남은 2명 중 1명만 스킵해도 정족수(max(1, n-1) = 1)를 채운다
         assertThat(session.handleAction(GameAction.skipVote(P1.memberId())))
                 .isEqualTo(ActionResult.SKIP_VOTE_SUCCESS);
+    }
+
+    @Test
+    @DisplayName("이탈로 남은 표가 줄어든 정족수를 채우면 라운드가 그 자리에서 끝난다.")
+    void handlePlayerLeave_ends_round_when_skip_threshold_becomes_reached() {
+        // given: 3명 중 1명이 스킵을 눌렀지만 정족수(max(1, 3-1) = 2)에 한 표 모자란다
+        GameSession session = startedSessionOf(P1, P2, P3);
+        quizGameService.increaseSkipVote(ROOM_ID, P1.memberId());
+
+        // when: 다른 1명이 나가 정족수가 1로 내려간다
+        quizGameService.handlePlayerLeave(ROOM_ID, P2.memberId());
+
+        // then
+        verify(publisher).publishEvent(any(RoundEndEvent.class));
+        verify(timer).stop(ROOM_ID);
+        assertThat(session.getPlayerRanks()).hasSize(2);
+    }
+
+    @Test
+    @DisplayName("이탈해도 정족수에 모자라면 라운드를 그대로 둔다.")
+    void handlePlayerLeave_keeps_round_when_skip_threshold_still_short() {
+        // given: 4명 중 1명이 스킵을 눌렀고 정족수는 max(1, 4-1) = 3 이다
+        startedSessionOf(P1, P2, P3, P4);
+        quizGameService.increaseSkipVote(ROOM_ID, P1.memberId());
+
+        // when: 1명이 나가도 정족수는 2 라 한 표로는 모자라다
+        quizGameService.handlePlayerLeave(ROOM_ID, P2.memberId());
+
+        // then
+        verify(publisher, never()).publishEvent(any(RoundEndEvent.class));
+        verify(timer, never()).stop(ROOM_ID);
     }
 
     @Test
@@ -184,6 +216,15 @@ class QuizGameServiceTest {
         // then
         verify(publisher).publishEvent(any(GameStartEvent.class));
         verify(timer).startAfter(eq(ROOM_ID), anyInt(), any());
+    }
+
+    private GameSession startedSessionOf(GamePlayer... players) {
+        SongQuiz quiz = new SongQuiz(List.of(mock(Song.class), mock(Song.class)), Category.KPOP);
+        GameSession session = new GameSession(quiz, List.of(players));
+        session.startRound();
+        given(sessionManager.getGameSession(ROOM_ID)).willReturn(session);
+
+        return session;
     }
 
     private GameRoom givenStartableRoomWith(Quiz quiz) {

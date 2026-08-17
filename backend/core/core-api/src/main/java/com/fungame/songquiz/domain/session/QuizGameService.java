@@ -163,6 +163,10 @@ public class QuizGameService implements GameService {
 
         gameSession.removePlayer(memberId);
         log.info("게임 중 이탈: room {}, member {}", roomId, memberId);
+
+        if (gameSession.isSkipThresholdReached()) {
+            endRound(roomId, null);
+        }
     }
 
     @Override

@@ -33,6 +33,12 @@ const NOT_RENDERING_ROOM_STATE = -1;
 
 const isInRoom = (status: GameStatus) => status === 'WAITING' || status === 'PLAYING';
 
+const firstFreeColorIndex = (taken: Set<number>) => {
+  let colorIndex = 0;
+  while (taken.has(colorIndex)) colorIndex += 1;
+  return colorIndex;
+};
+
 const toRooms = (rawRooms: any[]): Room[] =>
   rawRooms.map((room) => ({
     id: room.roomId,
@@ -156,15 +162,27 @@ export const useGameLogic = () => {
     renderedRoomVersion.current = room.version;
 
     setPlayers((prev) => {
-      const scoreOf = new Map(prev.map((player) => [player.memberId, player.score]));
-      return room.players.map((player, slotIndex) => ({
-        memberId: player.memberId,
-        name: player.nickname,
-        isHost: player.memberId === room.hostMemberId,
-        isReady: player.isReady,
-        score: scoreOf.get(player.memberId) ?? 0,
-        colorIndex: slotIndex,
-      }));
+      const seenBefore = new Map(prev.map((player) => [player.memberId, player]));
+      const takenColors = new Set(
+        room.players
+          .map((player) => seenBefore.get(player.memberId)?.colorIndex)
+          .filter((colorIndex): colorIndex is number => colorIndex !== undefined),
+      );
+
+      return room.players.map((player) => {
+        const before = seenBefore.get(player.memberId);
+        const colorIndex = before?.colorIndex ?? firstFreeColorIndex(takenColors);
+        takenColors.add(colorIndex);
+
+        return {
+          memberId: player.memberId,
+          name: player.nickname,
+          isHost: player.memberId === room.hostMemberId,
+          isReady: player.isReady,
+          score: before?.score ?? 0,
+          colorIndex,
+        };
+      });
     });
   }, []);
 
@@ -603,11 +621,16 @@ export const useGameLogic = () => {
     const handlePopState = () => {
       if (status === 'WAITING' || status === 'RESULT') {
         leaveRoom();
+        return;
+      }
+
+      if (status === 'PLAYING') {
+        window.history.pushState({ room: roomId }, '');
       }
     };
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
-  }, [status, leaveRoom]);
+  }, [status, roomId, leaveRoom]);
 
   useEffect(() => {
     if (gameType) localStorage.setItem('ums_gameType', gameType);

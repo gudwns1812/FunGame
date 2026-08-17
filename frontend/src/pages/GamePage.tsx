@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useState } from 'react';
 import Game from '../components/Game';
+import LeaveGameConfirm from '../components/LeaveGameConfirm';
 import ReportButton from '../components/ReportButton';
 import TopBar from '../components/layout/TopBar';
 import type { Player, GameStartInfo, RoundEndInfo } from '../types/game';
@@ -20,6 +21,7 @@ interface GamePageProps {
   currentRound: number;
   totalRound: number;
   hint: string;
+  onLeave: () => void;
 }
 
 const GamePage: React.FC<GamePageProps> = ({
@@ -38,7 +40,10 @@ const GamePage: React.FC<GamePageProps> = ({
   currentRound,
   totalRound,
   hint,
+  onLeave,
 }) => {
+  const [isLeaveAsked, setIsLeaveAsked] = useState(false);
+
   return (
     <div className="app-frame">
       <TopBar
@@ -50,6 +55,9 @@ const GamePage: React.FC<GamePageProps> = ({
               <span className="w-2 h-2 bg-white animate-blink" />
               진행 중
             </span>
+            <button type="button" className="px-btn px-btn-sm px-btn-paper" onClick={() => setIsLeaveAsked(true)}>
+              나가기
+            </button>
           </>
         }
       />
@@ -73,6 +81,8 @@ const GamePage: React.FC<GamePageProps> = ({
           hint={hint}
         />
       </main>
+
+      {isLeaveAsked && <LeaveGameConfirm onConfirm={onLeave} onCancel={() => setIsLeaveAsked(false)} />}
     </div>
   );
 };

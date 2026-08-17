@@ -5,6 +5,7 @@ import OnlineUserList from '../components/OnlineUserList';
 import TopBar from '../components/layout/TopBar';
 import type { CreateRoomInput, Room } from '../types/game';
 import { useAuth } from '../contexts/AuthContext';
+import { askConfirm } from '../utils/confirm';
 
 interface RoomListPageProps {
   rooms: Room[];
@@ -39,7 +40,7 @@ const RoomListPage: React.FC<RoomListPageProps> = ({
   }, []);
 
   const handleLogout = async () => {
-    if (window.confirm('로그아웃 하시겠습니까?')) {
+    if (await askConfirm('로그아웃 하시겠습니까?')) {
       await logout();
       navigate('/login');
     }

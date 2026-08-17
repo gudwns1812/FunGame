@@ -38,13 +38,17 @@ public class GameSession {
         }
 
         skipVotes.add(memberId);
-        return skipVotes.isThresholdReached(rank.playerCount())
+        return isSkipThresholdReached()
                 ? ActionResult.SKIP_VOTE_SUCCESS
                 : ActionResult.ACTION_SUCCESS;
     }
 
     private boolean canVoteToSkip(Long memberId) {
         return quiz.isRoundStarted() && rank.hasPlayer(memberId);
+    }
+
+    public boolean isSkipThresholdReached() {
+        return quiz.isRoundStarted() && skipVotes.isThresholdReached(rank.playerCount());
     }
 
     public void updatePlayerPoint(Long memberId) {

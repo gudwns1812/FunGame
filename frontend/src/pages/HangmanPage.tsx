@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import HangmanDrawing from '../components/hangman/HangmanDrawing';
 import WordDisplay from '../components/hangman/WordDisplay';
 import AlphabetKeyboard from '../components/hangman/AlphabetKeyboard';
+import LeaveGameConfirm from '../components/LeaveGameConfirm';
 import LogList from '../components/LogList';
 import ReportButton from '../components/ReportButton';
 import TopBar from '../components/layout/TopBar';
@@ -16,6 +17,7 @@ interface HangmanPageProps {
   players: Player[];
   onSendMessage: (msg: string) => void;
   roomId: string;
+  onLeave: () => void;
 }
 
 const MAX_TRIES = 6;
@@ -28,9 +30,11 @@ const HangmanPage: React.FC<HangmanPageProps> = ({
   players,
   onSendMessage,
   roomId,
+  onLeave,
 }) => {
   const navigate = useNavigate();
   const [chatMessage, setChatMessage] = useState('');
+  const [isLeaveAsked, setIsLeaveAsked] = useState(false);
   const logContainerRef = useRef<HTMLDivElement>(null);
   const chatInputRef = useRef<HTMLInputElement>(null);
 
@@ -113,6 +117,9 @@ const HangmanPage: React.FC<HangmanPageProps> = ({
             <span className={`px-chip num ${status.remainingTries <= 2 ? 'px-chip-cherry' : ''}`}>
               기회 {status.remainingTries} / {MAX_TRIES}
             </span>
+            <button type="button" className="px-btn px-btn-sm px-btn-paper" onClick={() => setIsLeaveAsked(true)}>
+              나가기
+            </button>
           </>
         }
       />
@@ -190,6 +197,8 @@ const HangmanPage: React.FC<HangmanPageProps> = ({
           </div>
         </div>
       </main>
+
+      {isLeaveAsked && <LeaveGameConfirm onConfirm={onLeave} onCancel={() => setIsLeaveAsked(false)} />}
 
       {/* 게임 종료 */}
       {status.isGameOver && (
