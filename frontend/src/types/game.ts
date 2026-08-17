@@ -41,11 +41,6 @@ export interface RoomSettings {
   hostNickname: string;
 }
 
-/**
- * 방 상태가 바뀌는 이벤트는 무엇이 바뀌었는지가 아니라 바뀐 뒤의 방 전체를 싣고 온다.
- * 구독 완료와 스냅샷 조회 사이의 이벤트가 두 번 적용돼도 깨지지 않도록,
- * 받는 쪽은 자기가 그리고 있는 것보다 version 이 낮은 상태를 버린다.
- */
 export interface RoomState {
   version: number;
   players: { memberId: number; nickname: string; isReady: boolean }[];

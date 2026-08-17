@@ -11,14 +11,6 @@ import org.springframework.messaging.support.ChannelInterceptor;
 import org.springframework.messaging.support.MessageHeaderAccessor;
 import org.springframework.stereotype.Component;
 
-/**
- * 방 소속은 join / leave API 가 정한다. 구독은 수신 채널일 뿐이므로
- * 여기서는 "이 회원이 이 방 소속인가" 만 확인한다. 구독이 소속을 만들지는 않는다.
- * <p>
- * 소속이 아니면 구독을 등록하지 않고 흘려보낸다. ERROR 프레임으로 연결을 끊으면
- * 로비·초대까지 같이 죽고 재연결 루프에 빠지는데, 클라이언트는 연결이 맺어질 때마다
- * join 뒤에 다시 구독하므로 흘려보내는 편이 스스로 복구된다.
- */
 @Slf4j
 @Component
 @RequiredArgsConstructor

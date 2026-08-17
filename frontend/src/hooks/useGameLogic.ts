@@ -28,6 +28,9 @@ const HANGMAN_SOLVED_RESULT = 'CORRECT';
 /** 내 회원 번호를 담아두는 로컬스토리지 키. 방·게임의 모든 "나" 판정이 이 값으로 이뤄진다 */
 const MY_MEMBER_ID_KEY = 'ums_member_id';
 const KICKED_NOTICE = '방장이 회원님을 방에서 내보냈습니다.';
+const NOT_RENDERING_ROOM_STATE = -1;
+
+const isInRoom = (status: GameStatus) => status === 'WAITING' || status === 'PLAYING';
 
 const toRooms = (rawRooms: any[]): Room[] =>
   rawRooms.map((room) => ({
@@ -96,19 +99,19 @@ export const useGameLogic = () => {
   const enterRoomChannelRef = useRef<(channel: StompChannel, targetRoomId: string, rejoinFirst: boolean) => Promise<void>>(
     async () => { },
   );
-  /** 방 토픽 구독을 끊는 함수. 퇴장은 구독을 먼저 끊고 leave API 를 보낸다 */
   const unsubscribeRoom = useRef<(() => void) | null>(null);
-  /** 사용자가 방금 join 한 방. 이 방의 첫 구독에서는 join 을 다시 하지 않는다 */
   const justJoinedRoom = useRef<string | null>(null);
   const returnToLobbyRef = useRef<() => Promise<void>>(async () => { });
   const statusRef = useRef<GameStatus>(status);
-  /** 지금 그리고 있는 방 상태의 버전. 방을 떠나거나 방 아닌 것을 그리면 -1 로 되돌린다 */
-  const roomVersion = useRef(-1);
+  const renderedRoomVersion = useRef(NOT_RENDERING_ROOM_STATE);
 
-  /** 상태를 바꾸면서 ref 도 같이 맞춘다. onConnect 가 어떤 스냅샷을 읽을지 이 값으로 정한다 */
   const enterStatus = useCallback((next: GameStatus) => {
     statusRef.current = next;
     setStatus(next);
+  }, []);
+
+  const forgetRenderedRoomState = useCallback(() => {
+    renderedRoomVersion.current = NOT_RENDERING_ROOM_STATE;
   }, []);
 
   const addLog = useCallback((msg: string) => {
@@ -119,14 +122,13 @@ export const useGameLogic = () => {
     setLogs([]);
   }, []);
 
-  /** 연결은 서비스 단위로 유지하고 방 토픽 구독만 끊는다 */
-  const disconnectRoom = useCallback(() => {
+  const unsubscribeFromRoom = useCallback(() => {
     unsubscribeRoom.current?.();
     unsubscribeRoom.current = null;
   }, []);
 
   const clearRoomState = useCallback(() => {
-    roomVersion.current = -1;
+    forgetRenderedRoomState();
     setRoomId(null);
     setRoomName('');
     setStatus('ROOM_LIST');
@@ -142,17 +144,16 @@ export const useGameLogic = () => {
     localStorage.removeItem('ums_currentVideoId');
     localStorage.removeItem(PLAYER_COLOR_INDEX_KEY);
     setMyColorIndex(null);
-  }, []);
+  }, [forgetRenderedRoomState]);
 
   const forgetRoom = useCallback(() => {
-    disconnectRoom();
+    unsubscribeFromRoom();
     clearRoomState();
-  }, [disconnectRoom, clearRoomState]);
+  }, [unsubscribeFromRoom, clearRoomState]);
 
-  /** 이벤트로 실려 온 방 상태든 스냅샷으로 읽은 방 상태든 같은 자리에서 적용한다 */
   const applyRoomState = useCallback((room: RoomState | null | undefined) => {
-    if (!room || room.version <= roomVersion.current) return;
-    roomVersion.current = room.version;
+    if (!room || room.version <= renderedRoomVersion.current) return;
+    renderedRoomVersion.current = room.version;
 
     setPlayers((prev) => {
       const scoreOf = new Map(prev.map((player) => [player.memberId, player.score]));
@@ -378,7 +379,7 @@ export const useGameLogic = () => {
 
         case 'GAME_RESULT': {
           setStatus('RESULT');
-          roomVersion.current = -1;
+          forgetRenderedRoomState();
           setIsMusicStart(false);
           setHint('');
           setPlayerIndex(null);
@@ -421,9 +422,8 @@ export const useGameLogic = () => {
   }, [logs]);
 
 
-  /** 입장이 join API → subscribe 였으니 퇴장은 역순으로 unsubscribe → leave API 다 */
   const leaveRoom = useCallback(async () => {
-    disconnectRoom();
+    unsubscribeFromRoom();
 
     if (roomId) {
       try {
@@ -434,7 +434,7 @@ export const useGameLogic = () => {
     }
 
     clearRoomState();
-  }, [roomId, disconnectRoom, clearRoomState]);
+  }, [roomId, unsubscribeFromRoom, clearRoomState]);
 
   const kickPlayer = useCallback(
     async (targetMemberId: number) => {
@@ -470,12 +470,11 @@ export const useGameLogic = () => {
     setStatus('WAITING');
 
     if (roomId) {
-      // 결과 화면은 방 참가자가 아니라 순위를 그렸으므로 방 상태를 처음부터 다시 읽는다
-      roomVersion.current = -1;
+      forgetRenderedRoomState();
       await fetchRoomState(roomId);
       await fetchRoomSettings(roomId);
     }
-  }, [roomId, fetchRoomState, fetchRoomSettings, clearLogs]);
+  }, [roomId, fetchRoomState, fetchRoomSettings, clearLogs, forgetRenderedRoomState]);
 
   /**
    * 진행 중인 게임에 재입장했을 때, 놓친 라운드 상태를 서버 스냅샷으로 복원한다.
@@ -532,11 +531,6 @@ export const useGameLogic = () => {
     addLog('[알림] 진행 중인 게임에 다시 입장했습니다.');
   }, [addLog]);
 
-  /**
-   * 방 소속은 API 가 정하고, 구독은 수신 채널일 뿐이다. 그래서 순서가 하나로 정해진다.
-   * join API 로 소속을 확정하고 → 그 다음 구독하고 → 마지막에 스냅샷으로 빈 구간을 메운다.
-   * join 과 구독 사이에 발행된 이벤트는 스트림에서 유실되지만 뒤이어 읽는 스냅샷이 메운다.
-   */
   const enterRoomChannel = useCallback(
     async (channel: StompChannel, targetRoomId: string, rejoinFirst: boolean) => {
       try {
@@ -566,10 +560,6 @@ export const useGameLogic = () => {
     [fetchRoomState, fetchRoomSettings, restorePlayState, returnToLobby],
   );
 
-  /**
-   * 방에 들어가 있는 동안은 연결이 맺어질 때마다 방 채널을 처음부터 다시 세운다.
-   * 방금 join 한 방이 아니라면(새로고침·재연결) 구독 전에 소속부터 다시 확정한다.
-   */
   useEffect(() => {
     enterRoomChannelRef.current = enterRoomChannel;
   }, [enterRoomChannel]);
@@ -603,18 +593,15 @@ export const useGameLogic = () => {
     }
   }, [status, roomId, roomName]);
 
-  // 방 안에서 새로고침했다면 join → subscribe → 스냅샷은 방 채널 이펙트가 전부 맡는다.
-  // 여기서는 방 없이 방 화면으로 돌아온 경우만 바로잡는다.
   useEffect(() => {
-    // StrictMode 는 개발 모드에서 마운트 이펙트를 두 번 실행한다.
     if (hasBootstrapped.current) return;
     hasBootstrapped.current = true;
 
-    if ((status === 'WAITING' || status === 'PLAYING') && roomId === null) {
+    if (isInRoom(status) && roomId === null) {
       enterStatus('ROOM_LIST');
     }
     setIsBootstrapping(false);
-  }, []); // Run once on mount
+  }, []);
 
   useEffect(() => {
     const handlePopState = () => {
@@ -650,7 +637,6 @@ export const useGameLogic = () => {
   useEffect(() => {
     if (status !== 'ROOM_LIST') return;
 
-    // 방 채널과 같은 순서다. 구독을 먼저 걸고 목록을 읽어 그 사이 구간을 메운다.
     return onConnection((channel) => {
       channel.subscribe(LOBBY_TOPIC, (pushedRooms) => {
         if (!Array.isArray(pushedRooms)) {
@@ -693,12 +679,11 @@ export const useGameLogic = () => {
       }
       clearLogs();
       localStorage.removeItem('ums_logs');
-      roomVersion.current = -1;
+      forgetRenderedRoomState();
       justJoinedRoom.current = room.id;
       setRoomId(room.id);
 
       if (room.status === 'PLAYING') {
-        // 서버가 재입장을 허용한 경우에만 여기까지 온다. 라운드 상태는 구독 뒤 스냅샷이 복원한다.
         enterStatus('PLAYING');
       } else {
         enterStatus('WAITING');
@@ -765,7 +750,7 @@ export const useGameLogic = () => {
         const httpStatus = error?.response?.status;
         const redirectRoomId = error?.response?.data?.data?.redirectRoomId ?? error?.response?.data?.redirectRoomId;
         if (httpStatus === 409 && redirectRoomId) {
-          roomVersion.current = -1;
+          forgetRenderedRoomState();
           setRoomId(redirectRoomId);
           setRoomName('');
           enterStatus('PLAYING');
@@ -800,7 +785,7 @@ export const useGameLogic = () => {
           setMyColorIndex(0);
           clearLogs();
           localStorage.removeItem('ums_logs');
-          roomVersion.current = -1;
+          forgetRenderedRoomState();
           justJoinedRoom.current = newRoomId;
           setRoomId(newRoomId);
           enterStatus('WAITING');

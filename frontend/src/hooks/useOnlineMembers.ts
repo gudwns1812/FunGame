@@ -25,7 +25,6 @@ export const useOnlineMembers = (enabled: boolean) => {
       return;
     }
 
-    // 구독을 먼저 걸고 목록을 읽는다. 그 사이에 온 알림은 읽어 온 목록이 메운다.
     return onConnection((channel) => {
       channel.subscribe(PRESENCE_QUEUE, (pushedMembers) => {
         if (!Array.isArray(pushedMembers)) {

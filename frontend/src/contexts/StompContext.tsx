@@ -6,14 +6,9 @@ import { useAuth } from './AuthContext';
 export type StompHandler = (payload: any) => void;
 
 export interface StompChannel {
-  /** 구독한다. 돌려주는 함수로 이 연결이 끊기기 전에 먼저 구독을 끊을 수 있다. */
   subscribe: (destination: string, handler: StompHandler) => () => void;
 }
 
-/**
- * 연결 하나 동안 무엇을 받을지 기술한다. 구독 전에 준비할 일(방 소속 확정 같은)이 있으면
- * 여기서 먼저 하고 구독하면 된다. 재연결되면 같은 setUp 이 처음부터 다시 돈다.
- */
 export type StompSetUp = (channel: StompChannel) => void | Promise<void>;
 
 export interface StompContextType {
@@ -26,8 +21,7 @@ export const StompContext = createContext<StompContextType | undefined>(undefine
 const RECONNECT_DELAY_MS = 5000;
 const HEARTBEAT_MS = 10000;
 
-/** 서버가 ApiResponse 로 감싸 보내므로 성공 payload 만 꺼내 넘긴다 */
-const payloadOf = (body: string): unknown => {
+const successPayloadOf = (body: string): unknown => {
   try {
     const response = JSON.parse(body);
     if (response?.result !== 'SUCCESS' || response.data === undefined || response.data === null) {
@@ -40,6 +34,14 @@ const payloadOf = (body: string): unknown => {
   }
 };
 
+const unsubscribeQuietly = (subscription: StompSubscription) => {
+  try {
+    subscription.unsubscribe();
+  } catch {
+    return;
+  }
+};
+
 const closeWithoutWaitingForServer = async (client: Client) => {
   try {
     await client.deactivate({ force: true });
@@ -48,28 +50,18 @@ const closeWithoutWaitingForServer = async (client: Client) => {
   }
 };
 
-/**
- * 연결은 서비스 단위로 하나다. 로그인하면 열고 로그아웃하면 닫는다.
- * 방 이동은 구독을 바꾸는 일일 뿐이라 핸드셰이크를 다시 하지 않는다.
- */
 export const StompProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { isAuthenticated } = useAuth();
   const clientRef = useRef<Client | null>(null);
   const setUps = useRef<Set<StompSetUp>>(new Set());
   const subscriptionsBySetUp = useRef<Map<StompSetUp, StompSubscription[]>>(new Map());
 
-  const dropSubscription = useCallback((setUp: StompSetUp) => {
-    subscriptionsBySetUp.current.get(setUp)?.forEach((subscription) => {
-      try {
-        subscription.unsubscribe();
-      } catch {
-        // 연결이 이미 끊긴 뒤라면 구독도 함께 사라졌으므로 무시한다
-      }
-    });
+  const dropSubscriptionsOf = useCallback((setUp: StompSetUp) => {
+    subscriptionsBySetUp.current.get(setUp)?.forEach(unsubscribeQuietly);
     subscriptionsBySetUp.current.delete(setUp);
   }, []);
 
-  const dropEverySubscription = useCallback(() => {
+  const forgetSubscriptionsOfDeadConnection = useCallback(() => {
     subscriptionsBySetUp.current.clear();
   }, []);
 
@@ -87,7 +79,7 @@ export const StompProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         if (!stillTheSameConnection()) return () => {};
 
         const subscription = client.subscribe(destination, (message) => {
-          const payload = payloadOf(message.body);
+          const payload = successPayloadOf(message.body);
           if (payload !== undefined) {
             handler(payload);
           }
@@ -96,7 +88,7 @@ export const StompProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
         return () => {
           if (!stillTheSameConnection()) return;
-          subscription.unsubscribe();
+          unsubscribeQuietly(subscription);
         };
       },
     };
@@ -113,10 +105,10 @@ export const StompProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
       return () => {
         setUps.current.delete(setUp);
-        dropSubscription(setUp);
+        dropSubscriptionsOf(setUp);
       };
     },
-    [runSetUp, dropSubscription],
+    [runSetUp, dropSubscriptionsOf],
   );
 
   const publish = useCallback((destination: string, body: unknown) => {
@@ -139,7 +131,7 @@ export const StompProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         setUps.current.forEach(runSetUp);
       },
       onWebSocketClose: () => {
-        dropEverySubscription();
+        forgetSubscriptionsOfDeadConnection();
       },
       onStompError: (frame) => {
         console.error('STOMP Error:', frame);
@@ -149,7 +141,7 @@ export const StompProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     clientRef.current = client;
     client.activate();
 
-    const reconnectIfAbandoned = () => {
+    const reviveAbandonedConnectionOnTabReturn = () => {
       if (document.visibilityState !== 'visible') return;
       if (client.active) return;
 
@@ -157,15 +149,15 @@ export const StompProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       client.activate();
     };
 
-    document.addEventListener('visibilitychange', reconnectIfAbandoned);
+    document.addEventListener('visibilitychange', reviveAbandonedConnectionOnTabReturn);
 
     return () => {
-      document.removeEventListener('visibilitychange', reconnectIfAbandoned);
+      document.removeEventListener('visibilitychange', reviveAbandonedConnectionOnTabReturn);
       clientRef.current = null;
-      dropEverySubscription();
+      forgetSubscriptionsOfDeadConnection();
       closeWithoutWaitingForServer(client);
     };
-  }, [isAuthenticated, runSetUp, dropEverySubscription]);
+  }, [isAuthenticated, runSetUp, forgetSubscriptionsOfDeadConnection]);
 
   return <StompContext.Provider value={{ onConnection, publish }}>{children}</StompContext.Provider>;
 };

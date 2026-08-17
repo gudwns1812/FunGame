@@ -9,10 +9,6 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.socket.messaging.SessionConnectedEvent;
 import org.springframework.web.socket.messaging.SessionDisconnectEvent;
 
-/**
- * 서비스 접속 여부만 다룬다. 방 소속은 join / leave API 가 정하므로 SUBSCRIBE 는 보지 않는다.
- * 온라인 여부의 단일 소스가 STOMP 세션이다.
- */
 @Component
 @RequiredArgsConstructor
 @Slf4j

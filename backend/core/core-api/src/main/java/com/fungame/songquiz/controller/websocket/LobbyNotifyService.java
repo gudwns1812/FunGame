@@ -55,7 +55,6 @@ public class LobbyNotifyService {
         }
     }
 
-    /** 접속자 목록에서 받는 사람 자신은 빠지므로 사람마다 내용이 다르다 */
     private void sendPresenceToEveryone() {
         OnlineMembers onlineMembers = onlineMemberService.findAllOnline();
 

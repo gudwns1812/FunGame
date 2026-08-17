@@ -81,7 +81,6 @@ const deliver = (destination: string, payload: unknown) => {
 
 const DESTINATION = '/topic/lobby';
 
-/** onConnection 으로 구독을 등록하고, 받은 payload 를 모아두는 소비자 */
 const Subscriber: React.FC<{ received: unknown[]; prepare?: () => Promise<void> }> = ({ received, prepare }) => {
   const { onConnection } = useStomp();
 

@@ -157,7 +157,7 @@ describe('useGameLogic 결과창에서 게임방으로 돌아가기', () => {
 
     const { result } = renderGameLogic();
 
-    // when: 로그인 확인이 방 채널 열기보다 먼저 끝나 회원 번호가 뒤늦게 들어온다
+    // when
     act(() => {
       result.current.identify(1, '나');
     });
@@ -165,7 +165,7 @@ describe('useGameLogic 결과창에서 게임방으로 돌아가기', () => {
       await stomp.connect();
     });
 
-    // then: 뒤늦게 끝난 스냅샷 조회가 방장 판정을 뒤집지 않는다
+    // then
     await waitFor(() => expect(result.current.isBootstrapping).toBe(false));
     expect(result.current.isHost).toBe(true);
   });

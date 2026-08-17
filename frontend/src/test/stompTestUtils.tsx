@@ -5,7 +5,6 @@ type OpenSubscription = { destination: string; handler: StompHandler };
 
 export const createStompStub = (options?: {
   onSubscribe?: (destination: string) => void;
-  /** 연결 순서가 관심사가 아닌 테스트는 이미 연결된 상태로 시작한다 */
   startConnected?: boolean;
 }) => {
   const setUps = new Set<StompSetUp>();
@@ -48,7 +47,6 @@ export const createStompStub = (options?: {
     published.push({ destination, body });
   };
 
-  /** 연결이 (다시) 맺어진 상황을 만든다. 등록된 setUp 이 모두 처음부터 다시 돈다. */
   const connect = async () => {
     connected = true;
     openedBySetUp.clear();

@@ -13,11 +13,6 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ScheduledFuture;
 
-/**
- * 끊긴 연결에만 유예를 준다. 의도한 퇴장은 leave API 가 즉시 처리하므로 여기까지 오지 않는다.
- * 유예를 회원 단위로 걸고, 만료된 시점에 그 회원이 지금 어느 방에 있는지 다시 읽어 거기서 내보낸다.
- * 그래서 A 방에서 끊긴 연결의 뒤늦은 유예가 B 방으로 옮겨간 사람을 건드릴 수 없다.
- */
 @Slf4j
 @Component
 public class RoomLeaveGrace {

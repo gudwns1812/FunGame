@@ -6,10 +6,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
-/**
- * 지금 살아 있는 STOMP 세션이 누구의 것인지만 안다.
- * 한 회원이 탭을 여러 개 열면 세션도 그만큼 생긴다.
- */
 @Component
 public class StompSessions {
 

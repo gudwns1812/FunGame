@@ -7,8 +7,7 @@ import { roomTopic } from '../utils/stompDestination';
 
 vi.mock('axios');
 
-/** join API · SUBSCRIBE · 스냅샷 조회가 실제로 불린 순서 */
-const traced: string[] = [];
+const callOrder: string[] = [];
 
 const mockedAxios = axios as unknown as {
   get: ReturnType<typeof vi.fn>;
@@ -46,7 +45,7 @@ describe('useGameLogic 방 채널 열기', () => {
   let stomp: ReturnType<typeof createStompStub>;
 
   const renderGameLogic = () => {
-    stomp = createStompStub({ onSubscribe: (destination) => traced.push(`subscribe ${destination}`) });
+    stomp = createStompStub({ onSubscribe: (destination) => callOrder.push(`subscribe ${destination}`) });
     return renderHook(() => useGameLogic(), {
       wrapper: stomp.wrapper,
     });
@@ -54,20 +53,20 @@ describe('useGameLogic 방 채널 열기', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    traced.length = 0;
+    callOrder.length = 0;
     localStorage.clear();
     localStorage.setItem('ums_nickname', '나');
     localStorage.setItem('ums_member_id', String(MY_MEMBER_ID));
 
     mockedAxios.post = vi.fn().mockImplementation((url: string) => {
       if (url.endsWith('/join')) {
-        traced.push('join');
+        callOrder.push('join');
       }
       return Promise.resolve({ data: { result: 'SUCCESS', data: 0 } });
     });
     mockedAxios.get = vi.fn().mockImplementation((url: string) => {
       if (url.endsWith('/users')) {
-        traced.push('snapshot');
+        callOrder.push('snapshot');
         return Promise.resolve({ data: { result: 'SUCCESS', data: roomState } });
       }
       return Promise.resolve({ data: { result: 'SUCCESS', data: [] } });
@@ -98,16 +97,16 @@ describe('useGameLogic 방 채널 열기', () => {
   it('최초 연결에서는 방금 한 join 을 다시 하지 않고 구독부터 한다', async () => {
     await joinAndConnect();
 
-    expect(traced).toEqual(['join', `subscribe ${roomTopic(ROOM_ID)}`, 'snapshot']);
+    expect(callOrder).toEqual(['join', `subscribe ${roomTopic(ROOM_ID)}`, 'snapshot']);
   });
 
   it('재연결되면 구독하기 전에 join 으로 소속을 되찾고, 구독한 뒤에 스냅샷을 읽는다', async () => {
     await joinAndConnect();
-    traced.length = 0;
+    callOrder.length = 0;
 
     await reconnect();
 
-    expect(traced).toEqual(['join', `subscribe ${roomTopic(ROOM_ID)}`, 'snapshot']);
+    expect(callOrder).toEqual(['join', `subscribe ${roomTopic(ROOM_ID)}`, 'snapshot']);
   });
 
   it('스냅샷으로 읽은 방 상태를 화면에 반영한다', async () => {
