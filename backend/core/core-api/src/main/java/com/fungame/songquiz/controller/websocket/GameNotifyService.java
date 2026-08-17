@@ -2,6 +2,7 @@ package com.fungame.songquiz.controller.websocket;
 
 import com.fungame.songquiz.domain.quiz.QuizInfo;
 import com.fungame.songquiz.domain.room.PlayerJoinEvent;
+import com.fungame.songquiz.domain.room.PlayerKickedEvent;
 import com.fungame.songquiz.domain.room.PlayerLeaveEvent;
 import com.fungame.songquiz.domain.room.PlayerReadyEvent;
 import com.fungame.songquiz.domain.room.RoomSettingsChangedEvent;
@@ -72,6 +73,15 @@ public class GameNotifyService {
         log.info("Broadcasting player leave: {} in room {}", event.player().memberId(), event.roomId());
         String destination = StompDestination.room(event.roomId());
         Object payload = Map.of("type", "PLAYER_LEAVE",
+                "memberId", event.player().memberId(), "nickname", event.player().nickname());
+        messagingTemplate.convertAndSend(destination, ApiResponse.success(payload));
+    }
+
+    @EventListener
+    public void handlePlayerKicked(PlayerKickedEvent event) {
+        log.info("Broadcasting player kicked: {} in room {}", event.player().memberId(), event.roomId());
+        String destination = StompDestination.room(event.roomId());
+        Object payload = Map.of("type", "PLAYER_KICKED",
                 "memberId", event.player().memberId(), "nickname", event.player().nickname());
         messagingTemplate.convertAndSend(destination, ApiResponse.success(payload));
     }

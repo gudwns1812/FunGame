@@ -28,6 +28,7 @@ axios.defaults.withCredentials = true; // 세션 인증을 위해 추가
 const HANGMAN_SOLVED_RESULT = 'CORRECT';
 /** 내 회원 번호를 담아두는 로컬스토리지 키. 방·게임의 모든 "나" 판정이 이 값으로 이뤄진다 */
 const MY_MEMBER_ID_KEY = 'ums_member_id';
+const KICKED_NOTICE = '방장이 회원님을 방에서 내보냈습니다.';
 
 const toRooms = (rawRooms: any[]): Room[] =>
   rawRooms.map((room) => ({
@@ -97,6 +98,7 @@ export const useGameLogic = () => {
   const [hint, setHint] = useState<string>('');
   const [hangmanStatus, setHangmanStatus] = useState<HangmanStatus | null>(null);
   const [roomSettings, setRoomSettings] = useState<RoomSettings | null>(null);
+  const [kickedNotice, setKickedNotice] = useState<string | null>(null);
   const [isBootstrapping, setIsBootstrapping] = useState(true);
   const [isCreatingRoom, setIsCreatingRoom] = useState(false);
   const [myColorIndex, setMyColorIndex] = useState<number | null>(() => {
@@ -122,6 +124,26 @@ export const useGameLogic = () => {
 
   const clearLogs = useCallback(() => {
     setLogs([]);
+  }, []);
+
+  const forgetRoom = useCallback(async () => {
+    await closeWithoutWaitingForServer(stompClient.current);
+    stompClient.current = null;
+    setRoomId(null);
+    setRoomName('');
+    setStatus('ROOM_LIST');
+    setPlayers([]);
+    setRoomSettings(null);
+    setPlayerIndex(null);
+    setGameStartInfo(null);
+    setRoundEndInfo(null);
+    setGameType(null);
+    gameTypeRef.current = null;
+    setHint('');
+    setCurrentVideoId('');
+    localStorage.removeItem('ums_currentVideoId');
+    localStorage.removeItem(PLAYER_COLOR_INDEX_KEY);
+    setMyColorIndex(null);
   }, []);
 
   const fetchRoomUsers = useCallback(
@@ -211,6 +233,18 @@ export const useGameLogic = () => {
             if (event.memberId === myMemberId && event.type === 'PLAYER_JOIN') break;
             const action = event.type === 'PLAYER_JOIN' ? '입장' : '퇴장';
             addLog(`[시스템] ${stripTag(event.nickname)}님이 ${action}하셨습니다.`);
+            fetchRoomUsers(roomId);
+          }
+          break;
+
+        case 'PLAYER_KICKED':
+          if (event.memberId === myMemberId) {
+            setKickedNotice(KICKED_NOTICE);
+            forgetRoom();
+            break;
+          }
+          if (roomId) {
+            addLog(`[시스템] ${stripTag(event.nickname)}님이 방장에게 내보내졌습니다.`);
             fetchRoomUsers(roomId);
           }
           break;
@@ -374,7 +408,7 @@ export const useGameLogic = () => {
         }
       }
     },
-    [addLog, nickname, roomId, fetchRoomUsers, gameType, status, applyRoomSettings],
+    [addLog, nickname, roomId, myMemberId, fetchRoomUsers, forgetRoom, gameType, status, applyRoomSettings],
   );
 
   const handleEventRef = useRef(handleEvent);
@@ -439,24 +473,25 @@ export const useGameLogic = () => {
         console.error('Leave room failed:', error);
       }
     }
-    await closeWithoutWaitingForServer(stompClient.current);
-    stompClient.current = null;
-    setRoomId(null);
-    setRoomName('');
-    setStatus('ROOM_LIST');
-    setPlayers([]);
-    setRoomSettings(null);
-    setPlayerIndex(null);
-    setGameStartInfo(null);
-    setRoundEndInfo(null);
-    setGameType(null);
-    gameTypeRef.current = null;
-    setHint('');
-    setCurrentVideoId(''); // 비디오 아이디 초기화
-    localStorage.removeItem('ums_currentVideoId'); // 로컬 스토리지도 함께 삭제
-    localStorage.removeItem(PLAYER_COLOR_INDEX_KEY);
-    setMyColorIndex(null);
-  }, [roomId, nickname]);
+    await forgetRoom();
+  }, [roomId, forgetRoom]);
+
+  const kickPlayer = useCallback(
+    async (targetMemberId: number) => {
+      if (!roomId) return;
+
+      try {
+        await axios.post(`/game/rooms/${roomId}/kick`, { targetMemberId });
+      } catch (error: any) {
+        window.alert(error?.response?.data?.error?.message ?? '플레이어를 내보내지 못했습니다.');
+      }
+    },
+    [roomId],
+  );
+
+  const dismissKickedNotice = useCallback(() => {
+    setKickedNotice(null);
+  }, []);
 
   const returnToLobby = leaveRoom;
 
@@ -1003,6 +1038,9 @@ export const useGameLogic = () => {
     acceptInvite,
     createRoom,
     leaveRoom,
+    kickPlayer,
+    kickedNotice,
+    dismissKickedNotice,
     returnToLobby,
     returnToWaitingRoom,
     roomSettings,

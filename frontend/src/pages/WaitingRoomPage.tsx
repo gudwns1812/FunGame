@@ -12,6 +12,7 @@ interface WaitingRoomPageProps {
   onStart: () => void;
   onLeave: () => void;
   onToggleReady: () => void;
+  onKickPlayer: (targetMemberId: number) => void;
   onSendMessage: (message: string) => void;
   maxPlayers: number;
   myMemberId: number | null;
@@ -30,6 +31,7 @@ const WaitingRoomPage: React.FC<WaitingRoomPageProps> = ({
   onStart,
   onLeave,
   onToggleReady,
+  onKickPlayer,
   onSendMessage,
   maxPlayers,
   myMemberId,
@@ -55,6 +57,7 @@ const WaitingRoomPage: React.FC<WaitingRoomPageProps> = ({
             onStart={onStart}
             onLeave={onLeave}
             onToggleReady={onToggleReady}
+            onKickPlayer={onKickPlayer}
             onSendMessage={onSendMessage}
             maxPlayers={maxPlayers}
             roomSettings={roomSettings}

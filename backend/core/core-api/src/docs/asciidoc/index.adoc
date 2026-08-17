@@ -44,6 +44,9 @@ operation::room-settings-change[snippets='path-parameters,http-request,request-b
 === 준비 상태 변경
 operation::room-ready[snippets='path-parameters,http-request,http-response,response-body']
 
+=== 플레이어 강퇴
+operation::room-kick[snippets='path-parameters,http-request,request-body,http-response']
+
 == 게임
 
 === 게임 시작

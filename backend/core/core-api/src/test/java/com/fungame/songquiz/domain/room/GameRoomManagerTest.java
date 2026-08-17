@@ -23,6 +23,7 @@ import java.util.List;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.clearInvocations;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -226,6 +227,24 @@ class GameRoomManagerTest {
         // then
         assertThat(result.newlyJoined()).isFalse();
         assertThat(result.playerNumber()).isEqualTo(2);
+    }
+
+    @Test
+    void 강퇴한_플레이어는_방에서_빠지고_바뀐_방이_저장된다() {
+        // given
+        openRoom(8);
+        gameRoomManager.joinRoom(ROOM_ID, GUEST);
+        clearInvocations(gameRoomWriter);
+
+        // when
+        GamePlayer kicked = gameRoomManager.kickPlayer(ROOM_ID, HOST.memberId(), GUEST.memberId());
+
+        // then
+        assertThat(kicked.memberId()).isEqualTo(GUEST.memberId());
+        assertThat(gameRoomManager.findRoom(ROOM_ID).getRoomPlayers())
+                .extracting(GamePlayer::memberId)
+                .containsExactly(HOST.memberId());
+        verify(gameRoomWriter).save(gameRoomManager.findRoom(ROOM_ID));
     }
 
     @Test

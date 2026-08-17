@@ -19,6 +19,7 @@ public enum ErrorType {
     GAME_ROOM_PLAYER_DUPLICATE(HttpStatus.INTERNAL_SERVER_ERROR, ErrorCode.P001, "플레이어가 중복입니다.", LogLevel.ERROR),
 
     NOT_VALID_HOST(HttpStatus.BAD_REQUEST, ErrorCode.G007, "호스트가 아닙니다.", LogLevel.DEBUG),
+    KICK_SELF(HttpStatus.BAD_REQUEST, ErrorCode.G011, "자기 자신은 내보낼 수 없습니다.", LogLevel.DEBUG),
 
     GAME_NOT_FOUND(HttpStatus.BAD_REQUEST, ErrorCode.G008 , "게임이 없습니다.", LogLevel.WARN),
     GAME_ROOM_NOT_ALL_READY(HttpStatus.BAD_REQUEST, ErrorCode.G009, "모든 플레이어가 준비되지 않았습니다.", LogLevel.DEBUG),
