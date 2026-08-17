@@ -1,5 +1,6 @@
 package com.fungame.songquiz.controller.websocket;
 
+import com.fungame.songquiz.domain.member.MemberConnectionTracker;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.event.EventListener;
@@ -10,6 +11,7 @@ import org.springframework.web.socket.messaging.SessionDisconnectEvent;
 
 /**
  * 서비스 접속 여부만 다룬다. 방 소속은 join / leave API 가 정하므로 SUBSCRIBE 는 보지 않는다.
+ * 온라인 여부의 단일 소스가 STOMP 세션이다.
  */
 @Component
 @RequiredArgsConstructor
@@ -18,6 +20,7 @@ public class WebSocketEventListener {
 
     private final StompSessions stompSessions;
     private final RoomLeaveGrace roomLeaveGrace;
+    private final MemberConnectionTracker memberConnectionTracker;
 
     @EventListener
     public void handleConnected(SessionConnectedEvent event) {
@@ -29,6 +32,7 @@ public class WebSocketEventListener {
         }
 
         stompSessions.add(sessionId, memberId);
+        memberConnectionTracker.connect(memberId, sessionId);
         roomLeaveGrace.cancelFor(memberId);
         log.debug("접속: 회원 {} (session {}), 열린 세션 {} 개",
                 memberId, sessionId, stompSessions.countSessionsOf(memberId));
@@ -41,6 +45,8 @@ public class WebSocketEventListener {
         if (memberId == null) {
             return;
         }
+
+        memberConnectionTracker.disconnect(memberId, sessionId);
 
         if (stompSessions.isConnected(memberId)) {
             log.debug("세션 {} 종료, 회원 {} 의 다른 세션이 살아 있어 유예를 걸지 않는다", sessionId, memberId);

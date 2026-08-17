@@ -1,22 +1,24 @@
 import { useCallback, useEffect, useState } from 'react';
 import axios from 'axios';
-import { useSse } from '../contexts/SseContext';
+import { useStomp } from '../contexts/StompContext';
+import { INVITE_QUEUE } from '../utils/stompDestination';
 import type { RoomInvite } from '../types/presence';
 
 export const useRoomInvites = () => {
-  const { onEvent } = useSse();
+  const { onConnection } = useStomp();
   const [pendingInvites, setPendingInvites] = useState<RoomInvite[]>([]);
 
-  useEffect(() => {
-    const queueInvite = (event: MessageEvent) => {
-      const invite: RoomInvite = JSON.parse(event.data);
-      setPendingInvites((invites) =>
-        invites.some((queued) => queued.inviteId === invite.inviteId) ? invites : [...invites, invite],
-      );
-    };
-
-    return onEvent('room-invite', queueInvite);
-  }, [onEvent]);
+  useEffect(
+    () =>
+      onConnection((channel) => {
+        channel.subscribe(INVITE_QUEUE, (invite: RoomInvite) => {
+          setPendingInvites((invites) =>
+            invites.some((queued) => queued.inviteId === invite.inviteId) ? invites : [...invites, invite],
+          );
+        });
+      }),
+    [onConnection],
+  );
 
   const dropInvite = useCallback((inviteId: string) => {
     setPendingInvites((invites) => invites.filter((invite) => invite.inviteId !== inviteId));

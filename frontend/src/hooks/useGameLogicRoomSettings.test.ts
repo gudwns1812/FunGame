@@ -2,8 +2,7 @@ import { renderHook, act } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import axios from 'axios';
 import { useGameLogic } from './useGameLogic';
-import { createSseStub } from '../test/sseTestUtils';
-import { createStompStub, nestWrappers } from '../test/stompTestUtils';
+import { createStompStub } from '../test/stompTestUtils';
 
 vi.mock('axios');
 
@@ -49,7 +48,7 @@ describe('useGameLogic 방 설정 변경', () => {
 
   it('정원을 바꾸면 대기실 슬롯 기준 정원도 따라간다', async () => {
     const { result } = renderHook(() => useGameLogic(), {
-      wrapper: nestWrappers(createSseStub().wrapper, createStompStub().wrapper),
+      wrapper: createStompStub().wrapper,
     });
 
     await act(async () => {
@@ -73,7 +72,7 @@ describe('useGameLogic 방 설정 변경', () => {
     });
 
     const { result } = renderHook(() => useGameLogic(), {
-      wrapper: nestWrappers(createSseStub().wrapper, createStompStub().wrapper),
+      wrapper: createStompStub().wrapper,
     });
     const before = result.current.roomMaxPlayers;
 

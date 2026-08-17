@@ -1,5 +1,6 @@
 package com.fungame.songquiz.controller.websocket;
 
+import com.fungame.songquiz.domain.member.MemberConnectionTracker;
 import com.fungame.songquiz.support.StompMessages;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -23,21 +24,25 @@ class WebSocketEventListenerTest {
     @Mock
     RoomLeaveGrace roomLeaveGrace;
 
+    @Mock
+    MemberConnectionTracker memberConnectionTracker;
+
     StompSessions stompSessions;
     WebSocketEventListener listener;
 
     @BeforeEach
     void setUp() {
         stompSessions = new StompSessions();
-        listener = new WebSocketEventListener(stompSessions, roomLeaveGrace);
+        listener = new WebSocketEventListener(stompSessions, roomLeaveGrace, memberConnectionTracker);
     }
 
     @Test
-    @DisplayName("접속하면 세션을 회원에 묶고 예약된 이탈을 취소한다.")
+    @DisplayName("접속하면 세션을 회원에 묶고 온라인으로 표시하고 예약된 이탈을 취소한다.")
     void registerSessionAndCancelPendingLeaveOnConnect() {
         connect("session-1");
 
         assertThat(stompSessions.isConnected(MEMBER_ID)).isTrue();
+        verify(memberConnectionTracker).connect(MEMBER_ID, "session-1");
         verify(roomLeaveGrace).cancelFor(MEMBER_ID);
     }
 
@@ -51,13 +56,14 @@ class WebSocketEventListenerTest {
     }
 
     @Test
-    @DisplayName("마지막 세션이 끊기면 이탈 유예를 건다.")
+    @DisplayName("마지막 세션이 끊기면 온라인 표시를 지우고 이탈 유예를 건다.")
     void beginGraceWhenLastSessionCloses() {
         connect("session-1");
 
         disconnect("session-1");
 
         assertThat(stompSessions.isConnected(MEMBER_ID)).isFalse();
+        verify(memberConnectionTracker).disconnect(MEMBER_ID, "session-1");
         verify(roomLeaveGrace).beginFor(MEMBER_ID);
     }
 

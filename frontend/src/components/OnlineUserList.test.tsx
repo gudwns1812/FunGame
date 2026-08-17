@@ -3,7 +3,8 @@ import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import axios from 'axios';
 import OnlineUserList from './OnlineUserList';
-import { createSseStub } from '../test/sseTestUtils';
+import { createStompStub } from '../test/stompTestUtils';
+import { PRESENCE_QUEUE } from '../utils/stompDestination';
 import type { OnlineMember } from '../types/presence';
 
 vi.mock('axios');
@@ -20,14 +21,14 @@ const members: OnlineMember[] = [
 ];
 
 const renderList = (invitingRoomId?: string | null) => {
-  const sse = createSseStub();
-  const { wrapper: Wrapper } = sse;
+  const stomp = createStompStub({ startConnected: true });
+  const { wrapper: Wrapper } = stomp;
   render(
     <Wrapper>
       <OnlineUserList invitingRoomId={invitingRoomId} />
     </Wrapper>,
   );
-  return sse;
+  return stomp;
 };
 
 const inviteButtonOf = (nickname: string) => {
@@ -214,14 +215,24 @@ describe('OnlineUserList', () => {
     expect(inviteButtonOf('로비유저')).toBeEnabled();
   });
 
-  it('접속 상태가 바뀌면 목록을 다시 가져온다', async () => {
-    const sse = renderList();
+  it('해석할 수 없는 접속 알림을 받으면 목록을 다시 가져온다', async () => {
+    const stomp = renderList();
     await screen.findByText('로비유저');
     const fetchesBefore = mockedAxios.get.mock.calls.length;
 
-    sse.emit('presence-update', 'REFRESH');
+    act(() => stomp.emit(PRESENCE_QUEUE, 'REFRESH'));
 
     await waitFor(() => expect(mockedAxios.get.mock.calls.length).toBe(fetchesBefore + 1));
+  });
+
+  it('접속 알림에 실려 온 목록으로 갱신한다', async () => {
+    const stomp = renderList();
+    await screen.findByText('로비유저');
+
+    act(() => stomp.emit(PRESENCE_QUEUE, [members[0]]));
+
+    await waitFor(() => expect(screen.queryByText('대기유저')).not.toBeInTheDocument());
+    expect(screen.getByText('로비유저')).toBeInTheDocument();
   });
 
   it('아무도 없으면 안내 문구를 보여준다', async () => {

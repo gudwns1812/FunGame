@@ -14,9 +14,8 @@ import type {
 } from '../types/game';
 import { stripTag } from '../utils/stringUtils';
 import { PLAYER_COLOR_INDEX_KEY } from '../utils/playerColor';
-import { roomChat, roomTopic } from '../utils/stompDestination';
+import { LOBBY_TOPIC, roomChat, roomTopic } from '../utils/stompDestination';
 import { playSound } from '../utils/sound';
-import { useSse } from '../contexts/SseContext';
 import { useStomp, type StompChannel } from '../contexts/StompContext';
 import type { RoomInvite } from '../types/presence';
 
@@ -43,17 +42,7 @@ const toRooms = (rawRooms: any[]): Room[] =>
     csDifficulty: room.csDifficulty,
   }));
 
-const pushedRoomsOf = (data: string): Room[] | null => {
-  try {
-    const parsed = JSON.parse(data);
-    return Array.isArray(parsed) ? toRooms(parsed) : null;
-  } catch {
-    return null;
-  }
-};
-
 export const useGameLogic = () => {
-  const { onEvent: onSseEvent } = useSse();
   const { onConnection, publish } = useStomp();
   const [myMemberId, setMyMemberId] = useState<number | null>(() => {
     const saved = localStorage.getItem(MY_MEMBER_ID_KEY);
@@ -661,41 +650,19 @@ export const useGameLogic = () => {
   useEffect(() => {
     if (status !== 'ROOM_LIST') return;
 
-    let debounceTimer: ReturnType<typeof setTimeout>;
-    const debouncedFetchRooms = () => {
-      clearTimeout(debounceTimer);
-      debounceTimer = setTimeout(() => {
-        fetchRooms();
-      }, 300);
-    };
+    // 방 채널과 같은 순서다. 구독을 먼저 걸고 목록을 읽어 그 사이 구간을 메운다.
+    return onConnection((channel) => {
+      channel.subscribe(LOBBY_TOPIC, (pushedRooms) => {
+        if (!Array.isArray(pushedRooms)) {
+          void fetchRooms();
+          return;
+        }
+        setRooms(toRooms(pushedRooms));
+      });
 
-    const applyPushedRooms = (event: MessageEvent) => {
-      const pushedRooms = pushedRoomsOf(event.data);
-      if (!pushedRooms) {
-        debouncedFetchRooms();
-        return;
-      }
-
-      setRooms(pushedRooms);
-    };
-
-    const resyncOnTabReturn = () => {
-      if (document.visibilityState !== 'visible') return;
-      debouncedFetchRooms();
-    };
-
-    fetchRooms();
-    const stopListeningRoomUpdate = onSseEvent('room-update', applyPushedRooms);
-    const stopListeningConnected = onSseEvent('connected', debouncedFetchRooms);
-    document.addEventListener('visibilitychange', resyncOnTabReturn);
-
-    return () => {
-      document.removeEventListener('visibilitychange', resyncOnTabReturn);
-      stopListeningRoomUpdate();
-      stopListeningConnected();
-      clearTimeout(debounceTimer);
-    };
-  }, [status, fetchRooms, onSseEvent]);
+      void fetchRooms();
+    });
+  }, [status, fetchRooms, onConnection]);
 
   /**
    * 로그인한 사람이 누구인지 게임 로직에 알린다.

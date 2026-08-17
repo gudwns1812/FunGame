@@ -17,7 +17,6 @@ import { useGameLogic } from './hooks/useGameLogic';
 import { useButtonClickSound } from './hooks/useButtonClickSound';
 import type { GameStatus } from './types/game';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
-import { SseProvider } from './contexts/SseContext';
 import { StompProvider } from './contexts/StompContext';
 import { useRoomInvites } from './hooks/useRoomInvites';
 import InviteToast from './components/InviteToast';
@@ -335,11 +334,9 @@ function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
-        <SseProvider>
-          <StompProvider>
-            <AppContent />
-          </StompProvider>
-        </SseProvider>
+        <StompProvider>
+          <AppContent />
+        </StompProvider>
       </AuthProvider>
     </BrowserRouter>
   );

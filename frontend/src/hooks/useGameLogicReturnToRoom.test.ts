@@ -2,9 +2,8 @@ import { renderHook, act, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import axios from 'axios';
 import { useGameLogic } from './useGameLogic';
-import { createSseStub } from '../test/sseTestUtils';
 import { roomTopic } from '../utils/stompDestination';
-import { createStompStub, nestWrappers } from '../test/stompTestUtils';
+import { createStompStub } from '../test/stompTestUtils';
 
 vi.mock('axios');
 
@@ -20,7 +19,7 @@ describe('useGameLogic 결과창에서 게임방으로 돌아가기', () => {
   const renderGameLogic = () => {
     stomp = createStompStub();
     return renderHook(() => useGameLogic(), {
-      wrapper: nestWrappers(createSseStub().wrapper, stomp.wrapper),
+      wrapper: stomp.wrapper,
     });
   };
 

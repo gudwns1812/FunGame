@@ -1,8 +1,7 @@
 import { renderHook, act } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { useGameLogic } from './useGameLogic';
-import { createSseStub } from '../test/sseTestUtils';
-import { createStompStub, nestWrappers } from '../test/stompTestUtils';
+import { createStompStub } from '../test/stompTestUtils';
 
 // Mock dependencies
 vi.mock('axios');
@@ -16,7 +15,7 @@ describe('useGameLogic Event Logging', () => {
   it('PLAYER_JOIN & PLAYER_LEAVE 이벤트를 제외한 시스템 로그는 필터링되어야 한다', async () => {
     // 훅 렌더링
     const { result } = renderHook(() => useGameLogic(), {
-      wrapper: nestWrappers(createSseStub().wrapper, createStompStub().wrapper),
+      wrapper: createStompStub().wrapper,
     });
 
     // 상태 강제 주입 후 로그 추가 발생 여부 확인 로직

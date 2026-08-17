@@ -33,18 +33,20 @@
   방은 `join → subscribe → 스냅샷` 을, 로비는 `subscribe → 목록 조회` 를 그 안에서 한다.
 - `useGameLogic` 은 `Client` 를 만들지 않고 구독·발행만 한다.
 
-## 3단계 — 로비/초대/접속자를 STOMP destination 으로 옮긴다
+## 3 · 4단계 — 로비/초대/접속자를 STOMP 로 옮기고 SSE 를 걷어낸다
+
+두 단계를 한 커밋으로 합쳤다. 3단계만 하면 `SseService` 의 팬아웃(`broadcast` ·
+`broadcastEach` · `sendTo`)과 `MemberPayload` 가 쓰이지 않는 채로 남아, 다음 커밋에서
+지우려고 쓰는 코드가 된다. 둘을 합쳐도 한 번에 배포할 수 있는 단위다.
 
 - `/topic/lobby`, `/user/queue/presence`, `/user/queue/invite` 를 추가한다.
 - `LobbyNotifyService` · `InviteNotifyService` 가 `SimpMessagingTemplate` 을 쓴다.
   접속자 목록은 뷰어별 payload 라 `convertAndSendToUser` 로 보낸다(Principal 이름은 회원 번호다).
 - 프론트의 `useOnlineMembers` · `useRoomInvites` · 방 목록 구독을 STOMP 구독으로 교체한다.
 
-## 4단계 — SSE 를 걷어낸다
-
 - `SseController` · `SseService` · `SseConnection` · `MemberPayload` · `SseContext` 와 관련 테스트를 지운다.
 - `MemberConnectionTracker` 를 STOMP 세션 CONNECT/DISCONNECT 에 붙인다.
-- 문서(`index.adoc`)의 SSE 절을 지운다.
+- 문서(`index.adoc`)의 SSE 절과 SSE 전용이던 async 응답 예외 처리를 지운다.
 
 ## 검증
 

@@ -2,8 +2,7 @@ import { renderHook, act, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import axios from 'axios';
 import { useGameLogic } from './useGameLogic';
-import { createSseStub } from '../test/sseTestUtils';
-import { createStompStub, nestWrappers } from '../test/stompTestUtils';
+import { createStompStub } from '../test/stompTestUtils';
 import { roomTopic } from '../utils/stompDestination';
 
 vi.mock('axios');
@@ -49,7 +48,7 @@ describe('useGameLogic 방 채널 열기', () => {
   const renderGameLogic = () => {
     stomp = createStompStub({ onSubscribe: (destination) => traced.push(`subscribe ${destination}`) });
     return renderHook(() => useGameLogic(), {
-      wrapper: nestWrappers(createSseStub().wrapper, stomp.wrapper),
+      wrapper: stomp.wrapper,
     });
   };
 

@@ -34,30 +34,6 @@ class MemoryStorage {
   }
 }
 
-class NoopEventSource {
-  static readonly CONNECTING = 0;
-  static readonly OPEN = 1;
-  static readonly CLOSED = 2;
-
-  readonly readyState = NoopEventSource.CONNECTING;
-  onopen: ((event: Event) => void) | null = null;
-  onerror: ((event: Event) => void) | null = null;
-
-  addEventListener() { }
-
-  removeEventListener() { }
-
-  close() { }
-}
-
-if (typeof globalThis.EventSource === 'undefined') {
-  Object.defineProperty(globalThis, 'EventSource', {
-    value: NoopEventSource,
-    configurable: true,
-    writable: true,
-  });
-}
-
 const storage = new MemoryStorage() as unknown as Storage;
 
 for (const target of [globalThis, typeof window === 'undefined' ? null : window]) {
