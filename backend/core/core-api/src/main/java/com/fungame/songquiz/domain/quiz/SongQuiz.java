@@ -6,6 +6,7 @@ import com.fungame.songquiz.enums.GameType;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
 
 @Slf4j
@@ -32,6 +33,22 @@ public class SongQuiz extends AbstractQuiz {
     @Override
     public QuizInfo getQuizInfo() {
         return new QuizInfo(getType().name(), gameCategory.name(), songs.size());
+    }
+
+    @Override
+    public Long getCurrentContentId() {
+        return currentSong()
+                .map(Song::getId)
+                .orElse(null);
+    }
+
+    private Optional<Song> currentSong() {
+        int current = currentIdx.get();
+        if (current < 0 || current >= songs.size()) {
+            return Optional.empty();
+        }
+
+        return Optional.of(songs.get(current));
     }
 
     @Override

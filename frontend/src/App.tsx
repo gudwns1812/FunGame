@@ -12,6 +12,7 @@ import WaitingRoomPage from './pages/WaitingRoomPage';
 import GamePage from './pages/GamePage';
 import HangmanPage from './pages/HangmanPage';
 import HangmanResultPage from './pages/HangmanResultPage';
+import ReportPage from './pages/ReportPage';
 import ResultPage from './pages/ResultPage';
 import { useGameLogic } from './hooks/useGameLogic';
 import { useButtonClickSound } from './hooks/useButtonClickSound';
@@ -205,7 +206,13 @@ function AppContent() {
         }
       />
       <Route
-        path="/mypage"
+        path="/report"
+        element={
+          isAuthenticated ? <ReportPage /> : <Navigate to="/login" replace />
+        }
+      />
+      <Route
+        path="/mypage/*"
         element={
           isAuthenticated ? <MyPage /> : <Navigate to="/login" replace />
         }
@@ -284,6 +291,7 @@ function AppContent() {
               logs={logs}
               players={players}
               onSendMessage={sendMessage}
+              roomId={roomId || ''}
             />
           ) : (
             <Navigate to={isAuthenticated ? currentPath : "/login"} replace />

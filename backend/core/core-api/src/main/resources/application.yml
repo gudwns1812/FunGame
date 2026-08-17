@@ -19,6 +19,7 @@ spring:
     import:
       - classpath:db-core.yml
       - classpath:client-mail.yml
+      - classpath:client-discord.yml
       - classpath:monitoring.yml
 server:
   servlet:

@@ -11,6 +11,7 @@ import java.util.Set;
 
 @Getter
 public class Song {
+    private final Long id;
     private final String title;
     private final String singer;
     private final List<Category> categories;
@@ -21,9 +22,10 @@ public class Song {
     private final Set<String> answers;
     private final String hint;
 
-    private Song(String title, String singer, List<Category> categories, LocalDate releaseDate, String link,
+    private Song(Long id, String title, String singer, List<Category> categories, LocalDate releaseDate, String link,
                  int playSeconds,
                  Set<String> answers, String hint) {
+        this.id = id;
         this.title = title;
         this.singer = singer;
         this.categories = categories;
@@ -40,9 +42,20 @@ public class Song {
 
     public static Song of(String title, String singer, List<Category> categories, LocalDate releaseDate, String link,
                           int playSeconds, List<String> answers, String hint) {
-        Set<String> answer = new HashSet<>(answers);
-        answer.add(title);
+        return new Song(null, title, singer, categories, releaseDate, link, playSeconds,
+                answersWithTitle(answers, title), hint);
+    }
 
-        return new Song(title, singer, categories, releaseDate, link, playSeconds, answer, hint);
+    public static Song stored(Long id, String title, String singer, List<Category> categories, LocalDate releaseDate,
+                              String link, int playSeconds, List<String> answers, String hint) {
+        return new Song(id, title, singer, categories, releaseDate, link, playSeconds,
+                answersWithTitle(answers, title), hint);
+    }
+
+    private static Set<String> answersWithTitle(List<String> answers, String title) {
+        Set<String> withTitle = new HashSet<>(answers);
+        withTitle.add(title);
+
+        return withTitle;
     }
 }

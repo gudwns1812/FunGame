@@ -4,6 +4,7 @@ import com.fungame.songquiz.enums.ActionResult;
 import com.fungame.songquiz.enums.GameType;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class CsQuiz extends AbstractQuiz {
@@ -32,6 +33,22 @@ public class CsQuiz extends AbstractQuiz {
     @Override
     public QuizInfo getQuizInfo() {
         return new QuizInfo(getType().name(), "여러가지 CS 혼합", quizs.size());
+    }
+
+    @Override
+    public Long getCurrentContentId() {
+        return currentQuestion()
+                .map(CsQuestion::getId)
+                .orElse(null);
+    }
+
+    private Optional<CsQuestion> currentQuestion() {
+        int current = currentIdx.get();
+        if (current < 0 || current >= quizs.size()) {
+            return Optional.empty();
+        }
+
+        return Optional.of(quizs.get(current));
     }
 
     @Override

@@ -1,6 +1,7 @@
 package com.fungame.songquiz.domain.session;
 
 import com.fungame.songquiz.domain.quiz.HangmanQuiz;
+import com.fungame.songquiz.domain.quiz.HangmanWord;
 import com.fungame.songquiz.domain.room.GamePlayer;
 import com.fungame.songquiz.domain.room.GameRoom;
 import com.fungame.songquiz.domain.room.GameRoomManager;
@@ -50,7 +51,7 @@ class HangmanGameServiceTest {
         Long roomId = 1L;
         List<GamePlayer> players = List.of(HOST, P2);
         GameRoom mockRoom = mock(GameRoom.class);
-        GameSession session = new GameSession(HangmanQuiz.create("APPLE"), players);
+        GameSession session = new GameSession(HangmanQuiz.create(new HangmanWord(1L, "APPLE", 1)), players);
 
         given(gameRoomManager.startGame(roomId, HOST.memberId())).willReturn(mockRoom);
         given(mockRoom.getSettings()).willReturn(SETTINGS);
@@ -70,7 +71,7 @@ class HangmanGameServiceTest {
         // Given
         Long roomId = 1L;
         List<GamePlayer> players = List.of(P1, P2);
-        HangmanQuiz hangmanQuiz = HangmanQuiz.create("APPLE");
+        HangmanQuiz hangmanQuiz = HangmanQuiz.create(new HangmanWord(1L, "APPLE", 1));
         hangmanQuiz.initPlayers(players);
         GameAction action = new GameAction(P1.memberId(), ActionType.SUBMIT_ANSWER, "A");
 
@@ -89,7 +90,7 @@ class HangmanGameServiceTest {
         // Given
         Long roomId = 1L;
         List<GamePlayer> players = List.of(P1);
-        HangmanQuiz hangmanQuiz = HangmanQuiz.create("A"); // 한 글자 정답
+        HangmanQuiz hangmanQuiz = HangmanQuiz.create(new HangmanWord(2L, "A", 1)); // 한 글자 정답
         hangmanQuiz.initPlayers(players);
         GameAction action = new GameAction(P1.memberId(), ActionType.SUBMIT_ANSWER, "A");
 

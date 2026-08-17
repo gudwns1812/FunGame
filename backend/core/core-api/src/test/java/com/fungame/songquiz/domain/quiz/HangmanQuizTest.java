@@ -3,6 +3,7 @@ package com.fungame.songquiz.domain.quiz;
 import com.fungame.songquiz.domain.room.GamePlayer;
 import com.fungame.songquiz.enums.ActionResult;
 import com.fungame.songquiz.support.error.CoreException;
+import com.fungame.songquiz.support.error.ErrorType;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -17,14 +18,19 @@ class HangmanGameTest {
     private static final GamePlayer PLAYER1 = GamePlayer.createNewPlayer(1L, "player1");
     private static final GamePlayer PLAYER2 = GamePlayer.createNewPlayer(2L, "player2");
     private static final GamePlayer PLAYER3 = GamePlayer.createNewPlayer(3L, "player3");
+    private static final long WORD_ID = 77L;
 
     private HangmanQuiz quiz;
     private List<GamePlayer> players;
 
+    private static HangmanWord word(String value) {
+        return new HangmanWord(WORD_ID, value, 1);
+    }
+
     @BeforeEach
     void setUp() {
         players = List.of(PLAYER1, PLAYER2);
-        quiz = HangmanQuiz.create("APPLE");
+        quiz = HangmanQuiz.create(word("APPLE"));
         quiz.initPlayers(players);
     }
 
@@ -112,7 +118,7 @@ class HangmanGameTest {
     @DisplayName("공백이 포함된 정답도 글자를 맞추면 표시 상태가 업데이트된다.")
     void guess_correct_letter_with_blank_answer() {
         // given
-        quiz = HangmanQuiz.create("HOT DOG");
+        quiz = HangmanQuiz.create(word("HOT DOG"));
         quiz.initPlayers(players);
 
         // when
@@ -127,7 +133,7 @@ class HangmanGameTest {
     @DisplayName("공백이 포함된 정답을 모두 맞추면 승리 처리된다.")
     void win_game_with_blank_answer() {
         // given
-        quiz = HangmanQuiz.create("HOT DOG");
+        quiz = HangmanQuiz.create(word("HOT DOG"));
         quiz.initPlayers(players);
 
         // when
@@ -147,7 +153,7 @@ class HangmanGameTest {
     @DisplayName("자기 차례인 플레이어가 이탈하면 턴이 다음 사람에게 넘어간다.")
     void removePlayer_current_turn_moves_on() {
         // given: player1, player2, player3 중 player1 차례
-        quiz = HangmanQuiz.create("APPLE");
+        quiz = HangmanQuiz.create(word("APPLE"));
         quiz.initPlayers(List.of(PLAYER1, PLAYER2, PLAYER3));
 
         // when
@@ -164,7 +170,7 @@ class HangmanGameTest {
     @DisplayName("앞 순번 플레이어가 이탈해도 현재 차례인 사람은 그대로 유지된다.")
     void removePlayer_before_current_keeps_turn() {
         // given: player1, player2, player3 에서 player2 차례로 진행
-        quiz = HangmanQuiz.create("APPLE");
+        quiz = HangmanQuiz.create(word("APPLE"));
         quiz.initPlayers(List.of(PLAYER1, PLAYER2, PLAYER3));
         quiz.guess(PLAYER1.memberId(), 'A');
         assertThat(quiz.getCurrentTurnPlayer().nickname()).isEqualTo("player2");
@@ -188,5 +194,19 @@ class HangmanGameTest {
 
         // then
         assertThat(quiz.getCurrentTurnPlayer().nickname()).isEqualTo("player1");
+    }
+
+    @Test
+    @DisplayName("어느 단어로 출제됐는지 알려준다.")
+    void tellsContentIdOfWord() {
+        assertThat(quiz.getCurrentContentId()).isEqualTo(WORD_ID);
+    }
+
+    @Test
+    @DisplayName("비어 있는 단어로는 만들 수 없다.")
+    void rejectsBlankWord() {
+        assertThatThrownBy(() -> HangmanQuiz.create(word(" ")))
+                .isInstanceOf(CoreException.class)
+                .hasFieldOrPropertyWithValue("type", ErrorType.HANGMAN_ANSWER_EMPTY);
     }
 }

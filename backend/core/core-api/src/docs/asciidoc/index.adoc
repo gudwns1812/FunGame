@@ -51,3 +51,31 @@ operation::room-kick[snippets='path-parameters,http-request,request-body,http-re
 
 === 게임 시작
 operation::game-start[snippets='path-parameters,http-request,request-body,http-response,response-body']
+
+== 신고
+
+요청 바디에 게임 정보가 하나도 없다. 어느 방 · 몇 라운드 · 어떤 문제였고 정답이
+무엇이었는지는 서버가 세션에서 읽어 채운다.
+
+=== 게임 중 신고
+operation::report-in-game[snippets='http-request,request-body,http-response']
+
+=== 로비 신고
+operation::report-lobby[snippets='http-request,request-body,http-response']
+
+=== 내가 접수한 신고 조회
+신고자 응답에는 정답 · 힌트 · 문제 식별자 · 방 · 라운드가 실리지 않는다. 내려주면
+라운드 진행 중에 신고 버튼을 눌러 정답을 읽는 통로가 된다.
+
+operation::report-mine[snippets='http-request,http-response,response-body']
+
+== 문의 관리 (ADMIN 이상)
+
+=== 전체 신고 조회
+operation::admin-report-list[snippets='http-request,http-response,response-body']
+
+=== 답변 남기기
+operation::admin-report-comment[snippets='path-parameters,http-request,request-body,http-response']
+
+=== 처리 상태 바꾸기
+operation::admin-report-status[snippets='path-parameters,http-request,request-body,http-response']

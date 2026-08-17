@@ -22,6 +22,6 @@ public class HangmanWordReader {
     }
 
     private static HangmanWord toWord(HangmanWordEntity entity) {
-        return new HangmanWord(entity.getWord(), entity.getDifficulty());
+        return new HangmanWord(entity.getId(), entity.getWord(), entity.getDifficulty());
     }
 }

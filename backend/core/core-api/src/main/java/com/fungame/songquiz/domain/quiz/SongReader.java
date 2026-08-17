@@ -57,7 +57,8 @@ public class SongReader {
     }
 
     private Song toDomain(SongEntity entity) {
-        return Song.of(
+        return Song.stored(
+                entity.getId(),
                 entity.getTitle(),
                 entity.getSinger(),
                 List.copyOf(entity.getCategories()),

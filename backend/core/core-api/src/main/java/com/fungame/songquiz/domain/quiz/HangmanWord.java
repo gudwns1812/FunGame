@@ -1,4 +1,4 @@
 package com.fungame.songquiz.domain.quiz;
 
-public record HangmanWord(String value, int difficulty) {
+public record HangmanWord(Long id, String value, int difficulty) {
 }
