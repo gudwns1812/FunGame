@@ -30,6 +30,10 @@ const HANGMAN_SOLVED_RESULT = 'CORRECT';
 const MY_MEMBER_ID_KEY = 'ums_member_id';
 const KICKED_NOTICE = '방장이 회원님을 방에서 내보냈습니다.';
 const NOT_RENDERING_ROOM_STATE = -1;
+const ROUND_LENGTH_SECONDS = 30;
+const ROUND_TIMER_REFRESH_MS = 200;
+
+const secondsLeftUntil = (deadline: number) => Math.max(0, Math.ceil((deadline - Date.now()) / 1000));
 
 const isInRoom = (status: GameStatus) => status === 'WAITING' || status === 'PLAYING';
 
@@ -67,8 +71,9 @@ export const useGameLogic = () => {
   });
   const [players, setPlayers] = useState<Player[]>([]);
   const [rooms, setRooms] = useState<Room[]>([]);
-  const [timeLeft, setTimeLeft] = useState(30);
-  const [totalTime, setTotalTime] = useState(30);
+  const [timeLeft, setTimeLeft] = useState(ROUND_LENGTH_SECONDS);
+  const [totalTime, setTotalTime] = useState(ROUND_LENGTH_SECONDS);
+  const [roundDeadline, setRoundDeadline] = useState<number | null>(null);
   const [logs, setLogs] = useState<string[]>(() => {
     const savedLogs = localStorage.getItem('ums_logs');
     return savedLogs ? JSON.parse(savedLogs) : [];
@@ -97,6 +102,39 @@ export const useGameLogic = () => {
 
   const hostMemberId = players.find((player) => player.isHost)?.memberId ?? roomSettings?.hostMemberId ?? null;
   const isHost = myMemberId !== null && hostMemberId === myMemberId;
+
+  const roundDeadlineRef = useRef<number | null>(null);
+
+  const countDownUntil = useCallback((remainingMillis: number) => {
+    const deadline = remainingMillis > 0 ? Date.now() + remainingMillis : null;
+    roundDeadlineRef.current = deadline;
+    setRoundDeadline(deadline);
+  }, []);
+
+  const stopCountDown = useCallback(() => {
+    const deadline = roundDeadlineRef.current;
+    if (deadline !== null) {
+      setTimeLeft(secondsLeftUntil(deadline));
+    }
+
+    roundDeadlineRef.current = null;
+    setRoundDeadline(null);
+  }, []);
+
+  useEffect(() => {
+    if (roundDeadline === null) return;
+
+    const showRemaining = () => setTimeLeft(secondsLeftUntil(roundDeadline));
+    showRemaining();
+
+    const ticker = window.setInterval(showRemaining, ROUND_TIMER_REFRESH_MS);
+    document.addEventListener('visibilitychange', showRemaining);
+
+    return () => {
+      window.clearInterval(ticker);
+      document.removeEventListener('visibilitychange', showRemaining);
+    };
+  }, [roundDeadline]);
 
   // 제목없는 음원으로 미디어 플레이어 제목 가리기
 
@@ -341,12 +379,11 @@ export const useGameLogic = () => {
           setRoundIndex(event.round);
           setCurrentRound(event.round);
           setTotalRound(event.totalRound);
+          if (event.remainingMillis > 0) {
+            setTotalTime(Math.round(event.remainingMillis / 1000));
+          }
+          countDownUntil(event.remainingMillis);
           addLog(`================================================================================`);
-          break;
-
-        case 'TIMER_TICK':
-          setTimeLeft(event.remainingSeconds);
-          setTotalTime(30);
           break;
 
         case 'ROUND_HINT':
@@ -364,6 +401,7 @@ export const useGameLogic = () => {
 
         case 'ROUND_END': {
           setHint('');
+          stopCountDown();
           const isCsRound = gameTypeRef.current === 'CS';
           if (event.winnerMemberId !== null) {
             playSound('correctAnswer');
@@ -400,6 +438,7 @@ export const useGameLogic = () => {
           forgetRenderedRoomState();
           setIsMusicStart(false);
           setHint('');
+          stopCountDown();
           setPlayerIndex(null);
           setGameStartInfo(null);
           setRoundEndInfo(null);
@@ -426,7 +465,8 @@ export const useGameLogic = () => {
         }
       }
     },
-    [addLog, nickname, myMemberId, applyRoomState, forgetRoom, applyRoomSettings, forgetRenderedRoomState],
+    [addLog, nickname, myMemberId, applyRoomState, forgetRoom, applyRoomSettings, forgetRenderedRoomState,
+      countDownUntil, stopCountDown],
   );
 
   const handleEventRef = useRef(handleEvent);
@@ -477,6 +517,7 @@ export const useGameLogic = () => {
     setGameStartInfo(null);
     setRoundEndInfo(null);
     setHint('');
+    stopCountDown();
     setCurrentVideoId('');
     localStorage.removeItem('ums_currentVideoId');
     clearLogs();
@@ -488,7 +529,7 @@ export const useGameLogic = () => {
       await fetchRoomState(roomId);
       await fetchRoomSettings(roomId);
     }
-  }, [roomId, fetchRoomState, fetchRoomSettings, clearLogs, forgetRenderedRoomState]);
+  }, [roomId, fetchRoomState, fetchRoomSettings, clearLogs, forgetRenderedRoomState, stopCountDown]);
 
   /**
    * 진행 중인 게임에 재입장했을 때, 놓친 라운드 상태를 서버 스냅샷으로 복원한다.
@@ -510,6 +551,7 @@ export const useGameLogic = () => {
     setCurrentRound(state.currentRound);
     setRoundIndex(state.currentRound);
     setTotalRound(state.totalRound);
+    countDownUntil(state.remainingMillis ?? 0);
 
     if (restoredGameType === 'HANGMAN') {
       const data: string[] = state.statusData ?? [];
@@ -543,7 +585,7 @@ export const useGameLogic = () => {
 
     setStatus('PLAYING');
     addLog('[알림] 진행 중인 게임에 다시 입장했습니다.');
-  }, [addLog]);
+  }, [addLog, countDownUntil]);
 
   const enterRoomChannel = useCallback(
     async (channel: StompChannel, targetRoomId: string, rejoinFirst: boolean) => {

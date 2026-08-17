@@ -1,7 +1,6 @@
 package com.fungame.songquiz.domain.session;
 
 import com.fungame.songquiz.domain.quiz.Quiz;
-import com.fungame.songquiz.domain.quiz.QuizContent;
 import com.fungame.songquiz.domain.quiz.Song;
 import com.fungame.songquiz.domain.quiz.SongQuiz;
 import com.fungame.songquiz.domain.room.GamePlayer;
@@ -17,20 +16,22 @@ import com.fungame.songquiz.support.error.ErrorType;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.context.ApplicationEventPublisher;
 
+import java.time.Duration;
 import java.util.List;
 import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -45,6 +46,9 @@ class QuizGameServiceTest {
     private static final GamePlayer P4 = GamePlayer.createNewPlayer(4L, "p4");
     private static final RoomSettings SETTINGS =
             new RoomSettings(GameType.SONG, "방", 8, Category.KPOP, 3, 0, CSQuizDifficulty.EASY);
+    private static final Duration ROUND_LENGTH = Duration.ofSeconds(30);
+    private static final Duration UNTIL_HINT_OPENS = Duration.ofSeconds(20);
+    private static final long TICK_TOLERANCE_MILLIS = 500L;
 
     @Mock
     private ApplicationEventPublisher publisher;
@@ -62,17 +66,86 @@ class QuizGameServiceTest {
     @DisplayName("라운드가 시작되면 방의 활동 시각을 갱신해 유휴 청소 대상에서 벗어난다.")
     void startRound_touches_room() {
         // given
-        GameSession session = mock(GameSession.class);
-        given(sessionManager.getGameSession(ROOM_ID)).willReturn(session);
-        given(session.getContent()).willReturn(mock(QuizContent.class));
+        GameSession session = startedSessionOf(P1);
 
         // when
         quizGameService.startRound(ROOM_ID);
 
         // then
         verify(gameRoomManager).touch(ROOM_ID);
-        verify(session).startRound();
-        verify(timer).startCountDown(eq(ROOM_ID), anyInt(), any());
+        assertThat(session.getCurrentRound()).isEqualTo(2);
+    }
+
+    @Test
+    @DisplayName("라운드가 시작되면 힌트와 타임아웃을 각각 20초·30초 뒤로 예약한다.")
+    void startRound_schedules_hint_and_timeout_separately() {
+        // given
+        startedSessionOf(P1);
+
+        // when
+        quizGameService.startRound(ROOM_ID);
+
+        // then
+        verify(timer).startAfter(eq(ROOM_ID), eq(UNTIL_HINT_OPENS), any());
+        verify(timer).startAfter(eq(ROOM_ID), eq(ROUND_LENGTH), any());
+    }
+
+    @Test
+    @DisplayName("라운드 시작 알림에 남은 시간이 실려 클라이언트가 그 시점부터 센다.")
+    void startRound_tells_how_long_is_left() {
+        // given
+        startedSessionOf(P1);
+
+        // when
+        quizGameService.startRound(ROOM_ID);
+
+        // then
+        ArgumentCaptor<RoundStartEvent> roundStart = ArgumentCaptor.forClass(RoundStartEvent.class);
+        verify(publisher).publishEvent(roundStart.capture());
+        assertThat(roundStart.getValue().remainingMillis()).isEqualTo(ROUND_LENGTH.toMillis());
+    }
+
+    @Test
+    @DisplayName("라운드가 조기 종료되면 그 방의 예약을 모두 취소해 남은 힌트 예약도 흘려보낸다.")
+    void endRound_cancels_every_reservation_of_the_room() {
+        // given
+        GameSession session = startedSessionOf(P1);
+        quizGameService.startRound(ROOM_ID);
+
+        // when
+        quizGameService.increaseSkipVote(ROOM_ID, P1.memberId());
+
+        // then
+        verify(timer).stop(ROOM_ID);
+        assertThat(session.getRemainingRoundMillis()).isZero();
+    }
+
+    @Test
+    @DisplayName("라운드 도중에 들어온 사람도 스냅샷으로 남은 시간을 알 수 있다.")
+    void getPlayState_carries_remaining_round_time() {
+        // given
+        startedSessionOf(P1);
+
+        // when
+        GameStateDto state = quizGameService.getPlayState(ROOM_ID);
+
+        // then
+        assertThat(state.remainingMillis())
+                .isBetween(ROUND_LENGTH.toMillis() - TICK_TOLERANCE_MILLIS, ROUND_LENGTH.toMillis());
+    }
+
+    @Test
+    @DisplayName("라운드가 닫힌 뒤의 스냅샷은 남은 시간이 없다.")
+    void getPlayState_reports_no_time_left_between_rounds() {
+        // given
+        GameSession session = startedSessionOf(P1);
+        session.startProcessing();
+
+        // when
+        GameStateDto state = quizGameService.getPlayState(ROOM_ID);
+
+        // then
+        assertThat(state.remainingMillis()).isZero();
     }
 
     @Test
@@ -178,7 +251,7 @@ class QuizGameServiceTest {
 
         // then
         verify(gameRoomManager, never()).touch(ROOM_ID);
-        verify(timer, never()).startCountDown(eq(ROOM_ID), anyInt(), any());
+        verify(timer, never()).startAfter(eq(ROOM_ID), any(Duration.class), any());
     }
 
     @Test
@@ -195,7 +268,7 @@ class QuizGameServiceTest {
 
         verify(gameRoomManager, never()).startGame(any(), any());
         verify(sessionManager, never()).startGame(any(), any(Quiz.class), any());
-        verify(timer, never()).startAfter(any(), anyInt(), any());
+        verify(timer, never()).startAfter(any(), any(Duration.class), any());
     }
 
     @Test
@@ -215,16 +288,25 @@ class QuizGameServiceTest {
 
         // then
         verify(publisher).publishEvent(any(GameStartEvent.class));
-        verify(timer).startAfter(eq(ROOM_ID), anyInt(), any());
+        verify(timer).startAfter(eq(ROOM_ID), any(Duration.class), any());
     }
 
     private GameSession startedSessionOf(GamePlayer... players) {
-        SongQuiz quiz = new SongQuiz(List.of(mock(Song.class), mock(Song.class)), Category.KPOP);
+        SongQuiz quiz = new SongQuiz(List.of(playableSong(), playableSong()), Category.KPOP);
         GameSession session = new GameSession(quiz, List.of(players));
         session.startRound();
         given(sessionManager.getGameSession(ROOM_ID)).willReturn(session);
 
         return session;
+    }
+
+    private static Song playableSong() {
+        Song song = mock(Song.class);
+        lenient().when(song.getLink()).thenReturn("youtube-link");
+        lenient().when(song.getSinger()).thenReturn("가수");
+        lenient().when(song.getHint()).thenReturn("ㅎㅌ");
+
+        return song;
     }
 
     private GameRoom givenStartableRoomWith(Quiz quiz) {

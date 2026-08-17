@@ -6,6 +6,7 @@ public record RoundStartEvent(
         Long roomId,
         QuizContent content,
         int currentRound,
-        int totalRound
+        int totalRound,
+        long remainingMillis
 ) {
 }

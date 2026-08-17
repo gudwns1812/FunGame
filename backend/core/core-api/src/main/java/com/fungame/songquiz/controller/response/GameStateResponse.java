@@ -12,7 +12,8 @@ public record GameStateResponse(
         int currentRound,
         int totalRound,
         String content,
-        List<String> statusData
+        List<String> statusData,
+        long remainingMillis
 ) {
 
     public static GameStateResponse from(GameStateDto state) {
@@ -25,6 +26,7 @@ public record GameStateResponse(
                 state.currentRound(),
                 state.totalRound(),
                 state.content(),
-                state.statusData());
+                state.statusData(),
+                state.remainingMillis());
     }
 }

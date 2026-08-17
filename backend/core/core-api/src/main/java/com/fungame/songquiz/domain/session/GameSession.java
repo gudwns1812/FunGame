@@ -8,12 +8,14 @@ import com.fungame.songquiz.domain.room.GamePlayer;
 import com.fungame.songquiz.enums.ActionResult;
 import com.fungame.songquiz.enums.GameType;
 
+import java.time.Duration;
 import java.util.List;
 
 public class GameSession {
     private final Quiz quiz;
     private final GameRank rank;
     private final SkipVotes skipVotes = new SkipVotes();
+    private final RoundClock roundClock = new RoundClock();
 
     public GameSession(Quiz quiz, List<GamePlayer> players) {
         this.quiz = quiz;
@@ -87,7 +89,12 @@ public class GameSession {
     }
 
     public boolean startProcessing() {
-        return quiz.startProcessing();
+        if (!quiz.startProcessing()) {
+            return false;
+        }
+
+        roundClock.stop();
+        return true;
     }
 
     public QuizContent getContent() {
@@ -102,6 +109,19 @@ public class GameSession {
         quiz.startRound();
         quiz.resetRoundState();
         skipVotes.clear();
+        roundClock.start();
+    }
+
+    public Duration getRoundLength() {
+        return roundClock.length();
+    }
+
+    public Duration getUntilHintOpens() {
+        return roundClock.untilHintOpens();
+    }
+
+    public long getRemainingRoundMillis() {
+        return roundClock.remainingMillis();
     }
 
     public int getTotalRound() {

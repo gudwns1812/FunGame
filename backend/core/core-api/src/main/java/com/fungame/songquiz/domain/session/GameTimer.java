@@ -6,48 +6,39 @@ import org.springframework.stereotype.Component;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.util.Collection;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledFuture;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.Consumer;
 
 @Component
 public class GameTimer {
 
-    private static final Duration COUNT_DOWN_INTERVAL = Duration.ofSeconds(1);
-
     private final TaskScheduler taskScheduler;
-    private final Map<Long, ScheduledFuture<?>> roomTasks = new ConcurrentHashMap<>();
+    private final Map<Long, Collection<ScheduledFuture<?>>> roomTasks = new ConcurrentHashMap<>();
 
     public GameTimer(@AppTaskScheduler TaskScheduler taskScheduler) {
         this.taskScheduler = taskScheduler;
     }
 
-    public void startCountDown(Long roomId, int seconds, Consumer<Integer> event) {
-        stop(roomId);
-
-        AtomicInteger remaining = new AtomicInteger(seconds);
-
-        ScheduledFuture<?> task = taskScheduler.scheduleAtFixedRate(
-                () -> event.accept(remaining.getAndDecrement()),
-                COUNT_DOWN_INTERVAL);
-
-        roomTasks.put(roomId, task);
-    }
-
-    public void startAfter(Long roomId, int seconds, Runnable event) {
-        stop(roomId);
-
-        ScheduledFuture<?> task = taskScheduler.schedule(event, Instant.now().plusSeconds(seconds));
-
-        roomTasks.put(roomId, task);
+    public void startAfter(Long roomId, Duration delay, Runnable event) {
+        Collection<ScheduledFuture<?>> tasks = tasksOf(roomId);
+        tasks.removeIf(Future::isDone);
+        tasks.add(taskScheduler.schedule(event, Instant.now().plus(delay)));
     }
 
     public void stop(Long roomId) {
-        ScheduledFuture<?> task = roomTasks.remove(roomId);
-        if (task != null) {
-            task.cancel(false);
+        Collection<ScheduledFuture<?>> tasks = roomTasks.remove(roomId);
+        if (tasks == null) {
+            return;
         }
+
+        tasks.forEach(task -> task.cancel(false));
+    }
+
+    private Collection<ScheduledFuture<?>> tasksOf(Long roomId) {
+        return roomTasks.computeIfAbsent(roomId, id -> new ConcurrentLinkedQueue<>());
     }
 }

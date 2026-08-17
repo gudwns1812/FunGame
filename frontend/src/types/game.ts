@@ -54,8 +54,7 @@ export type GameEvent =
   | { type: 'PLAYER_READY'; memberId: number; nickname: string; ready: boolean; room: RoomState }
   | { type: 'CHAT'; memberId: number; nickname: string; message: string }
   | { type: 'GAME_START'; gameType: string; category: string; songCount: number; message: string }
-  | { type: 'ROUND_START'; videoURL: string; roundIndex: number; currentRound: number; totalRound: number }
-  | { type: 'TIMER_TICK'; remainingSeconds: number }
+  | { type: 'ROUND_START'; content: string; round: number; totalRound: number; remainingMillis: number }
   | { type: 'ROUND_HINT'; hint: string }
   | { type: 'CORRECT_ANSWER'; memberId: number; nickname: string; answer: string; score: number }
   | {

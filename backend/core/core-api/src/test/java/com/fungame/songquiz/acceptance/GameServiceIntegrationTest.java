@@ -23,6 +23,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -30,13 +31,15 @@ import java.util.concurrent.TimeUnit;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.doAnswer;
 
 @IntegrationTest
 @ActiveProfiles("test")
 @Import(GameServiceIntegrationTest.TestEventCapture.class)
 public class GameServiceIntegrationTest {
+
+    private static final Duration LONGEST_GAME_FLOW_TRANSITION = Duration.ofSeconds(5);
+    private static final long SETTLE_MILLIS = 10L;
 
     @Autowired
     private GameService gameService;
@@ -102,19 +105,28 @@ public class GameServiceIntegrationTest {
         gameRoomService.joinRoom(roomId, guest);
         gameRoomService.readyPlayer(roomId, guest.memberId()); // player1도 준비 완료!
 
-        // 타이머 동작 모킹: 순서 제어를 위해 콜백을 보관하거나 즉시 실행(약간의 지연 추가)
         doAnswer(invocation -> {
-            Runnable callback = invocation.getArgument(2);
-            // 약간의 딜레이를 주어 스레드 경쟁이나 순서 꼬임 방지
-            new Thread(() -> {
-                try {
-                    Thread.sleep(10);
-                } catch (InterruptedException e) {
-                }
-                callback.run();
-            }).start();
+            if (isGameFlowTransition(invocation.getArgument(1))) {
+                runShortlyAfter(invocation.getArgument(2));
+            }
             return null;
-        }).when(gameTimer).startAfter(any(), anyInt(), any());
+        }).when(gameTimer).startAfter(any(), any(Duration.class), any());
+    }
+
+    private static boolean isGameFlowTransition(Duration delay) {
+        return delay.compareTo(LONGEST_GAME_FLOW_TRANSITION) <= 0;
+    }
+
+    private static void runShortlyAfter(Runnable callback) {
+        new Thread(() -> {
+            try {
+                Thread.sleep(SETTLE_MILLIS);
+            } catch (InterruptedException interrupted) {
+                Thread.currentThread().interrupt();
+                return;
+            }
+            callback.run();
+        }).start();
     }
 
     @Test
