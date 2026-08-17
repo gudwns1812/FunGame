@@ -408,7 +408,7 @@ export const useGameLogic = () => {
         }
       }
     },
-    [addLog, nickname, myMemberId, applyRoomState, forgetRoom, applyRoomSettings],
+    [addLog, nickname, myMemberId, applyRoomState, forgetRoom, applyRoomSettings, forgetRenderedRoomState],
   );
 
   const handleEventRef = useRef(handleEvent);
@@ -705,7 +705,7 @@ export const useGameLogic = () => {
 
       window.history.pushState({ room: room.id }, '');
     },
-    [myMemberId, nickname, clearLogs, addLog, enterStatus],
+    [myMemberId, nickname, clearLogs, addLog, enterStatus, forgetRenderedRoomState],
   );
 
   const acceptInvite = useCallback(
@@ -761,7 +761,7 @@ export const useGameLogic = () => {
         window.alert(message);
       }
     },
-    [myMemberId, nickname, enterRoom, enterStatus],
+    [myMemberId, nickname, enterRoom, enterStatus, forgetRenderedRoomState],
   );
 
   const createRoom = useCallback(
@@ -804,7 +804,7 @@ export const useGameLogic = () => {
         setIsCreatingRoom(false);
       }
     },
-    [myMemberId, nickname, addLog, clearLogs, enterStatus],
+    [myMemberId, nickname, addLog, clearLogs, enterStatus, forgetRenderedRoomState],
   );
 
   const toggleReady = useCallback(async () => {
