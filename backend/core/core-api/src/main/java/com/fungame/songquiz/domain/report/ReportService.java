@@ -22,6 +22,7 @@ public class ReportService {
     private final GameSessionManager gameSessionManager;
     private final ReportReader reportReader;
     private final ReportWriter reportWriter;
+    private final ReportNotifier reportNotifier;
     private final Clock clock;
 
     public void receive(Long memberId, ReportCommand command) {
@@ -30,8 +31,18 @@ public class ReportService {
 
         Report report = Report.open(memberId, command.source(), command.reason(), command.detail(),
                 contextOf(command.roomId(), command.gameType()));
+        boolean alreadyFiled = alreadyFiled(memberId, report);
 
         reportWriter.append(report);
+
+        if (!alreadyFiled) {
+            reportNotifier.notifyReport(report);
+        }
+    }
+
+    private boolean alreadyFiled(Long memberId, Report report) {
+        return report.pointsAtContent()
+                && reportReader.existsSameReport(memberId, report.getContext().contentId(), report.getReason());
     }
 
     private void validateReporterIsInRoom(Long memberId, Long roomId) {

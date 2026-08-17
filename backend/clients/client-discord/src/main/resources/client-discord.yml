@@ -1,0 +1,6 @@
+client:
+  discord:
+    # 신고를 받을 디스코드 채널의 웹훅 주소. 정답과 힌트까지 실리므로 비공개 채널이어야 합니다.
+    # 이 저장소는 public 이라 기본값을 두지 않습니다. 서버 .env 의 DISCORD_REPORT_WEBHOOK_URL 로만 주입됩니다.
+    # 로컬은 prod 프로파일이 아니라 LoggingReportNotifier 가 받으므로 값이 필요 없습니다.
+    report-webhook-url: ${DISCORD_REPORT_WEBHOOK_URL}

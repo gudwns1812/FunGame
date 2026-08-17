@@ -61,7 +61,8 @@ backend/
 │
 ├── clients/
 │   ├── client-youtube/
-│   └── client-mail/
+│   ├── client-mail/
+│   └── client-discord/
 │
 ├── support/
 │   └── monitoring/
@@ -74,6 +75,7 @@ include 'backend:core:core-enum'
 include 'backend:storage:db-core'
 include 'backend:clients:client-youtube'
 include 'backend:clients:client-mail'
+include 'backend:clients:client-discord'
 include 'backend:support:monitoring'
 include 'backend:core:core-api'
 ```
@@ -87,12 +89,14 @@ graph TD
     db-core["storage:db-core"]
     youtube["clients:client-youtube"]
     mail["clients:client-mail"]
+    discord["clients:client-discord"]
     monitoring["support:monitoring"]
 
     core-api --> core-enum
     core-api --> db-core
     core-api --> youtube
     core-api --> mail
+    core-api --> discord
     core-api --> monitoring
 
     db-core --> core-enum
@@ -107,6 +111,7 @@ graph TD
 | `core:core-enum` | 없음 |
 | `clients:client-youtube` | 없음 |
 | `clients:client-mail` | 없음 |
+| `clients:client-discord` | 없음 |
 | `support:monitoring` | 없음 |
 
 ### 규칙
@@ -125,6 +130,7 @@ dependencies {
     implementation project(':backend:storage:db-core')
     implementation project(':backend:clients:client-youtube')
     implementation project(':backend:clients:client-mail')
+    implementation project(':backend:clients:client-discord')
     implementation project(':backend:support:monitoring')
 }
 
@@ -145,6 +151,7 @@ dependencies {
 | `storage:db-core` | `com.fungame.songquiz.storage` |
 | `clients:client-youtube` | `com.fungame.songquiz.client.youtube` |
 | `clients:client-mail` | `com.fungame.songquiz.client.mail` |
+| `clients:client-discord` | `com.fungame.songquiz.client.discord` |
 | `support:monitoring` | `com.fungame.songquiz.support.monitoring` |
 
 ## core/core-enum
@@ -174,7 +181,8 @@ core/core-api/
 │   │   ├── room/
 │   │   ├── quiz/
 │   │   ├── session/
-│   │   └── invite/
+│   │   ├── invite/
+│   │   └── report/
 │   └── support/                   주인이 없는 횡단 관심사만 남긴다
 │       ├── config/                Clock · TaskScheduler 배선
 │       └── error/                 CoreException · ErrorType
@@ -198,6 +206,7 @@ core/core-api/
 | `quiz` | 문제와 게임 종류. `Game` 과 구현 3종, 그 재료(`Song`, `ComputerScienceQuiz`, `HangmanWord`) |
 | `session` | 한 판의 진행과 점수. `GameSession`, `GameRank`, 라운드 이벤트 |
 | `invite` | 방 초대 |
+| `report` | 사용자 신고. 접수 시점의 게임 컨텍스트 스냅샷과 알림 포트 |
 
 `quiz` 와 `session` 을 나눈 근거는 **서로의 불변식이 없다는 것**이다. 점수가 바뀌어도 문제 상태는 영향을 받지 않고 그 반대도 마찬가지다. `GameSession` 은 두 상태 기계 앞의 파사드일 뿐이고, 정답 판정(`quiz`)과 점수 반영(`session`)은 이미 별도 호출로 분리돼 있다. `room` 이 게임을 모르는 것도 같은 이유다.
 
@@ -224,9 +233,13 @@ clients/
 ├── client-youtube/
 │   ├── src/main/java/com/fungame/songquiz/client/youtube/
 │   └── src/test/java/com/fungame/songquiz/client/youtube/
-└── client-mail/
-    ├── src/main/java/com/fungame/songquiz/client/mail/
-    └── src/main/resources/          client-mail.yml
+├── client-mail/
+│   ├── src/main/java/com/fungame/songquiz/client/mail/
+│   └── src/main/resources/          client-mail.yml
+└── client-discord/
+    ├── src/main/java/com/fungame/songquiz/client/discord/
+    ├── src/main/resources/          client-discord.yml
+    └── src/test/java/com/fungame/songquiz/client/discord/
 ```
 
 ## support

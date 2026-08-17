@@ -58,13 +58,17 @@ class ReportServiceTest {
     @Mock
     private ReportWriter reportWriter;
 
+    @Mock
+    private ReportNotifier reportNotifier;
+
     private final Clock clock = Clock.fixed(Instant.parse("2026-08-18T00:00:00Z"), ZoneOffset.UTC);
 
     private ReportService reportService;
 
     @BeforeEach
     void setUp() {
-        reportService = new ReportService(gameRoomManager, gameSessionManager, reportReader, reportWriter, clock);
+        reportService = new ReportService(gameRoomManager, gameSessionManager, reportReader, reportWriter,
+                reportNotifier, clock);
     }
 
     private static GameSession songSession() {
@@ -238,6 +242,44 @@ class ReportServiceTest {
                 new ReportCommand(ReportSource.IN_GAME, ROOM_ID, ReportReason.HINT_WRONG, null, GameType.HANGMAN));
 
         assertThat(savedReport().getContext().gameType()).isEqualTo(GameType.SONG);
+    }
+
+    @Test
+    @DisplayName("접수한 신고는 곧바로 알린다.")
+    void notifiesReceivedReport() {
+        givenMemberIsInRoom();
+        GameSession session = songSession();
+        session.startRound();
+        given(gameSessionManager.getGameSession(ROOM_ID)).willReturn(session);
+
+        reportService.receive(MEMBER_ID, inGameCommand(ReportReason.HINT_WRONG, null));
+
+        Report report = savedReport();
+        verify(reportNotifier).notifyReport(report);
+    }
+
+    @Test
+    @DisplayName("같은 문제를 같은 사유로 다시 신고하면 저장은 하고 알리지는 않는다.")
+    void savesButDoesNotNotifyDuplicateReport() {
+        givenMemberIsInRoom();
+        GameSession session = songSession();
+        session.startRound();
+        given(gameSessionManager.getGameSession(ROOM_ID)).willReturn(session);
+        given(reportReader.existsSameReport(MEMBER_ID, SONG_ID, ReportReason.HINT_WRONG)).willReturn(true);
+
+        reportService.receive(MEMBER_ID, inGameCommand(ReportReason.HINT_WRONG, null));
+
+        verify(reportWriter).append(any());
+        verify(reportNotifier, never()).notifyReport(any());
+    }
+
+    @Test
+    @DisplayName("가리키는 문제가 없는 신고는 중복을 따지지 않고 알린다.")
+    void notifiesEveryReportWithoutContent() {
+        reportService.receive(MEMBER_ID, lobbyCommand("또 튕겨요"));
+
+        verify(reportReader, never()).existsSameReport(any(), any(), any());
+        verify(reportNotifier).notifyReport(any());
     }
 
     private static ReportCommand inGameCommand(ReportReason reason, String detail) {
