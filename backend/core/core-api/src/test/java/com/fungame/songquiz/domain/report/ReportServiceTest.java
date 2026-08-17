@@ -24,6 +24,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
 
@@ -39,6 +40,8 @@ import static org.mockito.Mockito.verify;
 class ReportServiceTest {
 
     private static final Long MEMBER_ID = 1L;
+    private static final Long ADMIN_ID = 9L;
+    private static final Long REPORT_ID = 100L;
     private static final Long ROOM_ID = 42L;
     private static final long SONG_ID = 777L;
     private static final String SONG_TITLE = "밤편지";
@@ -85,6 +88,13 @@ class ReportServiceTest {
     private Report savedReport() {
         ArgumentCaptor<Report> captor = ArgumentCaptor.forClass(Report.class);
         verify(reportWriter).append(captor.capture());
+
+        return captor.getValue();
+    }
+
+    private Report notifiedReport() {
+        ArgumentCaptor<Report> captor = ArgumentCaptor.forClass(Report.class);
+        verify(reportNotifier).notifyReport(captor.capture());
 
         return captor.getValue();
     }
@@ -254,8 +264,21 @@ class ReportServiceTest {
 
         reportService.receive(MEMBER_ID, inGameCommand(ReportReason.HINT_WRONG, null));
 
-        Report report = savedReport();
-        verify(reportNotifier).notifyReport(report);
+        assertThat(notifiedReport().getReason()).isEqualTo(ReportReason.HINT_WRONG);
+    }
+
+    @Test
+    @DisplayName("알림에는 저장된 신고 번호가 실린다.")
+    void notifiesWithSavedReportId() {
+        givenMemberIsInRoom();
+        GameSession session = songSession();
+        session.startRound();
+        given(gameSessionManager.getGameSession(ROOM_ID)).willReturn(session);
+        given(reportWriter.append(any())).willReturn(REPORT_ID);
+
+        reportService.receive(MEMBER_ID, inGameCommand(ReportReason.HINT_WRONG, null));
+
+        assertThat(notifiedReport().getId()).isEqualTo(REPORT_ID);
     }
 
     @Test
@@ -280,6 +303,64 @@ class ReportServiceTest {
 
         verify(reportReader, never()).existsSameReport(any(), any(), any());
         verify(reportNotifier).notifyReport(any());
+    }
+
+    @Test
+    @DisplayName("내가 접수한 신고만 돌려준다.")
+    void findsOnlyMyReports() {
+        given(reportReader.findMine(MEMBER_ID)).willReturn(List.of(storedReport()));
+
+        assertThat(reportService.findMyReports(MEMBER_ID)).hasSize(1);
+        verify(reportReader).findMine(MEMBER_ID);
+    }
+
+    @Test
+    @DisplayName("상태를 주면 그 상태의 신고만 찾는다.")
+    void findsReportsByStatus() {
+        given(reportReader.findAll(ReportStatus.OPEN)).willReturn(List.of(storedReport()));
+
+        assertThat(reportService.findAllReports(ReportStatus.OPEN)).hasSize(1);
+    }
+
+    @Test
+    @DisplayName("답변을 남기면 신고에 붙는다.")
+    void appendsComment() {
+        given(reportReader.findById(REPORT_ID)).willReturn(storedReport());
+
+        reportService.comment(ADMIN_ID, REPORT_ID, "힌트를 고쳤습니다.");
+
+        ArgumentCaptor<ReportComment> captor = ArgumentCaptor.forClass(ReportComment.class);
+        verify(reportWriter).appendComment(captor.capture());
+        assertThat(captor.getValue().reportId()).isEqualTo(REPORT_ID);
+        assertThat(captor.getValue().authorId()).isEqualTo(ADMIN_ID);
+        assertThat(captor.getValue().content()).isEqualTo("힌트를 고쳤습니다.");
+    }
+
+    @Test
+    @DisplayName("빈 답변은 남기지 않는다.")
+    void rejectsBlankComment() {
+        assertThatThrownBy(() -> reportService.comment(ADMIN_ID, REPORT_ID, "   "))
+                .isInstanceOf(CoreException.class)
+                .hasFieldOrPropertyWithValue("type", ErrorType.REPORT_COMMENT_REQUIRED);
+        verify(reportWriter, never()).appendComment(any());
+    }
+
+    @Test
+    @DisplayName("처리 상태를 바꾼다.")
+    void changesStatus() {
+        given(reportReader.findById(REPORT_ID)).willReturn(storedReport());
+
+        reportService.changeStatus(REPORT_ID, ReportStatus.RESOLVED);
+
+        ArgumentCaptor<Report> captor = ArgumentCaptor.forClass(Report.class);
+        verify(reportWriter).changeStatus(captor.capture());
+        assertThat(captor.getValue().getStatus()).isEqualTo(ReportStatus.RESOLVED);
+    }
+
+    private static Report storedReport() {
+        return Report.restore(REPORT_ID, MEMBER_ID, "신고자", ReportSource.IN_GAME, ReportReason.HINT_WRONG, null,
+                new ReportContext(GameType.SONG, "KPOP", SONG_ID, ROOM_ID, 1, 1, VIDEO_LINK, "정답", "힌트"),
+                ReportStatus.OPEN, LocalDateTime.of(2026, 8, 18, 0, 0), List.of());
     }
 
     private static ReportCommand inGameCommand(ReportReason reason, String detail) {

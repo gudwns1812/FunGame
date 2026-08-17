@@ -27,5 +27,5 @@ public enum ErrorCode {
     H001, H002, H003,
 
     // 신고
-    R001, R002, R003;
+    R001, R002, R003, R004, R005;
 }

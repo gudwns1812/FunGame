@@ -54,7 +54,9 @@ public enum ErrorType {
     REPORT_RATE_LIMIT_EXCEEDED(HttpStatus.TOO_MANY_REQUESTS, ErrorCode.R001, "신고가 너무 잦습니다. 잠시 후 다시 시도해주세요.",
             LogLevel.DEBUG),
     REPORT_NOT_IN_ROOM(HttpStatus.FORBIDDEN, ErrorCode.R002, "참여 중인 방만 신고할 수 있습니다.", LogLevel.DEBUG),
-    REPORT_DETAIL_REQUIRED(HttpStatus.BAD_REQUEST, ErrorCode.R003, "신고 내용을 입력해주세요.", LogLevel.DEBUG);
+    REPORT_DETAIL_REQUIRED(HttpStatus.BAD_REQUEST, ErrorCode.R003, "신고 내용을 입력해주세요.", LogLevel.DEBUG),
+    REPORT_COMMENT_REQUIRED(HttpStatus.BAD_REQUEST, ErrorCode.R004, "답변 내용을 입력해주세요.", LogLevel.DEBUG),
+    REPORT_NOT_FOUND(HttpStatus.NOT_FOUND, ErrorCode.R005, "신고를 찾을 수 없습니다.", LogLevel.WARN);
 
     private final HttpStatus status;
     private final ErrorCode code;

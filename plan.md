@@ -1,117 +1,116 @@
-# 작업 계획: 신고 창구를 만들고 접수 즉시 디스코드로 알린다 (#62)
+# 작업 계획: 마이페이지에 목차를 두고 신고 처리 현황을 보여준다
 
-브랜치: `feat/report-with-discord-notify`
+브랜치: `feat/report-with-discord-notify` (#62 위에 이어서)
 
-이슈의 작업 목록을 커밋 다섯 개로 쪼갠다. 커밋마다 테스트가 모두 통과하는 상태를 유지한다.
+지금은 신고를 접수하면 디스코드로만 흘러가고, 신고한 사람은 그게 어떻게 됐는지 알 방법이 없다.
+접수한 사람은 처리 현황을, 관리자는 답변할 자리를 갖게 한다.
 
-## 1단계 — 콘텐츠 식별자를 도메인까지 싣는다
+## 가장 먼저 정한 것 — 신고자에게 정답과 힌트를 보여주지 않는다
 
-신고가 어느 행을 가리키는지 정하는 것이 먼저다. 이 단계는 신고 기능과 무관하게 혼자 배포할 수 있다.
+`report` 행에는 접수 시점의 **정답 · 힌트 · 유튜브 링크 · 문제 식별자**가 스냅샷으로 들어 있다.
+이걸 "내 문의" 화면에 그대로 내려주면 **라운드 진행 중에 신고 버튼을 눌러 정답을 읽는 치트 통로**가 된다.
 
-- `Song` 에 `id` 를 추가하고 팩토리를 나눈다. `Song.of(...)` 는 저장 전(id 없음), `Song.stored(id, ...)` 는
-  DB 에서 읽어온 곡이다. `SongReader.toDomain()` 만 `stored` 를 쓴다.
-  `SongWriter.upsertByVideoLink()` · `SongUpsertDao` · `existsSameSong()` 는 저장 전 곡을 다루므로 건드리지 않는다.
-- `CsQuestion` 도 같은 방식으로 `of` / `stored` 를 나누고 `CsQuestionReader.toDomain()` 이 `stored` 를 쓴다.
-- `HangmanWord` 는 record 이므로 `HangmanWord(Long id, String value, int difficulty)` 가 된다.
-- `HangmanQuiz.create(String answer)` → `HangmanQuiz.create(HangmanWord word)`. 지금은 정답 문자열만 받아서
-  단어 id 를 실을 자리가 없다. 리더가 이미 `HangmanWord` 를 돌려주므로 그대로 넘긴다.
-- `Quiz.getCurrentContentId()` 를 인터페이스에 추가하고 세 구현체를 채운다. `AbstractQuiz` 에 기본 구현을 두지 않는다.
-  `SongQuiz` · `CsQuiz` 는 라운드 시작 전(`currentIdx == -1`)에 `null` 을 돌려준다.
-  `getStatus()` 는 손대지 않는다 — 라운드 시작 전 가드는 이미 호출부가 하는 방식이고
-  (`QuizGameService:176` 의 `currentRound >= 1 ? ... : null`), 신고 조립도 같은 방식으로 `isRoundStarted()` 를 본다.
+그래서 응답 모델을 둘로 나눈다.
 
-**테스트**: `SongReaderTest` · `CsQuestionReaderTest` · `HangmanWordReaderTest` 에 "읽어온 것은 id 를 갖는다",
-세 Quiz 구현체에 "현재 문제의 id 를 돌려준다 / 라운드 시작 전에는 null 이다".
+| | 신고자 (`GET /api/reports/mine`) | 관리자 (`GET /api/admin/reports`) |
+|---|---|---|
+| 사유 · 접수 시각 · 상태 | O | O |
+| 본인이 직접 쓴 내용 | O | O |
+| 게임 종류 | O | O |
+| 관리자 답변 | O | O |
+| 신고자 닉네임 | — (자기 것만 보므로) | O |
+| 방 · 라운드 · 문제 · **정답** · **힌트** · 문제 식별자 | **X** | O |
 
-## 2단계 — 신고를 받아 저장한다 (디스코드 없이)
+관리자 답변은 신고자에게 그대로 보이므로, 답변 입력창 옆에 "이 답변은 신고자에게 보입니다" 를 적어
+사람이 정답을 옮겨 적지 않게 한다. 기계로 막을 수 있는 건 위 표까지다.
 
-- `core-enum` 에 `ReportSource(IN_GAME, LOBBY)` · `ReportReason(CONTENT_NOT_SHOWN, CONTENT_WRONG, HINT_WRONG,
-  ANSWER_WRONG, ETC)` · `ReportStatus(OPEN, RESOLVED)` 를 추가한다.
-- `V18__report.sql` 로 `report` 테이블을 만든다. `content_id` 에는 FK 를 걸지 않는다(행이 지워져도 신고는 읽혀야 한다).
-  `member_id` 만 FK 를 건다.
-- `ReportEntity` + `ReportRepository` (`db-core`). `PromotionRequestEntity` 와 같은 모양
-  (`@EntityListeners(AuditingEntityListener.class)` + 정적 팩토리 + `@NoArgsConstructor(PROTECTED)`).
-- `domain/report/Report` — 신고자와 사유, 그리고 접수 시점의 게임 컨텍스트 **스냅샷**을 든다.
-- `domain/report/ReportContext` — 게임 컨텍스트만 따로 든 값 객체. 세 가지로 조립된다.
-  | 접수 시점 | 담기는 것 |
-  |---|---|
-  | 라운드 진행 중 | contentId · gameType · category · round · content · answer · hint · roomId |
-  | 게임 중이지만 라운드 시작 전 | gameType · category · roomId |
-  | 대기실 / 로비 | roomId 또는 없음 |
-- `ReportWriter`(저장) · `ReportReader`(같은 신고 존재 여부, 분당 접수 수) — public 메서드에 `@Transactional`
-  (`TransactionBoundaryTest` 규칙).
-- `ReportService.receive(memberId, command)` — 방 소속 검증 → 컨텍스트 조립 → 저장. 트랜잭션을 열지 않는다
-  (같은 규칙의 반대쪽: Service 는 `requestReset` · `resetPassword` · `approveRequest` 외에는 `@Transactional` 금지).
-- `ReportController` `POST /api/reports`. `SecurityConfig` 는 `anyRequest().authenticated()` 라 손대지 않는다.
-- `ErrorCode` 에 `R001` · `R002` · `R003`, `ErrorType` 에
-  `REPORT_RATE_LIMIT_EXCEEDED(429)` · `REPORT_NOT_IN_ROOM(403)` · `REPORT_DETAIL_REQUIRED(400)` 를 추가한다.
+## 1단계 — 처리 상태와 답변을 받을 자리를 만든다 (백엔드)
 
-**테스트**: `ReportServiceTest`(컨텍스트 조립 3경우 · 남의 방 거절 · 분당 제한 · ETC 인데 detail 이 비면 거절),
-`ReportPersistenceTest`(엔티티 왕복), `ReportControllerDocsTest`(Rest Docs).
+**상태**
 
-## 3단계 — 디스코드로 보낸다
+- `ReportStatus` 는 지금의 `OPEN`(접수) · `RESOLVED`(처리 완료) 두 개를 그대로 쓴다.
+  관리자는 둘 사이를 왕복할 수 있다. "왜 그렇게 처리했는지" 는 상태가 아니라 답변 문장이 말한다.
 
-- 새 모듈 `backend:clients:client-discord`. `client-mail` 과 같은 꼴이되 AWS SDK 대신 `spring-web` 의 `RestClient`.
-  - `DiscordWebhookSender` `@Profile("prod")` — 웹훅 URL 은 `client.discord.report-webhook-url`,
-    값은 `${DISCORD_REPORT_WEBHOOK_URL}` 로만 들어온다. 기본값을 두지 않는다.
-  - `DiscordEmbed(String title, List<Field> fields)` — 클라이언트 모듈 소유 모델. 도메인 타입은 모른다.
-  - 실패(429 포함)는 `log.error` 로 남기고 예외를 밖으로 던지지 않는다 (`SesMailSender` 와 같은 이유).
-  - 실제 호출 테스트는 `@Tag("external")`.
-- `client-discord.yml` 을 모듈 리소스에 두고 `application.yml` 의 `spring.config.import` 에 추가한다.
-- `domain/report/ReportNotifier`(포트) / `DiscordReportNotifier`(`@Profile("prod")`) /
-  `LoggingReportNotifier`(`@Profile("!prod")`). `Report` → `DiscordEmbed` 변환은 어댑터가 한다.
-- 전송은 어댑터 메서드에 `@Async`. `ReportService` 는 저장 뒤 한 번 부른다.
-- 같은 회원 · 같은 `content_id` · 같은 사유의 중복은 **저장은 하고 전송만 건너뛴다**
-  (`ReportReader.existsSame(...)`). `content_id` 가 없는 신고(로비)는 중복 판정을 하지 않는다.
+**답변**
 
-**테스트**: `LoggingReportNotifierTest`, `DiscordReportNotifierTest`(Embed 조립 — 사유가 제목, 컨텍스트가 필드),
-`ReportServiceTest` 에 "중복 신고는 저장되지만 전송되지 않는다".
+- 답변은 관리자만 남긴다. 신고자는 읽기만 한다. 더 할 말이 있으면 새로 접수한다.
+  덕분에 `POST .../comments` 는 `/api/admin/**` 아래에만 두면 되고 권한 가드가 하나로 끝난다.
 
-## 4단계 — 화면
+- `V19__report_comment.sql` — `report_comment(id, report_id, member_id, content, created_at)`.
+  `report_id` · `member_id` 는 FK 를 건다. `report` 를 지우면 답변도 함께 지워진다.
+- `ReportCommentEntity` + `ReportCommentRepository` (`db-core`).
+  `ReportEntity` 에 `@OneToMany(mappedBy = "report")` 를 두고 조회는 `join fetch` 로 한 번에 긁는다.
 
-- `src/hooks/useReport.ts` — `submitReport(payload)` 하나. axios 호출을 화면에서 분리한다.
-- `src/components/ReportModal.tsx` — 게임 종류에 따라 사유 문구가 바뀐다. **현재 게임 정보는 표시하지 않는다.**
-  `ETC` 를 고를 때만 입력창이 열리고, 비어 있으면 접수하지 않는다. 나머지 사유는 선택 즉시 전송된다.
-  마크업은 대기실 내보내기 모달과 같은 패턴(`WaitingRoom.tsx:102-124`).
-- `GamePage` · `HangmanPage` 의 `TopBar` 우측에 신고 버튼. `HangmanPage` 는 지금 `roomId` 를 받지 않으므로
-  `App.tsx` 에서 함께 내려준다.
-- `src/pages/ReportPage.tsx` + `/report` 라우트(로그인 필요) + `SiteFooter` 의 `FOOTER_LINKS` 에 `문의·신고`.
+**도메인**
 
-**테스트**: `ReportModal.test.tsx`(사유 문구가 게임 종류를 따른다 · ETC 는 내용이 없으면 전송하지 않는다 ·
-나머지는 선택 즉시 전송된다), `ReportPage.test.tsx`, `GamePage.test.tsx` · `HangmanPage.test.tsx`(버튼 → 모달).
+- `Report` 에 `id` · `createdAt` · `reporterNickname` · `comments` 를 싣고 `restore(...)` 를 더한다.
+  지금 `Report` 는 접수 전용이라 `open(...)` 만 있다.
+- `ReportComment` — `write(reportId, authorId, content)` 가 빈 내용을 거절한다(`R003` 재사용).
+- `ReportWriter.append` 가 저장한 신고 번호를 돌려주고, 서비스가 그 번호를 실어 알린다.
+  지금은 디스코드 메시지에 신고 번호가 없어 관리자가 어느 행을 열어야 할지 알 수 없다.
+- `ReportWriter.appendComment` · `changeStatus`, `ReportReader.findMine` · `findAll` · `findById`.
 
-## 5단계 — 문서와 배포
+**API**
 
-- `api/report.md` 신규, `index.adoc` 에 신고 절 추가.
-- `SERVER_REQUIREMENTS.md` 에 `DISCORD_REPORT_WEBHOOK_URL` 을 적는다. 값은 저장소에 남기지 않는다.
+| Method | Path | 권한 | 하는 일 |
+|---|---|---|---|
+| `GET` | `/api/reports/mine` | 로그인 | 내가 접수한 신고와 상태 · 답변 |
+| `GET` | `/api/admin/reports` | ADMIN 이상 | 전체 신고. `?status=OPEN` 으로 걸러본다 |
+| `POST` | `/api/admin/reports/{id}/comments` | ADMIN 이상 | 답변 남기기 |
+| `PATCH` | `/api/admin/reports/{id}/status` | ADMIN 이상 | 상태 바꾸기 |
 
-## 이슈에서 정하지 않아 내가 정한 것
+`/api/admin/**` 은 `SecurityConfig` 가 이미 `hasAnyRole("ADMIN", "MASTER")` 로 막고 있어 설정을 건드리지 않는다.
 
-1. **로비 신고의 게임 종류**를 어떻게 보내나. 이슈의 요청 바디에는 `gameType` 이 없는데 로비 화면의
-   "콘텐츠 오류 제보" 는 게임 종류를 고르게 되어 있다. → 요청에 **선택 항목 `gameType` 을 두고,
-   `source=IN_GAME` 이면 무시한다**(서버가 세션에서 채운 값이 이긴다). 로비 신고는 `reason=ETC` + `detail` 필수,
-   "콘텐츠 오류 제보" 면 `gameType` 이 함께 온다.
-2. **분당 제한을 DB 카운트로 센다.** `report` 에 `created_at` 이 있으므로 인메모리 카운터를 새로 두지 않는다.
-   재기동에도 제한이 유지되고, 셀 수 있는 상태가 한 곳에만 남는다. 기준 시각은 이미 쓰고 있는 `Clock` 빈.
-3. **`getStatus()` 는 고치지 않는다.** 이슈가 지적한 `currentIdx == -1` 문제는 새로 만드는
-   `getCurrentContentId()` 에서만 막고, 기존 메서드는 호출부가 가드하는 지금 방식을 유지한다.
-   신고 조립도 `isRoundStarted()` 를 먼저 본다.
-4. **유저 신고(비매너)와 관리자 조회 화면은 범위 밖.** 이슈 그대로다.
+**테스트**
 
-## 구현하면서 이슈와 달라진 것
+- `ReportServiceTest` — 내 신고만 돌려준다 / 답변이 빈 내용이면 거절한다 / 상태가 바뀐다 /
+  알림에 신고 번호가 실린다
+- `ReportPersistenceTest` — 답변이 행으로 남고 신고와 함께 읽힌다, 신고를 지우면 답변도 지워진다
+- `ReportControllerDocsTest` · `AdminReportControllerDocsTest` — Rest Docs, 그리고
+  **신고자 응답에 정답 · 힌트가 없다**는 것을 테스트로 고정한다
 
-- **`report` 에 `quiz_category` 를 더했다.** 이슈의 컬럼 목록에는 없지만 디스코드 메시지에는 카테고리가
-  실린다. 컬럼이 없으면 저장된 행으로 그 메시지를 되짚을 수 없어, 스냅샷이 알림보다 부실해진다.
-- **디스코드 전송 테스트를 `@Tag("external")` 대신 `MockRestServiceServer` 로 썼다.** 실제 웹훅 주소가
-  없으면 external 테스트는 영원히 돌지 않는다. 목 서버로 보내는 본문과 429 처리, 길이 자르기를 실제로 검증한다.
-- **게임 화면 두 곳은 `ReportModal` 을 직접 쓰지 않고 `ReportButton` 을 공유한다.** 화면마다 모달 열림
-  상태와 접수 결과를 따로 들면 같은 흐름이 두 벌로 갈라진다.
-- **환경변수는 `SERVER_REQUIREMENTS.md` 가 아니라 `compose.yml` 에 적었다.** 그 문서는 프런트 요구사항
-  모음이고, 이 저장소에서 컨테이너에 넘기는 환경변수가 실제로 선언되는 자리는 `compose.yml` 뿐이다.
+## 2단계 — 마이페이지에 목차를 두고 내 문의를 붙인다 (프론트)
+
+지금 `MyPage.tsx` 는 프로필 · 닉네임 변경 · 승급 신청이 한 파일에 쌓여 있다. 목차가 생기면
+화면이 셋으로 늘어나므로 먼저 쪼갠다.
+
+- `src/pages/MyPage.tsx` — 좌측 목차 + 우측 본문의 껍데기. 목차 항목은 URL 로 주소를 갖는다.
+  `/mypage` (내 정보) · `/mypage/reports` (내 문의) · `/mypage/inquiries` (문의 관리).
+  관리자가 문의 관리 화면을 북마크할 수 있어야 하므로 화면 상태가 아니라 경로로 나눈다.
+  `App.tsx` 의 `/mypage` 라우트를 `/mypage/*` 로 바꾸고 안에서 다시 나눈다.
+- `src/components/mypage/MyPageNav.tsx` — 목차. `ADMIN` 이상일 때만 문의 관리를 넣는다.
+  좁은 화면에서는 좌측 세로 목차가 위쪽 가로 탭으로 바뀐다.
+- `src/components/mypage/ProfileSection.tsx` — 지금 `MyPage` 본문을 그대로 옮긴다. 동작은 안 바꾼다.
+- `src/components/mypage/MyReportsSection.tsx` — 접수 목록. 사유 · 게임 종류 · 접수 시각 · 상태 칩 ·
+  내가 쓴 내용 · 관리자 답변. 답변이 없으면 "아직 확인 중입니다".
+- `src/hooks/useMyReports.ts` — `GET /api/reports/mine`.
+- `src/types/report.ts` 에 응답 타입과 상태 라벨을 더한다.
+
+**테스트**
+
+- `MyPageNav.test.tsx` — USER 에게는 문의 관리가 보이지 않고 ADMIN 에게는 보인다
+- `MyReportsSection.test.tsx` — 상태를 한글로 보여준다 / 답변이 없으면 확인 중이라고 알린다 /
+  접수한 게 없으면 빈 화면을 보여준다
+- `MyPage.test.tsx` — 경로에 따라 해당 절이 열린다, USER 가 `/mypage/inquiries` 로 들어오면 되돌린다
+
+## 3단계 — 문의 관리 화면 (프론트, ADMIN 이상)
+
+- `src/components/mypage/ReportAdminSection.tsx` — 상태 필터, 신고 카드에 컨텍스트 전부(정답 · 힌트 포함),
+  답변 입력창, 상태 변경 버튼. 답변 입력창 옆에 신고자에게 보인다는 것을 적는다.
+- `src/hooks/useReportAdmin.ts` — 목록 조회 · 답변 · 상태 변경.
+
+**테스트**
+
+- `ReportAdminSection.test.tsx` — 상태 필터가 조회 조건으로 넘어간다 / 답변을 남기면 목록을 다시 읽는다 /
+  빈 답변은 보내지 않는다 / 상태를 바꾸면 목록을 다시 읽는다
+
+## 4단계 — 문서
+
+- `api/report.md` — 세 API 와 두 응답 모델의 차이, 정답 · 힌트를 신고자에게 내려주지 않는 이유
+- `index.adoc` — 신고 절에 조회 · 답변 · 상태 변경 추가
+- `backend/ARCHITECTURE.md` — `report` aggregate 설명에 답변과 처리 상태를 더한다
 
 ## 검증
 
-- 백엔드: `./gradlew :backend:core:core-api:test`
-- 프론트엔드: `npx vitest run`, `npx tsc --noEmit`, `npx vite build`
-- 로컬 통합: 게임 진행 중 신고 → 서버 로그(`LoggingReportNotifier`)에 컨텍스트가 채워져 나오는지,
-  대기실·로비에서 신고할 때 채워지는 범위가 표의 세 경우와 맞는지 확인한다.
+- 백엔드: `./gradlew clean build`
+- 프론트: `npx vitest run`, `npx tsc --noEmit`, `npx eslint <새 파일>`, `npx vite build`

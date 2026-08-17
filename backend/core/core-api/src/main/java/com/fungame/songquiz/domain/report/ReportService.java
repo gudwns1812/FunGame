@@ -4,6 +4,7 @@ import com.fungame.songquiz.domain.room.GameRoomManager;
 import com.fungame.songquiz.domain.session.GameSession;
 import com.fungame.songquiz.domain.session.GameSessionManager;
 import com.fungame.songquiz.enums.GameType;
+import com.fungame.songquiz.enums.ReportStatus;
 import com.fungame.songquiz.support.error.CoreException;
 import com.fungame.songquiz.support.error.ErrorType;
 import lombok.RequiredArgsConstructor;
@@ -11,6 +12,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.Clock;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -33,11 +35,33 @@ public class ReportService {
                 contextOf(command.roomId(), command.gameType()));
         boolean alreadyFiled = alreadyFiled(memberId, report);
 
-        reportWriter.append(report);
+        Long reportId = reportWriter.append(report);
 
         if (!alreadyFiled) {
-            reportNotifier.notifyReport(report);
+            reportNotifier.notifyReport(report.withId(reportId));
         }
+    }
+
+    public List<Report> findMyReports(Long memberId) {
+        return reportReader.findMine(memberId);
+    }
+
+    public List<Report> findAllReports(ReportStatus status) {
+        return reportReader.findAll(status);
+    }
+
+    public void comment(Long adminId, Long reportId, String content) {
+        ReportComment comment = ReportComment.write(reportId, adminId, content);
+        reportReader.findById(reportId);
+
+        reportWriter.appendComment(comment);
+    }
+
+    public void changeStatus(Long reportId, ReportStatus status) {
+        Report report = reportReader.findById(reportId);
+        report.changeStatus(status);
+
+        reportWriter.changeStatus(report);
     }
 
     private boolean alreadyFiled(Long memberId, Report report) {

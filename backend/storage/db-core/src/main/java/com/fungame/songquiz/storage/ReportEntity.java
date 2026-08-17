@@ -12,6 +12,8 @@ import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Getter
@@ -82,6 +84,10 @@ public class ReportEntity {
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
+    @OneToMany(mappedBy = "report")
+    @OrderBy("createdAt asc")
+    private List<ReportCommentEntity> comments = new ArrayList<>();
+
     private ReportEntity(MemberEntity member, ReportSource source, ReportReason reason, String detail,
                          GameContext context) {
         this.member = member;
@@ -103,5 +109,9 @@ public class ReportEntity {
     public static ReportEntity open(MemberEntity member, ReportSource source, ReportReason reason, String detail,
                                     GameContext context) {
         return new ReportEntity(member, source, reason, detail, context);
+    }
+
+    public void changeStatus(ReportStatus status) {
+        this.status = status;
     }
 }

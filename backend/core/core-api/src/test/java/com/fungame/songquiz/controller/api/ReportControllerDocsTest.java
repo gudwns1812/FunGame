@@ -2,11 +2,15 @@ package com.fungame.songquiz.controller.api;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fungame.songquiz.domain.member.MemberAdapter;
+import com.fungame.songquiz.domain.report.Report;
+import com.fungame.songquiz.domain.report.ReportComment;
 import com.fungame.songquiz.domain.report.ReportCommand;
+import com.fungame.songquiz.domain.report.ReportContext;
 import com.fungame.songquiz.domain.report.ReportService;
 import com.fungame.songquiz.enums.GameType;
 import com.fungame.songquiz.enums.ReportReason;
 import com.fungame.songquiz.enums.ReportSource;
+import com.fungame.songquiz.enums.ReportStatus;
 import com.fungame.songquiz.support.MemberFixture;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -25,15 +29,19 @@ import org.springframework.web.context.request.NativeWebRequest;
 import org.springframework.web.method.support.HandlerMethodArgumentResolver;
 import org.springframework.web.method.support.ModelAndViewContainer;
 
+import java.time.LocalDateTime;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.document;
 import static org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.documentationConfiguration;
+import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.get;
 import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.post;
 import static org.springframework.restdocs.payload.PayloadDocumentation.fieldWithPath;
 import static org.springframework.restdocs.payload.PayloadDocumentation.requestFields;
@@ -161,5 +169,61 @@ class ReportControllerDocsTest {
         assertThat(command.roomId()).isNull();
         assertThat(command.detail()).isEqualTo("로그인하면 가끔 튕겨요");
         assertThat(command.gameType()).isEqualTo(GameType.SONG);
+    }
+
+    @Test
+    @DisplayName("내가 접수한 신고 조회 API")
+    void findMyReports() throws Exception {
+        given(reportService.findMyReports(MEMBER_ID)).willReturn(List.of(storedReport()));
+
+        mockMvc.perform(get("/api/reports/mine"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.result").value("SUCCESS"))
+                .andExpect(jsonPath("$.data[0].reason").value("HINT_WRONG"))
+                .andExpect(jsonPath("$.data[0].status").value("OPEN"))
+                .andExpect(jsonPath("$.data[0].comments[0].content").value("힌트를 고쳤습니다."))
+                .andDo(document("report-mine",
+                        responseFields(
+                                fieldWithPath("result").description("응답 결과 (SUCCESS/FAIL)"),
+                                fieldWithPath("data[].id").description("신고 번호"),
+                                fieldWithPath("data[].source").description("접수 위치 (IN_GAME/LOBBY)"),
+                                fieldWithPath("data[].reason").description("사유 코드"),
+                                fieldWithPath("data[].detail").type(JsonFieldType.STRING).optional()
+                                        .description("직접 작성한 내용"),
+                                fieldWithPath("data[].gameType").type(JsonFieldType.STRING).optional()
+                                        .description("게임 종류"),
+                                fieldWithPath("data[].status").description("처리 상태 (OPEN/RESOLVED)"),
+                                fieldWithPath("data[].createdAt").description("접수 시각"),
+                                fieldWithPath("data[].comments[].id").description("답변 번호"),
+                                fieldWithPath("data[].comments[].authorNickname").description("답변한 관리자"),
+                                fieldWithPath("data[].comments[].content").description("답변 내용"),
+                                fieldWithPath("data[].comments[].createdAt").description("답변 시각"),
+                                fieldWithPath("error").description("에러 정보 (성공 시 null)")
+                        )
+                ));
+    }
+
+    @Test
+    @DisplayName("신고자에게는 정답과 힌트, 문제 식별자를 내려주지 않는다.")
+    void hidesQuizSecretsFromReporter() throws Exception {
+        given(reportService.findMyReports(MEMBER_ID)).willReturn(List.of(storedReport()));
+
+        mockMvc.perform(get("/api/reports/mine"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data[0].quizAnswer").doesNotExist())
+                .andExpect(jsonPath("$.data[0].quizHint").doesNotExist())
+                .andExpect(jsonPath("$.data[0].quizContent").doesNotExist())
+                .andExpect(jsonPath("$.data[0].contentId").doesNotExist())
+                .andExpect(jsonPath("$.data[0].roomId").doesNotExist())
+                .andExpect(jsonPath("$.data[0].currentRound").doesNotExist());
+    }
+
+    private static Report storedReport() {
+        return Report.restore(7L, MEMBER_ID, "신고한사람", ReportSource.IN_GAME, ReportReason.HINT_WRONG, null,
+                new ReportContext(GameType.SONG, "KPOP", 777L, ROOM_ID, 2, 5,
+                        "https://youtu.be/BzYnNdJhZQw", "아이유 - 밤편지", "아이유 - ㅂㅍㅈ"),
+                ReportStatus.OPEN, LocalDateTime.of(2026, 8, 18, 0, 0),
+                List.of(new ReportComment(1L, 7L, 9L, "관리자", "힌트를 고쳤습니다.",
+                        LocalDateTime.of(2026, 8, 18, 1, 0))));
     }
 }

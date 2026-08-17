@@ -40,7 +40,8 @@ class FlywayMigrationTest {
                 "computer_science_entity",
                 "counter_entity",
                 "password_reset_token",
-                "report");
+                "report",
+                "report_comment");
     }
 
     @Test

@@ -34,6 +34,7 @@ public record ReportSummary(
         ReportContext context = report.getContext();
         List<Line> lines = new ArrayList<>();
 
+        addLine(lines, "신고 번호", report.getId());
         addLine(lines, "신고자", report.getMemberId());
         addLine(lines, "접수 위치", report.getSource());
         addLine(lines, "게임", context.gameType());
