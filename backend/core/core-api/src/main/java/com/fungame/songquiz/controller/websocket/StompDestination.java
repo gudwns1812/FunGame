@@ -7,7 +7,15 @@ public final class StompDestination {
 
     public static final String BROKER_PREFIX = "/topic";
 
+    public static final String USER_BROKER_PREFIX = "/queue";
+
     public static final String APPLICATION_PREFIX = "/app";
+
+    public static final String LOBBY = BROKER_PREFIX + "/lobby";
+
+    public static final String PRESENCE = USER_BROKER_PREFIX + "/presence";
+
+    public static final String INVITE = USER_BROKER_PREFIX + "/invite";
 
     private static final String ROOM_PREFIX = BROKER_PREFIX + "/room/";
 

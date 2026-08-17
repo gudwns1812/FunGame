@@ -168,8 +168,7 @@ core/core-api/
 │   │   ├── config/                시큐리티 · 웹 · 웹소켓 · 비동기 설정
 │   │   ├── request/               요청 모델
 │   │   ├── response/              ApiResponse
-│   │   ├── sse/                   SSE 연결과 로비 · 초대 알림
-│   │   └── websocket/             STOMP 핸들러
+│   │   └── websocket/             STOMP 핸들러 · 세션 · 로비 · 초대 알림
 │   ├── domain/                    aggregate 하나에 폴더 하나
 │   │   ├── member/
 │   │   ├── room/

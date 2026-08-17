@@ -2,42 +2,10 @@ import { renderHook, act, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import axios from 'axios';
 import { useGameLogic } from './useGameLogic';
-import { createSseStub } from '../test/sseTestUtils';
+import { roomTopic } from '../utils/stompDestination';
+import { createStompStub } from '../test/stompTestUtils';
 
 vi.mock('axios');
-vi.mock('sockjs-client');
-
-type RoomMessageHandler = (message: { body: string }) => void;
-const roomSubscribers: RoomMessageHandler[] = [];
-
-vi.mock('@stomp/stompjs', () => ({
-  TickerStrategy: { Interval: 'interval', Worker: 'worker' },
-  Client: class {
-    connected = true;
-    active = true;
-    private readonly config: { onConnect?: (frame: unknown) => void };
-
-    constructor(config: { onConnect?: (frame: unknown) => void }) {
-      this.config = config;
-    }
-
-    activate() {
-      this.config.onConnect?.(undefined);
-    }
-
-    deactivate = vi.fn().mockResolvedValue(undefined);
-    publish = vi.fn();
-
-    subscribe(_destination: string, handler: RoomMessageHandler) {
-      roomSubscribers.push(handler);
-    }
-  },
-}));
-
-const publishToRoom = (event: Record<string, unknown>) => {
-  const body = JSON.stringify({ result: 'SUCCESS', data: event });
-  roomSubscribers.forEach((handler) => handler({ body }));
-};
 
 const mockedAxios = axios as unknown as {
   get: ReturnType<typeof vi.fn>;
@@ -46,9 +14,21 @@ const mockedAxios = axios as unknown as {
 };
 
 describe('useGameLogic 결과창에서 게임방으로 돌아가기', () => {
+  let stomp: ReturnType<typeof createStompStub>;
+
+  const renderGameLogic = () => {
+    stomp = createStompStub();
+    return renderHook(() => useGameLogic(), {
+      wrapper: stomp.wrapper,
+    });
+  };
+
+  const publishToRoom = (roomId: string, event: Record<string, unknown>) => {
+    stomp.emit(roomTopic(roomId), event);
+  };
+
   beforeEach(() => {
     vi.clearAllMocks();
-    roomSubscribers.length = 0;
     localStorage.clear();
     localStorage.setItem('ums_nickname', '나');
     localStorage.setItem('ums_member_id', '1');
@@ -73,7 +53,7 @@ describe('useGameLogic 결과창에서 게임방으로 돌아가기', () => {
   });
 
   it('지난 판의 로그를 지운 채로 대기실에 들어간다', async () => {
-    const { result } = renderHook(() => useGameLogic(), { wrapper: createSseStub().wrapper });
+    const { result } = renderGameLogic();
 
     act(() => {
       result.current.addLog('[시스템] 1라운드 정답은 밤양갱');
@@ -90,7 +70,7 @@ describe('useGameLogic 결과창에서 게임방으로 돌아가기', () => {
   });
 
   it('새 판이 시작되면 지난 판의 점수를 0 으로 되돌린다', async () => {
-    const { result } = renderHook(() => useGameLogic(), { wrapper: createSseStub().wrapper });
+    const { result } = renderGameLogic();
 
     await act(async () => {
       await result.current.joinRoom({
@@ -105,14 +85,17 @@ describe('useGameLogic 결과창에서 게임방으로 돌아가기', () => {
   csDifficulty: 'HARD',
       });
     });
+    await act(async () => {
+      await stomp.connect();
+    });
 
     act(() => {
-      publishToRoom({ type: 'CORRECT_ANSWER', memberId: 1, nickname: '나', score: 30 });
+      publishToRoom('7', { type: 'CORRECT_ANSWER', memberId: 1, nickname: '나', score: 30 });
     });
     expect(result.current.players.find((player) => player.name === '나')?.score).toBe(30);
 
     act(() => {
-      publishToRoom({ type: 'GAME_START', gameType: 'CS', category: null, songCount: 5 });
+      publishToRoom('7', { type: 'GAME_START', gameType: 'CS', category: null, songCount: 5 });
     });
 
     expect(result.current.players.every((player) => player.score === 0)).toBe(true);
@@ -122,7 +105,7 @@ describe('useGameLogic 결과창에서 게임방으로 돌아가기', () => {
     // given: 예전 버전에서 만들어진 로컬스토리지에는 회원 번호가 없다
     localStorage.removeItem('ums_member_id');
 
-    const { result } = renderHook(() => useGameLogic(), { wrapper: createSseStub().wrapper });
+    const { result } = renderGameLogic();
 
     act(() => {
       result.current.identify(1, '나');
@@ -172,14 +155,17 @@ describe('useGameLogic 결과창에서 게임방으로 돌아가기', () => {
       return Promise.resolve({ data: { result: 'SUCCESS', data: [] } });
     });
 
-    const { result } = renderHook(() => useGameLogic(), { wrapper: createSseStub().wrapper });
+    const { result } = renderGameLogic();
 
-    // when: 로그인 확인이 재참가보다 먼저 끝나 회원 번호가 뒤늦게 들어온다
+    // when
     act(() => {
       result.current.identify(1, '나');
     });
+    await act(async () => {
+      await stomp.connect();
+    });
 
-    // then: 뒤늦게 끝난 재참가가 방장 판정을 뒤집지 않는다
+    // then
     await waitFor(() => expect(result.current.isBootstrapping).toBe(false));
     expect(result.current.isHost).toBe(true);
   });
@@ -202,7 +188,7 @@ describe('useGameLogic 결과창에서 게임방으로 돌아가기', () => {
       return Promise.resolve({ data: { result: 'SUCCESS', data: [] } });
     });
 
-    const { result } = renderHook(() => useGameLogic(), { wrapper: createSseStub().wrapper });
+    const { result } = renderGameLogic();
 
     await act(async () => {
       await result.current.joinRoom({
@@ -223,7 +209,7 @@ describe('useGameLogic 결과창에서 게임방으로 돌아가기', () => {
   });
 
   it('진행 중이던 라운드 화면 상태도 함께 비운다', async () => {
-    const { result } = renderHook(() => useGameLogic(), { wrapper: createSseStub().wrapper });
+    const { result } = renderGameLogic();
 
     await act(async () => {
       await result.current.returnToWaitingRoom();

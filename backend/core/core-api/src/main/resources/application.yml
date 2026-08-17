@@ -12,6 +12,8 @@ app:
     # 메일에 실리는 재설정 페이지 주소. 뒤에 ?token=... 이 붙습니다.
     link-base-url: ${PASSWORD_RESET_LINK_BASE_URL:https://www.fun-game.club/reset-password}
 spring:
+  application:
+    name: fungame-backend
   # 모듈이 자기 설정을 갖고 core-api 가 가져옵니다.
   config:
     import:

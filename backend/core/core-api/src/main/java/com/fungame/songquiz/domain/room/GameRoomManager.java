@@ -69,7 +69,7 @@ public class GameRoomManager {
 
     private JoinResult rejoinPlayingRoom(Long roomId, GameRoom gameRoom, GamePlayer player) {
         if (gameRoom.hasPlayer(player.memberId())) {
-            return new JoinResult(gameRoom.getPlayerCount(), false);
+            return new JoinResult(gameRoom.getPlayerCount(), false, RoomStateInfo.from(gameRoom));
         }
 
         GameSession gameSession = gameSessionManager.getGameSession(roomId);
@@ -95,11 +95,11 @@ public class GameRoomManager {
 
             if (gameRoom.isEmpty()) {
                 deleteRoom(roomId);
-                return new LeaveResult(true, wasPlaying, nickname);
+                return new LeaveResult(true, wasPlaying, nickname, null);
             }
 
             applicationEventPublisher.publishEvent(new RoomChangedEvent());
-            return new LeaveResult(false, wasPlaying, nickname);
+            return new LeaveResult(false, wasPlaying, nickname, RoomStateInfo.from(gameRoom));
         });
     }
 
@@ -110,14 +110,14 @@ public class GameRoomManager {
         });
     }
 
-    public GamePlayer kickPlayer(Long roomId, Long hostId, Long targetId) {
+    public KickResult kickPlayer(Long roomId, Long hostId, Long targetId) {
         return lockContext.processWithLockKey(roomId, () -> {
             GameRoom gameRoom = getRoom(roomId);
 
             GamePlayer kicked = gameRoom.kick(hostId, targetId);
             applicationEventPublisher.publishEvent(new RoomChangedEvent());
 
-            return kicked;
+            return new KickResult(kicked, RoomStateInfo.from(gameRoom));
         });
     }
 
@@ -163,7 +163,7 @@ public class GameRoomManager {
         });
     }
 
-    public GameRoom changeSettings(Long roomId, Long memberId, RoomSettings newSettings) {
+    public RoomStateInfo changeSettings(Long roomId, Long memberId, RoomSettings newSettings) {
         return lockContext.processWithLockKey(roomId, () -> {
             GameRoom gameRoom = getRoom(roomId);
             if (!gameRoom.isHost(memberId)) {
@@ -173,7 +173,7 @@ public class GameRoomManager {
             gameRoom.changeSettings(newSettings);
             applicationEventPublisher.publishEvent(new RoomChangedEvent());
 
-            return gameRoom;
+            return RoomStateInfo.from(gameRoom);
         });
     }
 
@@ -215,8 +215,8 @@ public class GameRoomManager {
         return new MemberLocations(locationsByMember);
     }
 
-    public PlayersInfo findRoomUsers(Long roomId) {
-        return lockContext.processWithLockKey(roomId, () -> PlayersInfo.from(getRoom(roomId)));
+    public RoomStateInfo findRoomState(Long roomId) {
+        return lockContext.processWithLockKey(roomId, () -> RoomStateInfo.from(getRoom(roomId)));
     }
 
     public ReadyResult readyPlayer(Long roomId, Long memberId) {
@@ -226,7 +226,8 @@ public class GameRoomManager {
 
             boolean ready = gameRoom.readyPlayer(memberId);
 
-            return new ReadyResult(ready, gameRoom.isAllReady(), gameRoom.nicknameOf(memberId));
+            return new ReadyResult(ready, gameRoom.isAllReady(), gameRoom.nicknameOf(memberId),
+                    RoomStateInfo.from(gameRoom));
         });
     }
 

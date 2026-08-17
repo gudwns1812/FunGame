@@ -5,10 +5,8 @@ import com.fungame.songquiz.domain.room.GamePlayer;
 import com.fungame.songquiz.domain.room.RoomSettings;
 import com.fungame.songquiz.domain.room.GameRoomService;
 import com.fungame.songquiz.domain.room.PlayerReadyInfo;
-import com.fungame.songquiz.domain.room.PlayersInfo;
 import com.fungame.songquiz.domain.room.RoomInfo;
-import com.fungame.songquiz.domain.room.RoomSettingsInfo;
-import com.fungame.songquiz.controller.room.RoomListReader;
+import com.fungame.songquiz.domain.room.RoomStateInfo;
 import com.fungame.songquiz.domain.session.GameService;
 import com.fungame.songquiz.controller.request.ChangeRoomSettingsRequest;
 import com.fungame.songquiz.controller.request.CreateRoomRequest;
@@ -57,12 +55,11 @@ class GameControllerTest {
     private MockMvc mockMvc;
     private final GameRoomService gameRoomService = mock(GameRoomService.class);
     private final GameService gameService = mock(GameService.class);
-    private final RoomListReader roomListReader = mock(RoomListReader.class);
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     @BeforeEach
     void setUp(RestDocumentationContextProvider restDocumentation) {
-        this.mockMvc = MockMvcBuilders.standaloneSetup(new GameController(gameRoomService, gameService, roomListReader))
+        this.mockMvc = MockMvcBuilders.standaloneSetup(new GameController(gameRoomService, gameService))
                 .apply(documentationConfiguration(restDocumentation))
                 .setCustomArgumentResolvers(new HandlerMethodArgumentResolver() {
                     @Override
@@ -82,7 +79,7 @@ class GameControllerTest {
     @DisplayName("방 목록을 조회한다.")
     void findAllRoom() throws Exception {
         // given
-        given(roomListReader.findAllRooms()).willReturn(List.of(
+        given(gameRoomService.findAllRooms()).willReturn(List.of(
                 new RoomInfo(1L,
                         new RoomSettings(GameType.SONG, "K-POP 퀴즈방", 8, Category.KPOP, 10, 0, CSQuizDifficulty.HARD),
                         GamePlayer.createNewPlayer(2L, "방장닉네임"), GameRoomStatus.WAITING, 3)
@@ -100,13 +97,15 @@ class GameControllerTest {
     @DisplayName("방 참가자 목록의 각 참가자는 memberId, nickname, isReady 로 내려간다.")
     void findUsers() throws Exception {
         // given
-        given(gameRoomService.findUsers(1L)).willReturn(new PlayersInfo(
+        given(gameRoomService.findRoomState(1L)).willReturn(new RoomStateInfo(1L, 4, GameRoomStatus.WAITING,
+                new RoomSettings(GameType.SONG, "K-POP 퀴즈방", 8, Category.KPOP, 10, 0, CSQuizDifficulty.HARD),
                 List.of(new GamePlayer(2L, "방장닉네임", true), new GamePlayer(3L, "참가자닉네임", false)),
                 new GamePlayer(2L, "방장닉네임", true)));
 
         // when // then
         mockMvc.perform(get("/game/rooms/1/users"))
                 .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.version").value(4))
                 .andExpect(jsonPath("$.data.hostMemberId").value(2))
                 .andExpect(jsonPath("$.data.hostNickname").value("방장닉네임"))
                 .andExpect(jsonPath("$.data.players[0].memberId").value(2))
@@ -219,9 +218,8 @@ class GameControllerTest {
     @DisplayName("대기실에서 방 설정을 조회한다.")
     void findSettings() throws Exception {
         // given
-        given(gameRoomService.findSettings(1L)).willReturn(
-                new RoomSettingsInfo(
-                        new RoomSettings(GameType.SONG, "K-POP 퀴즈방", 8, Category.KPOP, 10, 0, CSQuizDifficulty.HARD),
+        given(gameRoomService.findRoomState(1L)).willReturn(
+                roomState(new RoomSettings(GameType.SONG, "K-POP 퀴즈방", 8, Category.KPOP, 10, 0, CSQuizDifficulty.HARD),
                         GamePlayer.createNewPlayer(2L, "방장닉네임")));
 
         // when // then
@@ -241,16 +239,14 @@ class GameControllerTest {
     @DisplayName("방장이 대기실에서 방 설정을 변경한다.")
     void changeSettings() throws Exception {
         // given
-        RoomSettingsInfo current =
-                new RoomSettingsInfo(
-                        new RoomSettings(GameType.SONG, "K-POP 퀴즈방", 8, Category.KPOP, 10, 0, CSQuizDifficulty.HARD),
+        RoomStateInfo current =
+                roomState(new RoomSettings(GameType.SONG, "K-POP 퀴즈방", 8, Category.KPOP, 10, 0, CSQuizDifficulty.HARD),
                         GamePlayer.createNewPlayer(1L, "테스트유저"));
-        RoomSettingsInfo changed =
-                new RoomSettingsInfo(
-                        new RoomSettings(GameType.SONG, "K-POP 퀴즈방", 6, Category.BALLAD, 5, 0, CSQuizDifficulty.HARD),
+        RoomStateInfo changed =
+                roomState(new RoomSettings(GameType.SONG, "K-POP 퀴즈방", 6, Category.BALLAD, 5, 0, CSQuizDifficulty.HARD),
                         GamePlayer.createNewPlayer(1L, "테스트유저"));
 
-        given(gameRoomService.findSettings(1L)).willReturn(current);
+        given(gameRoomService.findRoomState(1L)).willReturn(current);
         given(gameRoomService.changeSettings(eq(1L), eq(1L), any())).willReturn(changed);
 
         ChangeRoomSettingsRequest request = ChangeRoomSettingsRequest.builder()
@@ -273,5 +269,9 @@ class GameControllerTest {
                         preprocessResponse(prettyPrint()),
                         pathParameters(parameterWithName("roomId").description("방 ID"))
                 ));
+    }
+
+    private static RoomStateInfo roomState(RoomSettings settings, GamePlayer host) {
+        return new RoomStateInfo(1L, 1, GameRoomStatus.WAITING, settings, List.of(host), host);
     }
 }

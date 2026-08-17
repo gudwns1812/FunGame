@@ -1,23 +1,12 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import axios from 'axios';
-import { useSse } from '../contexts/SseContext';
+import { useStomp } from '../contexts/StompContext';
+import { PRESENCE_QUEUE } from '../utils/stompDestination';
 import type { OnlineMember } from '../types/presence';
 
-const REFRESH_DEBOUNCE_MS = 300;
-
-const pushedMembersOf = (data: string): OnlineMember[] | null => {
-  try {
-    const parsed = JSON.parse(data);
-    return Array.isArray(parsed) ? (parsed as OnlineMember[]) : null;
-  } catch {
-    return null;
-  }
-};
-
 export const useOnlineMembers = (enabled: boolean) => {
-  const { onEvent } = useSse();
+  const { onConnection } = useStomp();
   const [members, setMembers] = useState<OnlineMember[]>([]);
-  const debounceTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
   const fetchMembers = useCallback(async () => {
     try {
@@ -36,31 +25,18 @@ export const useOnlineMembers = (enabled: boolean) => {
       return;
     }
 
-    const refreshSoon = () => {
-      clearTimeout(debounceTimer.current);
-      debounceTimer.current = setTimeout(fetchMembers, REFRESH_DEBOUNCE_MS);
-    };
+    return onConnection((channel) => {
+      channel.subscribe(PRESENCE_QUEUE, (pushedMembers) => {
+        if (!Array.isArray(pushedMembers)) {
+          void fetchMembers();
+          return;
+        }
+        setMembers(pushedMembers as OnlineMember[]);
+      });
 
-    const applyPushedMembers = (event: MessageEvent) => {
-      const pushedMembers = pushedMembersOf(event.data);
-      if (!pushedMembers) {
-        refreshSoon();
-        return;
-      }
-
-      setMembers(pushedMembers);
-    };
-
-    fetchMembers();
-    const stopListeningPresence = onEvent('presence-update', applyPushedMembers);
-    const stopListeningConnected = onEvent('connected', refreshSoon);
-
-    return () => {
-      clearTimeout(debounceTimer.current);
-      stopListeningPresence();
-      stopListeningConnected();
-    };
-  }, [enabled, fetchMembers, onEvent]);
+      void fetchMembers();
+    });
+  }, [enabled, fetchMembers, onConnection]);
 
   return members;
 };

@@ -51,8 +51,3 @@ operation::room-kick[snippets='path-parameters,http-request,request-body,http-re
 
 === 게임 시작
 operation::game-start[snippets='path-parameters,http-request,request-body,http-response,response-body']
-
-== SSE
-
-=== 방 목록 구독
-operation::sse-subscribe[snippets='http-request,http-response']

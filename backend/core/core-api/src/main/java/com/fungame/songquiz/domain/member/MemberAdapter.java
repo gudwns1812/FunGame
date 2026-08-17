@@ -16,7 +16,11 @@ public class MemberAdapter extends User {
 
     public static String principalNameOf(Member member) {
         Assert.notNull(member.getId(), "저장되지 않은 회원은 인증 주체가 될 수 없습니다.");
-        return String.valueOf(member.getId());
+        return principalNameOf(member.getId());
+    }
+
+    public static String principalNameOf(Long memberId) {
+        return String.valueOf(memberId);
     }
 
     public MemberAdapter(Member member) {

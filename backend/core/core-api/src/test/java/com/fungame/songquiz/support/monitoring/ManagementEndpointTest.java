@@ -13,6 +13,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.TestPropertySource;
 
+import java.util.List;
+
 import static org.assertj.core.api.Assertions.assertThat;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
@@ -59,6 +61,25 @@ class ManagementEndpointTest {
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(response.getBody()).contains("jvm_memory_used_bytes");
+    }
+
+    @Test
+    @DisplayName("스크랩 결과의 지표마다 application, namespace 라벨이 붙는다.")
+    void prometheusTagsEveryMetric() {
+        String scrapeBody = get(managementPort, "/actuator/prometheus").getBody();
+
+        assertThat(samplesOf(scrapeBody, "hikaricp_connections"))
+                .as("Spring Boot JDBC & HikariCP 대시보드(20729)가 이 두 라벨로 지표를 걸러낸다")
+                .isNotEmpty()
+                .allSatisfy(sample -> assertThat(sample)
+                        .contains("application=\"fungame-backend\"")
+                        .contains("namespace=\""));
+    }
+
+    private List<String> samplesOf(String scrapeBody, String metricName) {
+        return scrapeBody.lines()
+                .filter(line -> line.startsWith(metricName + "{"))
+                .toList();
     }
 
     @Test

@@ -1,30 +1,10 @@
 import { renderHook, act } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { useGameLogic } from './useGameLogic';
-import { createSseStub } from '../test/sseTestUtils';
+import { createStompStub } from '../test/stompTestUtils';
 
 // Mock dependencies
 vi.mock('axios');
-vi.mock('@stomp/stompjs', () => {
-  return {
-    Client: vi.fn().mockImplementation((config) => {
-      return {
-        active: true,
-        activate: vi.fn(),
-        deactivate: vi.fn().mockResolvedValue(undefined),
-        subscribe: vi.fn(),
-        publish: vi.fn(),
-        // mock to trigger events
-        triggerEvent: (_destination: string, _message: any) => {
-          if (config && config.onConnect) {
-            // Mock triggering by exposing a global or directly running
-          }
-        }
-      };
-    })
-  };
-});
-vi.mock('sockjs-client');
 
 describe('useGameLogic Event Logging', () => {
   beforeEach(() => {
@@ -34,7 +14,9 @@ describe('useGameLogic Event Logging', () => {
 
   it('PLAYER_JOIN & PLAYER_LEAVE 이벤트를 제외한 시스템 로그는 필터링되어야 한다', async () => {
     // 훅 렌더링
-    const { result } = renderHook(() => useGameLogic(), { wrapper: createSseStub().wrapper });
+    const { result } = renderHook(() => useGameLogic(), {
+      wrapper: createStompStub().wrapper,
+    });
 
     // 상태 강제 주입 후 로그 추가 발생 여부 확인 로직
     // 초기 로그는 없음

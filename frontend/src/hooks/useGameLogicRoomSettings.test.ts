@@ -2,10 +2,9 @@ import { renderHook, act } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import axios from 'axios';
 import { useGameLogic } from './useGameLogic';
-import { createSseStub } from '../test/sseTestUtils';
+import { createStompStub } from '../test/stompTestUtils';
 
 vi.mock('axios');
-vi.mock('sockjs-client');
 
 const mockedAxios = axios as unknown as {
   get: ReturnType<typeof vi.fn>;
@@ -48,7 +47,9 @@ describe('useGameLogic 방 설정 변경', () => {
   });
 
   it('정원을 바꾸면 대기실 슬롯 기준 정원도 따라간다', async () => {
-    const { result } = renderHook(() => useGameLogic(), { wrapper: createSseStub().wrapper });
+    const { result } = renderHook(() => useGameLogic(), {
+      wrapper: createStompStub().wrapper,
+    });
 
     await act(async () => {
       await result.current.changeRoomSettings({
@@ -70,7 +71,9 @@ describe('useGameLogic 방 설정 변경', () => {
       response: { data: { error: { message: '방이 가득찼습니다.' } } },
     });
 
-    const { result } = renderHook(() => useGameLogic(), { wrapper: createSseStub().wrapper });
+    const { result } = renderHook(() => useGameLogic(), {
+      wrapper: createStompStub().wrapper,
+    });
     const before = result.current.roomMaxPlayers;
 
     await act(async () => {

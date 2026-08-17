@@ -236,10 +236,10 @@ class GameRoomManagerTest {
         clearInvocations(applicationEventPublisher);
 
         // when
-        GamePlayer kicked = gameRoomManager.kickPlayer(roomId, HOST.memberId(), GUEST.memberId());
+        KickResult result = gameRoomManager.kickPlayer(roomId, HOST.memberId(), GUEST.memberId());
 
         // then
-        assertThat(kicked.memberId()).isEqualTo(GUEST.memberId());
+        assertThat(result.kicked().memberId()).isEqualTo(GUEST.memberId());
         assertThat(gameRoomManager.findRoom(roomId).getRoomPlayers())
                 .extracting(GamePlayer::memberId)
                 .containsExactly(HOST.memberId());

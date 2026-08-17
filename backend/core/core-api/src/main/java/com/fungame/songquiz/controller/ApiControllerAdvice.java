@@ -11,8 +11,6 @@ import org.springframework.validation.BindException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
-import org.springframework.web.context.request.async.AsyncRequestNotUsableException;
-import org.springframework.web.context.request.async.AsyncRequestTimeoutException;
 
 @RestControllerAdvice
 @Slf4j
@@ -41,11 +39,6 @@ public class ApiControllerAdvice {
     public ApiResponse<Void> handleBindException(BindException e) {
         log.warn("BindException : {}", e.getMessage());
         return ApiResponse.fail(ErrorType.INVALID_INPUT_VALUE);
-    }
-
-    @ExceptionHandler({AsyncRequestTimeoutException.class, AsyncRequestNotUsableException.class})
-    public void handleUnwritableAsyncResponse(Exception e) {
-        log.debug("이미 끝난 SSE 연결이라 응답을 쓰지 않는다 : {}", e.getMessage());
     }
 
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)

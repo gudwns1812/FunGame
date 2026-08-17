@@ -41,10 +41,17 @@ export interface RoomSettings {
   hostNickname: string;
 }
 
+export interface RoomState {
+  version: number;
+  players: { memberId: number; nickname: string; isReady: boolean }[];
+  hostMemberId: number;
+  hostNickname: string;
+}
+
 export type GameEvent =
-  | { type: 'PLAYER_JOIN'; memberId: number; nickname: string }
-  | { type: 'PLAYER_LEAVE'; memberId: number; nickname: string }
-  | { type: 'PLAYER_READY'; memberId: number; nickname: string; ready: boolean }
+  | { type: 'PLAYER_JOIN'; memberId: number; nickname: string; room: RoomState }
+  | { type: 'PLAYER_LEAVE'; memberId: number; nickname: string; room: RoomState }
+  | { type: 'PLAYER_READY'; memberId: number; nickname: string; ready: boolean; room: RoomState }
   | { type: 'CHAT'; memberId: number; nickname: string; message: string }
   | { type: 'GAME_START'; gameType: string; category: string; songCount: number; message: string }
   | { type: 'ROUND_START'; videoURL: string; roundIndex: number; currentRound: number; totalRound: number }

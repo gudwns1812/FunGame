@@ -7,11 +7,13 @@ import lombok.Getter;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicLong;
 
 @Getter
 public class GameRoom {
     private final Long roomId;
     private final GamePlayers players;
+    private final AtomicLong version = new AtomicLong();
     private RoomSettings settings;
     private GameRoomStatus status;
     private Instant lastActivityTime;
@@ -44,6 +46,14 @@ public class GameRoom {
                 lastActivityTime);
     }
 
+    public long getVersion() {
+        return version.get();
+    }
+
+    private void changed() {
+        version.incrementAndGet();
+    }
+
     public String getTitle() {
         return settings.title();
     }
@@ -58,8 +68,7 @@ public class GameRoom {
 
     public JoinResult join(GamePlayer player) {
         validateJoin();
-        boolean newlyJoined = players.add(player);
-        return new JoinResult(players.getCurrentCount(), newlyJoined);
+        return admit(player);
     }
 
     private void validateJoin() {
@@ -69,12 +78,21 @@ public class GameRoom {
     }
 
     public JoinResult rejoin(GamePlayer player) {
+        return admit(player);
+    }
+
+    private JoinResult admit(GamePlayer player) {
         boolean newlyJoined = players.add(player);
-        return new JoinResult(players.getCurrentCount(), newlyJoined);
+        if (newlyJoined) {
+            changed();
+        }
+
+        return new JoinResult(players.getCurrentCount(), newlyJoined, RoomStateInfo.from(this));
     }
 
     public void leave(Long memberId) {
         players.remove(memberId);
+        changed();
     }
 
     public GamePlayer kick(Long hostId, Long targetId) {
@@ -82,6 +100,7 @@ public class GameRoom {
 
         GamePlayer target = players.playerOf(targetId);
         players.remove(targetId);
+        changed();
         touch();
 
         return target;
@@ -109,6 +128,7 @@ public class GameRoom {
     public void start(Long memberId) {
         validateStart(memberId);
         this.status = GameRoomStatus.PLAYING;
+        changed();
     }
 
     public void validateStart(Long memberId) {
@@ -129,6 +149,7 @@ public class GameRoom {
     public void finishGame() {
         this.status = GameRoomStatus.WAITING;
         players.resetReady();
+        changed();
         touch();
     }
 
@@ -138,6 +159,7 @@ public class GameRoom {
         players.changeMaxPlayer(newSettings.maxPlayers());
         this.settings = newSettings;
         players.resetReady();
+        changed();
         touch();
     }
 
@@ -172,7 +194,10 @@ public class GameRoom {
     }
 
     public boolean readyPlayer(Long memberId) {
-        return players.readyPlayer(memberId);
+        boolean ready = players.readyPlayer(memberId);
+        changed();
+
+        return ready;
     }
 
     public boolean isAllReady() {

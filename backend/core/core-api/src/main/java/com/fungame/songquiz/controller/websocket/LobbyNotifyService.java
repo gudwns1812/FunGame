@@ -1,14 +1,17 @@
-package com.fungame.songquiz.controller.sse;
+package com.fungame.songquiz.controller.websocket;
 
+import com.fungame.songquiz.controller.response.ApiResponse;
+import com.fungame.songquiz.controller.response.OnlineMemberResponse;
+import com.fungame.songquiz.controller.response.RoomResponse;
+import com.fungame.songquiz.domain.member.MemberAdapter;
 import com.fungame.songquiz.domain.member.MemberPresenceChangedEvent;
 import com.fungame.songquiz.domain.member.OnlineMemberService;
 import com.fungame.songquiz.domain.member.OnlineMembers;
-import com.fungame.songquiz.controller.response.OnlineMemberResponse;
-import com.fungame.songquiz.controller.response.RoomResponse;
-import com.fungame.songquiz.controller.room.RoomListReader;
+import com.fungame.songquiz.domain.room.GameRoomService;
 import com.fungame.songquiz.domain.room.RoomChangedEvent;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.event.EventListener;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
@@ -19,12 +22,10 @@ import java.util.concurrent.atomic.AtomicBoolean;
 @RequiredArgsConstructor
 public class LobbyNotifyService {
 
-    private static final String ROOM_UPDATE_EVENT = "room-update";
-    private static final String PRESENCE_UPDATE_EVENT = "presence-update";
-
-    private final SseService sseService;
-    private final RoomListReader roomListReader;
+    private final SimpMessagingTemplate messagingTemplate;
+    private final GameRoomService gameRoomService;
     private final OnlineMemberService onlineMemberService;
+    private final StompSessions stompSessions;
 
     private final AtomicBoolean hasPendingRoomUpdate = new AtomicBoolean(false);
     private final AtomicBoolean hasPendingPresenceUpdate = new AtomicBoolean(false);
@@ -45,13 +46,22 @@ public class LobbyNotifyService {
     @Scheduled(fixedDelay = 500)
     public void processPendingUpdate() {
         if (hasPendingRoomUpdate.compareAndSet(true, false)) {
-            sseService.broadcast(ROOM_UPDATE_EVENT, RoomResponse.listFrom(roomListReader.findAllRooms()));
+            messagingTemplate.convertAndSend(StompDestination.LOBBY,
+                    ApiResponse.success(RoomResponse.listFrom(gameRoomService.findAllRooms())));
         }
 
         if (hasPendingPresenceUpdate.compareAndSet(true, false)) {
-            OnlineMembers onlineMembers = onlineMemberService.findAllOnline();
-            sseService.broadcastEach(PRESENCE_UPDATE_EVENT,
-                    viewerId -> OnlineMemberResponse.listFrom(onlineMembers.excluding(viewerId)));
+            sendPresenceToEveryone();
         }
+    }
+
+    private void sendPresenceToEveryone() {
+        OnlineMembers onlineMembers = onlineMemberService.findAllOnline();
+
+        stompSessions.connectedMemberIds().forEach(viewerId ->
+                messagingTemplate.convertAndSendToUser(
+                        MemberAdapter.principalNameOf(viewerId),
+                        StompDestination.PRESENCE,
+                        ApiResponse.success(OnlineMemberResponse.listFrom(onlineMembers.excluding(viewerId)))));
     }
 }
