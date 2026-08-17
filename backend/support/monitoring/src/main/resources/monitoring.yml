@@ -8,3 +8,17 @@ management:
   endpoint:
     health:
       show-details: never
+  metrics:
+    tags:
+      application: ${spring.application.name}
+      namespace: ${METRICS_NAMESPACE:prod}
+
+---
+spring:
+  config:
+    activate:
+      on-profile: local
+management:
+  metrics:
+    tags:
+      namespace: local
