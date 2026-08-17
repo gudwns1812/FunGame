@@ -4,6 +4,7 @@ import HangmanDrawing from '../components/hangman/HangmanDrawing';
 import WordDisplay from '../components/hangman/WordDisplay';
 import AlphabetKeyboard from '../components/hangman/AlphabetKeyboard';
 import LogList from '../components/LogList';
+import ReportButton from '../components/ReportButton';
 import TopBar from '../components/layout/TopBar';
 import type { HangmanStatus, Player } from '../types/game';
 
@@ -14,11 +15,20 @@ interface HangmanPageProps {
   logs: string[];
   players: Player[];
   onSendMessage: (msg: string) => void;
+  roomId: string;
 }
 
 const MAX_TRIES = 6;
 
-const HangmanPage: React.FC<HangmanPageProps> = ({ status, onGuess, myMemberId, logs, players, onSendMessage }) => {
+const HangmanPage: React.FC<HangmanPageProps> = ({
+  status,
+  onGuess,
+  myMemberId,
+  logs,
+  players,
+  onSendMessage,
+  roomId,
+}) => {
   const navigate = useNavigate();
   const [chatMessage, setChatMessage] = useState('');
   const logContainerRef = useRef<HTMLDivElement>(null);
@@ -98,9 +108,12 @@ const HangmanPage: React.FC<HangmanPageProps> = ({ status, onGuess, myMemberId, 
       <TopBar
         title="행맨"
         right={
-          <span className={`px-chip num ${status.remainingTries <= 2 ? 'px-chip-cherry' : ''}`}>
-            기회 {status.remainingTries} / {MAX_TRIES}
-          </span>
+          <>
+            <ReportButton roomId={Number(roomId) || null} gameType="HANGMAN" />
+            <span className={`px-chip num ${status.remainingTries <= 2 ? 'px-chip-cherry' : ''}`}>
+              기회 {status.remainingTries} / {MAX_TRIES}
+            </span>
+          </>
         }
       />
 

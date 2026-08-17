@@ -6,6 +6,7 @@ const FOOTER_LINKS = [
   { to: '/how-to-play', label: '게임 방법' },
   { to: '/privacy', label: '개인정보처리방침' },
   { to: '/terms', label: '이용약관' },
+  { to: '/report', label: '문의·신고' },
 ];
 
 const SiteFooter: React.FC = () => (

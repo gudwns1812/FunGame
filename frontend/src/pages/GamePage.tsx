@@ -1,5 +1,6 @@
 import React from 'react';
 import Game from '../components/Game';
+import ReportButton from '../components/ReportButton';
 import TopBar from '../components/layout/TopBar';
 import type { Player, GameStartInfo, RoundEndInfo } from '../types/game';
 
@@ -43,10 +44,13 @@ const GamePage: React.FC<GamePageProps> = ({
       <TopBar
         title={gameType === 'CS' ? 'CS 퀴즈' : '노래 퀴즈'}
         right={
-          <span className="px-chip px-chip-cherry">
-            <span className="w-2 h-2 bg-white animate-blink" />
-            진행 중
-          </span>
+          <>
+            <ReportButton roomId={Number(roomId) || null} gameType={gameType} />
+            <span className="px-chip px-chip-cherry">
+              <span className="w-2 h-2 bg-white animate-blink" />
+              진행 중
+            </span>
+          </>
         }
       />
 
