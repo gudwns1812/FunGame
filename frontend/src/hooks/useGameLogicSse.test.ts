@@ -3,9 +3,9 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import axios from 'axios';
 import { useGameLogic } from './useGameLogic';
 import { createSseStub } from '../test/sseTestUtils';
+import { createStompStub, nestWrappers } from '../test/stompTestUtils';
 
 vi.mock('axios');
-vi.mock('sockjs-client');
 
 const mockedAxios = axios as unknown as {
   get: ReturnType<typeof vi.fn>;
@@ -46,7 +46,8 @@ const letDebounceSettle = () =>
 describe('useGameLogic 로비 방 목록 동기화', () => {
   let sse: ReturnType<typeof createSseStub>;
 
-  const renderInLobby = () => renderHook(() => useGameLogic(), { wrapper: sse.wrapper });
+  const renderInLobby = () =>
+    renderHook(() => useGameLogic(), { wrapper: nestWrappers(sse.wrapper, createStompStub().wrapper) });
 
   beforeEach(() => {
     vi.clearAllMocks();

@@ -1,7 +1,5 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import axios from 'axios';
-import { Client, TickerStrategy } from '@stomp/stompjs';
-import SockJS from 'sockjs-client';
 import type {
   Player,
   GameStatus,
@@ -19,6 +17,7 @@ import { PLAYER_COLOR_INDEX_KEY } from '../utils/playerColor';
 import { roomChat, roomTopic } from '../utils/stompDestination';
 import { playSound } from '../utils/sound';
 import { useSse } from '../contexts/SseContext';
+import { useStomp, type StompChannel } from '../contexts/StompContext';
 import type { RoomInvite } from '../types/presence';
 
 // Configure axios base URL
@@ -53,18 +52,9 @@ const pushedRoomsOf = (data: string): Room[] | null => {
   }
 };
 
-const closeWithoutWaitingForServer = async (client: Client | null) => {
-  if (!client) return;
-
-  try {
-    await client.deactivate({ force: true });
-  } catch (error) {
-    console.warn('이전 WebSocket 연결을 닫지 못했습니다.', error);
-  }
-};
-
 export const useGameLogic = () => {
   const { onEvent: onSseEvent } = useSse();
+  const { onConnection, publish } = useStomp();
   const [myMemberId, setMyMemberId] = useState<number | null>(() => {
     const saved = localStorage.getItem(MY_MEMBER_ID_KEY);
     return saved ? Number(saved) : null;
@@ -112,12 +102,15 @@ export const useGameLogic = () => {
 
   // 제목없는 음원으로 미디어 플레이어 제목 가리기
 
-  const stompClient = useRef<Client | null>(null);
   const fetchRankRef = useRef<() => Promise<void>>(async () => { });
   const hasBootstrapped = useRef(false);
-  const enterRoomChannelRef = useRef<(client: Client, targetRoomId: string, rejoinFirst: boolean) => Promise<void>>(
+  const enterRoomChannelRef = useRef<(channel: StompChannel, targetRoomId: string, rejoinFirst: boolean) => Promise<void>>(
     async () => { },
   );
+  /** 방 토픽 구독을 끊는 함수. 퇴장은 구독을 먼저 끊고 leave API 를 보낸다 */
+  const unsubscribeRoom = useRef<(() => void) | null>(null);
+  /** 사용자가 방금 join 한 방. 이 방의 첫 구독에서는 join 을 다시 하지 않는다 */
+  const justJoinedRoom = useRef<string | null>(null);
   const returnToLobbyRef = useRef<() => Promise<void>>(async () => { });
   const statusRef = useRef<GameStatus>(status);
   /** 지금 그리고 있는 방 상태의 버전. 방을 떠나거나 방 아닌 것을 그리면 -1 로 되돌린다 */
@@ -137,11 +130,10 @@ export const useGameLogic = () => {
     setLogs([]);
   }, []);
 
-  /** 구독을 먼저 끊는다. 퇴장은 leave API 가 알리므로 연결이 남아 있을 필요가 없다 */
-  const disconnectRoom = useCallback(async () => {
-    const client = stompClient.current;
-    stompClient.current = null;
-    await closeWithoutWaitingForServer(client);
+  /** 연결은 서비스 단위로 유지하고 방 토픽 구독만 끊는다 */
+  const disconnectRoom = useCallback(() => {
+    unsubscribeRoom.current?.();
+    unsubscribeRoom.current = null;
   }, []);
 
   const clearRoomState = useCallback(() => {
@@ -163,8 +155,8 @@ export const useGameLogic = () => {
     setMyColorIndex(null);
   }, []);
 
-  const forgetRoom = useCallback(async () => {
-    await disconnectRoom();
+  const forgetRoom = useCallback(() => {
+    disconnectRoom();
     clearRoomState();
   }, [disconnectRoom, clearRoomState]);
 
@@ -439,44 +431,10 @@ export const useGameLogic = () => {
     localStorage.setItem('ums_logs', JSON.stringify(logs));
   }, [logs]);
 
-  const connectWebSocket = useCallback(
-    (targetRoomId: string, options?: { rejoinOnConnect?: boolean }) => {
-      const previousClient = stompClient.current;
-
-      let rejoinFirst = options?.rejoinOnConnect ?? false;
-
-      const client = new Client({
-        webSocketFactory: () => new SockJS(import.meta.env.VITE_WS_URL),
-        reconnectDelay: 5000,
-        heartbeatIncoming: 10000,
-        heartbeatOutgoing: 10000,
-        heartbeatStrategy: TickerStrategy.Worker,
-        onConnect: () => {
-          enterRoomChannelRef.current(client, targetRoomId, rejoinFirst);
-          rejoinFirst = true;
-        },
-        onWebSocketClose: () => {
-          console.warn('WebSocket 연결이 끊겼습니다. 재연결을 시도합니다.');
-        },
-        onStompError: (frame) => {
-          console.error('STOMP Error:', frame);
-          addLog('[오류] 서버 통신 중 문제가 발생했습니다.');
-        },
-      });
-
-      stompClient.current = client;
-
-      closeWithoutWaitingForServer(previousClient).then(() => {
-        if (stompClient.current !== client) return;
-        client.activate();
-      });
-    },
-    [addLog],
-  );
 
   /** 입장이 join API → subscribe 였으니 퇴장은 역순으로 unsubscribe → leave API 다 */
   const leaveRoom = useCallback(async () => {
-    await disconnectRoom();
+    disconnectRoom();
 
     if (roomId) {
       try {
@@ -591,20 +549,15 @@ export const useGameLogic = () => {
    * join 과 구독 사이에 발행된 이벤트는 스트림에서 유실되지만 뒤이어 읽는 스냅샷이 메운다.
    */
   const enterRoomChannel = useCallback(
-    async (client: Client, targetRoomId: string, rejoinFirst: boolean) => {
+    async (channel: StompChannel, targetRoomId: string, rejoinFirst: boolean) => {
       try {
         if (rejoinFirst) {
           await axios.post(`/game/rooms/${targetRoomId}/join`);
         }
 
-        if (stompClient.current !== client) return;
-
-        client.subscribe(roomTopic(targetRoomId), (message) => {
-          const response = JSON.parse(message.body);
-          if (response.result === 'SUCCESS' && response.data) {
-            handleEventRef.current(response.data);
-          }
-        });
+        unsubscribeRoom.current = channel.subscribe(roomTopic(targetRoomId), (payload) =>
+          handleEventRef.current(payload),
+        );
 
         if (statusRef.current === 'PLAYING') {
           await restorePlayState(targetRoomId);
@@ -624,9 +577,24 @@ export const useGameLogic = () => {
     [fetchRoomState, fetchRoomSettings, restorePlayState, returnToLobby],
   );
 
+  /**
+   * 방에 들어가 있는 동안은 연결이 맺어질 때마다 방 채널을 처음부터 다시 세운다.
+   * 방금 join 한 방이 아니라면(새로고침·재연결) 구독 전에 소속부터 다시 확정한다.
+   */
   useEffect(() => {
     enterRoomChannelRef.current = enterRoomChannel;
   }, [enterRoomChannel]);
+
+  useEffect(() => {
+    if (!roomId) return;
+
+    return onConnection((channel) => {
+      const alreadyJoined = justJoinedRoom.current === roomId;
+      justJoinedRoom.current = null;
+
+      return enterRoomChannelRef.current(channel, roomId, !alreadyJoined);
+    });
+  }, [roomId, onConnection]);
 
   useEffect(() => {
     statusRef.current = status;
@@ -646,64 +614,18 @@ export const useGameLogic = () => {
     }
   }, [status, roomId, roomName]);
 
+  // 방 안에서 새로고침했다면 join → subscribe → 스냅샷은 방 채널 이펙트가 전부 맡는다.
+  // 여기서는 방 없이 방 화면으로 돌아온 경우만 바로잡는다.
   useEffect(() => {
-    const bootstrap = async () => {
-      if (status === 'WAITING' || status === 'PLAYING') {
-        if (roomId) {
-          try {
-            // 헬스 체크 수행
-            const healthRes = await axios.get(`/game/rooms/${roomId}/health`);
-            if (healthRes.data?.result === 'SUCCESS' && healthRes.data.data === 'ok') {
-              // 새로고침이나 탭 종료로 웹소켓이 끊기면 서버가 방에서 내보내므로 항상 다시 참가한다.
-              // 진행 중인 방이면 이 게임의 참가자였던 경우에만 서버가 재입장을 허용한다.
-              await axios.post(`/game/rooms/${roomId}/join`);
-
-              if (nickname) {
-                setPlayers((prev) =>
-                  prev.length === 0
-                    ? [{ memberId: myMemberId ?? 0, name: nickname, isHost: false, isReady: false, score: 0 }]
-                    : prev,
-                );
-              }
-
-              // 구독과 스냅샷 조회는 연결이 맺어진 뒤 onConnect 안에서 순서대로 돈다
-              connectWebSocket(roomId);
-            } else {
-              throw new Error('Room health check failed');
-            }
-          } catch (error) {
-            console.warn('Rejoin failed, returning to lobby:', error);
-            returnToLobby();
-          }
-        } else {
-          setStatus('ROOM_LIST');
-        }
-      }
-      setIsBootstrapping(false);
-    };
-
     // StrictMode 는 개발 모드에서 마운트 이펙트를 두 번 실행한다.
-    // 재참가와 상태 복원이 중복으로 돌지 않도록 한 번만 수행한다.
     if (hasBootstrapped.current) return;
     hasBootstrapped.current = true;
 
-    bootstrap();
+    if ((status === 'WAITING' || status === 'PLAYING') && roomId === null) {
+      enterStatus('ROOM_LIST');
+    }
+    setIsBootstrapping(false);
   }, []); // Run once on mount
-
-  useEffect(() => {
-    if (!roomId || (status !== 'WAITING' && status !== 'PLAYING')) return;
-
-    const reconnectImmediatelyIfAbandoned = () => {
-      if (document.visibilityState !== 'visible') return;
-      if (stompClient.current?.active) return;
-
-      console.warn('탭 복귀 시점에 연결이 버려져 있어 즉시 재연결합니다.');
-      connectWebSocket(roomId, { rejoinOnConnect: true });
-    };
-
-    document.addEventListener('visibilitychange', reconnectImmediatelyIfAbandoned);
-    return () => document.removeEventListener('visibilitychange', reconnectImmediatelyIfAbandoned);
-  }, [roomId, status, connectWebSocket]);
 
   useEffect(() => {
     const handlePopState = () => {
@@ -805,6 +727,7 @@ export const useGameLogic = () => {
       clearLogs();
       localStorage.removeItem('ums_logs');
       roomVersion.current = -1;
+      justJoinedRoom.current = room.id;
       setRoomId(room.id);
 
       if (room.status === 'PLAYING') {
@@ -828,10 +751,9 @@ export const useGameLogic = () => {
         addLog(`[시스템] ${room.name} 방에 입장했습니다.`);
       }
 
-      connectWebSocket(room.id);
       window.history.pushState({ room: room.id }, '');
     },
-    [myMemberId, nickname, connectWebSocket, clearLogs, addLog, enterStatus],
+    [myMemberId, nickname, clearLogs, addLog, enterStatus],
   );
 
   const acceptInvite = useCallback(
@@ -881,14 +803,13 @@ export const useGameLogic = () => {
           setRoomName('');
           enterStatus('PLAYING');
           setPlayers([{ memberId: myMemberId ?? 0, name: nickname, isHost: false, isReady: false, score: 0 }]);
-          connectWebSocket(redirectRoomId);
           return;
         }
         const message = error?.response?.data?.error?.message || '방에 입장할 수 없습니다.';
         window.alert(message);
       }
     },
-    [myMemberId, nickname, connectWebSocket, enterRoom, enterStatus],
+    [myMemberId, nickname, enterRoom, enterStatus],
   );
 
   const createRoom = useCallback(
@@ -913,6 +834,7 @@ export const useGameLogic = () => {
           clearLogs();
           localStorage.removeItem('ums_logs');
           roomVersion.current = -1;
+          justJoinedRoom.current = newRoomId;
           setRoomId(newRoomId);
           enterStatus('WAITING');
           setCurrentVideoId(''); // 이전 비디오 아이디 초기화
@@ -921,7 +843,6 @@ export const useGameLogic = () => {
           setPlayers([
             { memberId: myMemberId ?? 0, name: nickname, isHost: true, isReady: true, score: 0, colorIndex: 0 },
           ]);
-          connectWebSocket(newRoomId);
           window.history.pushState({ room: newRoomId }, '');
         }
       } catch (error) {
@@ -931,7 +852,7 @@ export const useGameLogic = () => {
         setIsCreatingRoom(false);
       }
     },
-    [myMemberId, nickname, addLog, connectWebSocket, clearLogs, enterStatus],
+    [myMemberId, nickname, addLog, clearLogs, enterStatus],
   );
 
   const toggleReady = useCallback(async () => {
@@ -1011,13 +932,10 @@ export const useGameLogic = () => {
 
   const sendMessage = useCallback(
     (message: string) => {
-      if (!roomId || !stompClient.current || !stompClient.current.connected) return;
-      stompClient.current.publish({
-        destination: roomChat(roomId),
-        body: JSON.stringify({ message }),
-      });
+      if (!roomId) return;
+      publish(roomChat(roomId), { message });
     },
-    [roomId],
+    [roomId, publish],
   );
 
   const sendHangmanAction = useCallback(

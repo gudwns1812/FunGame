@@ -1,40 +1,15 @@
 import { renderHook, act, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import axios from 'axios';
-import type { StompConfig } from '@stomp/stompjs';
 import { useGameLogic } from './useGameLogic';
 import { createSseStub } from '../test/sseTestUtils';
+import { createStompStub, nestWrappers } from '../test/stompTestUtils';
+import { roomTopic } from '../utils/stompDestination';
 
 vi.mock('axios');
-vi.mock('sockjs-client');
 
 /** join API · SUBSCRIBE · 스냅샷 조회가 실제로 불린 순서 */
 const traced: string[] = [];
-
-const stompClients: Array<{
-  config: Required<Pick<StompConfig, 'onConnect'>>;
-  subscribe: ReturnType<typeof vi.fn>;
-}> = [];
-
-vi.mock('@stomp/stompjs', () => ({
-  TickerStrategy: { Interval: 'interval', Worker: 'worker' },
-  Client: class {
-    connected = true;
-    active = true;
-    config: unknown;
-    activate = vi.fn();
-    deactivate = vi.fn().mockResolvedValue(undefined);
-    publish = vi.fn();
-    subscribe = vi.fn((destination: string) => {
-      traced.push(`subscribe ${destination}`);
-    });
-
-    constructor(config: unknown) {
-      this.config = config;
-      stompClients.push(this as never);
-    }
-  },
-}));
 
 const mockedAxios = axios as unknown as {
   get: ReturnType<typeof vi.fn>;
@@ -44,9 +19,10 @@ const mockedAxios = axios as unknown as {
 
 const HOST_MEMBER_ID = 1;
 const MY_MEMBER_ID = 2;
+const ROOM_ID = '7';
 
 const ROOM = {
-  id: '7',
+  id: ROOM_ID,
   name: '테스트방',
   hostMemberId: HOST_MEMBER_ID,
   hostName: '방장',
@@ -68,10 +44,18 @@ const roomState = {
 };
 
 describe('useGameLogic 방 채널 열기', () => {
+  let stomp: ReturnType<typeof createStompStub>;
+
+  const renderGameLogic = () => {
+    stomp = createStompStub({ onSubscribe: (destination) => traced.push(`subscribe ${destination}`) });
+    return renderHook(() => useGameLogic(), {
+      wrapper: nestWrappers(createSseStub().wrapper, stomp.wrapper),
+    });
+  };
+
   beforeEach(() => {
     vi.clearAllMocks();
     traced.length = 0;
-    stompClients.length = 0;
     localStorage.clear();
     localStorage.setItem('ums_nickname', '나');
     localStorage.setItem('ums_member_id', String(MY_MEMBER_ID));
@@ -94,65 +78,98 @@ describe('useGameLogic 방 채널 열기', () => {
   });
 
   const joinAndConnect = async () => {
-    const { result } = renderHook(() => useGameLogic(), { wrapper: createSseStub().wrapper });
+    const { result } = renderGameLogic();
 
     await act(async () => {
       await result.current.joinRoom(ROOM);
     });
-
-    const client = stompClients[stompClients.length - 1];
     await act(async () => {
-      (client.config as { onConnect: () => void }).onConnect();
+      await stomp.connect();
     });
 
-    return { result, client };
+    return { result };
   };
 
-  it('구독하기 전에 join 으로 소속을 확정하고, 구독한 뒤에 스냅샷을 읽는다', async () => {
-    const { client } = await joinAndConnect();
-
+  const reconnect = async () => {
     await act(async () => {
-      (client.config as { onConnect: () => void }).onConnect();
+      await stomp.connect();
     });
-
-    await waitFor(() => expect(traced.filter((call) => call === 'join')).toHaveLength(2));
-    expect(traced).toEqual([
-      'join',
-      `subscribe /topic/room/${ROOM.id}`,
-      'snapshot',
-      'join',
-      `subscribe /topic/room/${ROOM.id}`,
-      'snapshot',
-    ]);
-  });
+  };
 
   it('최초 연결에서는 방금 한 join 을 다시 하지 않고 구독부터 한다', async () => {
     await joinAndConnect();
 
-    await waitFor(() => expect(traced).toContain('snapshot'));
-    expect(traced).toEqual(['join', `subscribe /topic/room/${ROOM.id}`, 'snapshot']);
+    expect(traced).toEqual(['join', `subscribe ${roomTopic(ROOM_ID)}`, 'snapshot']);
+  });
+
+  it('재연결되면 구독하기 전에 join 으로 소속을 되찾고, 구독한 뒤에 스냅샷을 읽는다', async () => {
+    await joinAndConnect();
+    traced.length = 0;
+
+    await reconnect();
+
+    expect(traced).toEqual(['join', `subscribe ${roomTopic(ROOM_ID)}`, 'snapshot']);
   });
 
   it('스냅샷으로 읽은 방 상태를 화면에 반영한다', async () => {
     const { result } = await joinAndConnect();
 
-    await waitFor(() =>
-      expect(result.current.players.map((player) => player.name)).toEqual(['방장', '나']),
-    );
+    await waitFor(() => expect(result.current.players.map((player) => player.name)).toEqual(['방장', '나']));
+  });
+
+  it('구독한 방 토픽으로 온 이벤트를 처리한다', async () => {
+    const { result } = await joinAndConnect();
+
+    act(() => {
+      stomp.emit(roomTopic(ROOM_ID), { type: 'CHAT', memberId: HOST_MEMBER_ID, nickname: '방장', message: '안녕' });
+    });
+
+    expect(result.current.logs).toContain('방장: 안녕');
+  });
+
+  it('재연결 후 join 이 거부되면 로비로 돌려보낸다', async () => {
+    const { result } = await joinAndConnect();
+
+    mockedAxios.post = vi.fn().mockRejectedValue({
+      response: { data: { error: { message: '방이 종료되었습니다.' } } },
+    });
+
+    await reconnect();
+
+    await waitFor(() => expect(result.current.status).toBe('ROOM_LIST'));
+    expect(result.current.roomId).toBeNull();
+    expect(window.alert).toHaveBeenCalledWith('방이 종료되었습니다.');
   });
 
   it('방을 떠날 때는 구독을 먼저 끊고 그 다음 leave 를 보낸다', async () => {
-    const { result, client } = await joinAndConnect();
-    const deactivate = (client as unknown as { deactivate: ReturnType<typeof vi.fn> }).deactivate;
+    const { result } = await joinAndConnect();
+
+    let subscribersWhenLeaving = -1;
+    mockedAxios.post = vi.fn().mockImplementation((url: string) => {
+      if (url.endsWith('/leave')) {
+        subscribersWhenLeaving = stomp.subscriberCountOf(roomTopic(ROOM_ID));
+      }
+      return Promise.resolve({ data: { result: 'SUCCESS' } });
+    });
 
     await act(async () => {
       await result.current.leaveRoom();
     });
 
-    expect(deactivate).toHaveBeenCalledWith({ force: true });
-    expect(deactivate.mock.invocationCallOrder[0]).toBeLessThan(
-      mockedAxios.post.mock.invocationCallOrder[mockedAxios.post.mock.calls.length - 1],
-    );
-    expect(mockedAxios.post).toHaveBeenLastCalledWith(`/game/rooms/${ROOM.id}/leave`);
+    expect(mockedAxios.post).toHaveBeenCalledWith(`/game/rooms/${ROOM_ID}/leave`);
+    expect(subscribersWhenLeaving).toBe(0);
+  });
+
+  it('방을 떠나면 그 뒤에 온 방 이벤트는 받지 않는다', async () => {
+    const { result } = await joinAndConnect();
+
+    await act(async () => {
+      await result.current.leaveRoom();
+    });
+    act(() => {
+      stomp.emit(roomTopic(ROOM_ID), { type: 'CHAT', memberId: HOST_MEMBER_ID, nickname: '방장', message: '안녕' });
+    });
+
+    expect(result.current.logs).not.toContain('방장: 안녕');
   });
 });

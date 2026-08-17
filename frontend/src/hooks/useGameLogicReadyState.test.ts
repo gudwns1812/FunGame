@@ -1,38 +1,12 @@
 import { renderHook, act, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import axios from 'axios';
-import type { StompConfig } from '@stomp/stompjs';
 import { useGameLogic } from './useGameLogic';
 import { createSseStub } from '../test/sseTestUtils';
+import { roomTopic } from '../utils/stompDestination';
+import { createStompStub, nestWrappers } from '../test/stompTestUtils';
 
 vi.mock('axios');
-vi.mock('sockjs-client');
-
-type RoomMessage = { body: string };
-type RoomSubscriber = (message: RoomMessage) => void;
-
-const stompClients: Array<{
-  config: Required<Pick<StompConfig, 'onConnect'>>;
-  subscribe: ReturnType<typeof vi.fn>;
-}> = [];
-
-vi.mock('@stomp/stompjs', () => ({
-  TickerStrategy: { Interval: 'interval', Worker: 'worker' },
-  Client: class {
-    connected = true;
-    active = true;
-    config: unknown;
-    activate = vi.fn();
-    deactivate = vi.fn().mockResolvedValue(undefined);
-    subscribe = vi.fn();
-    publish = vi.fn();
-
-    constructor(config: unknown) {
-      this.config = config;
-      stompClients.push(this as never);
-    }
-  },
-}));
 
 const mockedAxios = axios as unknown as {
   get: ReturnType<typeof vi.fn>;
@@ -101,7 +75,6 @@ const myReadyState = (result: { current: ReturnType<typeof useGameLogic> }) =>
 describe('useGameLogic 준비 상태', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    stompClients.length = 0;
     localStorage.clear();
     localStorage.setItem('ums_nickname', '나');
     localStorage.setItem('ums_member_id', String(MY_MEMBER_ID));
@@ -113,21 +86,21 @@ describe('useGameLogic 준비 상태', () => {
   });
 
   const joinRoomAndSubscribe = async () => {
-    const { result } = renderHook(() => useGameLogic(), { wrapper: createSseStub().wrapper });
+    const stomp = createStompStub();
+    const { result } = renderHook(() => useGameLogic(), {
+      wrapper: nestWrappers(createSseStub().wrapper, stomp.wrapper),
+    });
 
     await act(async () => {
       await result.current.joinRoom(ROOM);
     });
-
-    const client = stompClients[stompClients.length - 1];
     await act(async () => {
-      (client.config as { onConnect: () => void }).onConnect();
+      await stomp.connect();
     });
 
-    const subscriber = client.subscribe.mock.calls[0][1] as RoomSubscriber;
     const emit = async (payload: unknown) => {
       await act(async () => {
-        subscriber({ body: JSON.stringify({ result: 'SUCCESS', data: payload }) });
+        stomp.emit(roomTopic(ROOM.id), payload);
       });
     };
 
