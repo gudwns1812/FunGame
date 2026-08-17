@@ -129,6 +129,14 @@ public class GameRoomManager {
         applicationEventPublisher.publishEvent(new RoomChangedEvent());
     }
 
+    public GameRoom findStartableRoom(Long roomId, Long memberId) {
+        return lockContext.processWithLockKey(roomId, () -> {
+            GameRoom gameRoom = getRoom(roomId);
+            gameRoom.validateStart(memberId);
+            return gameRoom;
+        });
+    }
+
     public GameRoom startGame(Long roomId, Long memberId) {
         return lockContext.processWithLockKey(roomId, () -> {
             GameRoom gameRoom = getRoom(roomId);

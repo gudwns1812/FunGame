@@ -111,7 +111,7 @@ public class GameRoom {
         this.status = GameRoomStatus.PLAYING;
     }
 
-    private void validateStart(Long memberId) {
+    public void validateStart(Long memberId) {
         if (!isHost(memberId)) {
             throw new CoreException(ErrorType.NOT_VALID_HOST);
         }
