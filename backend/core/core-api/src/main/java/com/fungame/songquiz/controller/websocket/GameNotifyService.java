@@ -16,7 +16,6 @@ import com.fungame.songquiz.domain.session.PlayerScore;
 import com.fungame.songquiz.domain.session.QuizGameHintEvent;
 import com.fungame.songquiz.domain.session.RoundEndEvent;
 import com.fungame.songquiz.domain.session.RoundStartEvent;
-import com.fungame.songquiz.domain.session.TimerTickEvent;
 import com.fungame.songquiz.controller.response.ApiResponse;
 import com.fungame.songquiz.controller.response.RoomSettingsResponse;
 import com.fungame.songquiz.controller.response.RoomStateResponse;
@@ -121,7 +120,8 @@ public class GameNotifyService {
                 "type", "ROUND_START",
                 "round", event.currentRound(),
                 "totalRound", event.totalRound(),
-                "content", event.content().description()
+                "content", event.content().description(),
+                "remainingMillis", event.remainingMillis()
         );
         messagingTemplate.convertAndSend(destination, ApiResponse.success(payload));
     }
@@ -162,17 +162,6 @@ public class GameNotifyService {
         payload.put("explanation", event.answer().explanation());
         payload.put("winnerMemberId", event.winnerMemberId());
         payload.put("winnerNickname", event.winnerNickname());
-        messagingTemplate.convertAndSend(destination, ApiResponse.success(payload));
-    }
-
-    @Async
-    @EventListener
-    public void handleTimerTicker(TimerTickEvent event) {
-        String destination = StompDestination.room(event.roomId());
-        Object payload = Map.of(
-                "type", "TIMER_TICK",
-                "remainingSeconds", event.remainingSeconds()
-        );
         messagingTemplate.convertAndSend(destination, ApiResponse.success(payload));
     }
 

@@ -238,7 +238,7 @@ stompClient.subscribe(`/subscribe/room/${roomId}`, (message) => {
     case 'HOST_CHANGE': // 방장 변경
     case 'CHAT': // 채팅 메시지
     case 'GAME_START': // 게임 시작
-    case 'TIMER_TICK': // 타이머 카운트다운
+    case 'ROUND_START': // 라운드 시작 (남은 시간 포함)
     case 'CORRECT_ANSWER': // 정답 맞힘
     case 'ROUND_TIMEOUT': // 라운드 종료
     case 'GAME_END': // 게임 최종 종료
@@ -318,20 +318,37 @@ stompClient.subscribe(`/subscribe/room/${roomId}`, (message) => {
 
 ---
 
-#### ⑥ TIMER_TICK - 타이머 카운트다운
+#### ⑥ ROUND_START - 라운드 시작
 
-> 현재 라운드의 남은 시간을 1초마다 전송합니다. 화면에 타이머를 표시하세요.
+> 라운드가 시작될 때 한 번 발생합니다. `remainingMillis` 만큼 남았다는 뜻이니,
+> 이 프레임을 받은 시각을 기준으로 **클라이언트가 직접** 초를 셉니다.
+> 서버는 초 단위 tick 을 보내지 않습니다.
 
 ```json
 {
-  "type": "TIMER_TICK",
-  "remainingSeconds": 25
+  "type": "ROUND_START",
+  "round": 1,
+  "totalRound": 10,
+  "content": "문제내용",
+  "remainingMillis": 30000
 }
 ```
 
-| 필드               | 타입  | 설명                |
-| ------------------ | ----- | ------------------- |
-| `remainingSeconds` | `int` | 현재 라운드 남은 초 |
+| 필드              | 타입     | 설명                                                     |
+| ----------------- | -------- | -------------------------------------------------------- |
+| `round`           | `int`    | 현재 라운드                                              |
+| `totalRound`      | `int`    | 전체 라운드 수                                           |
+| `content`         | `String` | 문제 내용 (SONG 은 유튜브 링크)                          |
+| `remainingMillis` | `long`   | 이 프레임 기준 남은 밀리초. 라운드 시계가 없으면 `0`     |
+
+> 절대 시각(epoch millis)이 아니라 **남은 밀리초**입니다. 클라이언트 시계가 서버와 어긋나도
+> 프레임을 받은 자기 시각이 기준점이 되므로 오차가 네트워크 편도 지연으로 묶입니다.
+>
+> 카운터가 0에 닿는 것은 화면상의 일입니다. 라운드가 실제로 끝나는 것은 서버의 라운드 종료
+> 이벤트를 받았을 때이니, 0에서 음수를 표시하거나 입력을 클라이언트 단독으로 막지 마세요.
+>
+> `ROUND_START` 를 놓친 채 라운드 도중에 들어왔다면
+> `GET /game/rooms/{roomId}/play/state` 의 `remainingMillis` 로 맞춥니다.
 
 ---
 
@@ -432,7 +449,7 @@ stompClient.subscribe(`/subscribe/room/${roomId}`, (message) => {
 4. [WebSocket 연결] /ws-quiz 연결 + /subscribe/room/{roomId} 구독
 5. [대기] PLAYER_JOIN / PLAYER_LEAVE / CHAT 이벤트 수신
 6. [게임 시작] 방장 → POST /game/rooms/{roomId}/start
-7. [게임 중] GAME_START → TIMER_TICK → (CHAT / CORRECT_ANSWER) → ROUND_TIMEOUT → 반복
+7. [게임 중] GAME_START → ROUND_START(남은 시간) → (CHAT / CORRECT_ANSWER) → ROUND_TIMEOUT → 반복
 8. [게임 종료] GAME_END 이벤트 수신 → 결과 화면 표시
 9. [퇴장] POST /game/rooms/{roomId}/leave
 ```

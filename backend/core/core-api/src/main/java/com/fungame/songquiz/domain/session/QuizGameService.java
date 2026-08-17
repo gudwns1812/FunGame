@@ -13,12 +13,18 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 
+import java.time.Duration;
 import java.util.List;
 
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class QuizGameService implements GameService {
+
+    private static final Duration BEFORE_FIRST_ROUND = Duration.ofSeconds(5);
+    private static final Duration BETWEEN_ROUNDS = Duration.ofSeconds(3);
+    private static final Duration BEFORE_GAME_RESULT = Duration.ofSeconds(3);
+    private static final Long NO_WINNER = null;
 
     private final ApplicationEventPublisher publisher;
     private final GameRoomManager gameRoomManager;
@@ -39,7 +45,7 @@ public class QuizGameService implements GameService {
         GameSession gameSession = sessionManager.startGame(roomId, quiz, gameRoom.getRoomPlayers());
         publisher.publishEvent(new GameStartEvent(roomId, gameSession.getQuizInfo()));
 
-        timer.startAfter(roomId, 5, () -> startRound(roomId));
+        timer.startAfter(roomId, BEFORE_FIRST_ROUND, () -> startRound(roomId));
     }
 
     private static void validateQuizHasRound(Quiz quiz) {
@@ -59,19 +65,14 @@ public class QuizGameService implements GameService {
 
         gameSession.startRound();
         publisher.publishEvent(new RoundStartEvent(roomId, gameSession.getContent(), gameSession.getCurrentRound(),
-                gameSession.getTotalRound()));
+                gameSession.getTotalRound(), gameSession.getRoundLength().toMillis()));
 
-        timer.startCountDown(roomId, 30, remain -> {
-            publisher.publishEvent(new TimerTickEvent(roomId, remain));
+        timer.startAfter(roomId, gameSession.getUntilHintOpens(), () -> openHint(roomId, gameSession));
+        timer.startAfter(roomId, gameSession.getRoundLength(), () -> endRound(roomId, NO_WINNER));
+    }
 
-            if (remain == 10) {
-                publisher.publishEvent(new QuizGameHintEvent(roomId, gameSession.getHint()));
-            }
-
-            if (remain <= 0) {
-                endRound(roomId, null);
-            }
-        });
+    private void openHint(Long roomId, GameSession gameSession) {
+        publisher.publishEvent(new QuizGameHintEvent(roomId, gameSession.getHint()));
     }
 
     private void endRound(Long roomId, Long winnerId) {
@@ -107,12 +108,12 @@ public class QuizGameService implements GameService {
         }
 
         log.info("라운드 종료");
-        timer.startAfter(roomId, 3, () -> startRound(roomId));
+        timer.startAfter(roomId, BETWEEN_ROUNDS, () -> startRound(roomId));
     }
 
     private void endGame(Long roomId) {
         GameSession gameSession = sessionManager.getGameSession(roomId);
-        timer.startAfter(roomId, 3, () -> {
+        timer.startAfter(roomId, BEFORE_GAME_RESULT, () -> {
             publisher.publishEvent(new GameResultEvent(roomId, gameSession.getPlayerRanks()));
 
             gameRoomManager.endGame(roomId);
@@ -135,7 +136,7 @@ public class QuizGameService implements GameService {
         if (result == ActionResult.CORRECT) {
             endRound(roomId, action.memberId());
         } else if (result == ActionResult.SKIP_VOTE_SUCCESS) {
-            endRound(roomId, null);
+            endRound(roomId, NO_WINNER);
         }
     }
 
@@ -165,7 +166,7 @@ public class QuizGameService implements GameService {
         log.info("게임 중 이탈: room {}, member {}", roomId, memberId);
 
         if (gameSession.isSkipThresholdReached()) {
-            endRound(roomId, null);
+            endRound(roomId, NO_WINNER);
         }
     }
 
@@ -184,7 +185,8 @@ public class QuizGameService implements GameService {
                 currentRound,
                 gameSession.getTotalRound(),
                 content,
-                null
+                null,
+                gameSession.getRemainingRoundMillis()
         );
     }
 }

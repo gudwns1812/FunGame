@@ -21,6 +21,8 @@ public class HangmanGameService implements GameService {
     private static final char NO_LETTER = ' ';
     private static final int NO_SCORE = 0;
     private static final Long NO_MEMBER = null;
+    private static final long NO_ROUND_CLOCK = 0L;
+    private static final int ONLY_ROUND = 1;
 
     private final GameRoomManager gameRoomManager;
     private final GameSessionManager gameSessionManager;
@@ -41,7 +43,8 @@ public class HangmanGameService implements GameService {
         hangmanQuiz.initPlayers(gameRoom.getRoomPlayers());
 
         eventPublisher.publishEvent(new GameStartEvent(roomId, gameSession.getQuizInfo()));
-        eventPublisher.publishEvent(new RoundStartEvent(roomId, hangmanQuiz.getStatus(), 1, 1));
+        eventPublisher.publishEvent(
+                new RoundStartEvent(roomId, hangmanQuiz.getStatus(), ONLY_ROUND, ONLY_ROUND, NO_ROUND_CLOCK));
 
         GamePlayer starter = hangmanQuiz.getCurrentTurnPlayer();
         eventPublisher.publishEvent(new HangmanActionEvent(roomId, starter.memberId(), starter.nickname(),
@@ -114,10 +117,11 @@ public class HangmanGameService implements GameService {
 
         return new GameStateDto(
                 hangmanQuiz.getQuizInfo(),
-                1,
-                1,
+                ONLY_ROUND,
+                ONLY_ROUND,
                 null,
-                hangmanQuiz.getStatus().data()
+                hangmanQuiz.getStatus().data(),
+                NO_ROUND_CLOCK
         );
     }
 

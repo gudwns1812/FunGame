@@ -54,6 +54,7 @@
 | **`totalRound`** | `int` | 전체 라운드 수. |
 | **`content`** | `String` | SONG/CS 용. `ROUND_START` 이벤트의 `content` 와 동일. 라운드 시작 전이면 `null`. |
 | **`statusData`** | `List<String>` | HANGMAN 용. `HANGMAN_ACTION` 이벤트의 `status` 와 동일. |
+| **`remainingMillis`** | `long` | 이 응답 기준 현재 라운드의 남은 밀리초. 라운드 사이이거나 라운드 시계가 없으면 `0`. |
 
 > 진행 중인 방(`PLAYING`)의 `POST /join` 은 **해당 게임의 참가자였던 사람만** 성공합니다.
 > 그 외에는 `이미 진행 중인 게임입니다.` 로 거절됩니다.

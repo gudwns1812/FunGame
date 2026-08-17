@@ -41,8 +41,7 @@
 | **`HOST_CHANGE`** | 방장 변경 | `{ "newHost": "새방장닉네임" }` |
 | **`CHAT`** | 채팅 메시지 | `{ "playerName": "닉네임", "message": "내용" }` |
 | **`GAME_START`** | 게임 시작 알림 | `{ "gameType": "SONG", "category": "KPOP", "songCount": 10, "message": "설명문구" }` |
-| **`ROUND_START`** | 라운드 시작 | `{ "round": 1, "totalRound": 10, "content": "문제내용" }` |
-| **`TIMER_TICK`** | 남은 시간 알림 | `{ "remainingSeconds": 25 }` |
+| **`ROUND_START`** | 라운드 시작 | `{ "round": 1, "totalRound": 10, "content": "문제내용", "remainingMillis": 30000 }` |
 | **`ROUND_SKIP`** | 스킵 투표 현황 | `{ "skipCount": 2, "totalCount": 5 }` |
 | **`ROUND_HINT`** | 퀴즈 힌트 제공 | `{ "hint": "가수 - 초성힌트" }` |
 | **`ROUND_END`** | 라운드 종료/정답 | `{ "answer": "정답문구", "winner": "승자닉네임" }` |

@@ -9,6 +9,7 @@ public record GameStateDto(
         int currentRound,
         int totalRound,
         String content,
-        List<String> statusData
+        List<String> statusData,
+        long remainingMillis
 ) {
 }
