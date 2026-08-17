@@ -34,6 +34,10 @@ const renderList = (invitingRoomId?: string | null) => {
   return stomp;
 };
 
+const searchToggle = () => screen.getByRole('button', { name: '닉네임 검색' });
+
+const searchBox = () => screen.getByRole('textbox', { name: '닉네임으로 접속자 검색' });
+
 const inviteButtonOf = (nickname: string) => {
   const row = screen.getByText(nickname).closest('div')!.parentElement!;
   return row.querySelector('button')!;
@@ -235,6 +239,96 @@ describe('OnlineUserList', () => {
     act(() => stomp.emit(PRESENCE_QUEUE, [members[0]]));
 
     await waitFor(() => expect(screen.queryByText('대기유저')).not.toBeInTheDocument());
+    expect(screen.getByText('로비유저')).toBeInTheDocument();
+  });
+
+  it('돋보기를 누르기 전에는 검색창이 없다', async () => {
+    renderList();
+    await screen.findByText('로비유저');
+
+    expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
+    expect(screen.getByText('접속 중')).toBeInTheDocument();
+  });
+
+  it('돋보기를 누르면 검색창이 나오고 바로 입력할 수 있다', async () => {
+    const user = userEvent.setup();
+    renderList();
+    await screen.findByText('로비유저');
+
+    await user.click(searchToggle());
+
+    expect(searchBox()).toHaveFocus();
+  });
+
+  it('입력한 닉네임을 가진 유저만 남긴다', async () => {
+    const user = userEvent.setup();
+    renderList();
+    await screen.findByText('로비유저');
+
+    await user.click(searchToggle());
+    await user.type(searchBox(), '대기');
+
+    expect(screen.getByText('대기유저')).toBeInTheDocument();
+    expect(screen.queryByText('로비유저')).not.toBeInTheDocument();
+    expect(screen.queryByText('게임유저')).not.toBeInTheDocument();
+  });
+
+  it('검색 중에는 접혀 있던 그룹도 결과를 보여준다', async () => {
+    const user = userEvent.setup();
+    renderList('7');
+    await screen.findByText('로비유저');
+    expect(screen.queryByText('대기유저')).not.toBeInTheDocument();
+
+    await user.click(searchToggle());
+    await user.type(searchBox(), '대기');
+
+    expect(screen.getByText('대기유저')).toBeInTheDocument();
+  });
+
+  it('검색 결과가 없으면 안내 문구를 보여준다', async () => {
+    const user = userEvent.setup();
+    renderList();
+    await screen.findByText('로비유저');
+
+    await user.click(searchToggle());
+    await user.type(searchBox(), '없는사람');
+
+    expect(screen.getByText('검색 결과가 없습니다')).toBeInTheDocument();
+  });
+
+  it('전체 접속자 수는 검색 중에도 그대로 보여준다', async () => {
+    const user = userEvent.setup();
+    renderList();
+    await screen.findByText('로비유저');
+
+    await user.click(searchToggle());
+    await user.type(searchBox(), '대기');
+
+    expect(searchToggle().previousElementSibling).toHaveTextContent('3');
+  });
+
+  it('돋보기를 다시 누르면 검색창이 닫히고 필터가 풀린다', async () => {
+    const user = userEvent.setup();
+    renderList();
+    await screen.findByText('로비유저');
+
+    await user.click(searchToggle());
+    await user.type(searchBox(), '대기');
+    await user.click(searchToggle());
+
+    expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
+    expect(screen.getByText('로비유저')).toBeInTheDocument();
+  });
+
+  it('검색창에서 ESC 를 누르면 검색창이 닫히고 필터가 풀린다', async () => {
+    const user = userEvent.setup();
+    renderList();
+    await screen.findByText('로비유저');
+
+    await user.click(searchToggle());
+    await user.type(searchBox(), '대기{Escape}');
+
+    expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
     expect(screen.getByText('로비유저')).toBeInTheDocument();
   });
 

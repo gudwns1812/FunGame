@@ -35,18 +35,51 @@ const groupOf = (member: OnlineMember): GroupKey => (member.status === 'LOBBY' ?
 const groupsCollapsedWhileInviting = (invitingRoomId?: string | null): GroupKey[] =>
   invitingRoomId ? ['ELSEWHERE'] : [];
 
+const MagnifierIcon: React.FC = () => (
+  <svg viewBox="0 0 12 12" className="w-3 h-3" fill="currentColor" shapeRendering="crispEdges" aria-hidden="true">
+    <rect x="2" y="1" width="5" height="1" />
+    <rect x="2" y="7" width="5" height="1" />
+    <rect x="1" y="2" width="1" height="5" />
+    <rect x="7" y="2" width="1" height="5" />
+    <rect x="8" y="8" width="2" height="2" />
+    <rect x="10" y="10" width="2" height="2" />
+  </svg>
+);
+
 const OnlineUserList: React.FC<OnlineUserListProps> = ({ invitingRoomId }) => {
   const members = useOnlineMembers(true);
   const [invitedMemberIds, setInvitedMemberIds] = useState<number[]>([]);
   const [collapsedGroups, setCollapsedGroups] = useState<GroupKey[]>(() =>
     groupsCollapsedWhileInviting(invitingRoomId),
   );
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [searchInput, setSearchInput] = useState('');
   const expiryTimers = useRef<Map<number, ReturnType<typeof setTimeout>>>(new Map());
 
   useEffect(() => {
     const timers = expiryTimers.current;
     return () => timers.forEach(clearTimeout);
   }, []);
+
+  const keyword = searchInput.trim().toLowerCase();
+  const isFiltering = keyword.length > 0;
+  const matchedMembers = isFiltering
+    ? members.filter((member) => member.nickname.toLowerCase().includes(keyword))
+    : members;
+
+  const nothingToShowMessage =
+    members.length === 0
+      ? '아무도 접속해 있지 않습니다'
+      : matchedMembers.length === 0
+        ? '검색 결과가 없습니다'
+        : null;
+
+  const closeSearch = () => {
+    setIsSearchOpen(false);
+    setSearchInput('');
+  };
+
+  const toggleSearch = () => (isSearchOpen ? closeSearch() : setIsSearchOpen(true));
 
   const toggleGroup = (key: GroupKey) => {
     setCollapsedGroups((collapsed) =>
@@ -109,17 +142,43 @@ const OnlineUserList: React.FC<OnlineUserListProps> = ({ invitingRoomId }) => {
   return (
     <aside className="px-card w-full md:w-56 shrink-0 flex flex-col min-h-0">
       <div className="px-head flex items-center justify-between">
-        <span className="px-label">접속 중</span>
-        <span className="px-chip">{members.length}</span>
+        {isSearchOpen ? (
+          <input
+            autoFocus
+            type="text"
+            className="px-input-line"
+            placeholder="닉네임 검색"
+            aria-label="닉네임으로 접속자 검색"
+            value={searchInput}
+            onChange={(event) => setSearchInput(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === 'Escape') closeSearch();
+            }}
+          />
+        ) : (
+          <span className="px-label">접속 중</span>
+        )}
+
+        <span className="flex items-center gap-1.5 shrink-0">
+          <span className="px-chip">{members.length}</span>
+          <button
+            type="button"
+            aria-label="닉네임 검색"
+            aria-expanded={isSearchOpen}
+            className={isSearchOpen ? 'px-chip px-chip-cherry' : 'px-chip'}
+            onClick={toggleSearch}>
+            <MagnifierIcon />
+          </button>
+        </span>
       </div>
 
       <div className="flex-1 min-h-0 scroll-y custom-scrollbar p-2 flex flex-col gap-2">
-        {members.length === 0 ? (
-          <p className="px-label text-center py-4 opacity-60">아무도 접속해 있지 않습니다</p>
+        {nothingToShowMessage ? (
+          <p className="px-label text-center py-4 opacity-60">{nothingToShowMessage}</p>
         ) : (
           GROUPS.map(({ key, label }) => {
-            const groupMembers = members.filter((member) => groupOf(member) === key);
-            const isCollapsed = collapsedGroups.includes(key);
+            const groupMembers = matchedMembers.filter((member) => groupOf(member) === key);
+            const isCollapsed = !isFiltering && collapsedGroups.includes(key);
 
             return (
               <section key={key} className="flex flex-col gap-2">
