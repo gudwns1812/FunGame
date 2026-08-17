@@ -1,4 +1,4 @@
-import type { ReportReason } from '../types/report';
+import type { ReportReason, ReportSource, ReportStatus } from '../types/report';
 
 interface ReasonChoice {
   reason: ReportReason;
@@ -43,3 +43,30 @@ export const REPORTABLE_GAME_TYPES = [
   { gameType: 'CS', label: 'CS 퀴즈' },
   { gameType: 'HANGMAN', label: '행맨' },
 ];
+
+const REASON_LABELS: Record<ReportReason, string> = {
+  CONTENT_NOT_SHOWN: '문제가 나오지 않음',
+  CONTENT_WRONG: '문제가 이상함',
+  HINT_WRONG: '힌트가 이상함',
+  ANSWER_WRONG: '답이 이상함',
+  ETC: '기타 문의',
+};
+
+const STATUS_LABELS: Record<ReportStatus, string> = {
+  OPEN: '접수됨',
+  RESOLVED: '처리 완료',
+};
+
+const SOURCE_LABELS: Record<ReportSource, string> = {
+  IN_GAME: '게임 중',
+  LOBBY: '로비',
+};
+
+export const reasonLabelOf = (reason: ReportReason) => REASON_LABELS[reason];
+
+export const statusLabelOf = (status: ReportStatus) => STATUS_LABELS[status];
+
+export const sourceLabelOf = (source: ReportSource) => SOURCE_LABELS[source];
+
+export const gameTypeLabelOf = (gameType: string | null) =>
+  REPORTABLE_GAME_TYPES.find((option) => option.gameType === gameType)?.label ?? '게임 밖';

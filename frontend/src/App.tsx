@@ -215,7 +215,7 @@ function AppContent() {
         }
       />
       <Route
-        path="/mypage"
+        path="/mypage/*"
         element={
           isAuthenticated ? <MyPage /> : <Navigate to="/login" replace />
         }
