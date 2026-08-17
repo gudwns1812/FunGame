@@ -127,10 +127,28 @@ jobs:
               return 1
             }
 
+            pin_running_image_in_env() {
+              if [ "$1" = "${1%:latest}" ]; then
+                install -m 600 /dev/null .env.next
+                if [ -f .env ]; then
+                  { grep -v '^BACKEND_IMAGE=' .env || true; } >> .env.next
+                  chmod --reference=.env .env.next
+                fi
+                echo "BACKEND_IMAGE=$1" >> .env.next
+                mv .env.next .env
+                echo ".env 에 고정했다: BACKEND_IMAGE=$1"
+                echo "이제 서버에서 맨손으로 docker compose up -d 를 쳐도 이 버전이 뜬다"
+              else
+                echo "$1 은 움직이는 태그라 .env 에 고정하지 않는다"
+                echo "서버의 로컬 latest 는 pull 하지 않는 한 옛 이미지에 머물러 있다"
+              fi
+            }
+
             deploy_tag "$TARGET_IMAGE"
 
             if wait_until_healthy; then
               echo "배포 성공: $TARGET_IMAGE"
+              pin_running_image_in_env "$TARGET_IMAGE"
               docker image prune -f
               exit 0
             fi
@@ -148,6 +166,7 @@ jobs:
 
             if wait_until_healthy; then
               echo "롤백 완료. 서비스는 이전 버전으로 살아 있다"
+              pin_running_image_in_env "$PREVIOUS_IMAGE"
             else
               echo "롤백도 실패했다. 수동 확인이 필요하다"
             fi
