@@ -7,6 +7,7 @@ import com.fungame.songquiz.domain.member.OnlineMembers;
 import com.fungame.songquiz.controller.response.OnlineMemberResponse;
 import com.fungame.songquiz.controller.room.RoomListReader;
 import com.fungame.songquiz.domain.room.RoomChangedEvent;
+import com.fungame.songquiz.controller.response.RoomResponse;
 import com.fungame.songquiz.domain.room.RoomInfo;
 import com.fungame.songquiz.enums.CSQuizDifficulty;
 import com.fungame.songquiz.enums.GameRoomStatus;
@@ -50,7 +51,7 @@ class LobbyNotifyServiceTest {
         lobbyNotifyService.handleRoomChangedEvent(new RoomChangedEvent());
         lobbyNotifyService.processPendingUpdate();
 
-        verify(sseService).broadcast("room-update", rooms);
+        verify(sseService).broadcast("room-update", RoomResponse.listFrom(rooms));
     }
 
     @Test
