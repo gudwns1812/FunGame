@@ -19,12 +19,12 @@ public class RoomPresence {
     }
 
     public boolean isConnected(RoomMember member) {
-        return membersBySessionId.containsValue(member);
+        return countSessionsOf(member) > 0;
     }
 
     public int countSessionsOf(RoomMember member) {
         return (int) membersBySessionId.values().stream()
-                .filter(member::equals)
+                .filter(connected -> connected.key().equals(member.key()))
                 .count();
     }
 

@@ -35,7 +35,7 @@ public class WebSocketEventListener {
             return;
         }
 
-        connectionRegistry.connected(sessionId, RoomMember.of(roomId, member.getId(), member.getNickName()));
+        connectionRegistry.connected(sessionId, new RoomMember(roomId, member.getId(), member.getNickName()));
     }
 
     @EventListener

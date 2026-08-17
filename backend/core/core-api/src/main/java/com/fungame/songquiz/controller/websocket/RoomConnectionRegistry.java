@@ -1,6 +1,7 @@
 package com.fungame.songquiz.controller.websocket;
 
 import com.fungame.songquiz.controller.room.RoomMember;
+import com.fungame.songquiz.controller.room.RoomMemberKey;
 import com.fungame.songquiz.controller.room.RoomPresence;
 import com.fungame.songquiz.domain.room.GameRoomService;
 import com.fungame.songquiz.support.config.AppTaskScheduler;
@@ -24,7 +25,7 @@ public class RoomConnectionRegistry {
     private final TaskScheduler taskScheduler;
     private final RoomPresence roomPresence;
 
-    private final Map<String, ScheduledFuture<?>> pendingLeavesByMember = new ConcurrentHashMap<>();
+    private final Map<RoomMemberKey, ScheduledFuture<?>> pendingLeavesByMember = new ConcurrentHashMap<>();
 
     public RoomConnectionRegistry(GameRoomService gameRoomService,
                                   @AppTaskScheduler TaskScheduler taskScheduler,
