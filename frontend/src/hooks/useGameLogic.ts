@@ -13,6 +13,7 @@ import type {
   CreateRoomInput,
 } from '../types/game';
 import { stripTag } from '../utils/stringUtils';
+import { notifyError, notifyInfo } from '../utils/toast';
 import { PLAYER_COLOR_INDEX_KEY } from '../utils/playerColor';
 import { LOBBY_TOPIC, roomChat, roomTopic } from '../utils/stompDestination';
 import { playSound } from '../utils/sound';
@@ -81,7 +82,6 @@ export const useGameLogic = () => {
   const [hint, setHint] = useState<string>('');
   const [hangmanStatus, setHangmanStatus] = useState<HangmanStatus | null>(null);
   const [roomSettings, setRoomSettings] = useState<RoomSettings | null>(null);
-  const [kickedNotice, setKickedNotice] = useState<string | null>(null);
   const [isBootstrapping, setIsBootstrapping] = useState(true);
   const [isCreatingRoom, setIsCreatingRoom] = useState(false);
   const [myColorIndex, setMyColorIndex] = useState<number | null>(() => {
@@ -179,7 +179,7 @@ export const useGameLogic = () => {
         console.error('Failed to fetch room state:', error);
         const errorCode = error?.response?.data?.error?.code;
         if (errorCode === 'G002' || errorCode === 'G008') {
-          window.alert('방이 종료되었거나 더 이상 존재하지 않습니다.');
+          notifyError('방이 종료되었거나 더 이상 존재하지 않습니다.');
           returnToLobbyRef.current();
         }
       }
@@ -216,7 +216,7 @@ export const useGameLogic = () => {
           applyRoomSettings(response.data.data);
         }
       } catch (error: any) {
-        window.alert(error?.response?.data?.error?.message ?? '방 설정을 바꾸지 못했습니다.');
+        notifyError(error?.response?.data?.error?.message ?? '방 설정을 바꾸지 못했습니다.');
       }
     },
     [roomId, applyRoomSettings],
@@ -242,7 +242,7 @@ export const useGameLogic = () => {
 
         case 'PLAYER_KICKED':
           if (event.memberId === myMemberId) {
-            setKickedNotice(KICKED_NOTICE);
+            notifyInfo(KICKED_NOTICE);
             forgetRoom();
             break;
           }
@@ -443,15 +443,11 @@ export const useGameLogic = () => {
       try {
         await axios.post(`/game/rooms/${roomId}/kick`, { targetMemberId });
       } catch (error: any) {
-        window.alert(error?.response?.data?.error?.message ?? '플레이어를 내보내지 못했습니다.');
+        notifyError(error?.response?.data?.error?.message ?? '플레이어를 내보내지 못했습니다.');
       }
     },
     [roomId],
   );
-
-  const dismissKickedNotice = useCallback(() => {
-    setKickedNotice(null);
-  }, []);
 
   const returnToLobby = leaveRoom;
 
@@ -553,7 +549,7 @@ export const useGameLogic = () => {
         console.error('Failed to enter room channel:', error);
         const message =
           error?.response?.data?.error?.message || '연결이 끊긴 사이 방에서 나가게 되었습니다.';
-        window.alert(message);
+        notifyError(message);
         returnToLobby();
       }
     },
@@ -731,7 +727,7 @@ export const useGameLogic = () => {
         }
       } catch (error: any) {
         console.error('Accept invite failed:', error);
-        window.alert(error?.response?.data?.error?.message || '방에 입장할 수 없습니다.');
+        notifyError(error?.response?.data?.error?.message || '방에 입장할 수 없습니다.');
       }
     },
     [enterRoom],
@@ -758,7 +754,7 @@ export const useGameLogic = () => {
           return;
         }
         const message = error?.response?.data?.error?.message || '방에 입장할 수 없습니다.';
-        window.alert(message);
+        notifyError(message);
       }
     },
     [myMemberId, nickname, enterRoom, enterStatus, forgetRenderedRoomState],
@@ -818,7 +814,7 @@ export const useGameLogic = () => {
     } catch (error: any) {
       console.error('Toggle ready failed:', error);
       const message = error?.response?.data?.error?.message || '준비 상태 변경에 실패했습니다.';
-      window.alert(message);
+      notifyError(message);
     }
   }, [roomId]);
 
@@ -827,12 +823,12 @@ export const useGameLogic = () => {
     try {
       const response = await axios.post(`/game/rooms/${roomId}/start`);
       if (response.data.result === 'FAIL') {
-        window.alert(response.data.error.message);
+        notifyError(response.data.error.message);
       }
     } catch (error: any) {
       console.error('Start game failed:', error);
       const message = error?.response?.data?.error?.message || '게임 시작에 실패했습니다.';
-      window.alert(message);
+      notifyError(message);
     }
   }, [roomId, isHost, nickname]);
 
@@ -867,7 +863,7 @@ export const useGameLogic = () => {
       console.error('Failed to fetch rank:', error);
       const errorCode = error?.response?.data?.error?.code;
       if (errorCode === 'G002' || errorCode === 'G008') {
-        window.alert('방이 종료되었거나 더 이상 존재하지 않습니다.');
+        notifyError('방이 종료되었거나 더 이상 존재하지 않습니다.');
         returnToLobby();
       }
     }
@@ -935,8 +931,6 @@ export const useGameLogic = () => {
     createRoom,
     leaveRoom,
     kickPlayer,
-    kickedNotice,
-    dismissKickedNotice,
     returnToLobby,
     returnToWaitingRoom,
     roomSettings,

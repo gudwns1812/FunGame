@@ -81,7 +81,6 @@ describe('useGameLogic 준비 상태', () => {
     mockedAxios.post = vi.fn().mockResolvedValue({ data: { result: 'SUCCESS', data: 0 } });
     mockedAxios.defaults = { baseURL: '', withCredentials: true };
     stubUsers(true);
-    vi.spyOn(window, 'alert').mockImplementation(() => {});
   });
 
   const joinRoomAndSubscribe = async () => {

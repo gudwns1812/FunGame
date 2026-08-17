@@ -234,6 +234,17 @@
     @apply border-cherry;
   }
 
+  .px-input-line {
+    font-family: var(--font-display);
+    @apply w-full min-w-0 border-0 border-b-2 border-ink bg-transparent px-1 py-0.5 text-xs text-ink outline-none;
+  }
+  .px-input-line::placeholder {
+    color: #a89f9f;
+  }
+  .px-input-line:focus {
+    @apply border-cherry;
+  }
+
   /* ── 진행 바 (분절형) ── */
   .px-bar {
     @apply border-2 border-ink bg-paper-2 overflow-hidden;
@@ -336,6 +347,19 @@
       transform: translate(-50%, 0);
     }
   }
+  .animate-toast-in {
+    animation: px-toast-in 0.18s steps(3, end) both;
+  }
+  @keyframes px-toast-in {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
 
   /* 정답자 하이라이트 (RankingItem) */
   .animate-shimmer {
@@ -353,7 +377,8 @@
     .animate-blink,
     .animate-tick,
     .animate-tick-urgent,
-    .animate-slide-down {
+    .animate-slide-down,
+    .animate-toast-in {
       animation: none;
     }
   }

@@ -20,7 +20,8 @@ import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { StompProvider } from './contexts/StompContext';
 import { useRoomInvites } from './hooks/useRoomInvites';
 import InviteToast from './components/InviteToast';
-import KickedNotice from './components/KickedNotice';
+import ToastStack from './components/ToastStack';
+import ConfirmDialog from './components/ConfirmDialog';
 import MaintenanceRoutes from './components/MaintenanceRoutes';
 import { PUBLIC_PAGES } from './publicPages';
 import { isMaintenanceMode } from './utils/maintenance';
@@ -74,8 +75,6 @@ function AppContent() {
     createRoom,
     leaveRoom,
     kickPlayer,
-    kickedNotice,
-    dismissKickedNotice,
     returnToLobby,
     returnToWaitingRoom,
     roomSettings,
@@ -149,8 +148,6 @@ function AppContent() {
 
   return (
     <>
-      {kickedNotice && <KickedNotice message={kickedNotice} onClose={dismissKickedNotice} />}
-
       {currentInvite && (
         <InviteToast
           key={currentInvite.inviteId}
@@ -336,6 +333,8 @@ function App() {
       <AuthProvider>
         <StompProvider>
           <AppContent />
+          <ToastStack />
+          <ConfirmDialog />
         </StompProvider>
       </AuthProvider>
     </BrowserRouter>

@@ -3,6 +3,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import axios from 'axios';
 import { useGameLogic } from './useGameLogic';
 import { createStompStub } from '../test/stompTestUtils';
+import { clearToasts, stackedToasts } from '../utils/toast';
 
 vi.mock('axios');
 
@@ -43,7 +44,7 @@ describe('useGameLogic 방 설정 변경', () => {
     mockedAxios.get = vi.fn().mockResolvedValue({ data: { result: 'SUCCESS', data: [] } });
     mockedAxios.patch = vi.fn().mockResolvedValue(settingsResponse(4));
     mockedAxios.defaults = { baseURL: '', withCredentials: true };
-    vi.spyOn(window, 'alert').mockImplementation(() => {});
+    clearToasts();
   });
 
   it('정원을 바꾸면 대기실 슬롯 기준 정원도 따라간다', async () => {
@@ -87,7 +88,7 @@ describe('useGameLogic 방 설정 변경', () => {
       });
     });
 
-    expect(window.alert).toHaveBeenCalledWith('방이 가득찼습니다.');
+    expect(stackedToasts().map((toast) => toast.message)).toContain('방이 가득찼습니다.');
     expect(result.current.roomMaxPlayers).toBe(before);
   });
 });
