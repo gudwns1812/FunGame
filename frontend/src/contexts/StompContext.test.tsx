@@ -16,13 +16,15 @@ const configs: CapturedConfig[] = [];
 const clients: FakeClient[] = [];
 
 class FakeClient {
+  readonly config: CapturedConfig;
   connected = false;
   active = false;
   subscriptions: FakeSubscription[] = [];
   published: { destination: string; body: string }[] = [];
   deactivate = vi.fn().mockResolvedValue(undefined);
 
-  constructor(public readonly config: CapturedConfig) {
+  constructor(config: CapturedConfig) {
+    this.config = config;
     configs.push(config);
     clients.push(this);
   }
