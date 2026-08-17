@@ -304,7 +304,7 @@ describe('OnlineUserList', () => {
     await user.click(searchToggle());
     await user.type(searchBox(), '대기');
 
-    expect(searchToggle().previousElementSibling).toHaveTextContent('3');
+    expect(searchToggle().nextElementSibling).toHaveTextContent('3');
   });
 
   it('돋보기를 다시 누르면 검색창이 닫히고 필터가 풀린다', async () => {
