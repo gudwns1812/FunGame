@@ -131,7 +131,7 @@ export const useGameLogic = () => {
     forgetRenderedRoomState();
     setRoomId(null);
     setRoomName('');
-    setStatus('ROOM_LIST');
+    enterStatus('ROOM_LIST');
     setPlayers([]);
     setRoomSettings(null);
     setPlayerIndex(null);
@@ -144,7 +144,7 @@ export const useGameLogic = () => {
     localStorage.removeItem('ums_currentVideoId');
     localStorage.removeItem(PLAYER_COLOR_INDEX_KEY);
     setMyColorIndex(null);
-  }, [forgetRenderedRoomState]);
+  }, [forgetRenderedRoomState, enterStatus]);
 
   const forgetRoom = useCallback(() => {
     unsubscribeFromRoom();
