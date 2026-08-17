@@ -1,8 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import LandingPage from './pages/LandingPage';
-import HowToPlayPage from './pages/HowToPlayPage';
-import PrivacyPage from './pages/PrivacyPage';
-import TermsPage from './pages/TermsPage';
 import SignupPage from './pages/SignupPage';
 import LoginPage from './pages/LoginPage';
 import ForgotPasswordPage from './pages/ForgotPasswordPage';
@@ -24,17 +21,13 @@ import { SseProvider } from './contexts/SseContext';
 import { useRoomInvites } from './hooks/useRoomInvites';
 import InviteToast from './components/InviteToast';
 import KickedNotice from './components/KickedNotice';
+import MaintenanceRoutes from './components/MaintenanceRoutes';
+import { PUBLIC_PAGES } from './publicPages';
+import { isMaintenanceMode } from './utils/maintenance';
 import { useEffect } from 'react';
 
 /** 방에 들어가 있는 동안은 클릭음이 게임을 방해해서 끈다 */
 const IN_ROOM_STATUSES: GameStatus[] = ['WAITING', 'PLAYING', 'RESULT'];
-
-/** 로그인 여부·게임 상태와 무관하게 항상 같은 내용을 보여주는 공개 페이지 */
-const PUBLIC_PAGES = [
-  { path: '/how-to-play', element: <HowToPlayPage /> },
-  { path: '/privacy', element: <PrivacyPage /> },
-  { path: '/terms', element: <TermsPage /> },
-];
 
 /** 부트스트랩 · 방 생성 대기 화면 */
 function LoadingScreen({ label }: { label: string }) {
@@ -330,6 +323,14 @@ function AppContent() {
 }
 
 function App() {
+  if (isMaintenanceMode()) {
+    return (
+      <BrowserRouter>
+        <MaintenanceRoutes />
+      </BrowserRouter>
+    );
+  }
+
   return (
     <BrowserRouter>
       <AuthProvider>
