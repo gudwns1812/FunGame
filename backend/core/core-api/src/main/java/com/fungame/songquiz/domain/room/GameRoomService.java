@@ -55,9 +55,13 @@ public class GameRoomService {
     public void leaveRoom(Long roomId, Long memberId) {
         LeaveResult result = gameRoomManager.leaveRoom(roomId, memberId);
 
-        memberPresenceService.leaveRoom(memberId);
+        if (result.nickname() == null) {
+            return;
+        }
 
-        if (result.destroyed() || result.nickname() == null) {
+        memberPresenceService.leaveRoom(memberId, roomId);
+
+        if (result.destroyed()) {
             return;
         }
 
@@ -72,9 +76,13 @@ public class GameRoomService {
     public void kickPlayer(Long roomId, Long hostId, Long targetId) {
         GamePlayer kicked = gameRoomManager.kickPlayer(roomId, hostId, targetId);
 
-        memberPresenceService.leaveRoom(targetId);
+        memberPresenceService.leaveRoom(targetId, roomId);
 
         applicationEventPublisher.publishEvent(new PlayerKickedEvent(roomId, kicked));
+    }
+
+    public boolean hasPlayer(Long roomId, Long memberId) {
+        return gameRoomManager.hasPlayer(roomId, memberId);
     }
 
     private void rememberWhereMemberIs(Long roomId, Long memberId) {

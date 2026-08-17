@@ -32,8 +32,11 @@ public class MemberPresenceService {
         announcePresenceChange();
     }
 
-    public void leaveRoom(Long memberId) {
-        memberWriter.moveToLobby(memberId);
+    public void leaveRoom(Long memberId, Long roomId) {
+        if (!memberWriter.moveToLobbyIfIn(memberId, roomId)) {
+            log.debug("회원 {} 는 이미 방 {} 을 떠나 다른 곳에 있어 위치를 그대로 둔다", memberId, roomId);
+            return;
+        }
 
         announcePresenceChange();
     }

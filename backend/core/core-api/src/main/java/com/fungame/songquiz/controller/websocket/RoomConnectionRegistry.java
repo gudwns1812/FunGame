@@ -51,7 +51,17 @@ public class RoomConnectionRegistry {
             return;
         }
 
+        if (alreadyOutOfRoom(member)) {
+            log.debug("세션 {} 종료, 이미 방 {} 에서 빠진 사람이라 유예를 예약하지 않는다: {}",
+                    sessionId, member.roomId(), member.nickname());
+            return;
+        }
+
         scheduleLeaveAfterGrace(member);
+    }
+
+    private boolean alreadyOutOfRoom(RoomMember member) {
+        return !gameRoomService.hasPlayer(member.roomId(), member.memberId());
     }
 
     public boolean isConnected(RoomMember member) {

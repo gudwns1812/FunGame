@@ -80,11 +80,26 @@ class MemberPersistenceTest {
         Long memberId = saveMember("방나감");
         memberPresenceService.enterWaitingRoom(memberId, ROOM_ID);
 
-        memberPresenceService.leaveRoom(memberId);
+        memberPresenceService.leaveRoom(memberId, ROOM_ID);
 
         Map<String, Object> row = memberRow(memberId);
         assertThat(row.get("status")).isEqualTo("LOBBY");
         assertThat(row.get("current_room_id")).isNull();
+    }
+
+    @Test
+    @DisplayName("이미 다른 방으로 옮긴 사람은 이전 방의 이탈 처리로 위치가 지워지지 않는다.")
+    void keepsLocationWhenAlreadyInAnotherRoom() {
+        Long memberId = saveMember("방옮긴사람");
+        Long previousRoomId = ROOM_ID;
+        Long currentRoomId = ROOM_ID + 1;
+        memberPresenceService.enterWaitingRoom(memberId, currentRoomId);
+
+        memberPresenceService.leaveRoom(memberId, previousRoomId);
+
+        Map<String, Object> row = memberRow(memberId);
+        assertThat(row.get("status")).isEqualTo("WAITING");
+        assertThat(row.get("current_room_id")).isEqualTo(currentRoomId);
     }
 
     @Test
