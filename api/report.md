@@ -86,5 +86,78 @@
 ## 3. 접수 뒤
 
 - 신고는 `report` 테이블에 `OPEN` 상태로 저장됩니다.
-- 저장한 뒤 비동기로 디스코드에 알립니다. **전송 실패는 접수 실패가 아닙니다** — 디스코드가 죽거나 rate limit 에 걸려도 신고는 남습니다.
+- 저장한 뒤 비동기로 디스코드에 알립니다. 알림에는 신고 번호가 실려 관리자가 바로 그 건을 열 수 있습니다. **전송 실패는 접수 실패가 아닙니다** — 디스코드가 죽거나 rate limit 에 걸려도 신고는 남습니다.
 - 같은 회원이 같은 문제를 같은 사유로 다시 신고하면 저장은 하고 알리지는 않습니다.
+
+---
+
+## 4. 내가 접수한 신고 조회
+
+- **Method**: `GET`
+- **Path**: `/api/reports/mine`
+- **인증**: 필요 (자기 것만 돌려줍니다)
+- **Response Data**: `List<MyReportResponse>` — 최근 접수 순
+
+| 필드 | 타입 | 설명 |
+| :--- | :--- | :--- |
+| **`id`** | `Long` | 신고 번호 |
+| **`source`** | `String` | `IN_GAME` / `LOBBY` |
+| **`reason`** | `String` | 사유 코드 |
+| **`detail`** | `String` | 직접 작성한 내용 |
+| **`gameType`** | `String` | 게임 종류 |
+| **`status`** | `String` | `OPEN`(접수) / `RESOLVED`(처리 완료) |
+| **`createdAt`** | `String` | 접수 시각 |
+| **`comments[]`** | `Array` | 관리자 답변. `id` · `authorNickname` · `content` · `createdAt` |
+
+### 신고자에게는 정답과 힌트를 내려주지 않는다
+
+`report` 행에는 접수 시점의 **정답 · 힌트 · 유튜브 링크 · 문제 식별자 · 방 · 라운드**가 스냅샷으로 들어 있습니다. 이 응답에는 그것들이 **하나도 실리지 않습니다.**
+
+내려주면 **라운드 진행 중에 신고 버튼을 눌러 정답을 읽는 치트 통로**가 되기 때문입니다. `ReportControllerDocsTest` 가 응답에 그 필드들이 없다는 것을 테스트로 고정합니다.
+
+관리자 답변(`comments[].content`)은 신고자에게 그대로 보입니다. 답변에 정답을 옮겨 적으면 위의 방어가 무의미해지므로, 관리 화면이 입력창 옆에 그 사실을 적어 둡니다.
+
+---
+
+## 5. 문의 관리 (ADMIN 이상)
+
+`/api/admin/**` 은 `SecurityConfig` 가 `hasAnyRole("ADMIN", "MASTER")` 로 막습니다.
+
+### 5.1 전체 신고 조회
+
+- **Method**: `GET`
+- **Path**: `/api/admin/reports`
+- **Query**: `status` (선택) — `OPEN` / `RESOLVED`. 없으면 전체
+- **Response Data**: `List<AdminReportResponse>` — 최근 접수 순
+
+`MyReportResponse` 의 모든 필드에 더해 신고자와 게임 컨텍스트 전부를 내려줍니다.
+
+| 추가 필드 | 설명 |
+| :--- | :--- |
+| **`memberId`** · **`reporterNickname`** | 신고자 |
+| **`quizCategory`** · **`contentId`** | 카테고리와 신고 대상 행의 식별자 |
+| **`roomId`** · **`currentRound`** · **`totalRound`** | 접수 시점의 방과 라운드 |
+| **`quizContent`** · **`quizAnswer`** · **`quizHint`** | 접수 시점의 문제 · 정답 · 힌트 |
+
+### 5.2 답변 남기기
+
+- **Method**: `POST`
+- **Path**: `/api/admin/reports/{reportId}/comments`
+
+```json
+{ "content": "힌트를 고쳤습니다." }
+```
+
+답변은 관리자만 남깁니다. 신고자는 읽기만 하고, 더 할 말이 있으면 새로 접수합니다.
+내용이 비어 있으면 `R004`, 없는 신고면 `R005` 입니다.
+
+### 5.3 처리 상태 바꾸기
+
+- **Method**: `PATCH`
+- **Path**: `/api/admin/reports/{reportId}/status`
+
+```json
+{ "status": "RESOLVED" }
+```
+
+`OPEN` 과 `RESOLVED` 사이를 왕복할 수 있습니다. **왜 그렇게 처리했는지는 상태가 아니라 답변 문장이 말합니다.**

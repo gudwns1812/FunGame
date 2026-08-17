@@ -206,7 +206,7 @@ core/core-api/
 | `quiz` | 문제와 게임 종류. `Game` 과 구현 3종, 그 재료(`Song`, `ComputerScienceQuiz`, `HangmanWord`) |
 | `session` | 한 판의 진행과 점수. `GameSession`, `GameRank`, 라운드 이벤트 |
 | `invite` | 방 초대 |
-| `report` | 사용자 신고. 접수 시점의 게임 컨텍스트 스냅샷과 알림 포트 |
+| `report` | 사용자 신고. 접수 시점의 게임 컨텍스트 스냅샷, 처리 상태와 관리자 답변, 알림 포트 |
 
 `quiz` 와 `session` 을 나눈 근거는 **서로의 불변식이 없다는 것**이다. 점수가 바뀌어도 문제 상태는 영향을 받지 않고 그 반대도 마찬가지다. `GameSession` 은 두 상태 기계 앞의 파사드일 뿐이고, 정답 판정(`quiz`)과 점수 반영(`session`)은 이미 별도 호출로 분리돼 있다. `room` 이 게임을 모르는 것도 같은 이유다.
 
