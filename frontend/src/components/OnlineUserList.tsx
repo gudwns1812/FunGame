@@ -36,13 +36,20 @@ const groupsCollapsedWhileInviting = (invitingRoomId?: string | null): GroupKey[
   invitingRoomId ? ['ELSEWHERE'] : [];
 
 const MagnifierIcon: React.FC = () => (
-  <svg viewBox="0 0 12 12" className="w-3 h-3" fill="currentColor" shapeRendering="crispEdges" aria-hidden="true">
-    <rect x="2" y="1" width="5" height="1" />
-    <rect x="2" y="7" width="5" height="1" />
-    <rect x="1" y="2" width="1" height="5" />
-    <rect x="7" y="2" width="1" height="5" />
-    <rect x="8" y="8" width="2" height="2" />
-    <rect x="10" y="10" width="2" height="2" />
+  <svg viewBox="0 0 12 12" className="w-3.5 h-3.5" shapeRendering="crispEdges" aria-hidden="true">
+    <rect x="2" y="2" width="5" height="5" fill="var(--color-sky)" />
+    <rect x="3" y="3" width="2" height="1" fill="#fff" />
+    <rect x="3" y="4" width="1" height="1" fill="#fff" />
+    <g fill="currentColor">
+      <rect x="2" y="1" width="5" height="1" />
+      <rect x="2" y="7" width="5" height="1" />
+      <rect x="1" y="2" width="1" height="5" />
+      <rect x="7" y="2" width="1" height="5" />
+      <rect x="7" y="7" width="2" height="2" />
+      <rect x="8" y="8" width="2" height="2" />
+      <rect x="9" y="9" width="2" height="2" />
+      <rect x="10" y="10" width="2" height="2" />
+    </g>
   </svg>
 );
 
@@ -164,11 +171,11 @@ const OnlineUserList: React.FC<OnlineUserListProps> = ({ invitingRoomId }) => {
             type="button"
             aria-label="닉네임 검색"
             aria-expanded={isSearchOpen}
-            className={isSearchOpen ? 'px-chip px-chip-cherry' : 'px-chip'}
+            className={`px-chip h-6 w-6 p-0 justify-center ${isSearchOpen ? 'px-chip-cherry' : ''}`}
             onClick={toggleSearch}>
             <MagnifierIcon />
           </button>
-          <span className="px-chip">{members.length}</span>
+          <span className="px-chip h-6 min-w-6 px-1.5 py-0 justify-center num">{members.length}</span>
         </span>
       </div>
 
