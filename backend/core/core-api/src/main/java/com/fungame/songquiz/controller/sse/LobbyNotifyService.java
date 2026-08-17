@@ -5,7 +5,7 @@ import com.fungame.songquiz.domain.member.OnlineMemberService;
 import com.fungame.songquiz.domain.member.OnlineMembers;
 import com.fungame.songquiz.controller.response.OnlineMemberResponse;
 import com.fungame.songquiz.controller.response.RoomResponse;
-import com.fungame.songquiz.controller.room.RoomListReader;
+import com.fungame.songquiz.domain.room.GameRoomService;
 import com.fungame.songquiz.domain.room.RoomChangedEvent;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.event.EventListener;
@@ -23,7 +23,7 @@ public class LobbyNotifyService {
     private static final String PRESENCE_UPDATE_EVENT = "presence-update";
 
     private final SseService sseService;
-    private final RoomListReader roomListReader;
+    private final GameRoomService gameRoomService;
     private final OnlineMemberService onlineMemberService;
 
     private final AtomicBoolean hasPendingRoomUpdate = new AtomicBoolean(false);
@@ -45,7 +45,7 @@ public class LobbyNotifyService {
     @Scheduled(fixedDelay = 500)
     public void processPendingUpdate() {
         if (hasPendingRoomUpdate.compareAndSet(true, false)) {
-            sseService.broadcast(ROOM_UPDATE_EVENT, RoomResponse.listFrom(roomListReader.findAllRooms()));
+            sseService.broadcast(ROOM_UPDATE_EVENT, RoomResponse.listFrom(gameRoomService.findAllRooms()));
         }
 
         if (hasPendingPresenceUpdate.compareAndSet(true, false)) {

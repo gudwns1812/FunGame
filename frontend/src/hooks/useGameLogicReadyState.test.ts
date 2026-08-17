@@ -66,19 +66,22 @@ const SETTINGS = {
   hostNickname: '방장',
 };
 
-const usersResponse = (myReady: boolean) => ({
-  data: {
-    result: 'SUCCESS',
-    data: {
-      players: [
-        { memberId: HOST_MEMBER_ID, nickname: '방장', isReady: true },
-        { memberId: MY_MEMBER_ID, nickname: '나', isReady: myReady },
-      ],
-      hostMemberId: HOST_MEMBER_ID,
-      hostNickname: '방장',
-    },
-  },
+const roomState = (version: number, myReady: boolean) => ({
+  version,
+  players: [
+    { memberId: HOST_MEMBER_ID, nickname: '방장', isReady: true },
+    { memberId: MY_MEMBER_ID, nickname: '나', isReady: myReady },
+  ],
+  hostMemberId: HOST_MEMBER_ID,
+  hostNickname: '방장',
 });
+
+const usersResponse = (myReady: boolean) => ({
+  data: { result: 'SUCCESS', data: roomState(1, myReady) },
+});
+
+const roomStateFetchCount = () =>
+  mockedAxios.get.mock.calls.filter((call) => String(call[0]).endsWith('/users')).length;
 
 const stubUsers = (myReady: boolean) => {
   mockedAxios.get = vi.fn().mockImplementation((url: string) => {
@@ -131,15 +134,29 @@ describe('useGameLogic 준비 상태', () => {
     return { result, emit };
   };
 
-  it('방 설정이 바뀌면 서버가 초기화한 준비 상태를 다시 읽어온다', async () => {
+  it('방 설정이 바뀌면 이벤트에 실려 온 초기화된 준비 상태를 그대로 반영한다', async () => {
+    const { result, emit } = await joinRoomAndSubscribe();
+
+    await waitFor(() => expect(myReadyState(result)).toBe(true));
+    const fetchesBefore = roomStateFetchCount();
+
+    await emit({ type: 'ROOM_SETTINGS_CHANGED', settings: SETTINGS, room: roomState(2, false) });
+
+    await waitFor(() => expect(myReadyState(result)).toBe(false));
+    expect(roomStateFetchCount()).toBe(fetchesBefore);
+  });
+
+  it('자기 버전보다 낮은 방 상태는 버린다', async () => {
     const { result, emit } = await joinRoomAndSubscribe();
 
     await waitFor(() => expect(myReadyState(result)).toBe(true));
 
-    stubUsers(false);
-    await emit({ type: 'ROOM_SETTINGS_CHANGED', settings: SETTINGS });
-
+    await emit({ type: 'PLAYER_READY', memberId: MY_MEMBER_ID, nickname: '나', room: roomState(5, false) });
     await waitFor(() => expect(myReadyState(result)).toBe(false));
+
+    await emit({ type: 'PLAYER_READY', memberId: MY_MEMBER_ID, nickname: '나', room: roomState(4, true) });
+
+    expect(myReadyState(result)).toBe(false);
   });
 
   it('화면이 준비됨으로 보여도 서버가 알려준 준비 상태를 그대로 반영한다', async () => {

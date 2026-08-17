@@ -180,4 +180,44 @@ class GameRoomTest {
                 .isInstanceOf(CoreException.class)
                 .hasMessageContaining(ErrorType.PLAYER_NOT_FOUND.getMessage());
     }
+
+    @Test
+    @DisplayName("방 상태가 바뀔 때마다 version 이 올라간다.")
+    void versionRisesOnEveryChange() {
+        long created = gameRoom.getVersion();
+
+        gameRoom.join(PLAYER2);
+        long afterJoin = gameRoom.getVersion();
+        gameRoom.readyPlayer(PLAYER2.memberId());
+        long afterReady = gameRoom.getVersion();
+        gameRoom.leave(PLAYER2.memberId());
+        long afterLeave = gameRoom.getVersion();
+
+        assertThat(afterJoin).isGreaterThan(created);
+        assertThat(afterReady).isGreaterThan(afterJoin);
+        assertThat(afterLeave).isGreaterThan(afterReady);
+    }
+
+    @Test
+    @DisplayName("이미 있는 사람이 다시 참가해도 바뀐 것이 없으니 version 은 그대로다.")
+    void versionStaysOnRedundantJoin() {
+        gameRoom.join(PLAYER2);
+        long afterJoin = gameRoom.getVersion();
+
+        gameRoom.join(PLAYER2);
+
+        assertThat(gameRoom.getVersion()).isEqualTo(afterJoin);
+    }
+
+    @Test
+    @DisplayName("참가 결과에는 참가 직후의 방 상태가 함께 실린다.")
+    void joinResultCarriesRoomState() {
+        RoomStateInfo state = gameRoom.join(PLAYER2).state();
+
+        assertThat(state.roomId()).isEqualTo(ROOM_ID);
+        assertThat(state.version()).isEqualTo(gameRoom.getVersion());
+        assertThat(state.players()).extracting(GamePlayer::memberId)
+                .containsExactly(HOST.memberId(), PLAYER2.memberId());
+        assertThat(state.host().memberId()).isEqualTo(HOST.memberId());
+    }
 }

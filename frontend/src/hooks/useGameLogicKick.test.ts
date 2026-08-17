@@ -67,20 +67,20 @@ const SETTINGS = {
   hostNickname: '방장',
 };
 
-const usersResponse = {
-  data: {
-    result: 'SUCCESS',
-    data: {
-      players: [
-        { memberId: HOST_MEMBER_ID, nickname: '방장', isReady: true },
-        { memberId: MY_MEMBER_ID, nickname: '나', isReady: false },
-        { memberId: OTHER_MEMBER_ID, nickname: '다른사람', isReady: false },
-      ],
-      hostMemberId: HOST_MEMBER_ID,
-      hostNickname: '방장',
-    },
-  },
-};
+const roomState = (version: number, players: { memberId: number; nickname: string; isReady: boolean }[]) => ({
+  version,
+  players,
+  hostMemberId: HOST_MEMBER_ID,
+  hostNickname: '방장',
+});
+
+const EVERYONE = [
+  { memberId: HOST_MEMBER_ID, nickname: '방장', isReady: true },
+  { memberId: MY_MEMBER_ID, nickname: '나', isReady: false },
+  { memberId: OTHER_MEMBER_ID, nickname: '다른사람', isReady: false },
+];
+
+const usersResponse = { data: { result: 'SUCCESS', data: roomState(1, EVERYONE) } };
 
 const postedUrls = () => mockedAxios.post.mock.calls.map(([url]) => url as string);
 
@@ -173,9 +173,15 @@ describe('useGameLogic 강퇴', () => {
   it('다른 사람이 강퇴되면 방에 남아 시스템 기록만 남긴다', async () => {
     const { result, emit } = await joinRoomAndSubscribe();
 
-    await emit({ type: 'PLAYER_KICKED', memberId: OTHER_MEMBER_ID, nickname: '다른사람' });
+    await emit({
+      type: 'PLAYER_KICKED',
+      memberId: OTHER_MEMBER_ID,
+      nickname: '다른사람',
+      room: roomState(2, EVERYONE.filter((player) => player.memberId !== OTHER_MEMBER_ID)),
+    });
 
     await waitFor(() => expect(result.current.logs.some((log) => log.includes('다른사람'))).toBe(true));
+    expect(result.current.players.map((player) => player.memberId)).toEqual([HOST_MEMBER_ID, MY_MEMBER_ID]);
     expect(result.current.status).toBe('WAITING');
     expect(result.current.kickedNotice).toBeNull();
   });

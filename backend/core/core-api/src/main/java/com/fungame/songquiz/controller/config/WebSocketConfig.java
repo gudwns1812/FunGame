@@ -1,5 +1,6 @@
 package com.fungame.songquiz.controller.config;
 
+import com.fungame.songquiz.controller.websocket.RoomSubscriptionAuthorization;
 import com.fungame.songquiz.controller.websocket.StompDestination;
 import com.fungame.songquiz.support.config.AppTaskScheduler;
 import org.springframework.beans.factory.annotation.Value;
@@ -27,9 +28,12 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
     private String allowedOrigins;
 
     private final TaskScheduler taskScheduler;
+    private final RoomSubscriptionAuthorization roomSubscriptionAuthorization;
 
-    public WebSocketConfig(@AppTaskScheduler TaskScheduler taskScheduler) {
+    public WebSocketConfig(@AppTaskScheduler TaskScheduler taskScheduler,
+                           RoomSubscriptionAuthorization roomSubscriptionAuthorization) {
         this.taskScheduler = taskScheduler;
+        this.roomSubscriptionAuthorization = roomSubscriptionAuthorization;
     }
 
     @Override
@@ -55,6 +59,6 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     @Override
     public void configureClientInboundChannel(ChannelRegistration registration) {
-        registration.interceptors(new SecurityContextChannelInterceptor());
+        registration.interceptors(new SecurityContextChannelInterceptor(), roomSubscriptionAuthorization);
     }
 }

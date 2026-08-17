@@ -126,7 +126,7 @@ public class RoomInviteService {
     }
 
     private RoomInviteNotification notificationOf(RoomInvite invite) {
-        RoomSettings settings = gameRoomService.findSettings(invite.roomId()).settings();
+        RoomSettings settings = gameRoomService.findRoomState(invite.roomId()).settings();
 
         return new RoomInviteNotification(
                 invite.inviteId(),

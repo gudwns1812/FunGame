@@ -1,11 +1,13 @@
 package com.fungame.songquiz.controller.websocket;
 
 import com.fungame.songquiz.domain.quiz.QuizInfo;
+import com.fungame.songquiz.domain.room.GamePlayer;
 import com.fungame.songquiz.domain.room.PlayerJoinEvent;
 import com.fungame.songquiz.domain.room.PlayerKickedEvent;
 import com.fungame.songquiz.domain.room.PlayerLeaveEvent;
 import com.fungame.songquiz.domain.room.PlayerReadyEvent;
 import com.fungame.songquiz.domain.room.RoomSettingsChangedEvent;
+import com.fungame.songquiz.domain.room.RoomStateInfo;
 import com.fungame.songquiz.domain.session.GameResultEvent;
 import com.fungame.songquiz.domain.session.GameSkipEvent;
 import com.fungame.songquiz.domain.session.GameStartEvent;
@@ -17,6 +19,7 @@ import com.fungame.songquiz.domain.session.RoundStartEvent;
 import com.fungame.songquiz.domain.session.TimerTickEvent;
 import com.fungame.songquiz.controller.response.ApiResponse;
 import com.fungame.songquiz.controller.response.RoomSettingsResponse;
+import com.fungame.songquiz.controller.response.RoomStateResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.event.EventListener;
@@ -53,52 +56,39 @@ public class GameNotifyService {
     @EventListener
     public void handleRoomSettingsChanged(RoomSettingsChangedEvent event) {
         log.info("Broadcasting room settings change in room {}", event.roomId());
-        String destination = StompDestination.room(event.roomId());
-        Object payload = Map.of("type", "ROOM_SETTINGS_CHANGED",
-                "settings", RoomSettingsResponse.from(event.settings()));
-        messagingTemplate.convertAndSend(destination, ApiResponse.success(payload));
+        sendRoomState(event.roomId(), Map.of(
+                "type", "ROOM_SETTINGS_CHANGED",
+                "settings", RoomSettingsResponse.from(event.state())
+        ), event.state());
     }
 
     @EventListener
     public void handlePlayerJoin(PlayerJoinEvent event) {
         log.info("Broadcasting player join: {} in room {}", event.player().memberId(), event.roomId());
-        String destination = StompDestination.room(event.roomId());
-        Object payload = Map.of("type", "PLAYER_JOIN",
-                "memberId", event.player().memberId(), "nickname", event.player().nickname());
-        messagingTemplate.convertAndSend(destination, ApiResponse.success(payload));
+        sendRoomState(event.roomId(), whoDidIt("PLAYER_JOIN", event.player()), event.state());
     }
 
     @EventListener
     public void handlePlayerLeave(PlayerLeaveEvent event) {
         log.info("Broadcasting player leave: {} in room {}", event.player().memberId(), event.roomId());
-        String destination = StompDestination.room(event.roomId());
-        Object payload = Map.of("type", "PLAYER_LEAVE",
-                "memberId", event.player().memberId(), "nickname", event.player().nickname());
-        messagingTemplate.convertAndSend(destination, ApiResponse.success(payload));
+        sendRoomState(event.roomId(), whoDidIt("PLAYER_LEAVE", event.player()), event.state());
     }
 
     @EventListener
     public void handlePlayerKicked(PlayerKickedEvent event) {
         log.info("Broadcasting player kicked: {} in room {}", event.player().memberId(), event.roomId());
-        String destination = StompDestination.room(event.roomId());
-        Object payload = Map.of("type", "PLAYER_KICKED",
-                "memberId", event.player().memberId(), "nickname", event.player().nickname());
-        messagingTemplate.convertAndSend(destination, ApiResponse.success(payload));
+        sendRoomState(event.roomId(), whoDidIt("PLAYER_KICKED", event.player()), event.state());
     }
 
     @EventListener
     public void handlePlayerReady(PlayerReadyEvent event) {
         log.info("Broadcasting player ready: member {} is now {} in room {}",
                 event.player().memberId(), event.player().isReady(), event.roomId());
-        String destination = StompDestination.room(event.roomId());
-        Object payload = Map.of(
-                "type", "PLAYER_READY",
-                "memberId", event.player().memberId(),
-                "nickname", event.player().nickname(),
-                "ready", event.player().isReady(),
-                "isAllReady", event.isAllReady()
-        );
-        messagingTemplate.convertAndSend(destination, ApiResponse.success(payload));
+        Map<String, Object> payload = new HashMap<>(whoDidIt("PLAYER_READY", event.player()));
+        payload.put("ready", event.player().isReady());
+        payload.put("isAllReady", event.isAllReady());
+
+        sendRoomState(event.roomId(), payload, event.state());
     }
 
     @EventListener
@@ -201,6 +191,22 @@ public class GameNotifyService {
                 "message", "5초 뒤 게임이 종료됩니다."
         );
         messagingTemplate.convertAndSend(destination, ApiResponse.success(payload));
+    }
+
+    /**
+     * 방 상태가 바뀐 이벤트는 무엇이 바뀌었는지가 아니라 바뀐 뒤의 방 전체를 싣는다.
+     * 구독 완료와 스냅샷 조회 사이에 온 이벤트가 두 번 적용돼도 깨지지 않도록,
+     * 받는 쪽은 version 이 자기 것보다 낮은 payload 를 버리면 된다.
+     */
+    private void sendRoomState(Long roomId, Map<String, Object> payload, RoomStateInfo state) {
+        Map<String, Object> withRoom = new HashMap<>(payload);
+        withRoom.put("room", RoomStateResponse.from(state));
+
+        messagingTemplate.convertAndSend(StompDestination.room(roomId), ApiResponse.success(withRoom));
+    }
+
+    private static Map<String, Object> whoDidIt(String type, GamePlayer player) {
+        return Map.of("type", type, "memberId", player.memberId(), "nickname", player.nickname());
     }
 
     private static Map<String, Object> toRankingPayload(PlayerScore score) {

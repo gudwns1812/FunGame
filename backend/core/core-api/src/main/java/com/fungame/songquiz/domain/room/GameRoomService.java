@@ -30,7 +30,7 @@ public class GameRoomService {
 
         if (result.newlyJoined()) {
             applicationEventPublisher.publishEvent(
-                    new PlayerJoinEvent(roomId, player));
+                    new PlayerJoinEvent(roomId, player, result.state()));
         }
 
         return result.playerNumber();
@@ -52,13 +52,13 @@ public class GameRoomService {
         }
 
         applicationEventPublisher.publishEvent(new PlayerLeaveEvent(roomId,
-                GamePlayer.createNewPlayer(memberId, result.nickname())));
+                GamePlayer.createNewPlayer(memberId, result.nickname()), result.state()));
     }
 
     public void kickPlayer(Long roomId, Long hostId, Long targetId) {
-        GamePlayer kicked = gameRoomManager.kickPlayer(roomId, hostId, targetId);
+        KickResult result = gameRoomManager.kickPlayer(roomId, hostId, targetId);
 
-        applicationEventPublisher.publishEvent(new PlayerKickedEvent(roomId, kicked));
+        applicationEventPublisher.publishEvent(new PlayerKickedEvent(roomId, result.kicked(), result.state()));
     }
 
     public boolean hasPlayer(Long roomId, Long memberId) {
@@ -83,18 +83,12 @@ public class GameRoomService {
         return RoomInfo.from(gameRoomManager.findRoom(roomId));
     }
 
-    public PlayersInfo findUsers(Long roomId) {
-        return gameRoomManager.findRoomUsers(roomId);
+    public RoomStateInfo findRoomState(Long roomId) {
+        return gameRoomManager.findRoomState(roomId);
     }
 
-    public RoomSettingsInfo findSettings(Long roomId) {
-        GameRoom gameRoom = gameRoomManager.findRoom(roomId);
-        return RoomSettingsInfo.from(gameRoom);
-    }
-
-    public RoomSettingsInfo changeSettings(Long roomId, Long memberId, RoomSettings newSettings) {
-        GameRoom gameRoom = gameRoomManager.changeSettings(roomId, memberId, newSettings);
-        RoomSettingsInfo changed = RoomSettingsInfo.from(gameRoom);
+    public RoomStateInfo changeSettings(Long roomId, Long memberId, RoomSettings newSettings) {
+        RoomStateInfo changed = gameRoomManager.changeSettings(roomId, memberId, newSettings);
 
         applicationEventPublisher.publishEvent(new RoomSettingsChangedEvent(roomId, changed));
 
@@ -106,7 +100,8 @@ public class GameRoomService {
 
         applicationEventPublisher.publishEvent(
                 new PlayerReadyEvent(roomId,
-                        new GamePlayer(memberId, result.nickname(), result.ready()), result.isAllReady()));
+                        new GamePlayer(memberId, result.nickname(), result.ready()), result.isAllReady(),
+                        result.state()));
 
         return PlayerReadyInfo.of(memberId, result);
     }

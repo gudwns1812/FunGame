@@ -7,7 +7,7 @@ import com.fungame.songquiz.domain.room.GamePlayer;
 import com.fungame.songquiz.domain.room.GameRoomService;
 import com.fungame.songquiz.domain.room.MemberLocation;
 import com.fungame.songquiz.domain.room.RoomInfo;
-import com.fungame.songquiz.domain.room.RoomSettingsInfo;
+import com.fungame.songquiz.domain.room.RoomStateInfo;
 import com.fungame.songquiz.enums.CSQuizDifficulty;
 import com.fungame.songquiz.enums.Category;
 import com.fungame.songquiz.enums.GameRoomStatus;
@@ -26,6 +26,7 @@ import org.springframework.context.ApplicationEventPublisher;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneId;
+import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -69,7 +70,7 @@ class RoomInviteServiceTest {
         placeTarget(MemberLocation.lobby());
         given(memberConnectionTracker.hasLiveConnection(TARGET_ID)).willReturn(true);
         given(gameRoomService.findRoomInfo(ROOM_ID)).willReturn(waitingRoomInfo());
-        given(gameRoomService.findSettings(ROOM_ID)).willReturn(roomSettings());
+        given(gameRoomService.findRoomState(ROOM_ID)).willReturn(roomState());
     }
 
     @Nested
@@ -307,8 +308,9 @@ class RoomInviteServiceTest {
         return new RoomInfo(ROOM_ID, settings(), GamePlayer.createNewPlayer(INVITER_ID, "방장"), GameRoomStatus.PLAYING, 2);
     }
 
-    private static RoomSettingsInfo roomSettings() {
-        return new RoomSettingsInfo(settings(), GamePlayer.createNewPlayer(INVITER_ID, "방장"));
+    private static RoomStateInfo roomState() {
+        GamePlayer host = GamePlayer.createNewPlayer(INVITER_ID, "방장");
+        return new RoomStateInfo(ROOM_ID, 1, GameRoomStatus.WAITING, settings(), List.of(host), host);
     }
 
     private static RoomSettings settings() {

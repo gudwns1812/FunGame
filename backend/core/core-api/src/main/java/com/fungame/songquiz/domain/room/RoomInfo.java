@@ -18,8 +18,4 @@ public record RoomInfo(
                 room.getStatus(),
                 room.getPlayerCount());
     }
-
-    public RoomInfo withConnectedPlayers(int connectedPlayers) {
-        return new RoomInfo(roomId, settings, host, status, connectedPlayers);
-    }
 }
