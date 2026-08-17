@@ -13,14 +13,12 @@ import java.util.List;
 @Component
 @RequiredArgsConstructor
 public class SongReader {
-    public static final String JSON_PREFIX = "\"";
-    public static final String JSON_SUFFIX = "\"";
+
     private final SongRepository songRepository;
 
     @Transactional(readOnly = true)
     public List<Song> findSongByCategoryWithCount(Category category, int count) {
-        String jsonCategory = JSON_PREFIX + category.name() + JSON_SUFFIX;
-        List<SongEntity> songs = songRepository.findRandomSongsByCategory(jsonCategory, count);
+        List<SongEntity> songs = songRepository.findRandomSongsByCategory(category.name(), count);
 
         return songs.stream()
                 .map(this::toDomain)
@@ -62,7 +60,7 @@ public class SongReader {
         return Song.of(
                 entity.getTitle(),
                 entity.getSinger(),
-                entity.getCategories(),
+                List.copyOf(entity.getCategories()),
                 entity.getReleaseDate(),
                 entity.getVideoLink(),
                 entity.getPlaySeconds(),

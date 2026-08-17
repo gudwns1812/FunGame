@@ -99,9 +99,9 @@ class SongReaderTest {
     }
 
     @Test
-    @DisplayName("카테고리는 JSON 문자열로 감싸서 조회 조건에 넘긴다.")
-    void wrapsCategoryAsJsonString() {
-        given(songRepository.findRandomSongsByCategory("\"KPOP\"", 5)).willReturn(List.of());
+    @DisplayName("카테고리는 이름 그대로 조회 조건에 넘긴다.")
+    void passesCategoryNameAsCondition() {
+        given(songRepository.findRandomSongsByCategory("KPOP", 5)).willReturn(List.of());
 
         assertThat(songReader.findSongByCategoryWithCount(Category.KPOP, 5)).isEmpty();
     }

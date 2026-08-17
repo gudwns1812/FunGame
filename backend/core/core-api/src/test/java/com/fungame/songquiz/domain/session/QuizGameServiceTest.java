@@ -1,12 +1,19 @@
 package com.fungame.songquiz.domain.session;
 
+import com.fungame.songquiz.domain.quiz.Quiz;
 import com.fungame.songquiz.domain.quiz.QuizContent;
 import com.fungame.songquiz.domain.quiz.Song;
 import com.fungame.songquiz.domain.quiz.SongQuiz;
 import com.fungame.songquiz.domain.room.GamePlayer;
+import com.fungame.songquiz.domain.room.GameRoom;
 import com.fungame.songquiz.domain.room.GameRoomManager;
+import com.fungame.songquiz.domain.room.RoomSettings;
 import com.fungame.songquiz.enums.ActionResult;
+import com.fungame.songquiz.enums.CSQuizDifficulty;
 import com.fungame.songquiz.enums.Category;
+import com.fungame.songquiz.enums.GameType;
+import com.fungame.songquiz.support.error.CoreException;
+import com.fungame.songquiz.support.error.ErrorType;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -19,6 +26,7 @@ import java.util.List;
 import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
@@ -34,6 +42,8 @@ class QuizGameServiceTest {
     private static final GamePlayer P1 = GamePlayer.createNewPlayer(1L, "p1");
     private static final GamePlayer P2 = GamePlayer.createNewPlayer(2L, "p2");
     private static final GamePlayer P3 = GamePlayer.createNewPlayer(3L, "p3");
+    private static final RoomSettings SETTINGS =
+            new RoomSettings(GameType.SONG, "방", 8, Category.KPOP, 3, 0, CSQuizDifficulty.EASY);
 
     @Mock
     private ApplicationEventPublisher publisher;
@@ -137,5 +147,52 @@ class QuizGameServiceTest {
         // then
         verify(gameRoomManager, never()).touch(ROOM_ID);
         verify(timer, never()).startCountDown(eq(ROOM_ID), anyInt(), any());
+    }
+
+    @Test
+    @DisplayName("출제할 문제가 없으면 방을 시작하지 않고 거절한다.")
+    void startGame_rejected_when_quiz_has_no_round() {
+        // given
+        givenStartableRoomWith(new SongQuiz(List.of(), Category.KPOP));
+
+        // when & then
+        assertThatThrownBy(() -> quizGameService.startGame(ROOM_ID, P1.memberId()))
+                .isInstanceOf(CoreException.class)
+                .extracting(thrown -> ((CoreException) thrown).getType())
+                .isEqualTo(ErrorType.QUIZ_EMPTY);
+
+        verify(gameRoomManager, never()).startGame(any(), any());
+        verify(sessionManager, never()).startGame(any(), any(Quiz.class), any());
+        verify(timer, never()).startAfter(any(), anyInt(), any());
+    }
+
+    @Test
+    @DisplayName("문제가 있으면 방을 시작하고 첫 라운드를 예약한다.")
+    void startGame_starts_when_quiz_has_round() {
+        // given
+        GameRoom startableRoom = givenStartableRoomWith(new SongQuiz(List.of(mock(Song.class)), Category.KPOP));
+        List<GamePlayer> players = List.of(P1);
+
+        given(gameRoomManager.startGame(ROOM_ID, P1.memberId())).willReturn(startableRoom);
+        given(startableRoom.getRoomPlayers()).willReturn(players);
+        given(sessionManager.startGame(eq(ROOM_ID), any(Quiz.class), eq(players)))
+                .willReturn(new GameSession(new SongQuiz(List.of(mock(Song.class)), Category.KPOP), players));
+
+        // when
+        quizGameService.startGame(ROOM_ID, P1.memberId());
+
+        // then
+        verify(publisher).publishEvent(any(GameStartEvent.class));
+        verify(timer).startAfter(eq(ROOM_ID), anyInt(), any());
+    }
+
+    private GameRoom givenStartableRoomWith(Quiz quiz) {
+        GameRoom startableRoom = mock(GameRoom.class);
+
+        given(gameRoomManager.findStartableRoom(ROOM_ID, P1.memberId())).willReturn(startableRoom);
+        given(startableRoom.getSettings()).willReturn(SETTINGS);
+        given(sessionManager.createQuiz(SETTINGS)).willReturn(quiz);
+
+        return startableRoom;
     }
 }

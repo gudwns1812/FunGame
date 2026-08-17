@@ -26,6 +26,7 @@ public enum ErrorType {
 
     PLAYER_NOT_FOUND(HttpStatus.BAD_REQUEST, ErrorCode.P002, "플레이어를 찾을 수 없습니다.", LogLevel.DEBUG),
     QUIZ_DUPLICATE_ERROR(HttpStatus.BAD_REQUEST,ErrorCode.G010 , "노래가 중복입니다.",LogLevel.DEBUG ),
+    QUIZ_EMPTY(HttpStatus.BAD_REQUEST, ErrorCode.G012, "출제할 문제가 없습니다.", LogLevel.DEBUG),
 
     LOGIN_FAILED(HttpStatus.UNAUTHORIZED, ErrorCode.M010, "아이디 또는 비밀번호가 올바르지 않습니다.", LogLevel.DEBUG),
     MEMBER_NOT_FOUND(HttpStatus.NOT_FOUND, ErrorCode.M001, "해당 사용자를 찾을 수 없습니다.", LogLevel.WARN),

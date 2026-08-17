@@ -1,5 +1,6 @@
 package com.fungame.songquiz.domain.session;
 
+import com.fungame.songquiz.domain.quiz.Quiz;
 import com.fungame.songquiz.domain.quiz.QuizInfo;
 import com.fungame.songquiz.domain.room.GameRoom;
 import com.fungame.songquiz.domain.room.GameRoomManager;
@@ -31,11 +32,20 @@ public class QuizGameService implements GameService {
 
     @Override
     public void startGame(Long roomId, Long memberId) {
+        Quiz quiz = sessionManager.createQuiz(gameRoomManager.findStartableRoom(roomId, memberId).getSettings());
+        validateQuizHasRound(quiz);
+
         GameRoom gameRoom = gameRoomManager.startGame(roomId, memberId);
-        GameSession gameSession = sessionManager.startGame(roomId, gameRoom.getSettings(), gameRoom.getRoomPlayers());
+        GameSession gameSession = sessionManager.startGame(roomId, quiz, gameRoom.getRoomPlayers());
         publisher.publishEvent(new GameStartEvent(roomId, gameSession.getQuizInfo()));
 
         timer.startAfter(roomId, 5, () -> startRound(roomId));
+    }
+
+    private static void validateQuizHasRound(Quiz quiz) {
+        if (quiz.getTotalRound() == 0) {
+            throw new CoreException(ErrorType.QUIZ_EMPTY);
+        }
     }
 
     @Override
