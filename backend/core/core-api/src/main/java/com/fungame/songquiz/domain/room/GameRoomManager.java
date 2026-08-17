@@ -50,8 +50,6 @@ public class GameRoomManager {
         Long roomId = lastIssuedRoomId.incrementAndGet();
         gameRooms.put(roomId, GameRoom.create(roomId, settings, host));
 
-        lockContext.createLockWithLockKey(roomId);
-
         return roomId;
     }
 
@@ -130,7 +128,6 @@ public class GameRoomManager {
 
         gameTimer.stop(roomId);
         gameSessionManager.endGameSession(roomId);
-        lockContext.deleteLock(roomId);
         applicationEventPublisher.publishEvent(new RoomChangedEvent());
     }
 
