@@ -11,7 +11,6 @@ import com.fungame.songquiz.domain.session.RoundEndEvent;
 import com.fungame.songquiz.domain.session.RoundStartEvent;
 import com.fungame.songquiz.enums.CSQuizDifficulty;
 import com.fungame.songquiz.enums.GameType;
-import com.fungame.songquiz.enums.PlayerStatus;
 import com.fungame.songquiz.enums.Role;
 import com.fungame.songquiz.storage.IntegrationTest;
 import org.junit.jupiter.api.BeforeEach;
@@ -189,7 +188,6 @@ public class GameServiceIntegrationTest {
                 .nickname(nickname)
                 .email(nickname + "@fun-game.club")
                 .role(com.fungame.songquiz.enums.Role.USER)
-                .status(PlayerStatus.LOBBY)
                 .build()).getId();
     }
 }

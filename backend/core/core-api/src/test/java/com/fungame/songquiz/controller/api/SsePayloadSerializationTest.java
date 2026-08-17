@@ -3,6 +3,7 @@ package com.fungame.songquiz.controller.api;
 import com.fungame.songquiz.domain.member.MemberAdapter;
 import com.fungame.songquiz.domain.member.MemberConnectionTracker;
 import com.fungame.songquiz.domain.member.OnlineMemberInfo;
+import com.fungame.songquiz.controller.response.RoomResponse;
 import com.fungame.songquiz.domain.room.RoomInfo;
 import com.fungame.songquiz.controller.sse.SseService;
 import com.fungame.songquiz.enums.CSQuizDifficulty;
@@ -72,11 +73,13 @@ class SsePayloadSerializationTest {
     void roomsAreSentAsJson() throws Exception {
         MvcResult subscription = subscribe();
 
-        sseService.broadcast("room-update", List.of(room()));
+        sseService.broadcast("room-update", RoomResponse.listFrom(List.of(room())));
 
         assertThat(streamOf(subscription))
                 .contains("event:room-update")
                 .contains("\"title\":\"방 제목\"")
+                .contains("\"maxPlayers\":8")
+                .contains("\"gameType\":\"SONG\"")
                 .contains("\"currentPlayers\":2");
     }
 

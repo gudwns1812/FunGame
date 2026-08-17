@@ -1,6 +1,5 @@
 package com.fungame.songquiz.domain.member;
 
-import com.fungame.songquiz.enums.PlayerStatus;
 import com.fungame.songquiz.storage.MemberEntity;
 import com.fungame.songquiz.storage.MemberRepository;
 import com.fungame.songquiz.support.error.CoreException;
@@ -23,8 +22,6 @@ public class MemberWriter {
                         .nickname(member.getNickname())
                         .email(member.getEmail())
                         .role(member.getRole())
-                        .status(member.getStatus())
-                        .currentRoomId(member.getCurrentRoomId())
                         .build())
                 .getId();
     }
@@ -38,57 +35,8 @@ public class MemberWriter {
         entity.changeRole(member.getRole());
     }
 
-    @Transactional
-    public void moveToWaitingRoom(Long memberId, Long roomId) {
-        MemberEntity entity = findEntity(memberId);
-        Member member = MemberReader.toMember(entity);
-
-        member.enterWaitingRoom(roomId);
-
-        applyPresence(entity, member);
-    }
-
-    @Transactional
-    public void moveToPlayingRoom(Long memberId, Long roomId) {
-        MemberEntity entity = findEntity(memberId);
-        Member member = MemberReader.toMember(entity);
-
-        member.enterPlayingRoom(roomId);
-
-        applyPresence(entity, member);
-    }
-
-    @Transactional
-    public boolean moveToLobbyIfIn(Long memberId, Long roomId) {
-        MemberEntity entity = findEntity(memberId);
-        Member member = MemberReader.toMember(entity);
-
-        if (!member.isIn(roomId)) {
-            return false;
-        }
-
-        member.leaveRoom();
-
-        applyPresence(entity, member);
-        return true;
-    }
-
-    @Transactional
-    public void movePresenceOfRoom(Long roomId, PlayerStatus status) {
-        memberRepository.updateStatusOfRoom(roomId, status);
-    }
-
-    @Transactional
-    public int clearEveryLocation() {
-        return memberRepository.clearEveryLocation();
-    }
-
     private MemberEntity findEntity(Long memberId) {
         return memberRepository.findById(memberId)
                 .orElseThrow(() -> new CoreException(ErrorType.MEMBER_NOT_FOUND));
-    }
-
-    private static void applyPresence(MemberEntity entity, Member member) {
-        entity.changePresence(member.getStatus(), member.getCurrentRoomId());
     }
 }

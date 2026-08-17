@@ -14,46 +14,45 @@ import org.springframework.stereotype.Component;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicLong;
 
 @Slf4j
 @Component
 @RequiredArgsConstructor
 public class GameRoomManager {
     private final Map<Long, GameRoom> gameRooms = new ConcurrentHashMap<>();
+    private final AtomicLong lastIssuedRoomId = new AtomicLong();
     private final LockContext lockContext;
     private final ApplicationEventPublisher applicationEventPublisher;
     private final GameTimer gameTimer;
     private final GameSessionManager gameSessionManager;
-    private final GameRoomReader gameRoomReader;
-    private final GameRoomWriter gameRoomWriter;
 
     private static final long MAX_IDLE_MINUTES = 30;
 
     private GameRoom getRoom(Long roomId) {
-        return gameRooms.computeIfAbsent(roomId, this::restoreFromStore);
-    }
+        GameRoom gameRoom = gameRooms.get(roomId);
+        if (gameRoom == null) {
+            throw new CoreException(ErrorType.GAME_ROOM_NOT_FOUND);
+        }
 
-    private GameRoom restoreFromStore(Long roomId) {
-        GameRoom stored = gameRoomReader.load(roomId)
-                .orElseThrow(() -> new CoreException(ErrorType.GAME_ROOM_NOT_FOUND));
-
-        log.info("메모리에 없는 방을 저장소에서 복원한다: {}", roomId);
-
-        return stored;
+        return gameRoom;
     }
 
     public GameRoom findRoom(Long roomId) {
         return getRoom(roomId);
     }
 
-    public void createGameRoom(Long roomId, RoomSettings settings, GamePlayer host) {
-        GameRoom gameRoom = GameRoom.create(roomId, settings, host);
-        gameRooms.put(roomId, gameRoom);
+    public Long createGameRoom(RoomSettings settings, GamePlayer host) {
+        Long roomId = lastIssuedRoomId.incrementAndGet();
+        gameRooms.put(roomId, GameRoom.create(roomId, settings, host));
 
         lockContext.createLockWithLockKey(roomId);
+
+        return roomId;
     }
 
     public JoinResult joinRoom(Long roomId, GamePlayer player) {
@@ -65,7 +64,7 @@ public class GameRoomManager {
                     ? rejoinPlayingRoom(roomId, gameRoom, player)
                     : gameRoom.join(player);
 
-            gameRoomWriter.save(gameRoom);
+            applicationEventPublisher.publishEvent(new RoomChangedEvent());
             return result;
         });
     }
@@ -101,7 +100,7 @@ public class GameRoomManager {
                 return new LeaveResult(true, wasPlaying, nickname);
             }
 
-            gameRoomWriter.save(gameRoom);
+            applicationEventPublisher.publishEvent(new RoomChangedEvent());
             return new LeaveResult(false, wasPlaying, nickname);
         });
     }
@@ -118,20 +117,19 @@ public class GameRoomManager {
             GameRoom gameRoom = getRoom(roomId);
 
             GamePlayer kicked = gameRoom.kick(hostId, targetId);
-            gameRoomWriter.save(gameRoom);
+            applicationEventPublisher.publishEvent(new RoomChangedEvent());
 
             return kicked;
         });
     }
 
     private void deleteRoom(Long roomId) {
-        if (gameRooms.remove(roomId) == null && gameRoomReader.load(roomId).isEmpty()) {
+        if (gameRooms.remove(roomId) == null) {
             return;
         }
 
         gameTimer.stop(roomId);
         gameSessionManager.endGameSession(roomId);
-        gameRoomWriter.delete(roomId);
         lockContext.deleteLock(roomId);
         applicationEventPublisher.publishEvent(new RoomChangedEvent());
     }
@@ -148,7 +146,7 @@ public class GameRoomManager {
         return lockContext.processWithLockKey(roomId, () -> {
             GameRoom gameRoom = getRoom(roomId);
             gameRoom.start(memberId);
-            gameRoomWriter.save(gameRoom);
+            applicationEventPublisher.publishEvent(new RoomChangedEvent());
             return gameRoom;
         });
     }
@@ -164,7 +162,6 @@ public class GameRoomManager {
             gameSessionManager.endGameSession(roomId);
             gameRoom.finishGame();
 
-            gameRoomWriter.save(gameRoom);
             applicationEventPublisher.publishEvent(new RoomChangedEvent());
         });
     }
@@ -177,7 +174,6 @@ public class GameRoomManager {
             }
 
             gameRoom.changeSettings(newSettings);
-            gameRoomWriter.save(gameRoom);
             applicationEventPublisher.publishEvent(new RoomChangedEvent());
 
             return gameRoom;
@@ -188,8 +184,8 @@ public class GameRoomManager {
     public void cleanupIdleRooms() {
         Instant threshold = Instant.now().minus(MAX_IDLE_MINUTES, ChronoUnit.MINUTES);
 
-        List<Long> idleRoomIds = gameRoomReader.loadAll().stream()
-                .filter(stored -> isIdle(stored, threshold))
+        List<Long> idleRoomIds = gameRooms.values().stream()
+                .filter(room -> room.isIdle(threshold))
                 .map(GameRoom::getRoomId)
                 .toList();
 
@@ -199,10 +195,27 @@ public class GameRoomManager {
         }));
     }
 
-    private boolean isIdle(GameRoom stored, Instant threshold) {
-        GameRoom liveRoom = gameRooms.get(stored.getRoomId());
+    public List<GameRoom> findAllRooms() {
+        return List.copyOf(gameRooms.values());
+    }
 
-        return liveRoom != null ? liveRoom.isIdle(threshold) : stored.isIdle(threshold);
+    public MemberLocation locationOf(Long memberId) {
+        return gameRooms.values().stream()
+                .filter(room -> room.hasPlayer(memberId))
+                .findFirst()
+                .map(MemberLocation::in)
+                .orElseGet(MemberLocation::lobby);
+    }
+
+    public MemberLocations locationsOfEveryPlayer() {
+        Map<Long, MemberLocation> locationsByMember = new HashMap<>();
+
+        gameRooms.values().forEach(room -> {
+            MemberLocation location = MemberLocation.in(room);
+            room.getRoomPlayers().forEach(player -> locationsByMember.put(player.memberId(), location));
+        });
+
+        return new MemberLocations(locationsByMember);
     }
 
     public PlayersInfo findRoomUsers(Long roomId) {
@@ -215,7 +228,6 @@ public class GameRoomManager {
             gameRoom.touch();
 
             boolean ready = gameRoom.readyPlayer(memberId);
-            gameRoomWriter.save(gameRoom);
 
             return new ReadyResult(ready, gameRoom.isAllReady(), gameRoom.nicknameOf(memberId));
         });

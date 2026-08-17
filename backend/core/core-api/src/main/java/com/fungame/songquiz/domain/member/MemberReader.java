@@ -2,6 +2,8 @@ package com.fungame.songquiz.domain.member;
 
 import com.fungame.songquiz.storage.MemberEntity;
 import com.fungame.songquiz.storage.MemberRepository;
+import com.fungame.songquiz.support.error.CoreException;
+import com.fungame.songquiz.support.error.ErrorType;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Propagation;
@@ -20,6 +22,12 @@ public class MemberReader {
     @Transactional(readOnly = true)
     public Optional<Member> findById(Long memberId) {
         return memberRepository.findById(memberId).map(MemberReader::toMember);
+    }
+
+    @Transactional(readOnly = true)
+    public Member findMember(Long memberId) {
+        return findById(memberId)
+                .orElseThrow(() -> new CoreException(ErrorType.MEMBER_NOT_FOUND));
     }
 
     @Transactional(readOnly = true)
@@ -66,8 +74,6 @@ public class MemberReader {
                 entity.getPassword(),
                 entity.getNickname(),
                 entity.getEmail(),
-                entity.getRole(),
-                entity.getStatus(),
-                entity.getCurrentRoomId());
+                entity.getRole());
     }
 }

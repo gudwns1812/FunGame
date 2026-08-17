@@ -1,5 +1,7 @@
 package com.fungame.songquiz.domain.member;
 
+import com.fungame.songquiz.domain.room.GameRoomService;
+import com.fungame.songquiz.domain.room.MemberLocations;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -11,13 +13,15 @@ import java.util.Set;
 public class OnlineMemberService {
 
     private final MemberConnectionTracker memberConnectionTracker;
-    private final MemberPresenceService memberPresenceService;
+    private final MemberReader memberReader;
+    private final GameRoomService gameRoomService;
 
     public OnlineMembers findAllOnline() {
         Set<Long> onlineMemberIds = memberConnectionTracker.onlineMemberIds();
+        MemberLocations locations = gameRoomService.findEveryLocation();
 
-        return new OnlineMembers(memberPresenceService.findAllIn(onlineMemberIds).stream()
-                .map(OnlineMemberInfo::from)
+        return new OnlineMembers(memberReader.findAllInOrderByNickname(onlineMemberIds).stream()
+                .map(member -> OnlineMemberInfo.of(member, locations.of(member.getId())))
                 .toList());
     }
 

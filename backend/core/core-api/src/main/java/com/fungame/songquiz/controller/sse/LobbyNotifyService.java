@@ -4,6 +4,7 @@ import com.fungame.songquiz.domain.member.MemberPresenceChangedEvent;
 import com.fungame.songquiz.domain.member.OnlineMemberService;
 import com.fungame.songquiz.domain.member.OnlineMembers;
 import com.fungame.songquiz.controller.response.OnlineMemberResponse;
+import com.fungame.songquiz.controller.response.RoomResponse;
 import com.fungame.songquiz.controller.room.RoomListReader;
 import com.fungame.songquiz.domain.room.RoomChangedEvent;
 import lombok.RequiredArgsConstructor;
@@ -32,6 +33,7 @@ public class LobbyNotifyService {
     @EventListener
     public void handleRoomChangedEvent(RoomChangedEvent event) {
         hasPendingRoomUpdate.set(true);
+        hasPendingPresenceUpdate.set(true);
     }
 
     @Async
@@ -43,7 +45,7 @@ public class LobbyNotifyService {
     @Scheduled(fixedDelay = 500)
     public void processPendingUpdate() {
         if (hasPendingRoomUpdate.compareAndSet(true, false)) {
-            sseService.broadcast(ROOM_UPDATE_EVENT, roomListReader.findAllRooms());
+            sseService.broadcast(ROOM_UPDATE_EVENT, RoomResponse.listFrom(roomListReader.findAllRooms()));
         }
 
         if (hasPendingPresenceUpdate.compareAndSet(true, false)) {
