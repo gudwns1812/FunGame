@@ -6,6 +6,7 @@ import com.fungame.songquiz.domain.quiz.QuizContent;
 import com.fungame.songquiz.domain.quiz.QuizInfo;
 import com.fungame.songquiz.domain.room.GamePlayer;
 import com.fungame.songquiz.enums.ActionResult;
+import com.fungame.songquiz.enums.GameType;
 
 import java.util.List;
 
@@ -113,5 +114,17 @@ public class GameSession {
 
     public String getHint() {
         return quiz.getHint();
+    }
+
+    public GameType getGameType() {
+        return quiz.getType();
+    }
+
+    public boolean isRoundStarted() {
+        return quiz.isRoundStarted();
+    }
+
+    public Long getCurrentContentId() {
+        return quiz.getCurrentContentId();
     }
 }
