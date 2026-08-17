@@ -1,7 +1,6 @@
 package com.fungame.songquiz.support;
 
 import com.fungame.songquiz.domain.member.Member;
-import com.fungame.songquiz.enums.PlayerStatus;
 import com.fungame.songquiz.enums.Role;
 import com.fungame.songquiz.storage.MemberEntity;
 
@@ -19,9 +18,7 @@ public final class MemberFixture {
                 PASSWORD,
                 nickname,
                 nickname + "@fun-game.club",
-                Role.USER,
-                PlayerStatus.LOBBY,
-                null);
+                Role.USER);
     }
 
     public static MemberEntity entityOf(String loginId, String nickname, String email, String password, Role role) {
@@ -31,7 +28,6 @@ public final class MemberFixture {
                 .nickname(nickname)
                 .email(email)
                 .role(role)
-                .status(PlayerStatus.LOBBY)
                 .build();
     }
 

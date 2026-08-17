@@ -1,6 +1,5 @@
 package com.fungame.songquiz.storage;
 
-import com.fungame.songquiz.enums.PlayerStatus;
 import com.fungame.songquiz.enums.Role;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
@@ -39,27 +38,17 @@ public class MemberEntity {
     @Column(nullable = false)
     private Role role;
 
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 20)
-    private PlayerStatus status;
-
-    @Column(name = "current_room_id")
-    private Long currentRoomId;
-
     @CreatedDate
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
     @Builder
-    private MemberEntity(String loginId, String password, String nickname, String email, Role role,
-                         PlayerStatus status, Long currentRoomId) {
+    private MemberEntity(String loginId, String password, String nickname, String email, Role role) {
         this.loginId = loginId;
         this.password = password;
         this.nickname = nickname;
         this.email = email;
         this.role = role;
-        this.status = status;
-        this.currentRoomId = currentRoomId;
     }
 
     public void changeNickname(String nickname) {
@@ -72,10 +61,5 @@ public class MemberEntity {
 
     public void changeRole(Role role) {
         this.role = role;
-    }
-
-    public void changePresence(PlayerStatus status, Long currentRoomId) {
-        this.status = status;
-        this.currentRoomId = currentRoomId;
     }
 }

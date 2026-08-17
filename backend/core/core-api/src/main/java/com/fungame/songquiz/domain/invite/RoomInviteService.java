@@ -2,7 +2,7 @@ package com.fungame.songquiz.domain.invite;
 
 import com.fungame.songquiz.domain.member.Member;
 import com.fungame.songquiz.domain.member.MemberConnectionTracker;
-import com.fungame.songquiz.domain.member.MemberPresenceService;
+import com.fungame.songquiz.domain.member.MemberReader;
 import com.fungame.songquiz.domain.room.GamePlayer;
 import com.fungame.songquiz.domain.room.GameRoomService;
 import com.fungame.songquiz.domain.room.RoomInfo;
@@ -33,7 +33,7 @@ public class RoomInviteService {
     private final Map<String, RoomInvite> invitesById = new ConcurrentHashMap<>();
 
     private final GameRoomService gameRoomService;
-    private final MemberPresenceService memberPresenceService;
+    private final MemberReader memberReader;
     private final ApplicationEventPublisher eventPublisher;
     private final MemberConnectionTracker memberConnectionTracker;
     private final Clock clock;
@@ -43,8 +43,8 @@ public class RoomInviteService {
             throw new CoreException(ErrorType.INVITE_TO_SELF);
         }
 
-        Member inviter = memberPresenceService.findMember(inviterMemberId);
-        if (!inviter.isWaitingIn(roomId)) {
+        Member inviter = memberReader.findMember(inviterMemberId);
+        if (!gameRoomService.findLocationOf(inviterMemberId).isWaitingIn(roomId)) {
             throw new CoreException(ErrorType.INVITE_NOT_FROM_WAITING_ROOM);
         }
 
@@ -62,9 +62,9 @@ public class RoomInviteService {
 
     public AcceptedInvite accept(String inviteId, Long memberId) {
         RoomInvite invite = consume(inviteId, memberId);
-        Member member = memberPresenceService.findMember(memberId);
+        Member member = memberReader.findMember(memberId);
 
-        if (!member.isInLobby()) {
+        if (!gameRoomService.findLocationOf(memberId).isInLobby()) {
             throw new CoreException(ErrorType.ALREADY_IN_ANOTHER_ROOM);
         }
 
@@ -110,7 +110,7 @@ public class RoomInviteService {
             throw new CoreException(ErrorType.INVITE_TARGET_OFFLINE);
         }
 
-        if (!memberPresenceService.findMember(targetMemberId).isInLobby()) {
+        if (!gameRoomService.findLocationOf(targetMemberId).isInLobby()) {
             throw new CoreException(ErrorType.INVITE_TARGET_NOT_IN_LOBBY);
         }
     }

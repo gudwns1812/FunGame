@@ -1,6 +1,5 @@
 package com.fungame.songquiz.domain.member;
 
-import com.fungame.songquiz.enums.PlayerStatus;
 import com.fungame.songquiz.enums.Role;
 import com.fungame.songquiz.storage.IntegrationTest;
 import com.fungame.songquiz.storage.MemberEntity;
@@ -17,11 +16,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 @IntegrationTest
 class MemberPersistenceTest {
 
-    private static final Long ROOM_ID = 777L;
-
-    @Autowired
-    private MemberPresenceService memberPresenceService;
-
     @Autowired
     private AuthService authService;
 
@@ -35,8 +29,7 @@ class MemberPersistenceTest {
     private JdbcTemplate jdbcTemplate;
 
     private Map<String, Object> memberRow(Long memberId) {
-        return jdbcTemplate.queryForMap(
-                "select status, current_room_id, nickname, role from member where id = ?", memberId);
+        return jdbcTemplate.queryForMap("select nickname, role from member where id = ?", memberId);
     }
 
     private Long saveMember(String name) {
@@ -46,60 +39,7 @@ class MemberPersistenceTest {
                 .nickname(name)
                 .email(name + "@fun-game.club")
                 .role(Role.USER)
-                .status(PlayerStatus.LOBBY)
                 .build()).getId();
-    }
-
-    @Test
-    @DisplayName("대기실 입장이 DB 행에 남는다.")
-    void persistsEnterWaitingRoom() {
-        Long memberId = saveMember("대기실입장");
-
-        memberPresenceService.enterWaitingRoom(memberId, ROOM_ID);
-
-        Map<String, Object> row = memberRow(memberId);
-        assertThat(row.get("status")).isEqualTo("WAITING");
-        assertThat(row.get("current_room_id")).isEqualTo(ROOM_ID);
-    }
-
-    @Test
-    @DisplayName("게임중 입장이 DB 행에 남는다.")
-    void persistsEnterPlayingRoom() {
-        Long memberId = saveMember("게임중입장");
-
-        memberPresenceService.enterPlayingRoom(memberId, ROOM_ID);
-
-        Map<String, Object> row = memberRow(memberId);
-        assertThat(row.get("status")).isEqualTo("PLAYING");
-        assertThat(row.get("current_room_id")).isEqualTo(ROOM_ID);
-    }
-
-    @Test
-    @DisplayName("방을 나간 것이 DB 행에 남는다.")
-    void persistsLeaveRoom() {
-        Long memberId = saveMember("방나감");
-        memberPresenceService.enterWaitingRoom(memberId, ROOM_ID);
-
-        memberPresenceService.leaveRoom(memberId, ROOM_ID);
-
-        Map<String, Object> row = memberRow(memberId);
-        assertThat(row.get("status")).isEqualTo("LOBBY");
-        assertThat(row.get("current_room_id")).isNull();
-    }
-
-    @Test
-    @DisplayName("이미 다른 방으로 옮긴 사람은 이전 방의 이탈 처리로 위치가 지워지지 않는다.")
-    void keepsLocationWhenAlreadyInAnotherRoom() {
-        Long memberId = saveMember("방옮긴사람");
-        Long previousRoomId = ROOM_ID;
-        Long currentRoomId = ROOM_ID + 1;
-        memberPresenceService.enterWaitingRoom(memberId, currentRoomId);
-
-        memberPresenceService.leaveRoom(memberId, previousRoomId);
-
-        Map<String, Object> row = memberRow(memberId);
-        assertThat(row.get("status")).isEqualTo("WAITING");
-        assertThat(row.get("current_room_id")).isEqualTo(currentRoomId);
     }
 
     @Test

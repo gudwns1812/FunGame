@@ -23,7 +23,6 @@ import static org.mockito.Mockito.mock;
 @ExtendWith(MockitoExtension.class)
 class GameRoomSettingsTest {
 
-    private static final Long ROOM_ID = 1L;
     private static final GamePlayer HOST = GamePlayer.createNewPlayer(1L, "방장");
     private static final GamePlayer GUEST = GamePlayer.createNewPlayer(2L, "참가자");
     private static final GamePlayer GUEST2 = GamePlayer.createNewPlayer(3L, "참가자2");
@@ -39,13 +38,9 @@ class GameRoomSettingsTest {
     @Mock
     GameSessionManager gameSessionManager;
 
-    @Mock
-    GameRoomReader gameRoomReader;
-
-    @Mock
-    GameRoomWriter gameRoomWriter;
-
     GameRoomManager gameRoomManager;
+
+    Long roomId;
 
     @BeforeEach
     void setUp() {
@@ -53,19 +48,17 @@ class GameRoomSettingsTest {
                 new LockContext(),
                 applicationEventPublisher,
                 gameTimer,
-                gameSessionManager,
-                gameRoomReader,
-                gameRoomWriter
+                gameSessionManager
         );
-        gameRoomManager.createGameRoom(ROOM_ID, SETTINGS, HOST);
+        roomId = gameRoomManager.createGameRoom(SETTINGS, HOST);
     }
 
     @Test
     @DisplayName("방장이 아니면 설정을 바꿀 수 없다.")
     void onlyHostCanChangeSettings() {
-        gameRoomManager.joinRoom(ROOM_ID, GUEST);
+        gameRoomManager.joinRoom(roomId, GUEST);
 
-        assertThatThrownBy(() -> gameRoomManager.changeSettings(ROOM_ID, GUEST.memberId(), SETTINGS))
+        assertThatThrownBy(() -> gameRoomManager.changeSettings(roomId, GUEST.memberId(), SETTINGS))
                 .isInstanceOf(CoreException.class)
                 .hasFieldOrPropertyWithValue("type", ErrorType.NOT_VALID_HOST);
     }
@@ -73,9 +66,9 @@ class GameRoomSettingsTest {
     @Test
     @DisplayName("게임이 진행 중이면 설정을 바꿀 수 없다.")
     void cannotChangeSettingsWhilePlaying() {
-        gameRoomManager.startGame(ROOM_ID, HOST.memberId());
+        gameRoomManager.startGame(roomId, HOST.memberId());
 
-        assertThatThrownBy(() -> gameRoomManager.changeSettings(ROOM_ID, HOST.memberId(), SETTINGS))
+        assertThatThrownBy(() -> gameRoomManager.changeSettings(roomId, HOST.memberId(), SETTINGS))
                 .isInstanceOf(CoreException.class)
                 .hasFieldOrPropertyWithValue("type", ErrorType.GAME_ALREADY_PLAYING);
     }
@@ -83,12 +76,12 @@ class GameRoomSettingsTest {
     @Test
     @DisplayName("정원을 현재 인원보다 작게 줄일 수 없다.")
     void cannotShrinkBelowCurrentPlayers() {
-        gameRoomManager.joinRoom(ROOM_ID, GUEST);
-        gameRoomManager.joinRoom(ROOM_ID, GUEST2);
+        gameRoomManager.joinRoom(roomId, GUEST);
+        gameRoomManager.joinRoom(roomId, GUEST2);
 
         RoomSettings shrunk = SETTINGS.changeTo(GameType.SONG, 2, Category.KPOP, 10, 0, CSQuizDifficulty.HARD);
 
-        assertThatThrownBy(() -> gameRoomManager.changeSettings(ROOM_ID, HOST.memberId(), shrunk))
+        assertThatThrownBy(() -> gameRoomManager.changeSettings(roomId, HOST.memberId(), shrunk))
                 .isInstanceOf(CoreException.class)
                 .hasFieldOrPropertyWithValue("type", ErrorType.GAME_ROOM_MAX_PLAYER_EXCEED);
     }
@@ -98,31 +91,31 @@ class GameRoomSettingsTest {
     void canChangeGameType() {
         RoomSettings hangman = SETTINGS.changeTo(GameType.HANGMAN, 6, Category.DEFAULT, 1, 3, CSQuizDifficulty.HARD);
 
-        gameRoomManager.changeSettings(ROOM_ID, HOST.memberId(), hangman);
+        gameRoomManager.changeSettings(roomId, HOST.memberId(), hangman);
 
-        GameRoom room = gameRoomManager.findRoom(ROOM_ID);
+        GameRoom room = gameRoomManager.findRoom(roomId);
         assertThat(room.getSettings().gameType()).isEqualTo(GameType.HANGMAN);
-        assertThat(gameRoomManager.getGameType(ROOM_ID)).isEqualTo(GameType.HANGMAN);
+        assertThat(gameRoomManager.getGameType(roomId)).isEqualTo(GameType.HANGMAN);
     }
 
     @Test
     @DisplayName("설정을 바꿔도 방 이름은 유지된다.")
     void titleSurvivesSettingsChange() {
-        gameRoomManager.changeSettings(ROOM_ID, HOST.memberId(), SETTINGS.changeTo(GameType.CS, 8, Category.DEFAULT, 5, 0, CSQuizDifficulty.NORMAL));
+        gameRoomManager.changeSettings(roomId, HOST.memberId(), SETTINGS.changeTo(GameType.CS, 8, Category.DEFAULT, 5, 0, CSQuizDifficulty.NORMAL));
 
-        assertThat(gameRoomManager.findRoom(ROOM_ID).getTitle()).isEqualTo(SETTINGS.title());
+        assertThat(gameRoomManager.findRoom(roomId).getTitle()).isEqualTo(SETTINGS.title());
     }
 
     @Test
     @DisplayName("설정을 바꾸면 참가자의 준비 상태가 풀리고 방장만 준비 상태로 남는다.")
     void changingSettingsResetsReady() {
-        gameRoomManager.joinRoom(ROOM_ID, GUEST);
-        gameRoomManager.readyPlayer(ROOM_ID, GUEST.memberId());
-        assertThat(gameRoomManager.findRoom(ROOM_ID).isAllReady()).isTrue();
+        gameRoomManager.joinRoom(roomId, GUEST);
+        gameRoomManager.readyPlayer(roomId, GUEST.memberId());
+        assertThat(gameRoomManager.findRoom(roomId).isAllReady()).isTrue();
 
-        gameRoomManager.changeSettings(ROOM_ID, HOST.memberId(), SETTINGS.changeTo(GameType.SONG, 8, Category.POP, 5, 0, CSQuizDifficulty.HARD));
+        gameRoomManager.changeSettings(roomId, HOST.memberId(), SETTINGS.changeTo(GameType.SONG, 8, Category.POP, 5, 0, CSQuizDifficulty.HARD));
 
-        GameRoom room = gameRoomManager.findRoom(ROOM_ID);
+        GameRoom room = gameRoomManager.findRoom(roomId);
         assertThat(room.isAllReady()).isFalse();
         assertThat(room.getPlayers().snapshot())
                 .filteredOn(player -> player.memberId().equals(HOST.memberId()))
@@ -133,13 +126,13 @@ class GameRoomSettingsTest {
     @Test
     @DisplayName("게임이 끝나면 방은 사라지지 않고 대기 상태로 돌아간다.")
     void endGameKeepsRoomInWaiting() {
-        gameRoomManager.joinRoom(ROOM_ID, GUEST);
-        gameRoomManager.readyPlayer(ROOM_ID, GUEST.memberId());
-        gameRoomManager.startGame(ROOM_ID, HOST.memberId());
+        gameRoomManager.joinRoom(roomId, GUEST);
+        gameRoomManager.readyPlayer(roomId, GUEST.memberId());
+        gameRoomManager.startGame(roomId, HOST.memberId());
 
-        gameRoomManager.endGame(ROOM_ID);
+        gameRoomManager.endGame(roomId);
 
-        GameRoom room = gameRoomManager.findRoom(ROOM_ID);
+        GameRoom room = gameRoomManager.findRoom(roomId);
         assertThat(room.getStatus()).isEqualTo(GameRoomStatus.WAITING);
         assertThat(room.getRoomPlayers())
                 .extracting(GamePlayer::memberId)

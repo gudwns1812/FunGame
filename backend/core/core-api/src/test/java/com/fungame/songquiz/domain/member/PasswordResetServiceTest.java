@@ -1,6 +1,5 @@
 package com.fungame.songquiz.domain.member;
 
-import com.fungame.songquiz.enums.PlayerStatus;
 import com.fungame.songquiz.enums.Role;
 import com.fungame.songquiz.storage.IntegrationTest;
 import com.fungame.songquiz.storage.MemberEntity;
@@ -86,7 +85,6 @@ class PasswordResetServiceTest {
                 .nickname("재설정테스터")
                 .email(EMAIL)
                 .role(Role.USER)
-                .status(PlayerStatus.LOBBY)
                 .build());
     }
 

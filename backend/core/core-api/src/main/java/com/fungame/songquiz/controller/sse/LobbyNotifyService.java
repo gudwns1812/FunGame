@@ -32,6 +32,7 @@ public class LobbyNotifyService {
     @EventListener
     public void handleRoomChangedEvent(RoomChangedEvent event) {
         hasPendingRoomUpdate.set(true);
+        hasPendingPresenceUpdate.set(true);
     }
 
     @Async

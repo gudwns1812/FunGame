@@ -1,12 +1,9 @@
 package com.fungame.songquiz.domain.room;
 
-import com.fungame.songquiz.domain.member.MemberPresenceService;
 import com.fungame.songquiz.domain.session.GameService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -17,23 +14,12 @@ import java.util.List;
 public class GameRoomService {
 
     private final GameRoomManager gameRoomManager;
-    private final GameRoomReader gameRoomReader;
-    private final GameRoomWriter gameRoomWriter;
     private final GameService gameService;
-    private final MemberPresenceService memberPresenceService;
     private final ApplicationEventPublisher applicationEventPublisher;
 
-    @EventListener(ApplicationReadyEvent.class)
-    public void resetInterruptedGames() {
-        gameRoomWriter.markInterruptedGamesWaiting();
-        memberPresenceService.clearEveryLocation();
-    }
-
     public Long createRoom(RoomSettings settings, GamePlayer host) {
-        Long roomId = gameRoomWriter.open(settings, host);
+        Long roomId = gameRoomManager.createGameRoom(settings, host);
 
-        gameRoomManager.createGameRoom(roomId, settings, host);
-        memberPresenceService.enterWaitingRoom(host.memberId(), roomId);
         applicationEventPublisher.publishEvent(new RoomChangedEvent());
 
         return roomId;
@@ -41,8 +27,6 @@ public class GameRoomService {
 
     public int joinRoom(Long roomId, GamePlayer player) {
         JoinResult result = gameRoomManager.joinRoom(roomId, player);
-
-        rememberWhereMemberIs(roomId, player.memberId());
 
         if (result.newlyJoined()) {
             applicationEventPublisher.publishEvent(
@@ -59,8 +43,6 @@ public class GameRoomService {
             return;
         }
 
-        memberPresenceService.leaveRoom(memberId, roomId);
-
         if (result.destroyed()) {
             return;
         }
@@ -76,8 +58,6 @@ public class GameRoomService {
     public void kickPlayer(Long roomId, Long hostId, Long targetId) {
         GamePlayer kicked = gameRoomManager.kickPlayer(roomId, hostId, targetId);
 
-        memberPresenceService.leaveRoom(targetId, roomId);
-
         applicationEventPublisher.publishEvent(new PlayerKickedEvent(roomId, kicked));
     }
 
@@ -85,17 +65,16 @@ public class GameRoomService {
         return gameRoomManager.hasPlayer(roomId, memberId);
     }
 
-    private void rememberWhereMemberIs(Long roomId, Long memberId) {
-        if (gameRoomManager.findRoom(roomId).isPlaying()) {
-            memberPresenceService.enterPlayingRoom(memberId, roomId);
-            return;
-        }
+    public MemberLocation findLocationOf(Long memberId) {
+        return gameRoomManager.locationOf(memberId);
+    }
 
-        memberPresenceService.enterWaitingRoom(memberId, roomId);
+    public MemberLocations findEveryLocation() {
+        return gameRoomManager.locationsOfEveryPlayer();
     }
 
     public List<RoomInfo> findAllRooms() {
-        return gameRoomReader.loadAll().stream()
+        return gameRoomManager.findAllRooms().stream()
                 .map(RoomInfo::from)
                 .toList();
     }

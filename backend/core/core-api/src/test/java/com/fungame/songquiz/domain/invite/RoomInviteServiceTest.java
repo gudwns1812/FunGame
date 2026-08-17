@@ -2,15 +2,17 @@ package com.fungame.songquiz.domain.invite;
 
 import com.fungame.songquiz.domain.member.Member;
 import com.fungame.songquiz.domain.member.MemberConnectionTracker;
-import com.fungame.songquiz.domain.member.MemberPresenceService;
+import com.fungame.songquiz.domain.member.MemberReader;
 import com.fungame.songquiz.domain.room.GamePlayer;
 import com.fungame.songquiz.domain.room.GameRoomService;
+import com.fungame.songquiz.domain.room.MemberLocation;
 import com.fungame.songquiz.domain.room.RoomInfo;
 import com.fungame.songquiz.domain.room.RoomSettingsInfo;
 import com.fungame.songquiz.enums.CSQuizDifficulty;
 import com.fungame.songquiz.enums.Category;
 import com.fungame.songquiz.enums.GameRoomStatus;
 import com.fungame.songquiz.enums.GameType;
+import com.fungame.songquiz.enums.PlayerStatus;
 import com.fungame.songquiz.support.MemberFixture;
 import com.fungame.songquiz.support.MutableClock;
 import com.fungame.songquiz.support.error.CoreException;
@@ -40,9 +42,10 @@ class RoomInviteServiceTest {
     private static final Long ROOM_ID = 7L;
     private static final Long INVITER_ID = 1L;
     private static final Long TARGET_ID = 2L;
+    private static final Long ANOTHER_ROOM_ID = 99L;
 
     private final GameRoomService gameRoomService = mock(GameRoomService.class);
-    private final MemberPresenceService memberPresenceService = mock(MemberPresenceService.class);
+    private final MemberReader memberReader = mock(MemberReader.class);
     private final ApplicationEventPublisher eventPublisher = mock(ApplicationEventPublisher.class);
     private final MemberConnectionTracker memberConnectionTracker = mock(MemberConnectionTracker.class);
     private final MutableClock clock = new MutableClock(Instant.parse("2026-08-13T00:00:00Z"), ZoneId.of("UTC"));
@@ -55,14 +58,15 @@ class RoomInviteServiceTest {
     @BeforeEach
     void setUp() {
         roomInviteService = new RoomInviteService(
-                gameRoomService, memberPresenceService, eventPublisher, memberConnectionTracker, clock);
+                gameRoomService, memberReader, eventPublisher, memberConnectionTracker, clock);
 
         inviter = MemberFixture.withId(INVITER_ID, "방장");
-        inviter.enterWaitingRoom(ROOM_ID);
         target = MemberFixture.withId(TARGET_ID, "손님");
 
-        given(memberPresenceService.findMember(INVITER_ID)).willReturn(inviter);
-        given(memberPresenceService.findMember(TARGET_ID)).willReturn(target);
+        given(memberReader.findMember(INVITER_ID)).willReturn(inviter);
+        given(memberReader.findMember(TARGET_ID)).willReturn(target);
+        placeInviter(new MemberLocation(PlayerStatus.WAITING, ROOM_ID));
+        placeTarget(MemberLocation.lobby());
         given(memberConnectionTracker.hasLiveConnection(TARGET_ID)).willReturn(true);
         given(gameRoomService.findRoomInfo(ROOM_ID)).willReturn(waitingRoomInfo());
         given(gameRoomService.findSettings(ROOM_ID)).willReturn(roomSettings());
@@ -95,7 +99,7 @@ class RoomInviteServiceTest {
         @Test
         @DisplayName("로비에 있는 사람은 초대를 보낼 수 없다.")
         void rejectInviteFromLobby() {
-            inviter.leaveRoom();
+            placeInviter(MemberLocation.lobby());
 
             assertThatThrownBy(() -> roomInviteService.invite(ROOM_ID, INVITER_ID, TARGET_ID))
                     .isInstanceOf(CoreException.class)
@@ -105,7 +109,7 @@ class RoomInviteServiceTest {
         @Test
         @DisplayName("게임 중인 사람은 그 방으로 초대를 보낼 수 없다.")
         void rejectInviteFromPlayingMember() {
-            inviter.enterPlayingRoom(ROOM_ID);
+            placeInviter(new MemberLocation(PlayerStatus.PLAYING, ROOM_ID));
 
             assertThatThrownBy(() -> roomInviteService.invite(ROOM_ID, INVITER_ID, TARGET_ID))
                     .isInstanceOf(CoreException.class)
@@ -115,7 +119,7 @@ class RoomInviteServiceTest {
         @Test
         @DisplayName("다른 방에 있는 사람은 이 방으로 초대를 보낼 수 없다.")
         void rejectInviteFromAnotherRoom() {
-            inviter.enterWaitingRoom(99L);
+            placeInviter(new MemberLocation(PlayerStatus.WAITING, ANOTHER_ROOM_ID));
 
             assertThatThrownBy(() -> roomInviteService.invite(ROOM_ID, INVITER_ID, TARGET_ID))
                     .isInstanceOf(CoreException.class)
@@ -145,7 +149,7 @@ class RoomInviteServiceTest {
         @Test
         @DisplayName("이미 다른 방에 있는 사람은 초대할 수 없다.")
         void rejectTargetInAnotherRoom() {
-            target.enterWaitingRoom(99L);
+            placeTarget(new MemberLocation(PlayerStatus.WAITING, ANOTHER_ROOM_ID));
 
             assertThatThrownBy(() -> roomInviteService.invite(ROOM_ID, INVITER_ID, TARGET_ID))
                     .isInstanceOf(CoreException.class)
@@ -240,7 +244,7 @@ class RoomInviteServiceTest {
         @DisplayName("이미 다른 방에 들어간 뒤에는 초대를 수락할 수 없다.")
         void rejectAcceptWhileInAnotherRoom() {
             String inviteId = invite();
-            target.enterWaitingRoom(99L);
+            placeTarget(new MemberLocation(PlayerStatus.WAITING, ANOTHER_ROOM_ID));
 
             assertThatThrownBy(() -> roomInviteService.accept(inviteId, TARGET_ID))
                     .isInstanceOf(CoreException.class)
@@ -310,4 +314,13 @@ class RoomInviteServiceTest {
     private static RoomSettings settings() {
         return new RoomSettings(GameType.SONG, "테스트 방", 8, Category.KPOP, 10, 0, CSQuizDifficulty.HARD);
     }
+
+    private void placeInviter(MemberLocation location) {
+        given(gameRoomService.findLocationOf(INVITER_ID)).willReturn(location);
+    }
+
+    private void placeTarget(MemberLocation location) {
+        given(gameRoomService.findLocationOf(TARGET_ID)).willReturn(location);
+    }
+
 }
