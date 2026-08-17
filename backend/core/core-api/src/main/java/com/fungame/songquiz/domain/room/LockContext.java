@@ -2,29 +2,26 @@ package com.fungame.songquiz.domain.room;
 
 import org.springframework.stereotype.Component;
 
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.Arrays;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Supplier;
 
 @Component
 public class LockContext {
 
-    private final Map<Long, ReentrantLock> locks = new ConcurrentHashMap<>();
+    static final int STRIPE_COUNT = 64;
+
+    private final ReentrantLock[] stripes = newStripes();
 
     public void processWithLockKey(Long lockKey, Runnable runnable) {
-        ReentrantLock lock = locks.computeIfAbsent(lockKey, k -> new ReentrantLock());
-        lock.lock();
-
-        try {
+        processWithLockKey(lockKey, () -> {
             runnable.run();
-        } finally {
-            lock.unlock();
-        }
+            return null;
+        });
     }
 
     public <T> T processWithLockKey(Long lockKey, Supplier<T> supplier) {
-        ReentrantLock lock = locks.computeIfAbsent(lockKey, k -> new ReentrantLock());
+        ReentrantLock lock = lockOf(lockKey);
         lock.lock();
 
         try {
@@ -34,11 +31,14 @@ public class LockContext {
         }
     }
 
-    public void createLockWithLockKey(Long roomId) {
-        locks.put(roomId, new ReentrantLock());
+    private ReentrantLock lockOf(Long lockKey) {
+        return stripes[Math.floorMod(lockKey.hashCode(), STRIPE_COUNT)];
     }
 
-    public void deleteLock(Long roomId) {
-        locks.remove(roomId);
+    private static ReentrantLock[] newStripes() {
+        ReentrantLock[] stripes = new ReentrantLock[STRIPE_COUNT];
+        Arrays.setAll(stripes, index -> new ReentrantLock());
+
+        return stripes;
     }
 }
