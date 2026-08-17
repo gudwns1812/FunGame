@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { notifySuccess } from '../utils/toast';
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -119,7 +120,7 @@ const SignupPage: React.FC = () => {
 
     try {
       await signup(loginId, password, nickname, email);
-      window.alert('회원가입이 완료되었습니다. 로그인해주세요.');
+      notifySuccess('회원가입이 완료되었습니다. 로그인해주세요.');
       navigate('/login');
     } catch (err: any) {
       setError(err.message || '회원가입에 실패했습니다. 다시 시도해주세요.');

@@ -26,7 +26,6 @@ describe('ResetPasswordPage', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.spyOn(window, 'alert').mockImplementation(() => {});
     (useAuth as any).mockReturnValue({
       resetPassword: mockResetPassword,
       isAuthenticated: false,

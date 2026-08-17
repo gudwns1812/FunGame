@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { notifySuccess } from '../utils/toast';
 
 const MINIMUM_PASSWORD_LENGTH = 4;
 const BROKEN_LINK_GUIDE = '잘못된 접근입니다. 메일로 받은 링크로 다시 들어와주세요.';
@@ -43,7 +44,7 @@ const ResetPasswordPage: React.FC = () => {
 
     try {
       await resetPassword(token, newPassword);
-      window.alert('비밀번호가 변경되었습니다. 새 비밀번호로 로그인해주세요.');
+      notifySuccess('비밀번호가 변경되었습니다. 새 비밀번호로 로그인해주세요.');
       navigate('/login');
     } catch (err: any) {
       setError(err.message || '비밀번호 재설정에 실패했습니다.');

@@ -145,7 +145,6 @@ describe('SignupPage 닉네임 중복 확인 기능', () => {
     mockCheckNickname.mockResolvedValue(false);
     mockCheckId.mockResolvedValue(false);
     mockSignup.mockResolvedValue(undefined);
-    vi.spyOn(window, 'alert').mockImplementation(() => {});
     setup();
 
     const checkButtons = screen.getAllByRole('button', { name: /중복 확인/ });

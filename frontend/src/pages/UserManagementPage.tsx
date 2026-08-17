@@ -2,6 +2,8 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import TopBar from '../components/layout/TopBar';
+import { notifyError, notifySuccess } from '../utils/toast';
+import { askConfirm } from '../utils/confirm';
 
 interface PromotionRequest {
   id: number;
@@ -36,16 +38,16 @@ const UserManagementPage: React.FC = () => {
 
   const handleAction = async (id: number, action: 'approve' | 'reject') => {
     const confirmMsg = action === 'approve' ? '이 사용자를 ADMIN으로 승급시키겠습니까?' : '이 승급 요청을 거절하시겠습니까?';
-    if (!window.confirm(confirmMsg)) return;
+    if (!(await askConfirm(confirmMsg))) return;
 
     try {
       const response = await axios.patch(`/api/master/promotions/${id}/${action}`);
       if (response.data.result === 'SUCCESS') {
-        window.alert(action === 'approve' ? '승급이 완료되었습니다.' : '요청이 거절되었습니다.');
+        notifySuccess(action === 'approve' ? '승급이 완료되었습니다.' : '요청이 거절되었습니다.');
         fetchRequests();
       }
     } catch (err: any) {
-      window.alert(err.response?.data?.error?.message || '처리에 실패했습니다.');
+      notifyError(err.response?.data?.error?.message || '처리에 실패했습니다.');
     }
   };
 

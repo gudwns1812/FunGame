@@ -4,6 +4,7 @@ import axios from 'axios';
 import { useGameLogic } from './useGameLogic';
 import { roomTopic } from '../utils/stompDestination';
 import { createStompStub } from '../test/stompTestUtils';
+import { clearToasts, stackedToasts } from '../utils/toast';
 
 vi.mock('axios');
 
@@ -57,6 +58,8 @@ const usersResponse = { data: { result: 'SUCCESS', data: roomState(1, EVERYONE) 
 
 const postedUrls = () => mockedAxios.post.mock.calls.map(([url]) => url as string);
 
+const shownMessages = () => stackedToasts().map((toast) => toast.message);
+
 describe('useGameLogic 강퇴', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -75,7 +78,7 @@ describe('useGameLogic 강퇴', () => {
     });
     mockedAxios.post = vi.fn().mockResolvedValue({ data: { result: 'SUCCESS', data: 0 } });
     mockedAxios.defaults = { baseURL: '', withCredentials: true };
-    vi.spyOn(window, 'alert').mockImplementation(() => {});
+    clearToasts();
   });
 
   const joinRoomAndSubscribe = async () => {
@@ -117,7 +120,7 @@ describe('useGameLogic 강퇴', () => {
 
     await waitFor(() => expect(result.current.status).toBe('ROOM_LIST'));
     expect(result.current.roomId).toBeNull();
-    expect(result.current.kickedNotice).not.toBeNull();
+    expect(shownMessages()).toContain('방장이 회원님을 방에서 내보냈습니다.');
   });
 
   it('강퇴로 방을 떠날 때는 퇴장 요청을 따로 보내지 않는다', async () => {
@@ -127,19 +130,6 @@ describe('useGameLogic 강퇴', () => {
 
     await waitFor(() => expect(result.current.status).toBe('ROOM_LIST'));
     expect(postedUrls()).not.toContain('/game/rooms/7/leave');
-  });
-
-  it('안내를 닫으면 강퇴 안내가 사라진다', async () => {
-    const { result, emit } = await joinRoomAndSubscribe();
-
-    await emit({ type: 'PLAYER_KICKED', memberId: MY_MEMBER_ID, nickname: '나' });
-    await waitFor(() => expect(result.current.kickedNotice).not.toBeNull());
-
-    act(() => {
-      result.current.dismissKickedNotice();
-    });
-
-    expect(result.current.kickedNotice).toBeNull();
   });
 
   it('다른 사람이 강퇴되면 방에 남아 시스템 기록만 남긴다', async () => {
@@ -155,6 +145,6 @@ describe('useGameLogic 강퇴', () => {
     await waitFor(() => expect(result.current.logs.some((log) => log.includes('다른사람'))).toBe(true));
     expect(result.current.players.map((player) => player.memberId)).toEqual([HOST_MEMBER_ID, MY_MEMBER_ID]);
     expect(result.current.status).toBe('WAITING');
-    expect(result.current.kickedNotice).toBeNull();
+    expect(shownMessages()).toHaveLength(0);
   });
 });
