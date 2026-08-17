@@ -16,6 +16,7 @@ import java.util.concurrent.ScheduledFuture;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -27,7 +28,7 @@ class RoomConnectionRegistryTest {
     private static final Long ROOM_ID = 1L;
     private static final String NICKNAME = "참가자";
     private static final Long MEMBER_ID = 11L;
-    private static final RoomMember MEMBER = RoomMember.of(ROOM_ID, MEMBER_ID, NICKNAME);
+    private static final RoomMember MEMBER = new RoomMember(ROOM_ID, MEMBER_ID, NICKNAME);
 
     @Mock
     GameRoomService gameRoomService;
@@ -53,10 +54,15 @@ class RoomConnectionRegistryTest {
                 .when(taskScheduler).schedule(any(Runnable.class), any(Instant.class));
     }
 
+    private void stillInRoom() {
+        given(gameRoomService.hasPlayer(ROOM_ID, MEMBER_ID)).willReturn(true);
+    }
+
     @Test
     void 연결이_끊겨도_유예_시간_안에는_방에서_내보내지_않는다() {
         // given
         allowScheduling();
+        stillInRoom();
         registry.connected("session-1", MEMBER);
 
         // when
@@ -71,6 +77,7 @@ class RoomConnectionRegistryTest {
     void 유예_시간_안에_재연결하면_방에_그대로_남는다() {
         // given
         allowScheduling();
+        stillInRoom();
         registry.connected("session-1", MEMBER);
         registry.disconnected("session-1");
         Runnable scheduledLeave = captureScheduledLeave();
@@ -88,6 +95,7 @@ class RoomConnectionRegistryTest {
     void 유예_시간_안에_돌아오지_않으면_그때_방에서_내보낸다() {
         // given
         allowScheduling();
+        stillInRoom();
         registry.connected("session-1", MEMBER);
         registry.disconnected("session-1");
 
@@ -123,12 +131,27 @@ class RoomConnectionRegistryTest {
     }
 
     @Test
+    void 이미_방에서_빠진_사람의_연결_종료는_이탈을_예약하지_않는다() {
+        // given
+        given(gameRoomService.hasPlayer(ROOM_ID, MEMBER_ID)).willReturn(false);
+        registry.connected("session-1", MEMBER);
+
+        // when
+        registry.disconnected("session-1");
+
+        // then
+        verify(taskScheduler, never()).schedule(any(Runnable.class), any(Instant.class));
+        verify(gameRoomService, never()).leaveRoom(any(), any());
+    }
+
+    @Test
     void 짧은_시간에_두_번_끊기면_앞선_예약은_취소하고_새로_예약한다() {
         // given
         ScheduledFuture<?> first = mock(ScheduledFuture.class);
         ScheduledFuture<?> second = mock(ScheduledFuture.class);
         doReturn(first, second)
                 .when(taskScheduler).schedule(any(Runnable.class), any(Instant.class));
+        stillInRoom();
 
         registry.connected("session-1", MEMBER);
         registry.disconnected("session-1");

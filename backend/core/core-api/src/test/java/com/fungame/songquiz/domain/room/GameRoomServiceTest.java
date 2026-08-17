@@ -205,7 +205,21 @@ class GameRoomServiceTest {
         service.leaveRoom(1L, LEAVER.memberId());
 
         // then
-        verify(memberPresenceService).leaveRoom(LEAVER.memberId());
+        verify(memberPresenceService).leaveRoom(LEAVER.memberId(), 1L);
+    }
+
+    @Test
+    void 방에_없던_사람의_이탈_처리는_위치를_건드리지_않는다() {
+        // given
+        given(gameRoomManager.leaveRoom(1L, LEAVER.memberId()))
+                .willReturn(new LeaveResult(false, false, null));
+
+        // when
+        service.leaveRoom(1L, LEAVER.memberId());
+
+        // then
+        verify(memberPresenceService, never()).leaveRoom(any(), any());
+        verify(applicationEventPublisher, never()).publishEvent(any(PlayerLeaveEvent.class));
     }
 
     @Test
@@ -217,7 +231,7 @@ class GameRoomServiceTest {
         service.kickPlayer(1L, HOST.memberId(), GUEST.memberId());
 
         // then
-        verify(memberPresenceService).leaveRoom(GUEST.memberId());
+        verify(memberPresenceService).leaveRoom(GUEST.memberId(), 1L);
         verify(applicationEventPublisher).publishEvent(new PlayerKickedEvent(1L, GUEST));
     }
 

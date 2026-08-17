@@ -106,6 +106,13 @@ public class GameRoomManager {
         });
     }
 
+    public boolean hasPlayer(Long roomId, Long memberId) {
+        return lockContext.processWithLockKey(roomId, () -> {
+            GameRoom liveRoom = gameRooms.get(roomId);
+            return liveRoom != null && liveRoom.hasPlayer(memberId);
+        });
+    }
+
     public GamePlayer kickPlayer(Long roomId, Long hostId, Long targetId) {
         return lockContext.processWithLockKey(roomId, () -> {
             GameRoom gameRoom = getRoom(roomId);

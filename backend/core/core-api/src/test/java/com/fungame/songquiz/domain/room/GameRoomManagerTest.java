@@ -248,6 +248,27 @@ class GameRoomManagerTest {
     }
 
     @Test
+    void 방에_있는_사람과_없는_사람을_구분한다() {
+        // given
+        openRoom(8);
+        gameRoomManager.joinRoom(ROOM_ID, GUEST);
+
+        // when // then
+        assertThat(gameRoomManager.hasPlayer(ROOM_ID, GUEST.memberId())).isTrue();
+        assertThat(gameRoomManager.hasPlayer(ROOM_ID, INTRUDER.memberId())).isFalse();
+    }
+
+    @Test
+    void 메모리에_없는_방은_저장소를_뒤지지_않고_참가자가_없다고_답한다() {
+        // when
+        boolean hasPlayer = gameRoomManager.hasPlayer(ROOM_ID, GUEST.memberId());
+
+        // then
+        assertThat(hasPlayer).isFalse();
+        verify(gameRoomReader, never()).load(ROOM_ID);
+    }
+
+    @Test
     void 없는_방을_touch하면_NPE가_아니라_CoreException이_발생한다() {
         assertThatThrownBy(() -> gameRoomManager.touch(ROOM_ID))
                 .isInstanceOf(CoreException.class);

@@ -86,6 +86,10 @@ public class Member {
         return status == PlayerStatus.WAITING && roomId.equals(currentRoomId);
     }
 
+    public boolean isIn(Long roomId) {
+        return roomId.equals(currentRoomId);
+    }
+
     public void changeNickname(String newNickname) {
         Assert.hasText(newNickname, "새 닉네임은 비어있을 수 없습니다.");
         this.info = info.withNickname(newNickname);

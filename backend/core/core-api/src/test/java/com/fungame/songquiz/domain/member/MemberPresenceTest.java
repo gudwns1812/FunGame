@@ -73,4 +73,30 @@ class MemberPresenceTest {
 
         assertThat(member.isWaitingIn(7L)).isFalse();
     }
+
+    @Test
+    @DisplayName("대기 중이든 게임 중이든 그 방에 있는 것으로 본다.")
+    void isInRoomRegardlessOfStatus() {
+        Member waiting = MemberFixture.withId(1L, "짱구");
+        waiting.enterWaitingRoom(7L);
+
+        Member playing = MemberFixture.withId(2L, "철수");
+        playing.enterPlayingRoom(7L);
+
+        assertThat(waiting.isIn(7L)).isTrue();
+        assertThat(playing.isIn(7L)).isTrue();
+    }
+
+    @Test
+    @DisplayName("다른 방에 있거나 로비에 있으면 그 방에 있는 것이 아니다.")
+    void isNotInAnotherRoom() {
+        Member member = MemberFixture.withId(1L, "짱구");
+        member.enterWaitingRoom(7L);
+
+        assertThat(member.isIn(8L)).isFalse();
+
+        member.leaveRoom();
+
+        assertThat(member.isIn(7L)).isFalse();
+    }
 }
