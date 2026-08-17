@@ -51,3 +51,14 @@ operation::room-kick[snippets='path-parameters,http-request,request-body,http-re
 
 === 게임 시작
 operation::game-start[snippets='path-parameters,http-request,request-body,http-response,response-body']
+
+== 신고
+
+요청 바디에 게임 정보가 하나도 없다. 어느 방 · 몇 라운드 · 어떤 문제였고 정답이
+무엇이었는지는 서버가 세션에서 읽어 채운다.
+
+=== 게임 중 신고
+operation::report-in-game[snippets='http-request,request-body,http-response']
+
+=== 로비 신고
+operation::report-lobby[snippets='http-request,request-body,http-response']
