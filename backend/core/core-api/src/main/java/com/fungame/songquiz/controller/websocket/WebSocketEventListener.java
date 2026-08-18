@@ -1,5 +1,6 @@
 package com.fungame.songquiz.controller.websocket;
 
+import com.fungame.songquiz.domain.member.DailyActiveMembers;
 import com.fungame.songquiz.domain.member.MemberConnectionTracker;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -17,6 +18,7 @@ public class WebSocketEventListener {
     private final StompSessions stompSessions;
     private final RoomLeaveGrace roomLeaveGrace;
     private final MemberConnectionTracker memberConnectionTracker;
+    private final DailyActiveMembers dailyActiveMembers;
 
     @EventListener
     public void handleConnected(SessionConnectedEvent event) {
@@ -30,6 +32,8 @@ public class WebSocketEventListener {
         stompSessions.add(sessionId, memberId);
         memberConnectionTracker.connect(memberId, sessionId);
         roomLeaveGrace.cancelFor(memberId);
+        // 활동일은 로그인이 아니라 여기서 남긴다. 세션이 유지되면 며칠씩 붙어 있어도 로그인은 한 번뿐이다.
+        dailyActiveMembers.record(memberId);
         log.debug("접속: 회원 {} (session {}), 열린 세션 {} 개",
                 memberId, sessionId, stompSessions.countSessionsOf(memberId));
     }

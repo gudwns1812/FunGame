@@ -8,6 +8,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -21,6 +22,7 @@ public class AuthService {
     private final MemberWriter memberWriter;
     private final PasswordEncoder passwordEncoder;
     private final AuthenticationManager authenticationManager;
+    private final LoginMetrics loginMetrics;
 
     public boolean checkIdDuplicate(String loginId) {
         return memberReader.existsByLoginId(loginId);
@@ -59,9 +61,16 @@ public class AuthService {
         UsernamePasswordAuthenticationToken authenticationToken =
                 new UsernamePasswordAuthenticationToken(loginId, password);
 
-        Authentication authentication = authenticationManager.authenticate(authenticationToken);
+        Authentication authentication;
+        try {
+            authentication = authenticationManager.authenticate(authenticationToken);
+        } catch (AuthenticationException e) {
+            loginMetrics.loginFailed();
+            throw e;
+        }
 
         SecurityContextHolder.getContext().setAuthentication(authentication);
+        loginMetrics.loginSucceeded();
     }
 
     public void updateNickname(String loginId, String newNickname) {
