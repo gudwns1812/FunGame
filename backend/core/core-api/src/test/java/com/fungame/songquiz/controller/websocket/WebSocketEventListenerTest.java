@@ -1,5 +1,6 @@
 package com.fungame.songquiz.controller.websocket;
 
+import com.fungame.songquiz.domain.member.DailyActiveMembers;
 import com.fungame.songquiz.domain.member.MemberConnectionTracker;
 import com.fungame.songquiz.support.StompMessages;
 import org.junit.jupiter.api.BeforeEach;
@@ -27,13 +28,17 @@ class WebSocketEventListenerTest {
     @Mock
     MemberConnectionTracker memberConnectionTracker;
 
+    @Mock
+    DailyActiveMembers dailyActiveMembers;
+
     StompSessions stompSessions;
     WebSocketEventListener listener;
 
     @BeforeEach
     void setUp() {
         stompSessions = new StompSessions();
-        listener = new WebSocketEventListener(stompSessions, roomLeaveGrace, memberConnectionTracker);
+        listener = new WebSocketEventListener(
+                stompSessions, roomLeaveGrace, memberConnectionTracker, dailyActiveMembers);
     }
 
     @Test
@@ -44,6 +49,7 @@ class WebSocketEventListenerTest {
         assertThat(stompSessions.isConnected(MEMBER_ID)).isTrue();
         verify(memberConnectionTracker).connect(MEMBER_ID, "session-1");
         verify(roomLeaveGrace).cancelFor(MEMBER_ID);
+        verify(dailyActiveMembers).record(MEMBER_ID);
     }
 
     @Test
@@ -53,6 +59,7 @@ class WebSocketEventListenerTest {
 
         assertThat(stompSessions.connectedMemberIds()).isEmpty();
         verify(roomLeaveGrace, never()).cancelFor(MEMBER_ID);
+        verify(dailyActiveMembers, never()).record(MEMBER_ID);
     }
 
     @Test
