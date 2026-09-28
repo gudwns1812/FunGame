@@ -1,0 +1,63 @@
+# CLAUDE.md
+
+Claude Code 작업 규칙. 프로젝트 공통 규칙은 아래 문서를 따르고, 이 파일에는 **Claude 에게만 해당하는 것**을 적는다.
+
+| 문서 | 내용 |
+|---|---|
+| [GEMINI.md](GEMINI.md) | 워크스페이스 공통 — 한글 응답, plan-first, 커밋 규칙, TDD |
+| [backend/BACKEND.md](backend/BACKEND.md) | 백엔드 작업 지침, API 문서화 |
+| [backend/ARCHITECTURE.md](backend/ARCHITECTURE.md) | 모듈 · 계층 · 패키지 구조 |
+| [docs/exec-plans/active/](docs/exec-plans/active/) | 진행 중인 실행 계획 |
+
+---
+
+## 트러블슈팅 회고를 Obsidian 에 기록한다
+
+**문제를 하나 해결하거나 조사를 한 건 끝낼 때마다** 아래 노트에 회고를 남긴다.
+
+- 볼트: `Obsidian Vault`
+- 노트: `Fungame 정리`
+- 실제 경로: `C:\Users\SSAFY\Documents\Obsidian Vault\Fungame 정리.md`
+- 열기: `obsidian://open?vault=Obsidian%20Vault&file=Fungame%20%EC%A0%95%EB%A6%AC`
+
+파일을 직접 읽고 써서 갱신한다. 날짜 소제목 아래에 **최신 항목을 맨 위로** 추가하고, 프런트매터의 `updated` 를 그날 날짜로 고친다.
+
+### 형식 — 짧게
+
+```markdown
+### <문제를 한 줄로 요약한 소제목>
+문제: 무엇이 어떻게 잘못되는지 한 문장.
+해결: 어떻게 고쳤는지 한 문장. 아직이면 `미해결 — <단계/다음 할 일>`.
+```
+
+- **세 줄을 넘기지 않는다.** 서술, 표, 콜아웃, 코드 블록을 쓰지 않는다.
+- **코드를 붙여넣지 않는다.** 클래스 이름은 적되 스니펫과 줄 번호는 적지 않는다 — 금방 썩는다.
+- 배운 게 있으면 `해결:` 줄 끝에 한 문장으로 붙인다. 따로 절을 만들지 않는다.
+- 결함을 길게 나열하는 것은 실행 계획 문서의 역할이다. 노트는 목록이 아니라 **짧은 기록**이다.
+
+### 언제 쓰나
+
+| 쓴다 | 안 쓴다 |
+|---|---|
+| 원인을 찾는 데 시간이 걸린 버그 | 오타 수정, 단순 기능 추가 |
+| 전제나 방향이 바뀐 결정 | 계획대로 흘러간 작업 |
+| 조사했더니 예상과 달랐던 것 | 이미 노트에 있는 교훈의 반복 |
+| 같은 실수를 또 할 것 같은 것 | 리포지토리 문서가 이미 설명하는 구조 |
+
+한 건이 끝나면 **먼저 기록하고 그 다음 보고한다.** 사용자가 따로 요청하지 않아도 기록한다.
+
+---
+
+## 계획 문서
+
+`GEMINI.md` 의 plan-first 규칙을 따른다. 여러 단계에 걸친 큰 작업은 루트 `plan.md` 대신
+`docs/exec-plans/active/YYYYMMDD-<주제>.md` 에 둔다. 끝나면 회고를 Obsidian 에 남기고 계획 문서를 정리한다.
+
+---
+
+## 알려진 환경 제약
+
+- **이 PC 에서 testcontainers 통합 테스트가 안 돈다.** Docker Engine 29 와 맞지 않는다.
+  스프링 컨텍스트 로딩 실패가 뜨면 **내 변경 탓으로 오진하지 말고** CI 에서 확인한다.
+- 작업은 git worktree(`orca/workspaces/FunGame/<이름>`)에서 이뤄질 수 있다. 원본 체크아웃으로 `cd` 하지 않는다.
+- git stash 스택은 모든 worktree 가 공유한다. 맨손 `git stash` / `git stash pop` 을 쓰지 않는다.
