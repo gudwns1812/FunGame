@@ -1,0 +1,13 @@
+apiVersion: 1
+
+datasources:
+  # uid 는 UI 에서 만들어 두었던 것을 그대로 물려받습니다.
+  # 새 uid 를 주면 데이터소스가 둘로 보이고, 이 uid 를 박아 쓰던 대시보드가 깨집니다.
+  # 프로비저닝이 인수하면 UI 에서는 읽기 전용이 되고 여기 파일이 진실이 됩니다.
+  - name: prometheus
+    uid: afvghsyndws8we
+    type: prometheus
+    access: proxy
+    url: http://prometheus:9090
+    isDefault: false
+    editable: false

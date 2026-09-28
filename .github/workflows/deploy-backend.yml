@@ -81,6 +81,21 @@ jobs:
       contents: read
       packages: write
     steps:
+      - uses: actions/checkout@v4
+
+      # 서버의 compose.yml 과 Caddyfile 을 저장소의 것으로 덮어씁니다.
+      # .env 는 보내지 않습니다. 비밀값이라 서버에만 있고 .gitignore 대상입니다.
+      - name: 배포 설정을 서버로 보낸다
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          port: ${{ secrets.EC2_PORT || 22 }}
+          source: 'backend/compose.yml,backend/caddy/Caddyfile'
+          strip_components: 1
+          target: ${{ secrets.BACKEND_PROJECT_DIR || '/home/ubuntu/fungame' }}
+
       - uses: appleboy/ssh-action@v1.2.0
         with:
           host: ${{ secrets.EC2_HOST }}
@@ -93,6 +108,11 @@ jobs:
             set -euo pipefail
 
             cd "$PROJECT_DIR"
+
+            # 방금 받은 Caddyfile 이 깨졌으면 백엔드를 건드리기 전에 멈춘다.
+            # caddy 컨테이너가 떠 있든 말든 검사할 수 있게 일회용 컨테이너로 돌린다.
+            docker run --rm -v "$PWD/caddy:/etc/caddy:ro" caddy:2 \
+              caddy validate --config /etc/caddy/Caddyfile
 
             echo "$REGISTRY_TOKEN" | docker login ghcr.io -u "$REGISTRY_USER" --password-stdin
             trap 'docker logout ghcr.io >/dev/null 2>&1 || true' EXIT
@@ -144,10 +164,22 @@ jobs:
               fi
             }
 
+            # 바인드 마운트라 파일만 바뀌면 컨테이너는 아무것도 눈치채지 못한다.
+            # reload 는 무중단이고, 내용이 그대로여도 돌려서 손해가 없다.
+            reload_caddy() {
+              if docker compose exec -T caddy caddy reload --config /etc/caddy/Caddyfile; then
+                echo "Caddy 가 설정을 다시 읽었다"
+              else
+                echo "reload 에 실패해 caddy 를 다시 띄운다"
+                docker compose up -d caddy
+              fi
+            }
+
             deploy_tag "$TARGET_IMAGE"
 
             if wait_until_healthy; then
               echo "배포 성공: $TARGET_IMAGE"
+              reload_caddy
               pin_running_image_in_env "$TARGET_IMAGE"
               docker image prune -f
               exit 0

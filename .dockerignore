@@ -9,3 +9,8 @@ api
 archive
 *.md
 *.iml
+
+# 호스트 배포 설정. 이미지 안에서는 쓰이지 않는다.
+backend/compose.yml
+backend/caddy
+backend/.env.example
