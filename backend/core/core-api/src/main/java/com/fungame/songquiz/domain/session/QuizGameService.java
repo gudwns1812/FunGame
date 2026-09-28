@@ -114,8 +114,7 @@ public class QuizGameService implements GameService {
     private void endGame(Long roomId) {
         GameSession gameSession = sessionManager.getGameSession(roomId);
         timer.startAfter(roomId, BEFORE_GAME_RESULT, () -> {
-            // 결과 브로드캐스트가 터져도 방은 반드시 정리한다.
-            // 아니면 방이 PLAYING 으로 굳어 유휴 청소가 걷어갈 때까지 아무도 그 방을 못 쓴다.
+            // 브로드캐스트가 터져도 방이 PLAYING 으로 굳지 않게 한다.
             try {
                 publisher.publishEvent(new GameResultEvent(roomId, gameSession.getPlayerRanks()));
             } finally {

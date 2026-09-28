@@ -1,8 +1,6 @@
 -- local 프로파일 전용 시드. application-local.yml 에서만 참조합니다.
 
--- 방/플레이어 번호 채번용 카운터. 없으면 방 생성이 NPE 로 실패합니다.
-INSERT INTO counter_entity (name, count) VALUES ('GAME_ROOM_COUNTER', 0);
-INSERT INTO counter_entity (name, count) VALUES ('PLAYER_COUNTER', 0);
+-- 방 번호 채번용 카운터는 V21 이 모든 환경에 넣습니다. 여기서 또 넣으면 유일 제약에 걸립니다.
 
 -- CS 퀴즈를 바로 돌려볼 수 있을 만큼의 최소 문제.
 -- 방 난이도는 상한선이라 EASY 방은 EASY 만, NORMAL 방은 EASY+NORMAL 이 출제됩니다.

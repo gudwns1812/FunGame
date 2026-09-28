@@ -82,7 +82,8 @@ npm run dev:local --prefix frontend
 ```
 
 시드는 `backend/core/core-api/src/main/resources/db/local/R__local_seed.sql` 에 있습니다.
-방 번호 채번용 카운터와 CS 퀴즈 5문제가 들어 있어 CS 퀴즈는 바로 플레이할 수 있습니다.
+CS 퀴즈 5문제가 들어 있어 CS 퀴즈는 바로 플레이할 수 있습니다.
+방 번호 채번용 카운터는 시드가 아니라 마이그레이션(`V21`)이 모든 환경에 넣습니다.
 음악 퀴즈는 유튜브 링크가 필요하므로 관리자 화면에서 곡을 등록한 뒤 사용하세요.
 
 ---

@@ -31,10 +31,7 @@ public class GameTimer {
         tasks.add(taskScheduler.schedule(reporting(roomId, event), Instant.now().plus(delay)));
     }
 
-    /**
-     * 예약 작업이 던진 예외는 {@link ScheduledFuture} 안에 담긴 채 끝난다. 아무도 꺼내 보지 않으므로
-     * 감싸지 않으면 그 방의 진행이 로그 한 줄 없이 멈춘다. 멈추는 것 자체는 막지 못해도 어느 방인지는 남긴다.
-     */
+    /** 예외가 {@link ScheduledFuture} 안에 담긴 채 사라지지 않게 한다. */
     private Runnable reporting(Long roomId, Runnable event) {
         return () -> {
             try {

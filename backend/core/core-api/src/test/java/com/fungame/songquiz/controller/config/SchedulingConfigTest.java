@@ -57,7 +57,6 @@ class SchedulingConfigTest {
         TaskScheduler used = (TaskScheduler) ReflectionTestUtils.getField(gameTimer, "taskScheduler");
 
         assertThat(used)
-                .as("한 방의 라운드 종료가 느려지면 같은 풀을 쓰는 하트비트가 밀려 멀쩡한 연결이 끊긴다")
                 .isSameAs(gameTaskScheduler)
                 .isNotSameAs(appTaskScheduler);
     }

@@ -34,12 +34,10 @@ class AsyncConfigTest {
     @DisplayName("@Async 는 타입으로 executor 를 못 찾는다. taskExecutor 별칭이 유일한 연결고리다.")
     void async_finds_the_executor_only_by_the_taskExecutor_alias() {
         contextRunner.run(context -> {
-            // 게임 스케줄러 · 앱 스케줄러 · async executor 셋 다 TaskExecutor 다
             assertThat(context.getBeanNamesForType(TaskExecutor.class)).hasSizeGreaterThan(1);
 
             assertThat(context.getBeanFactory().getAliases(BOOT_EXECUTOR))
-                    .as("이 별칭이 사라지면 Spring 이 요청마다 스레드를 새로 만드는 "
-                            + "SimpleAsyncTaskExecutor 로 조용히 폴백한다")
+                    .as("사라지면 SimpleAsyncTaskExecutor 로 조용히 폴백한다")
                     .contains(AsyncAnnotationBeanPostProcessor.DEFAULT_TASK_EXECUTOR_BEAN_NAME);
         });
     }
@@ -51,7 +49,6 @@ class AsyncConfigTest {
             ThreadPoolTaskExecutor executor = context.getBean(BOOT_EXECUTOR, ThreadPoolTaskExecutor.class);
 
             assertThat(executor.getThreadPoolExecutor().getQueue().remainingCapacity())
-                    .as("부트 기본값은 Integer.MAX_VALUE 다")
                     .isEqualTo(1000);
             assertThat(executor.getMaxPoolSize()).isEqualTo(8);
             assertThat(executor.getThreadNamePrefix()).isEqualTo("app-async-");
@@ -65,7 +62,6 @@ class AsyncConfigTest {
             ThreadPoolTaskExecutor executor = context.getBean(BOOT_EXECUTOR, ThreadPoolTaskExecutor.class);
 
             assertThat(executor.getThreadPoolExecutor().getRejectedExecutionHandler())
-                    .as("여기 실리는 일은 대부분 방송이다. 버리면 클라이언트가 이벤트를 영영 못 받는다")
                     .isInstanceOf(ThreadPoolExecutor.CallerRunsPolicy.class);
         });
     }

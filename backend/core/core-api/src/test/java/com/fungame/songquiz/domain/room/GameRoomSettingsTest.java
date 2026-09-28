@@ -16,7 +16,11 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.context.ApplicationEventPublisher;
 
+import java.util.concurrent.atomic.AtomicLong;
+
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.lenient;
+import static org.mockito.BDDMockito.given;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 
@@ -38,13 +42,23 @@ class GameRoomSettingsTest {
     @Mock
     GameSessionManager gameSessionManager;
 
+    @Mock
+    RoomNumberWriter roomNumberWriter;
+
+    /** 실제로는 DB 카운터가 발급한다. 여기서는 1 부터 순서대로 준다. */
+    private final AtomicLong issuedRoomIds = new AtomicLong();
+
     GameRoomManager gameRoomManager;
 
     Long roomId;
 
     @BeforeEach
     void setUp() {
+        // 방을 만들지 않는 테스트도 있으므로 lenient 로 둔다
+        lenient().when(roomNumberWriter.issueNext()).thenAnswer(invocation -> issuedRoomIds.incrementAndGet());
+
         gameRoomManager = new GameRoomManager(
+                roomNumberWriter,
                 new LockContext(),
                 applicationEventPublisher,
                 gameTimer,

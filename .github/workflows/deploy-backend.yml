@@ -83,8 +83,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # scp 는 되돌릴 수 없습니다. 덮기 전에 서버의 현재 설정을 떠 둡니다.
-      # 저장소와 서버가 어긋나 있으면 이 백업이 유일한 원본입니다.
+      # scp 는 되돌릴 수 없습니다. 어긋나 있으면 이 백업이 유일한 원본입니다.
       - name: 서버의 현재 배포 설정을 백업한다
         uses: appleboy/ssh-action@v1.2.0
         with:
@@ -135,8 +134,7 @@ jobs:
 
             cd "$PROJECT_DIR"
 
-            # 방금 받은 Caddyfile 이 깨졌으면 백엔드를 건드리기 전에 멈춘다.
-            # caddy 컨테이너가 떠 있든 말든 검사할 수 있게 일회용 컨테이너로 돌린다.
+            # Caddyfile 이 깨졌으면 백엔드를 건드리기 전에 멈춘다.
             docker run --rm -v "$PWD/caddy:/etc/caddy:ro" caddy:2 \
               caddy validate --config /etc/caddy/Caddyfile
 
@@ -190,8 +188,7 @@ jobs:
               fi
             }
 
-            # 바인드 마운트라 파일만 바뀌면 컨테이너는 아무것도 눈치채지 못한다.
-            # reload 는 무중단이고, 내용이 그대로여도 돌려서 손해가 없다.
+            # 바인드 마운트라 파일만 바뀌어서는 컨테이너가 눈치채지 못한다.
             reload_caddy() {
               if docker compose exec -T caddy caddy reload --config /etc/caddy/Caddyfile; then
                 echo "Caddy 가 설정을 다시 읽었다"
@@ -244,8 +241,6 @@ jobs:
           REGISTRY_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PROJECT_DIR: ${{ secrets.BACKEND_PROJECT_DIR || '/home/ubuntu/fungame' }}
 
-      # 이 잡의 앞 단계가 하나라도 실패하면 설정을 직전 백업으로 되돌립니다.
-      # 새 compose.yml 이 원인일 때 서버를 덮어쓴 채로 두지 않습니다.
       - name: 실패하면 설정을 직전 백업으로 되돌린다
         if: failure()
         uses: appleboy/ssh-action@v1.2.0
