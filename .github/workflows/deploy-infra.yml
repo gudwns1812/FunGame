@@ -36,7 +36,7 @@ jobs:
           port: ${{ secrets.INFRA_PORT || 22 }}
           source: 'infra/*'
           strip_components: 1
-          target: ${{ secrets.INFRA_PROJECT_DIR || '/home/ubuntu/fungame-infra' }}
+          target: ${{ secrets.INFRA_PROJECT_DIR || '/opt/monitoring' }}
 
       - uses: appleboy/ssh-action@v1.2.0
         with:
@@ -57,4 +57,4 @@ jobs:
             docker compose up -d
             docker compose ps
         env:
-          PROJECT_DIR: ${{ secrets.INFRA_PROJECT_DIR || '/home/ubuntu/fungame-infra' }}
+          PROJECT_DIR: ${{ secrets.INFRA_PROJECT_DIR || '/opt/monitoring' }}

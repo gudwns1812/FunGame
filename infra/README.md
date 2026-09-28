@@ -35,43 +35,53 @@
 | `INFRA_USER` | SSH 계정 | 없음 |
 | `INFRA_SSH_KEY` | SSH 개인키 | 없음 |
 | `INFRA_PORT` | SSH 포트 | `22` |
-| `INFRA_PROJECT_DIR` | 서버의 배포 디렉터리 | `/home/ubuntu/fungame-infra` |
+| `INFRA_PROJECT_DIR` | 서버의 배포 디렉터리 | `/opt/monitoring` |
 
 `INFRA_HOST` 가 비어 있으면 워크플로가 조용히 건너뜁니다. 시크릿을 넣기 전에
 머지해도 빨간 X 가 뜨지 않습니다.
 
 ## 아직 서버에만 있는 파일
 
-`compose.yml` 은 가져왔지만 그것이 마운트하는 파일들은 아직 없습니다.
-이게 다 들어와야 배포가 실제로 돕니다.
+`compose.yml` 이 마운트하는 것 중 둘이 아직 없습니다. 이게 다 들어와야 배포가 실제로 돕니다.
 
-- [ ] `loki/loki-config.yml`
-- [ ] `prometheus/prometheus.yml`
+- [x] `prometheus/prometheus.yml`
+- [x] `loki/loki-config.yml`
 - [ ] `caddy/Caddyfile` — **인프라 쪽 것** (앱 것과 다름)
 - [ ] `grafana/provisioning/` — 데이터소스·대시보드 프로비저닝
 
-## 정리하면서 확인할 것 두 가지
+## 스크랩 대상
 
-**1. 프로메테우스 설정만 절대 경로입니다.**
+프로메테우스가 앱 인스턴스의 사설 IP 를 직접 긁습니다.
 
-```yaml
-- /opt/monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
-```
+| job | 대상 | 나오는 곳 |
+| --- | --- | --- |
+| `fungame-backend` | `:8081/actuator/prometheus` | 앱 compose 의 `MANAGEMENT_BIND_IP` 가 묶는 포트 |
+| `node` | `:9100` | node_exporter. **앱 compose 에 없습니다** — 그 호스트에 따로 떠 있습니다 |
 
-나머지 셋은 `./loki/...`, `./grafana/...`, `./caddy/...` 로 compose 파일 기준 상대 경로인데
-이것만 절대 경로입니다. 배포 디렉터리가 `/opt/monitoring` 이라면 가리키는 곳은 같지만,
-`scp` 가 파일을 배포 디렉터리로 밀어넣는 구조에서는 **두 경로가 갈라지는 순간 조용히
-옛 설정으로 뜹니다.** `./prometheus/prometheus.yml` 로 맞추는 편이 안전합니다.
+타깃마다 `instance: app-1` 라벨이 붙어 있습니다. 인스턴스를 2대로 늘릴 때
+`app-2` 블록을 여기 더하면 되고, 인프라 설정이 이 저장소에 있으니 **앱 변경과 같은 PR 로 흐릅니다.**
 
-**2. Loki 3100 포트가 공개돼 있습니다.**
+node_exporter 가 compose 밖에 있는 것은 따로 챙겨야 할 부분입니다. 앱 서버를 새로 세우면
+그것도 같이 올려야 하는데 그 절차가 어디에도 적혀 있지 않습니다.
+
+## Loki 3100 이 공개돼 있습니다
 
 ```yaml
 ports:
   - "3100:3100"
 ```
 
-주소를 지정하지 않아 `0.0.0.0` 에 열립니다. Loki 는 기본적으로 인증이 없어서, 보안 그룹이
-유일한 방어선입니다. 앱 인스턴스가 로그를 밀어 넣어야 해서 열어둔 것이라면 앱 쪽
-`MANAGEMENT_BIND_IP` 처럼 **사설 IP 에 묶는 것**이 맞습니다.
+주소를 지정하지 않아 `0.0.0.0` 에 열리고, `loki-config.yml` 은 `auth_enabled: false` 입니다.
+**인증이 없는 로그 저장소가 인터넷에 열려 있고 보안 그룹이 유일한 방어선입니다.**
+누구나 로그를 읽고 쓸 수 있습니다.
 
 프로메테우스와 그라파나는 포트를 공개하지 않고 Caddy 뒤에 있습니다. Loki 만 예외입니다.
+앱 인스턴스가 로그를 밀어 넣어야 해서 열어둔 것이라면, 앱 쪽 `MANAGEMENT_BIND_IP` 처럼
+사설 IP 에 묶는 것이 맞습니다.
+
+```yaml
+- "${LOKI_BIND_IP:-0.0.0.0}:3100:3100"
+```
+
+기본값을 지금 동작 그대로 두면 `.env` 한 줄로 닫을 수 있습니다. 아직 바꾸지 않았습니다 —
+로그를 밀어 넣는 쪽이 공인 IP 로 붙고 있으면 끊기기 때문입니다. 무엇이 쓰는지 확인이 필요합니다.

@@ -1,0 +1,26 @@
+global:
+  scrape_interval: 15s
+  scrape_timeout: 5s
+  evaluation_interval: 15s
+
+scrape_configs:
+  - job_name: fungame-backend
+    metrics_path: /actuator/prometheus
+    scheme: http
+
+    static_configs:
+      - targets:
+          - "172.31.34.226:8081"
+        labels:
+          service: fungame-backend
+          environment: production
+          instance: app-1
+
+  - job_name: node
+    static_configs:
+      - targets:
+          - "172.31.34.226:9100"
+        labels:
+          service: fungame-server
+          environment: production
+          instance: app-1
