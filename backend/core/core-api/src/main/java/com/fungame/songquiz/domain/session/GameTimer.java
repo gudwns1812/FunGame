@@ -1,6 +1,6 @@
 package com.fungame.songquiz.domain.session;
 
-import com.fungame.songquiz.support.config.AppTaskScheduler;
+import com.fungame.songquiz.support.config.GameTaskScheduler;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.TaskScheduler;
 import org.springframework.stereotype.Component;
@@ -21,7 +21,7 @@ public class GameTimer {
     private final TaskScheduler taskScheduler;
     private final Map<Long, Collection<ScheduledFuture<?>>> roomTasks = new ConcurrentHashMap<>();
 
-    public GameTimer(@AppTaskScheduler TaskScheduler taskScheduler) {
+    public GameTimer(@GameTaskScheduler TaskScheduler taskScheduler) {
         this.taskScheduler = taskScheduler;
     }
 
