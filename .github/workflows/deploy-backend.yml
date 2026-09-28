@@ -83,6 +83,32 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # scp 는 되돌릴 수 없습니다. 덮기 전에 서버의 현재 설정을 떠 둡니다.
+      # 저장소와 서버가 어긋나 있으면 이 백업이 유일한 원본입니다.
+      - name: 서버의 현재 배포 설정을 백업한다
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          port: ${{ secrets.EC2_PORT || 22 }}
+          envs: PROJECT_DIR
+          script_stop: true
+          script: |
+            set -euo pipefail
+
+            cd "$PROJECT_DIR"
+            mkdir -p .backup
+
+            STAMP=$(date +%Y%m%d-%H%M%S)
+            tar czf ".backup/config-$STAMP.tgz" compose.yml caddy
+            echo "백업했다: .backup/config-$STAMP.tgz"
+
+            # 최근 다섯 개만 남긴다
+            ls -1t .backup/config-*.tgz | tail -n +6 | xargs -r rm -f
+        env:
+          PROJECT_DIR: ${{ secrets.BACKEND_PROJECT_DIR || '/home/ubuntu/fungame' }}
+
       # 서버의 compose.yml 과 Caddyfile 을 저장소의 것으로 덮어씁니다.
       # .env 는 보내지 않습니다. 비밀값이라 서버에만 있고 .gitignore 대상입니다.
       - name: 배포 설정을 서버로 보낸다
@@ -175,7 +201,11 @@ jobs:
               fi
             }
 
-            deploy_tag "$TARGET_IMAGE"
+            # set -e 가 여기서 스크립트를 죽이면 아래 롤백 블록에 도달하지 못한다.
+            # 기동 명령이 실패해도 일단 넘기고 헬스체크가 판정하게 둔다.
+            if ! deploy_tag "$TARGET_IMAGE"; then
+              echo "새 이미지 기동 명령이 실패했다. 헬스체크로 판정한다"
+            fi
 
             if wait_until_healthy; then
               echo "배포 성공: $TARGET_IMAGE"
@@ -194,7 +224,9 @@ jobs:
             fi
 
             echo "이전 이미지로 되돌린다: $PREVIOUS_IMAGE"
-            deploy_tag "$PREVIOUS_IMAGE"
+            if ! deploy_tag "$PREVIOUS_IMAGE"; then
+              echo "이전 이미지 기동 명령도 실패했다"
+            fi
 
             if wait_until_healthy; then
               echo "롤백 완료. 서비스는 이전 버전으로 살아 있다"
@@ -210,6 +242,37 @@ jobs:
           CONTAINER_NAME: fungame-backend
           REGISTRY_USER: ${{ github.actor }}
           REGISTRY_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PROJECT_DIR: ${{ secrets.BACKEND_PROJECT_DIR || '/home/ubuntu/fungame' }}
+
+      # 이 잡의 앞 단계가 하나라도 실패하면 설정을 직전 백업으로 되돌립니다.
+      # 새 compose.yml 이 원인일 때 서버를 덮어쓴 채로 두지 않습니다.
+      - name: 실패하면 설정을 직전 백업으로 되돌린다
+        if: failure()
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          port: ${{ secrets.EC2_PORT || 22 }}
+          envs: PROJECT_DIR
+          script_stop: false
+          script: |
+            set -uo pipefail
+
+            cd "$PROJECT_DIR"
+
+            LATEST=$(ls -1t .backup/config-*.tgz 2>/dev/null | head -1)
+            if [ -z "$LATEST" ]; then
+              echo "되돌릴 백업이 없다. 서버 설정을 손으로 확인해야 한다"
+              exit 0
+            fi
+
+            echo "설정을 되돌린다: $LATEST"
+            tar xzf "$LATEST"
+
+            docker compose up -d --no-deps backend || true
+            docker compose ps
+        env:
           PROJECT_DIR: ${{ secrets.BACKEND_PROJECT_DIR || '/home/ubuntu/fungame' }}
 
       - uses: docker/login-action@v3
