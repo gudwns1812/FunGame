@@ -204,19 +204,27 @@ graph TB
 
 확장과 무관하게 지금 버그다. 여기서 멈춰도 이득이다.
 
-- [ ] **B1** `PlayerNumberWriter.issueNext` 를 원자적으로.
-      `UPDATE counter SET count = count + 1 WHERE name = ?` 후 재조회, 또는 전용 테이블 `AUTO_INCREMENT`.
-      Redis `INCR` 은 아직 Redis 가 없으니 쓰지 않는다.
-- [ ] **B4** `GameTimer.startAfter` 가 넘겨받은 `Runnable` 을 try/catch 로 감싸 예외를 로깅한다.
-      **이게 0단계에서 가장 값싸고 효과가 큰 한 줄이다** — 지금은 방이 멈춰도 원인이 안 남는다.
-- [ ] **B3** 스케줄러 풀 분리. `@AppTaskScheduler`(게임 타이머 전용) 와
-      `@InfraTaskScheduler`(STOMP 하트비트 · 퇴장 유예) 로 나누고 풀 크기를 동시 진행 방 수 기준으로 잡는다.
+- [x] **B4** `GameTimer.startAfter` 가 넘겨받은 `Runnable` 을 try/catch 로 감싸 방 번호와 함께 로깅한다.
+      게임 결과 브로드캐스트가 터져도 방이 `PLAYING` 으로 굳지 않게 `try/finally` 로 정리를 보장한다.
+      행맨도 같은 구멍이 있어 함께 고쳤다. (#71)
+- [x] **B3** 스케줄러 풀 분리. `@GameTaskScheduler`(게임 라운드 전용, 기본 8) 와
+      `@AppTaskScheduler`(STOMP 하트비트 · 퇴장 유예 · **모든 `@Scheduled`**, 기본 5) 로 나눴다.
+      **공유자가 셋이 아니라 넷이었다** — `TaskScheduler` 빈이 여럿이라 `@Scheduled` 가 이름으로
+      `taskScheduler` 를 찾아 쓰고 있었고, 거기엔 유튜브를 긁는 `SongScrapeScheduler` 도 있다.
+      그래서 `@Scheduled` 를 게임 쪽이 아니라 앱 쪽에 남겼다. 스레드 이름(`game-timer-`, `app-sched-`)으로
+      어느 풀인지 구분된다.
 - [ ] **B2** `AsyncConfig` 에 executor 를 명시한다. 큐 상한, 거부 정책, `ThreadPoolTaskExecutor` 메트릭 노출.
+      **먼저 확인할 것**: `@Async` 가 실제로 어느 executor 에 붙는지. 부트 기본값(`applicationTaskExecutor`,
+      큐 무제한)일 가능성이 크지만 확정하지 않았다.
 - [ ] **B5** 방 ID 를 재기동에도 이어지게. 0단계에서는 기동 시 현재 최대 ID + 1 로 시드하는 것으로 충분하다
       (2단계에서 Redis `INCR` 로 갈아탄다).
+- [ ] ~~**B1** `PlayerNumberWriter.issueNext` 를 원자적으로~~ → **고칠 게 아니라 지울 것.**
+      유일한 호출자인 `POST /game/player` 를 프런트에서 아무도 부르지 않는 죽은 엔드포인트다.
+      `PlayerController` · `PlayerService` · `PlayerNumberWriter` · `CounterEntity` 와
+      시드의 `GAME_ROOM_COUNTER` · `PLAYER_COUNTER` 행을 함께 정리한다.
 
-**종료 조건**: 동시 `issueNext` 100회에 중복 0건(실 DB 통합 테스트 — lost update 는 스텁으로 재현 안 된다).
-활성 방 20개에서 라운드 전환 지연 p99 < 200ms.
+**종료 조건**: 활성 방 20개에서 라운드 전환 지연 p99 < 200ms. 한 방의 라운드 종료를 인위적으로
+지연시켜도 다른 방의 전환과 STOMP 하트비트가 밀리지 않는다.
 
 ### 1단계 — 측정한다
 
