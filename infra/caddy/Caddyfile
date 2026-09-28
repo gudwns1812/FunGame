@@ -1,0 +1,9 @@
+# fungame-infra 인스턴스의 Caddy 설정입니다. infra/compose.yml 이 마운트합니다.
+# 앱 인스턴스(fungame)의 저장소 루트 caddy/Caddyfile 과는 다른 파일입니다.
+# grafana 는 같은 monitoring 네트워크의 서비스 이름입니다.
+# 프로메테우스와 로키는 여기에 없습니다 — 프로메테우스는 포트를 열지 않고,
+# 로키는 compose 에서 3100 을 직접 공개하고 있습니다.
+
+grafana.fun-game.club {
+	reverse_proxy grafana:3000
+}

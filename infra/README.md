@@ -46,8 +46,13 @@
 
 - [x] `prometheus/prometheus.yml`
 - [x] `loki/loki-config.yml`
-- [ ] `caddy/Caddyfile` — **인프라 쪽 것** (앱 것과 다름)
+- [x] `caddy/Caddyfile` — **인프라 쪽 것** (앱 것과 다름)
 - [ ] `grafana/provisioning/` — 데이터소스·대시보드 프로비저닝
+
+`grafana/provisioning` 이 비어 있다면 데이터소스와 대시보드를 UI 에서 손으로 만들었다는
+뜻입니다. 그러면 그것들은 `grafana-data` 볼륨에만 있고 **저장소에도 CD 에도 없습니다.**
+인스턴스를 다시 세우면 대시보드가 전부 사라집니다. 프로비저닝 파일로 옮기면 그때부터
+대시보드도 리뷰와 롤백을 탑니다.
 
 ## 스크랩 대상
 
