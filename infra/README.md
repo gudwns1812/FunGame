@@ -40,19 +40,23 @@
 `INFRA_HOST` 가 비어 있으면 워크플로가 조용히 건너뜁니다. 시크릿을 넣기 전에
 머지해도 빨간 X 가 뜨지 않습니다.
 
-## 아직 서버에만 있는 파일
+## 프로비저닝된 것과 안 된 것
 
-`compose.yml` 이 마운트하는 것 중 둘이 아직 없습니다. 이게 다 들어와야 배포가 실제로 돕니다.
+`compose.yml` 이 마운트하는 네 곳을 모두 가져왔습니다. 다만 그라파나 쪽에 구멍이 하나 있습니다.
 
-- [x] `prometheus/prometheus.yml`
-- [x] `loki/loki-config.yml`
-- [x] `caddy/Caddyfile` — **인프라 쪽 것** (앱 것과 다름)
-- [ ] `grafana/provisioning/` — 데이터소스·대시보드 프로비저닝
+| | 프로비저닝 | 어디에 |
+| --- | --- | --- |
+| Loki 데이터소스 | ✅ | `grafana/provisioning/datasources/loki.yml` |
+| Application Logs 대시보드 | ✅ | `grafana/provisioning/dashboards/json/` |
+| **프로메테우스 데이터소스** | ❌ | 없음 — UI 로 만들었다면 `grafana-data` 볼륨에만 있습니다 |
+| **로그인·DAU 대시보드** (PR #70) | ❌ | 없음 — 본문 JSON 을 UI 에 붙이는 방식입니다 |
 
-`grafana/provisioning` 이 비어 있다면 데이터소스와 대시보드를 UI 에서 손으로 만들었다는
-뜻입니다. 그러면 그것들은 `grafana-data` 볼륨에만 있고 **저장소에도 CD 에도 없습니다.**
-인스턴스를 다시 세우면 대시보드가 전부 사라집니다. 프로비저닝 파일로 옮기면 그때부터
-대시보드도 리뷰와 롤백을 탑니다.
+프로메테우스를 긁고는 있는데(`prometheus.yml`) 그라파나가 그걸 데이터소스로 갖고 있는지는
+저장소에 없습니다. **이 저장소만으로 인프라 서버를 새로 세우면 로그는 보이지만 지표는 안 보입니다.**
+
+닫으려면 `datasources/prometheus.yml` 을 더하고 PR #70 의 대시보드 JSON 을
+`dashboards/json/` 에 옮기면 됩니다. 지금 UI 에 만들어 둔 데이터소스가 있다면 uid 가 겹치지
+않게 맞춰야 해서, 그 uid 를 확인한 뒤에 하는 편이 안전합니다.
 
 ## 스크랩 대상
 
