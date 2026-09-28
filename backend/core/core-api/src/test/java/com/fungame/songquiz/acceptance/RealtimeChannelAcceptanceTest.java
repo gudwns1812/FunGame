@@ -27,6 +27,7 @@ import org.springframework.messaging.simp.stomp.StompFrameHandler;
 import org.springframework.messaging.simp.stomp.StompHeaders;
 import org.springframework.messaging.simp.stomp.StompSession;
 import org.springframework.messaging.simp.stomp.StompSessionHandlerAdapter;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.web.socket.WebSocketHttpHeaders;
@@ -74,6 +75,9 @@ class RealtimeChannelAcceptanceTest {
     @Autowired
     private GameRoomService gameRoomService;
 
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
+
     private WebSocketStompClient stompClient;
     private Actor host;
     private Actor guest;
@@ -81,7 +85,7 @@ class RealtimeChannelAcceptanceTest {
     @BeforeEach
     void setUp() {
         emptyEveryRoom();
-        memberRepository.deleteAll();
+        deleteAllMembers();
         stompClient = new WebSocketStompClient(new StandardWebSocketClient());
         stompClient.setMessageConverter(new MappingJackson2MessageConverter());
 
@@ -95,6 +99,11 @@ class RealtimeChannelAcceptanceTest {
         guest.close();
         stompClient.stop();
         emptyEveryRoom();
+        deleteAllMembers();
+    }
+
+    private void deleteAllMembers() {
+        jdbcTemplate.update("delete from member_daily_active");
         memberRepository.deleteAll();
     }
 

@@ -16,5 +16,9 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-actuator'
     implementation 'org.springframework.boot:spring-boot-starter-security'
 
+    // 계측은 각 도메인이 자기 자리에서 한다. actuator 전체를 api 로 올리면
+    // 엔드포인트·시큐리티 설정까지 새어 나가므로 미터 등록에 필요한 타입만 연다.
+    api 'io.micrometer:micrometer-core'
+
     runtimeOnly 'io.micrometer:micrometer-registry-prometheus'
 }

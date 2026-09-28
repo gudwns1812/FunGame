@@ -76,6 +76,17 @@ class ManagementEndpointTest {
                         .contains("namespace=\""));
     }
 
+    @Test
+    @DisplayName("직접 만든 지표가 로그인·접속 한 번 없이도 스크랩에 잡힌다.")
+    void prometheusExposesCustomCounters() {
+        String scrapeBody = get(managementPort, "/actuator/prometheus").getBody();
+
+        assertThat(samplesOf(scrapeBody, "fungame_logins_total"))
+                .as("시도 전에 시계열이 없으면 실패율 알람이 데이터 없음으로 뜬다")
+                .hasSize(2);
+        assertThat(samplesOf(scrapeBody, "fungame_member_first_seen_total")).hasSize(1);
+    }
+
     private List<String> samplesOf(String scrapeBody, String metricName) {
         return scrapeBody.lines()
                 .filter(line -> line.startsWith(metricName + "{"))
