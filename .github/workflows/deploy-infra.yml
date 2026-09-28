@@ -21,19 +21,27 @@ jobs:
     permissions:
       contents: read
     steps:
-      # INFRA_* 시크릿이 아직 없으면 뒤 단계를 전부 건너뜁니다.
-      # 시크릿을 넣기 전에 머지해도 빨간 X 가 뜨지 않습니다.
+      # 접속에 필요한 시크릿이 하나라도 없으면 뒤 단계를 전부 건너뜁니다.
+      # 셋을 다 봐야 합니다. 하나만 보면 나머지가 빈 채로 scp 까지 가서
+      # "can't connect without a private SSH key" 로 실패합니다.
       #
       # secrets 컨텍스트는 job 레벨 if 에서 쓸 수 없으므로 env 로 받아
       # step 레벨에서 가릅니다.
       - id: guard
         env:
           INFRA_HOST: ${{ secrets.INFRA_HOST }}
+          INFRA_USER: ${{ secrets.INFRA_USER }}
+          INFRA_SSH_KEY: ${{ secrets.INFRA_SSH_KEY }}
         run: |
-          if [ -z "$INFRA_HOST" ]; then
+          missing=
+          [ -n "$INFRA_HOST" ] || missing="$missing INFRA_HOST"
+          [ -n "$INFRA_USER" ] || missing="$missing INFRA_USER"
+          [ -n "$INFRA_SSH_KEY" ] || missing="$missing INFRA_SSH_KEY"
+
+          if [ -n "$missing" ]; then
             echo 'configured=false' >> "$GITHUB_OUTPUT"
-            echo 'INFRA_HOST 가 없어 배포를 건너뛴다.' >> "$GITHUB_STEP_SUMMARY"
-            echo '시크릿을 넣으면 그때부터 infra/** 변경이 fungame-infra 로 흐른다.' >> "$GITHUB_STEP_SUMMARY"
+            echo "없는 시크릿이 있어 배포를 건너뛴다:$missing" >> "$GITHUB_STEP_SUMMARY"
+            echo '셋을 다 넣으면 그때부터 infra/** 변경이 fungame-infra 로 흐른다.' >> "$GITHUB_STEP_SUMMARY"
           else
             echo 'configured=true' >> "$GITHUB_OUTPUT"
           fi
