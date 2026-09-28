@@ -1,0 +1,60 @@
+name: Deploy Infra
+
+# fungame-infra 인스턴스 전용입니다. 앱(fungame)은 deploy-backend.yml 이 맡습니다.
+# 두 파이프라인은 대상 호스트도 시크릿도 다릅니다.
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'infra/**'
+      - '.github/workflows/deploy-infra.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-infra
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: fungame-infra 배포
+    runs-on: ubuntu-latest
+    # 시크릿이 아직 없으면 건너뜁니다. 설정 전에 머지해도 실패로 뜨지 않습니다.
+    if: ${{ secrets.INFRA_HOST != '' }}
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      # infra/ 아래 내용만 보냅니다. strip_components 로 infra/ 한 겹을 벗겨
+      # 서버의 배포 디렉터리가 이 폴더와 같은 모양이 되게 합니다.
+      - name: 설정을 fungame-infra 로 보낸다
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.INFRA_HOST }}
+          username: ${{ secrets.INFRA_USER }}
+          key: ${{ secrets.INFRA_SSH_KEY }}
+          port: ${{ secrets.INFRA_PORT || 22 }}
+          source: 'infra/*'
+          strip_components: 1
+          target: ${{ secrets.INFRA_PROJECT_DIR || '/home/ubuntu/fungame-infra' }}
+
+      - uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.INFRA_HOST }}
+          username: ${{ secrets.INFRA_USER }}
+          key: ${{ secrets.INFRA_SSH_KEY }}
+          port: ${{ secrets.INFRA_PORT || 22 }}
+          envs: PROJECT_DIR
+          script_stop: true
+          script: |
+            set -euo pipefail
+
+            cd "$PROJECT_DIR"
+
+            # 깨진 설정을 올리기 전에 멈춘다.
+            docker compose config --quiet
+
+            docker compose up -d
+            docker compose ps
+        env:
+          PROJECT_DIR: ${{ secrets.INFRA_PROJECT_DIR || '/home/ubuntu/fungame-infra' }}
