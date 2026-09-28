@@ -81,7 +81,7 @@ graph TB
 | # | 위치 | 2대에서 생기는 증상 |
 |---|---|---|
 | S1 | `GameRoomManager:27` `gameRooms` | A 가 만든 방이 B 의 `GET /api/game/rooms` 에 안 보인다. B 로 붙은 사람은 `GAME_ROOM_NOT_FOUND` |
-| S2 | `GameRoomManager:28,50` `lastIssuedRoomId` | **두 인스턴스가 똑같이 1번부터 발급한다.** 서로 다른 두 방이 같은 ID 를 갖는다. 재기동하면 0 으로 돌아가 같은 인스턴스 안에서도 ID 를 재사용한다 |
+| ~~S2~~ | ~~`GameRoomManager` `lastIssuedRoomId`~~ — **0단계 B5 에서 DB 카운터로 옮겨 해결** | **두 인스턴스가 똑같이 1번부터 발급한다.** 서로 다른 두 방이 같은 ID 를 갖는다. 재기동하면 0 으로 돌아가 같은 인스턴스 안에서도 ID 를 재사용한다 |
 | S3 | `GameSessionManager:18` `manager` | 정답 채팅이 B 로 들어오면 `gameSession == null` → **아무 일도 없이 return**. 유저에겐 정답이 씹힌 것으로 보인다 |
 | S4 | `LockContext` (ReentrantLock 64 스트라이프) | 같은 방의 join/leave/ready 가 A·B 에서 동시에 돌아 상호배제가 사라진다 |
 | S5 | `GameTimer:20` `roomTasks` | 게임을 시작한 인스턴스만 라운드를 돌린다. 그 인스턴스가 죽으면 그 방은 영원히 멈춘다(복구 경로 없음) |
@@ -224,12 +224,15 @@ graph TB
       **함정 하나**: `TaskExecutor` 타입 빈이 셋이라 타입 조회가 실패하고 `@Async` 는 부트가 달아둔
       `taskExecutor` **별칭**으로만 executor 를 찾는다. executor 빈을 직접 정의해 별칭이 사라지면
       스레드를 요청마다 새로 만드는 `SimpleAsyncTaskExecutor` 로 조용히 폴백한다.
-- [ ] **B5** 방 ID 를 재기동에도 이어지게. 0단계에서는 기동 시 현재 최대 ID + 1 로 시드하는 것으로 충분하다
-      (2단계에서 Redis `INCR` 로 갈아탄다).
-- [ ] ~~**B1** `PlayerNumberWriter.issueNext` 를 원자적으로~~ → **고칠 게 아니라 지울 것.**
-      유일한 호출자인 `POST /game/player` 를 프런트에서 아무도 부르지 않는 죽은 엔드포인트다.
-      `PlayerController` · `PlayerService` · `PlayerNumberWriter` · `CounterEntity` 와
-      시드의 `GAME_ROOM_COUNTER` · `PLAYER_COUNTER` 행을 함께 정리한다.
+- [x] **B5** 방 번호를 재기동에도 이어지게. **계획에 적었던 "기동 시 현재 최대 ID + 1 로 시드" 는
+      성립하지 않았다** — 방이 전부 메모리에 있어 재기동하면 셀 대상이 없다. DB 카운터(`GAME_ROOM_COUNTER`)로
+      옮겼다. 원자적 `UPDATE ... count = count + 1` 이라 lost update 도 없다.
+      **덤으로 S2(2대가 나란히 1번 발급)도 함께 닫힌다** — DB 카운터는 인스턴스 수와 무관하다.
+      3단계의 Redis `INCR` 은 필수가 아니라 선택이 됐다.
+- [x] ~~**B1** `PlayerNumberWriter.issueNext` 를 원자적으로~~ → **지웠다.**
+      유일한 호출자인 `POST /game/player` 를 프런트에서 아무도 부르지 않는 죽은 엔드포인트였다.
+      `PlayerController` · `PlayerService` · `PlayerNumberWriter` 와 `PLAYER_COUNTER` 행을 지웠다.
+      `counter_entity` 테이블은 방 번호 채번(B5)이 쓰므로 남긴다.
 
 **종료 조건**: 활성 방 20개에서 라운드 전환 지연 p99 < 200ms. 한 방의 라운드 종료를 인위적으로
 지연시켜도 다른 방의 전환과 STOMP 하트비트가 밀리지 않는다.

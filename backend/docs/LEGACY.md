@@ -25,7 +25,7 @@
 ### 4. 단일 인스턴스를 전제한 동시성 제어
 
 - **현상**: 방 단위 상호배제를 `LockContext`의 `ReentrantLock` 64개 스트라이프로 하고 있고, 방·세션·접속 추적·초대가 전부 JVM 힙의 `ConcurrentHashMap`에 있습니다. STOMP 브로커도 `enableSimpleBroker`로 프로세스 안에 있습니다.
-- **문제점**: **인스턴스가 2대가 되는 순간 상호배제와 팬아웃이 동시에 깨집니다.** 같은 방의 join/leave/ready가 두 JVM에서 나란히 실행되고, A가 `/topic/room/1`로 보낸 메시지는 B에 붙은 구독자에게 닿지 않습니다. 1대에서도 `PlayerNumberWriter.issueNext`의 read-modify-write에는 락이 없어 lost update가 납니다.
+- **문제점**: **인스턴스가 2대가 되는 순간 상호배제와 팬아웃이 동시에 깨집니다.** 같은 방의 join/leave/ready가 두 JVM에서 나란히 실행되고, A가 `/topic/room/1`로 보낸 메시지는 B에 붙은 구독자에게 닿지 않습니다. 방 번호도 메모리 `AtomicLong` 이라 재기동하면 1번부터 다시 나왔습니다(DB 카운터로 옮겨 해결).
 - **개선 방향**: 한 판의 권위 상태는 **소유 인스턴스의 메모리에 남기고**(`ReentrantLock` + 로컬 타이머는 그 안에서 여전히 맞는 선택입니다), 공유가 필요한 것 — 방 레지스트리, 방 ID 채번, 접속 추적, 초대, 이벤트 팬아웃 — 만 Redis 뒤로 보냅니다. `GameSession`을 통째로 Redis에 올리는 것은 라운드 지연을 키우므로 하지 않습니다. 전체 인벤토리와 단계는 [scale-out 실행 계획](../../docs/exec-plans/active/20260928-scale-out-multi-instance.md)에 있습니다.
 
 ### 5. 테스트 코드의 깊이 부족 (Lack of Test Depth)

@@ -18,14 +18,13 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicLong;
 
 @Slf4j
 @Component
 @RequiredArgsConstructor
 public class GameRoomManager {
     private final Map<Long, GameRoom> gameRooms = new ConcurrentHashMap<>();
-    private final AtomicLong lastIssuedRoomId = new AtomicLong();
+    private final RoomNumberWriter roomNumberWriter;
     private final LockContext lockContext;
     private final ApplicationEventPublisher applicationEventPublisher;
     private final GameTimer gameTimer;
@@ -47,7 +46,7 @@ public class GameRoomManager {
     }
 
     public Long createGameRoom(RoomSettings settings, GamePlayer host) {
-        Long roomId = lastIssuedRoomId.incrementAndGet();
+        Long roomId = roomNumberWriter.issueNext();
         gameRooms.put(roomId, GameRoom.create(roomId, settings, host));
 
         return roomId;
