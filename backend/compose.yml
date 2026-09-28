@@ -22,7 +22,11 @@ services:
       - "8080"
     ports:
       # 관리 포트. 인프라 서버의 prometheus 가 사설망으로 긁어갑니다.
-      # MANAGEMENT_BIND_IP 를 비우면 공개되므로 반드시 사설 IP 를 지정하세요.
+      #
+      # 여기에 넣을 것은 **이 호스트 자신의 사설 IP** 입니다. 긁어가는 쪽(fungame-infra)의
+      # 주소를 넣으면 이 호스트에 없는 주소라 컨테이너가 기동하지 못합니다.
+      #   failed to bind host port ...: cannot assign requested address
+      # 비우면 127.0.0.1 이라 prometheus 가 긁지 못하고, 0.0.0.0 으로 두면 공개됩니다.
       - "${MANAGEMENT_BIND_IP:-127.0.0.1}:8081:8081"
     environment:
       SPRING_PROFILES_ACTIVE: prod
@@ -30,9 +34,13 @@ services:
       SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/fungame
       SPRING_DATASOURCE_USERNAME: ${MYSQL_USER}
       SPRING_DATASOURCE_PASSWORD: ${MYSQL_PASSWORD}
-      AWS_REGION: ${AWS_REGION}
-      MAIL_FROM: ${MAIL_FROM}
-      PASSWORD_RESET_LINK_BASE_URL: ${PASSWORD_RESET_LINK_BASE_URL}
+      # AWS_REGION · MAIL_FROM · PASSWORD_RESET_LINK_BASE_URL 은 여기서 넘기지 않습니다.
+      # 세 값의 기본값(client-mail.yml, application.yml)이 이미 운영값과 같습니다.
+      #
+      # 여기서 넘기면 .env 에 없을 때 **빈 문자열**이 들어가 그 기본값을 덮습니다.
+      # 환경변수가 "없음" 이 아니라 "빈 값" 이 되어 Spring 이 기본값을 쓰지 않습니다.
+      # AWS_REGION 이 빈 값이면 Region.of("") 가 던져 기동 자체가 실패합니다.
+      # 환경마다 달라져야 할 때만 이 자리에 되살리고, 그때 .env 도 함께 채우세요.
       # 신고 알림을 받을 디스코드 웹훅. 정답과 힌트까지 실리므로 비공개 채널이어야 합니다.
       # 주소를 아는 사람은 누구나 그 채널에 메시지를 쏠 수 있으므로 .env 에만 둡니다.
       DISCORD_REPORT_WEBHOOK_URL: ${DISCORD_REPORT_WEBHOOK_URL}
