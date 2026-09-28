@@ -1,5 +1,8 @@
 apiVersion: 1
 
+# 프로바이더 하나가 폴더 하나를 맡습니다. 폴더를 나누려면 블록을 더하세요.
+# 그라파나가 path 를 updateIntervalSeconds 마다 다시 읽으므로,
+# 저장소에 JSON 을 넣고 배포하면 재시작 없이 반영됩니다.
 providers:
   - name: 'Application Logs'
     orgId: 1
@@ -10,3 +13,13 @@ providers:
     updateIntervalSeconds: 30
     options:
       path: /etc/grafana/provisioning/dashboards/json
+
+  - name: 'Metrics'
+    orgId: 1
+    folder: 'Metrics'
+    type: file
+    disableDeletion: false
+    allowUiUpdates: true
+    updateIntervalSeconds: 30
+    options:
+      path: /etc/grafana/provisioning/dashboards/json-metrics

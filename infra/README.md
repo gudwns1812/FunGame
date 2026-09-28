@@ -40,23 +40,36 @@
 `INFRA_HOST` 가 비어 있으면 워크플로가 조용히 건너뜁니다. 시크릿을 넣기 전에
 머지해도 빨간 X 가 뜨지 않습니다.
 
-## 프로비저닝된 것과 안 된 것
+## 대시보드는 저장소에서 만듭니다
 
-`compose.yml` 이 마운트하는 네 곳을 모두 가져왔습니다. 다만 그라파나 쪽에 구멍이 하나 있습니다.
+그라파나가 프로비저닝 폴더를 `updateIntervalSeconds`(30초)마다 다시 읽고, compose 가 그 폴더를
+바인드 마운트합니다. 그래서 **JSON 을 저장소에 넣고 배포하면 재시작 없이 반영됩니다.**
 
-| | 프로비저닝 | 어디에 |
+```
+저장소에 JSON 추가 → 머지 → deploy-infra 가 scp → 30초 안에 대시보드 등장
+```
+
+프로바이더 하나가 폴더 하나를 맡습니다. 폴더를 나누려면 `dashboards.yml` 에 블록을 더하세요.
+
+| 프로바이더 | 폴더 | 경로 |
 | --- | --- | --- |
-| Loki 데이터소스 | ✅ | `grafana/provisioning/datasources/loki.yml` |
-| Application Logs 대시보드 | ✅ | `grafana/provisioning/dashboards/json/` |
-| **프로메테우스 데이터소스** | ❌ | 없음 — UI 로 만들었다면 `grafana-data` 볼륨에만 있습니다 |
-| **로그인·DAU 대시보드** (PR #70) | ❌ | 없음 — 본문 JSON 을 UI 에 붙이는 방식입니다 |
+| Application Logs | `Logs` | `dashboards/json/` |
+| Metrics | `Metrics` | `dashboards/json-metrics/` |
 
-프로메테우스를 긁고는 있는데(`prometheus.yml`) 그라파나가 그걸 데이터소스로 갖고 있는지는
-저장소에 없습니다. **이 저장소만으로 인프라 서버를 새로 세우면 로그는 보이지만 지표는 안 보입니다.**
+`allowUiUpdates: true` 라 UI 에서도 고칠 수 있습니다. 편하지만 파일과 갈라집니다 — 파일이
+바뀌면 파일이 이기고, 안 바뀌면 UI 쪽이 남습니다. **UI 수정은 임시**로 생각하고, 남길 것은
+파일로 옮기세요. 저장소만 진실로 삼고 싶으면 `false` 로 내리면 됩니다.
 
-닫으려면 `datasources/prometheus.yml` 을 더하고 PR #70 의 대시보드 JSON 을
-`dashboards/json/` 에 옮기면 됩니다. 지금 UI 에 만들어 둔 데이터소스가 있다면 uid 가 겹치지
-않게 맞춰야 해서, 그 uid 를 확인한 뒤에 하는 편이 안전합니다.
+## 데이터소스
+
+| 이름 | uid | 비고 |
+| --- | --- | --- |
+| Loki | `loki` | 기본 데이터소스 |
+| prometheus | `afvghsyndws8we` | UI 에서 만들었던 것을 프로비저닝이 인수합니다 |
+
+프로메테우스 uid 가 랜덤 문자열인 것은 UI 에서 먼저 만들었기 때문입니다. 새 uid 를 주면
+데이터소스가 둘로 보이고 이 uid 를 박아 쓰던 대시보드가 깨지므로 그대로 물려받습니다.
+프로비저닝된 데이터소스는 UI 에서 읽기 전용이 되고, 이제 이 파일이 진실입니다.
 
 ## 스크랩 대상
 
