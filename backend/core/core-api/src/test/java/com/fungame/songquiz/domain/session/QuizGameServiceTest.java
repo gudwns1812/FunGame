@@ -50,6 +50,7 @@ class QuizGameServiceTest {
     private static final Duration ROUND_LENGTH = Duration.ofSeconds(30);
     private static final Duration UNTIL_HINT_OPENS = Duration.ofSeconds(20);
     private static final Duration BEFORE_GAME_RESULT = Duration.ofSeconds(3);
+    private static final Duration BETWEEN_ROUNDS = Duration.ofSeconds(3);
     private static final long TICK_TOLERANCE_MILLIS = 500L;
 
     @Mock
@@ -312,6 +313,54 @@ class QuizGameServiceTest {
 
         // then
         verify(gameRoomManager).endGame(ROOM_ID);
+    }
+
+    @Test
+    @DisplayName("라운드 시작 알림이 터져도 타임아웃은 예약된다. 방이 그 라운드에서 굳지 않는다.")
+    void startRound_schedules_timeout_even_if_the_start_broadcast_blows_up() {
+        // given: 라운드 시작 알림에는 @Async 가 없어 리스너의 예외가 여기까지 올라온다
+        startedSessionOf(P1);
+        willThrow(new IllegalStateException("브로드캐스트 실패"))
+                .given(publisher).publishEvent(any(RoundStartEvent.class));
+
+        // when: 예외는 그대로 올려 GameTimer 가 어느 방인지 남기게 한다
+        assertThatThrownBy(() -> quizGameService.startRound(ROOM_ID))
+                .isInstanceOf(IllegalStateException.class);
+
+        // then: 라운드를 연 이상 닫을 사람도 있어야 한다
+        verify(timer).startAfter(eq(ROOM_ID), eq(ROUND_LENGTH), any());
+    }
+
+    @Test
+    @DisplayName("라운드 결과 브로드캐스트가 터져도 다음 라운드는 예약된다.")
+    void endRound_schedules_next_round_even_if_the_result_broadcast_blows_up() {
+        // given: 문제가 둘이라 이번 라운드 뒤에 다음 라운드가 남아 있다
+        startedSessionOf(P1);
+        willThrow(new IllegalStateException("브로드캐스트 실패"))
+                .given(publisher).publishEvent(any(RoundEndEvent.class));
+
+        // when: 스킵 정족수를 채워 라운드를 끝낸다
+        assertThatThrownBy(() -> quizGameService.increaseSkipVote(ROOM_ID, P1.memberId()))
+                .isInstanceOf(IllegalStateException.class);
+
+        // then: startProcessing 은 되돌릴 수 없다. 여기서 예약을 놓치면 그 방은 영영 멈춘다
+        verify(timer).startAfter(eq(ROOM_ID), eq(BETWEEN_ROUNDS), any());
+    }
+
+    @Test
+    @DisplayName("마지막 라운드의 결과 브로드캐스트가 터져도 게임 종료 단계는 예약된다.")
+    void endRound_schedules_game_over_even_if_the_last_result_broadcast_blows_up() {
+        // given: 문제가 하나뿐이라 이번 라운드가 마지막이다
+        lastRoundSessionOf(P1);
+        willThrow(new IllegalStateException("브로드캐스트 실패"))
+                .given(publisher).publishEvent(any(RoundEndEvent.class));
+
+        // when
+        assertThatThrownBy(() -> quizGameService.increaseSkipVote(ROOM_ID, P1.memberId()))
+                .isInstanceOf(IllegalStateException.class);
+
+        // then: 이 예약이 방 정리까지 이어진다
+        verify(timer).startAfter(eq(ROOM_ID), eq(BEFORE_GAME_RESULT), any());
     }
 
     private GameSession startedSessionOf(GamePlayer... players) {
