@@ -22,6 +22,7 @@ import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.*;
 
@@ -103,5 +104,28 @@ class HangmanGameServiceTest {
         verify(gameRoomManager).endGame(roomId);
         verify(eventPublisher).publishEvent(any(HangmanActionEvent.class));
         verify(eventPublisher).publishEvent(any(GameResultEvent.class));
+    }
+
+    @Test
+    @DisplayName("결과 브로드캐스트가 터져도 방은 정리된다. PLAYING 으로 굳지 않는다.")
+    void ends_the_room_even_if_the_result_broadcast_blows_up() {
+        // Given
+        Long roomId = 1L;
+        List<GamePlayer> players = List.of(P1);
+        HangmanQuiz hangmanQuiz = HangmanQuiz.create(new HangmanWord(2L, "A", 1)); // 한 글자 정답
+        hangmanQuiz.initPlayers(players);
+        GameAction action = new GameAction(P1.memberId(), ActionType.SUBMIT_ANSWER, "A");
+
+        given(gameSessionManager.getGameSession(roomId)).willReturn(new GameSession(hangmanQuiz, players));
+        // 이 방의 다른 이벤트 발행까지 막지 않도록 lenient 로 둔다
+        lenient().doThrow(new IllegalStateException("브로드캐스트 실패"))
+                .when(eventPublisher).publishEvent(any(GameResultEvent.class));
+
+        // When
+        assertThatThrownBy(() -> hangmanGameService.handleAction(roomId, action))
+                .isInstanceOf(IllegalStateException.class);
+
+        // Then
+        verify(gameRoomManager).endGame(roomId);
     }
 }

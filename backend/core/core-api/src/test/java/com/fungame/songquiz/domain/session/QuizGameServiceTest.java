@@ -31,6 +31,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.BDDMockito.willThrow;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -48,6 +49,7 @@ class QuizGameServiceTest {
             new RoomSettings(GameType.SONG, "방", 8, Category.KPOP, 3, 0, CSQuizDifficulty.EASY);
     private static final Duration ROUND_LENGTH = Duration.ofSeconds(30);
     private static final Duration UNTIL_HINT_OPENS = Duration.ofSeconds(20);
+    private static final Duration BEFORE_GAME_RESULT = Duration.ofSeconds(3);
     private static final long TICK_TOLERANCE_MILLIS = 500L;
 
     @Mock
@@ -291,6 +293,27 @@ class QuizGameServiceTest {
         verify(timer).startAfter(eq(ROOM_ID), any(Duration.class), any());
     }
 
+    @Test
+    @DisplayName("결과 브로드캐스트가 터져도 방은 정리된다. PLAYING 으로 굳지 않는다.")
+    void endGame_tears_down_the_room_even_if_the_result_broadcast_blows_up() {
+        // given: 문제가 하나뿐이라 이번 라운드가 마지막이다
+        lastRoundSessionOf(P1);
+        quizGameService.increaseSkipVote(ROOM_ID, P1.memberId());
+
+        ArgumentCaptor<Runnable> resultStep = ArgumentCaptor.forClass(Runnable.class);
+        verify(timer).startAfter(eq(ROOM_ID), eq(BEFORE_GAME_RESULT), resultStep.capture());
+
+        willThrow(new IllegalStateException("브로드캐스트 실패"))
+                .given(publisher).publishEvent(any(GameResultEvent.class));
+
+        // when
+        assertThatThrownBy(() -> resultStep.getValue().run())
+                .isInstanceOf(IllegalStateException.class);
+
+        // then
+        verify(gameRoomManager).endGame(ROOM_ID);
+    }
+
     private GameSession startedSessionOf(GamePlayer... players) {
         SongQuiz quiz = new SongQuiz(List.of(playableSong(), playableSong()), Category.KPOP);
         GameSession session = new GameSession(quiz, List.of(players));
@@ -298,6 +321,13 @@ class QuizGameServiceTest {
         given(sessionManager.getGameSession(ROOM_ID)).willReturn(session);
 
         return session;
+    }
+
+    private void lastRoundSessionOf(GamePlayer... players) {
+        SongQuiz quiz = new SongQuiz(List.of(playableSong()), Category.KPOP);
+        GameSession session = new GameSession(quiz, List.of(players));
+        session.startRound();
+        given(sessionManager.getGameSession(ROOM_ID)).willReturn(session);
     }
 
     private static Song playableSong() {

@@ -1,7 +1,14 @@
 package com.fungame.songquiz.domain.session;
 
+import ch.qos.logback.classic.Level;
+import ch.qos.logback.classic.Logger;
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.read.ListAppender;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
 import org.springframework.test.util.ReflectionTestUtils;
 
@@ -26,6 +33,23 @@ class GameTimerTest {
 
     private final GameTimer gameTimer = new GameTimer(taskScheduler());
     private final List<String> fired = new CopyOnWriteArrayList<>();
+    private final ListAppender<ILoggingEvent> logs = new ListAppender<>();
+
+    @BeforeEach
+    void listenToLogs() {
+        logs.start();
+        timerLogger().addAppender(logs);
+    }
+
+    @AfterEach
+    void stopListeningToLogs() {
+        timerLogger().detachAppender(logs);
+        logs.stop();
+    }
+
+    private static Logger timerLogger() {
+        return (Logger) LoggerFactory.getLogger(GameTimer.class);
+    }
 
     private static ThreadPoolTaskScheduler taskScheduler() {
         ThreadPoolTaskScheduler scheduler = new ThreadPoolTaskScheduler();
@@ -77,6 +101,21 @@ class GameTimerTest {
         gameTimer.startAfter(ROOM_ID, NEVER_WITHIN_TEST, () -> fired.add("다음 라운드"));
 
         assertThat(reservationsOf(ROOM_ID)).hasSize(1);
+    }
+
+    @Test
+    @DisplayName("예약 작업이 터지면 어느 방인지와 함께 로그를 남긴다. 조용히 사라지지 않는다.")
+    void a_blown_reservation_is_logged_with_its_room() {
+        gameTimer.startAfter(ROOM_ID, SOON, () -> {
+            throw new IllegalStateException("라운드를 닫지 못했다");
+        });
+
+        await().atMost(2, TimeUnit.SECONDS).untilAsserted(() ->
+                assertThat(logs.list).anySatisfy(logged -> {
+                    assertThat(logged.getLevel()).isEqualTo(Level.ERROR);
+                    assertThat(logged.getFormattedMessage()).contains(String.valueOf(ROOM_ID));
+                    assertThat(logged.getThrowableProxy().getMessage()).isEqualTo("라운드를 닫지 못했다");
+                }));
     }
 
     @SuppressWarnings("unchecked")
