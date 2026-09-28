@@ -1,0 +1,8 @@
+# 앱 서버의 Caddy 설정입니다. compose.yml 이 ./caddy 를 /etc/caddy 로 마운트합니다.
+# API 만 넘깁니다. 프런트엔드는 Vercel 이 서빙하므로 여기에 www 호스트가 없습니다.
+# backend 는 같은 compose 네트워크의 서비스 이름입니다.
+# 인증서는 Caddy 가 알아서 발급·갱신하고 caddy-data 볼륨에 보관합니다.
+
+api.fun-game.club {
+	reverse_proxy backend:8080
+}
