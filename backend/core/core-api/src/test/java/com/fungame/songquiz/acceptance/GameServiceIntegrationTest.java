@@ -54,9 +54,6 @@ public class GameServiceIntegrationTest {
     private TestEventCapture eventCapture;
 
     @Autowired
-    private com.fungame.songquiz.storage.CounterRepository counterRepository;
-
-    @Autowired
     private com.fungame.songquiz.storage.ComputerScienceRepository computerScienceRepository;
 
     @Autowired
@@ -71,9 +68,6 @@ public class GameServiceIntegrationTest {
     @BeforeEach
     void setUp() {
         eventCapture.clear();
-
-        // 데이터 초기화
-        counterRepository.save(new com.fungame.songquiz.storage.CounterEntity(null, "GAME_ROOM_COUNTER", 0L));
 
         // CS 문제 데이터 추가 (정답을 명시적으로 알기 위해 고정)
         computerScienceRepository.save(com.fungame.songquiz.storage.ComputerScienceEntity.builder()
