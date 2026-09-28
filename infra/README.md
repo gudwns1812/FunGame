@@ -16,7 +16,7 @@
 
 | Caddyfile | 인스턴스 | 무엇을 |
 | --- | --- | --- |
-| 저장소 루트 `caddy/Caddyfile` | `fungame` | `api.fun-game.club` → `backend:8080` |
+| `backend/caddy/Caddyfile` | `fungame` | `api.fun-game.club` → `backend:8080` |
 | `infra/caddy/Caddyfile` | `fungame-infra` | `grafana.fun-game.club` → 그라파나 |
 
 이름이 같아 헷갈리기 쉽습니다. 고치기 전에 **어느 인스턴스의 것인지** 먼저 확인하세요.
