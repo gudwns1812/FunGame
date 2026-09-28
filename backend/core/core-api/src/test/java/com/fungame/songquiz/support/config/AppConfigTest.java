@@ -20,7 +20,7 @@ class AppConfigTest {
         try {
             assertThat(game).isNotSameAs(app);
             assertThat(game.getScheduledExecutor()).isNotSameAs(app.getScheduledExecutor());
-            // getPoolSize() 는 실제로 만들어진 스레드 수라 작업을 주기 전에는 0 이다.
+            // getPoolSize() 는 실제로 만들어진 스레드 수라 작업 전에는 0 이다.
             assertThat(game.getScheduledThreadPoolExecutor().getCorePoolSize()).isEqualTo(8);
             assertThat(app.getScheduledThreadPoolExecutor().getCorePoolSize()).isEqualTo(5);
         } finally {

@@ -35,7 +35,6 @@ class RoomNumberWriterTest {
     @Test
     @DisplayName("동시에 발급해도 같은 번호가 두 번 나가지 않는다.")
     void never_issues_the_same_number_twice() throws Exception {
-        // 읽고-더하고-쓰기였다면 여기서 번호가 겹친다. 스텁으로는 재현되지 않아 실제 DB 가 필요하다.
         ExecutorService pool = Executors.newFixedThreadPool(CONCURRENT_REQUESTS);
 
         try {

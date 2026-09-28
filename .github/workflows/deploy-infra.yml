@@ -21,12 +21,8 @@ jobs:
     permissions:
       contents: read
     steps:
-      # 접속에 필요한 시크릿이 하나라도 없으면 뒤 단계를 전부 건너뜁니다.
-      # 셋을 다 봐야 합니다. 하나만 보면 나머지가 빈 채로 scp 까지 가서
-      # "can't connect without a private SSH key" 로 실패합니다.
-      #
-      # secrets 컨텍스트는 job 레벨 if 에서 쓸 수 없으므로 env 로 받아
-      # step 레벨에서 가릅니다.
+      # 접속에 필요한 시크릿이 하나라도 없으면 뒤 단계를 건너뜁니다.
+      # secrets 컨텍스트는 job 레벨 if 에서 못 쓰므로 step 레벨에서 가릅니다.
       - id: guard
         env:
           INFRA_HOST: ${{ secrets.INFRA_HOST }}

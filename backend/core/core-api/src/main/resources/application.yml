@@ -16,9 +16,7 @@ spring:
     name: fungame-backend
   task:
     execution:
-      # @Async 가 쓰는 executor. 기본값은 큐가 무제한이라 부하가 와도 예외 대신
-      # 조용히 밀리기만 합니다. 상한을 두어 포화가 지표와 로그에 드러나게 합니다.
-      # 큐가 차면 발행 스레드가 대신 실행합니다(AsyncConfig 의 거부 정책).
+      # @Async 용. 부트 기본값은 큐가 무제한이라 포화가 드러나지 않습니다.
       thread-name-prefix: app-async-
       pool:
         core-size: 4
