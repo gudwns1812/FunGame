@@ -213,9 +213,17 @@ graph TB
       `taskScheduler` 를 찾아 쓰고 있었고, 거기엔 유튜브를 긁는 `SongScrapeScheduler` 도 있다.
       그래서 `@Scheduled` 를 게임 쪽이 아니라 앱 쪽에 남겼다. 스레드 이름(`game-timer-`, `app-sched-`)으로
       어느 풀인지 구분된다.
-- [ ] **B2** `AsyncConfig` 에 executor 를 명시한다. 큐 상한, 거부 정책, `ThreadPoolTaskExecutor` 메트릭 노출.
-      **먼저 확인할 것**: `@Async` 가 실제로 어느 executor 에 붙는지. 부트 기본값(`applicationTaskExecutor`,
-      큐 무제한)일 가능성이 크지만 확정하지 않았다.
+- [x] **B2** `@Async` executor 에 상한을 둔다.
+      **확인 결과**: 스케줄러 풀과 섞이지 않는다. 부트가 `applicationTaskExecutor` 를 만들고
+      (우리 스케줄러 빈의 *선언 타입*이 `TaskScheduler` 라 `@ConditionalOnMissingBean(Executor.class)` 에
+      걸리지 않는다) `@Async` 가 그걸 쓴다. 다만 **큐가 `Integer.MAX_VALUE`** 라 부하가 와도 예외 대신
+      조용히 밀리기만 했다. 큐가 무한하면 스레드도 core 위로 안 늘어난다.
+      `spring.task.execution.*` 으로 core 4 · max 8 · queue 1000 으로 묶고, 거부 정책을
+      `CallerRunsPolicy` 로 뒀다 — 방송을 버리면 클라이언트가 이벤트를 영영 못 받으므로,
+      버리는 대신 발행 스레드를 느리게 한다.
+      **함정 하나**: `TaskExecutor` 타입 빈이 셋이라 타입 조회가 실패하고 `@Async` 는 부트가 달아둔
+      `taskExecutor` **별칭**으로만 executor 를 찾는다. executor 빈을 직접 정의해 별칭이 사라지면
+      스레드를 요청마다 새로 만드는 `SimpleAsyncTaskExecutor` 로 조용히 폴백한다.
 - [ ] **B5** 방 ID 를 재기동에도 이어지게. 0단계에서는 기동 시 현재 최대 ID + 1 로 시드하는 것으로 충분하다
       (2단계에서 Redis `INCR` 로 갈아탄다).
 - [ ] ~~**B1** `PlayerNumberWriter.issueNext` 를 원자적으로~~ → **고칠 게 아니라 지울 것.**
