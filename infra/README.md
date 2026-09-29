@@ -37,6 +37,15 @@
 | `INFRA_PORT` | SSH 포트 | `22` |
 | `INFRA_PROJECT_DIR` | 서버의 배포 디렉터리 | `/opt/monitoring` |
 
+### 배포 디렉터리 소유권
+
+`INFRA_PROJECT_DIR`(기본 `/opt/monitoring`)과 그 아래 파일을 **`INFRA_USER` 가 소유해야** 합니다.
+`/opt` 는 보통 root 소유라 그대로 두면 scp 가 `Cannot utime: Operation not permitted` 로 죽습니다.
+
+```
+sudo chown -R ubuntu:ubuntu /opt/monitoring
+```
+
 `INFRA_HOST` · `INFRA_USER` · `INFRA_SSH_KEY` **셋이 다 있어야** 배포가 돕니다. 하나라도
 없으면 워크플로가 건너뛰고 성공으로 끝납니다. 어느 것이 없는지는 실행 요약에 적힙니다.
 

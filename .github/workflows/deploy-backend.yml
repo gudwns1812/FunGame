@@ -119,6 +119,8 @@ jobs:
           port: ${{ secrets.EC2_PORT || 22 }}
           source: 'backend/compose.yml,backend/caddy/Caddyfile'
           strip_components: 1
+          # 없으면 기존 파일을 건너뛰고 tar 가 File exists 로 죽는다
+          overwrite: true
           target: ${{ secrets.BACKEND_PROJECT_DIR || '/home/ubuntu/fungame' }}
 
       - uses: appleboy/ssh-action@v1.2.0

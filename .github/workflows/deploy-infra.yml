@@ -57,6 +57,8 @@ jobs:
           port: ${{ secrets.INFRA_PORT || 22 }}
           source: 'infra/*'
           strip_components: 1
+          # 없으면 기존 파일을 건너뛰고 tar 가 File exists 로 죽는다
+          overwrite: true
           target: ${{ secrets.INFRA_PROJECT_DIR || '/opt/monitoring' }}
 
       - name: 스택을 올린다
