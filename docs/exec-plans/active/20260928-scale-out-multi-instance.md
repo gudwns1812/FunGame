@@ -242,10 +242,16 @@ graph TB
 **한 대의 한계를 숫자로 모르면 2대가 필요한지도 알 수 없다.** 이미 Actuator + Prometheus 가
 `support:monitoring` 에 붙어 있으니 지표만 추가한다.
 
-- [ ] 커스텀 게이지: 활성 방 수, 진행 중 게임 수, STOMP 연결 수, 접속 회원 수
-- [ ] 타이머: 라운드 전환 지연 분포, `endRound` 처리 시간
-- [ ] `@Async` executor 큐 깊이 · 거부 건수, 게임 스케줄러 풀 포화도
-- [ ] JVM 힙 · 스레드 · GC 대시보드 (t2.micro 1GB 에서 제일 먼저 터질 자리)
+- [x] 커스텀 게이지: `fungame_rooms_active` · `fungame_games_in_progress` · `fungame_room_players` ·
+      `fungame_stomp_sessions` · `fungame_members_online`
+- [x] 타이머: `fungame_game_timer_lateness`(예약 시각보다 늦게 시작한 정도) ·
+      `fungame_game_timer_task`(작업이 도는 데 걸린 시간). 앞엣것이 게임 풀 포화의 직접 지표다
+- [x] `@Async` executor 큐 · 게임 스케줄러 풀 — `executor_*` 로 나온다.
+      **부트가 `applicationTaskExecutor` 를 `@Lazy` 로 만들어 지표가 아예 없었다.**
+      그 빈을 우리가 갖는 것으로 바꿔 기동과 함께 만들어지게 했다. 스케줄러는 부트가 빈 이름으로
+      이미 붙이고 있어 따로 등록하지 않는다
+- [ ] 그라파나 대시보드 — `infra/grafana/provisioning/dashboards/json-metrics/` 에 넣으면 CD 로 흐른다.
+      JVM 힙 · 스레드 · GC 는 Micrometer 가 이미 내보내므로 패널만 만들면 된다
 
 **종료 조건**: "인스턴스 1대의 한계는 동시 방 N개 / 동접 M명"이라고 근거를 대고 답할 수 있다.
 

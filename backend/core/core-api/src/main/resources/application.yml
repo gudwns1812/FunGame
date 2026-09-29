@@ -14,14 +14,6 @@ app:
 spring:
   application:
     name: fungame-backend
-  task:
-    execution:
-      # @Async 용. 부트 기본값은 큐가 무제한이라 포화가 드러나지 않습니다.
-      thread-name-prefix: app-async-
-      pool:
-        core-size: 4
-        max-size: 8
-        queue-capacity: 1000
   # 모듈이 자기 설정을 갖고 core-api 가 가져옵니다.
   config:
     import:
