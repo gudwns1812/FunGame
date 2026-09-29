@@ -64,11 +64,14 @@ public class QuizGameService implements GameService {
         gameRoomManager.touch(roomId);
 
         gameSession.startRound();
-        publisher.publishEvent(new RoundStartEvent(roomId, gameSession.getContent(), gameSession.getCurrentRound(),
-                gameSession.getTotalRound(), gameSession.getRoundLength().toMillis()));
 
-        timer.startAfter(roomId, gameSession.getUntilHintOpens(), () -> openHint(roomId, gameSession));
-        timer.startAfter(roomId, gameSession.getRoundLength(), () -> endRound(roomId, NO_WINNER));
+        try {
+            publisher.publishEvent(new RoundStartEvent(roomId, gameSession.getContent(), gameSession.getCurrentRound(),
+                    gameSession.getTotalRound(), gameSession.getRoundLength().toMillis()));
+        } finally {
+            timer.startAfter(roomId, gameSession.getUntilHintOpens(), () -> openHint(roomId, gameSession));
+            timer.startAfter(roomId, gameSession.getRoundLength(), () -> endRound(roomId, NO_WINNER));
+        }
     }
 
     private void openHint(Long roomId, GameSession gameSession) {
@@ -84,9 +87,11 @@ public class QuizGameService implements GameService {
 
         timer.stop(roomId);
 
-        processRoundResult(roomId, winnerId, gameSession);
-
-        scheduleNextStep(roomId, gameSession);
+        try {
+            processRoundResult(roomId, winnerId, gameSession);
+        } finally {
+            scheduleNextStep(roomId, gameSession);
+        }
     }
 
     private void processRoundResult(Long roomId, Long winnerId, GameSession gameSession) {
