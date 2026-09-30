@@ -250,8 +250,12 @@ graph TB
       **부트가 `applicationTaskExecutor` 를 `@Lazy` 로 만들어 지표가 아예 없었다.**
       그 빈을 우리가 갖는 것으로 바꿔 기동과 함께 만들어지게 했다. 스케줄러는 부트가 빈 이름으로
       이미 붙이고 있어 따로 등록하지 않는다
-- [ ] 그라파나 대시보드 — `infra/grafana/provisioning/dashboards/json-metrics/` 에 넣으면 CD 로 흐른다.
-      JVM 힙 · 스레드 · GC 는 Micrometer 가 이미 내보내므로 패널만 만들면 된다
+- [x] 그라파나 대시보드 `FunGame — 한 대의 한계` (`json-metrics/runtime-limits.json`). 패널 12개.
+      `lateness` 만 히스토그램으로 두어 p99 를 계산할 수 있게 했다. 범위를 5ms~2초로 묶어
+      시계열 비중을 16% 로 줄였다(안 묶으면 36%). GC 는 `jvm_gc_pause` 가 첫 GC 전까지
+      존재하지 않아 항상 있는 `jvm_gc_overhead` 를 주 계열로 쓴다.
+- [ ] **거부 건수는 지표가 없다.** 거부 정책이 `CallerRunsPolicy` 라 버려지는 일이 없다.
+      포화는 큐 깊이와 발행 스레드 지연으로 드러난다. 필요해지면 정책을 바꾸고 카운터를 단다.
 
 **종료 조건**: "인스턴스 1대의 한계는 동시 방 N개 / 동접 M명"이라고 근거를 대고 답할 수 있다.
 

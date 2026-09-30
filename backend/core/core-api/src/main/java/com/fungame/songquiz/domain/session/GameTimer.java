@@ -29,6 +29,9 @@ public class GameTimer {
         this.taskScheduler = taskScheduler;
         this.lateness = Timer.builder("fungame.game.timer.lateness")
                 .description("예약 시각보다 늦게 시작한 정도. 게임 스케줄러 풀이 밀리면 늘어난다")
+                .publishPercentileHistogram()
+                .minimumExpectedValue(Duration.ofMillis(5))
+                .maximumExpectedValue(Duration.ofSeconds(2))
                 .register(meterRegistry);
         this.taskDuration = Timer.builder("fungame.game.timer.task")
                 .description("예약 작업이 도는 데 걸린 시간")
