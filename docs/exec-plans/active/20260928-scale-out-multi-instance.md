@@ -287,7 +287,11 @@ graph TB
 **여기서 돈을 쓰지 않는다.** 같은 EC2 에 `backend-a` · `backend-b` 두 컨테이너를 띄우고
 Caddy 가 앞에서 나눈다. 프리티어 안에서 §2 의 모든 증상을 재현하고 잡는다.
 
-- [ ] Redis 컨테이너 추가 (`compose.yml`). 일단 같은 호스트
+- [x] Redis 컨테이너 추가 (`backend/compose.yml`). 일단 같은 호스트.
+      영속화를 끄고(`--save "" --appendonly no`) `maxmemory 64mb` 에 `noeviction` 을 건다.
+      LRU 로 두면 방 상태가 조용히 사라진다. 포트는 공개하지 않는다.
+      `storage:redis-core` 모듈을 `db-core` 와 같은 패턴으로 둔다.
+      배포 스크립트가 `--no-deps backend` 라 새 서비스를 안 띄우므로 `up -d redis` 를 앞에 넣었다.
 - [ ] 인스턴스 식별자 도입 — `INSTANCE_ID` 환경변수, 모든 로그와 메트릭에 라벨로
 - [ ] `RedisRoomIdGenerator` (`INCR room:seq`) — **S2 해결**
 - [ ] `RedisRoomRegistry` (Hash + TTL) — `RoomSummary` 만 공유. **S1 해결**
