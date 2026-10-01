@@ -12,7 +12,7 @@ public class RedisTestContainer {
     private static final int PORT = 6379;
 
     @Bean
-    @ServiceConnection(name = "redis")
+    @ServiceConnection
     static GenericContainer<?> redisContainer() {
         return new GenericContainer<>(IMAGE)
                 .withExposedPorts(PORT)
