@@ -1,6 +1,5 @@
 package com.fungame.songquiz.controller.websocket;
 
-import com.fungame.songquiz.support.config.InstanceLocal;
 import com.fungame.songquiz.controller.response.ApiResponse;
 import com.fungame.songquiz.controller.response.OnlineMemberResponse;
 import com.fungame.songquiz.controller.response.RoomResponse;
@@ -44,7 +43,6 @@ public class LobbyNotifyService {
         hasPendingPresenceUpdate.set(true);
     }
 
-    @InstanceLocal
     @Scheduled(fixedDelay = 500)
     public void processPendingUpdate() {
         if (hasPendingRoomUpdate.compareAndSet(true, false)) {

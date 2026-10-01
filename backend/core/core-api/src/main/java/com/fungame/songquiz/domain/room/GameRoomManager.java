@@ -1,6 +1,5 @@
 package com.fungame.songquiz.domain.room;
 
-import com.fungame.songquiz.support.config.InstanceLocal;
 import com.fungame.songquiz.domain.session.GameSession;
 import com.fungame.songquiz.domain.session.GameSessionManager;
 import com.fungame.songquiz.domain.session.GameTimer;
@@ -177,7 +176,6 @@ public class GameRoomManager {
         });
     }
 
-    @InstanceLocal
     @Scheduled(fixedDelay = 60000)
     public void cleanupIdleRooms() {
         Instant threshold = Instant.now().minus(MAX_IDLE_MINUTES, ChronoUnit.MINUTES);

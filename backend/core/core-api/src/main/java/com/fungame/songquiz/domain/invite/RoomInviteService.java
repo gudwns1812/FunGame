@@ -1,6 +1,5 @@
 package com.fungame.songquiz.domain.invite;
 
-import com.fungame.songquiz.support.config.InstanceLocal;
 import com.fungame.songquiz.domain.member.Member;
 import com.fungame.songquiz.domain.member.MemberConnectionTracker;
 import com.fungame.songquiz.domain.member.MemberReader;
@@ -80,7 +79,6 @@ public class RoomInviteService {
         consume(inviteId, memberId);
     }
 
-    @InstanceLocal
     @Scheduled(fixedDelay = 30000)
     public void purgeExpiredInvites() {
         LocalDateTime now = now();
