@@ -1,5 +1,6 @@
 package com.fungame.songquiz.domain.room;
 
+import com.fungame.songquiz.support.config.InstanceLocal;
 import com.fungame.songquiz.domain.session.GameSession;
 import com.fungame.songquiz.domain.session.GameSessionManager;
 import com.fungame.songquiz.domain.session.GameTimer;
@@ -25,7 +26,7 @@ import java.util.concurrent.ConcurrentHashMap;
 public class GameRoomManager {
     private final Map<Long, GameRoom> gameRooms = new ConcurrentHashMap<>();
     private final RoomNumberWriter roomNumberWriter;
-    private final LockContext lockContext;
+    private final RoomLock roomLock;
     private final ApplicationEventPublisher applicationEventPublisher;
     private final GameTimer gameTimer;
     private final GameSessionManager gameSessionManager;
@@ -53,7 +54,7 @@ public class GameRoomManager {
     }
 
     public JoinResult joinRoom(Long roomId, GamePlayer player) {
-        return lockContext.processWithLockKey(roomId, () -> {
+        return roomLock.processWithLockKey(roomId, () -> {
             GameRoom gameRoom = getRoom(roomId);
             gameRoom.touch();
 
@@ -84,7 +85,7 @@ public class GameRoomManager {
     }
 
     public LeaveResult leaveRoom(Long roomId, Long memberId) {
-        return lockContext.processWithLockKey(roomId, () -> {
+        return roomLock.processWithLockKey(roomId, () -> {
             GameRoom gameRoom = getRoom(roomId);
             boolean wasPlaying = gameRoom.isPlaying();
             String nickname = gameRoom.nicknameOf(memberId);
@@ -103,14 +104,14 @@ public class GameRoomManager {
     }
 
     public boolean hasPlayer(Long roomId, Long memberId) {
-        return lockContext.processWithLockKey(roomId, () -> {
+        return roomLock.processWithLockKey(roomId, () -> {
             GameRoom liveRoom = gameRooms.get(roomId);
             return liveRoom != null && liveRoom.hasPlayer(memberId);
         });
     }
 
     public KickResult kickPlayer(Long roomId, Long hostId, Long targetId) {
-        return lockContext.processWithLockKey(roomId, () -> {
+        return roomLock.processWithLockKey(roomId, () -> {
             GameRoom gameRoom = getRoom(roomId);
 
             GamePlayer kicked = gameRoom.kick(hostId, targetId);
@@ -131,7 +132,7 @@ public class GameRoomManager {
     }
 
     public GameRoom findStartableRoom(Long roomId, Long memberId) {
-        return lockContext.processWithLockKey(roomId, () -> {
+        return roomLock.processWithLockKey(roomId, () -> {
             GameRoom gameRoom = getRoom(roomId);
             gameRoom.validateStart(memberId);
             return gameRoom;
@@ -139,7 +140,7 @@ public class GameRoomManager {
     }
 
     public GameRoom startGame(Long roomId, Long memberId) {
-        return lockContext.processWithLockKey(roomId, () -> {
+        return roomLock.processWithLockKey(roomId, () -> {
             GameRoom gameRoom = getRoom(roomId);
             gameRoom.start(memberId);
             applicationEventPublisher.publishEvent(new RoomChangedEvent());
@@ -148,7 +149,7 @@ public class GameRoomManager {
     }
 
     public void endGame(Long roomId) {
-        lockContext.processWithLockKey(roomId, () -> {
+        roomLock.processWithLockKey(roomId, () -> {
             GameRoom gameRoom = gameRooms.get(roomId);
             if (gameRoom == null) {
                 return;
@@ -163,7 +164,7 @@ public class GameRoomManager {
     }
 
     public RoomStateInfo changeSettings(Long roomId, Long memberId, RoomSettings newSettings) {
-        return lockContext.processWithLockKey(roomId, () -> {
+        return roomLock.processWithLockKey(roomId, () -> {
             GameRoom gameRoom = getRoom(roomId);
             if (!gameRoom.isHost(memberId)) {
                 throw new CoreException(ErrorType.NOT_VALID_HOST);
@@ -176,6 +177,7 @@ public class GameRoomManager {
         });
     }
 
+    @InstanceLocal
     @Scheduled(fixedDelay = 60000)
     public void cleanupIdleRooms() {
         Instant threshold = Instant.now().minus(MAX_IDLE_MINUTES, ChronoUnit.MINUTES);
@@ -185,7 +187,7 @@ public class GameRoomManager {
                 .map(GameRoom::getRoomId)
                 .toList();
 
-        idleRoomIds.forEach(roomId -> lockContext.processWithLockKey(roomId, () -> {
+        idleRoomIds.forEach(roomId -> roomLock.processWithLockKey(roomId, () -> {
             log.info("유휴 방 정리: {}", roomId);
             deleteRoom(roomId);
         }));
@@ -215,11 +217,11 @@ public class GameRoomManager {
     }
 
     public RoomStateInfo findRoomState(Long roomId) {
-        return lockContext.processWithLockKey(roomId, () -> RoomStateInfo.from(getRoom(roomId)));
+        return roomLock.processWithLockKey(roomId, () -> RoomStateInfo.from(getRoom(roomId)));
     }
 
     public ReadyResult readyPlayer(Long roomId, Long memberId) {
-        return lockContext.processWithLockKey(roomId, () -> {
+        return roomLock.processWithLockKey(roomId, () -> {
             GameRoom gameRoom = getRoom(roomId);
             gameRoom.touch();
 

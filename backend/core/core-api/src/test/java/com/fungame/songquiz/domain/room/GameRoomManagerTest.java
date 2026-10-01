@@ -67,7 +67,7 @@ class GameRoomManagerTest {
 
         gameRoomManager = new GameRoomManager(
                 roomNumberWriter,
-                new LockContext(),
+                new LocalRoomLock(),
                 applicationEventPublisher,
                 gameTimer,
                 gameSessionManager

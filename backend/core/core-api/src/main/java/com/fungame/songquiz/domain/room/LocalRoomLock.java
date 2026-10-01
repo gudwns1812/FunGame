@@ -7,19 +7,13 @@ import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Supplier;
 
 @Component
-public class LockContext {
+public class LocalRoomLock implements RoomLock {
 
     static final int STRIPE_COUNT = 64;
 
     private final ReentrantLock[] stripes = newStripes();
 
-    public void processWithLockKey(Long lockKey, Runnable runnable) {
-        processWithLockKey(lockKey, () -> {
-            runnable.run();
-            return null;
-        });
-    }
-
+    @Override
     public <T> T processWithLockKey(Long lockKey, Supplier<T> supplier) {
         ReentrantLock lock = lockOf(lockKey);
         lock.lock();

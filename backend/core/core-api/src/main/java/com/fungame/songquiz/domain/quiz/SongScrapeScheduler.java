@@ -1,5 +1,6 @@
 package com.fungame.songquiz.domain.quiz;
 
+import com.fungame.songquiz.support.config.ClusterWide;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -12,6 +13,7 @@ public class SongScrapeScheduler {
 
     private final SongScrapeService songScrapeService;
 
+    @ClusterWide
     @Scheduled(fixedDelayString = "${app.song-scrape.interval-millis:60000}")
     public void fillPendingSongs() {
         songScrapeService.fillPendingSongs();

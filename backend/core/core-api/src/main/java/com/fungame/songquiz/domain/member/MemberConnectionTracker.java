@@ -1,5 +1,6 @@
 package com.fungame.songquiz.domain.member;
 
+import com.fungame.songquiz.support.config.InstanceLocal;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -67,6 +68,7 @@ public class MemberConnectionTracker {
         return Set.copyOf(onlineMemberIds);
     }
 
+    @InstanceLocal
     @Scheduled(fixedDelay = GRACE_SWEEP_INTERVAL_MS)
     public void expireReconnectGrace() {
         List<Long> memberIdsOutOfGrace = offlineDeadlineByMember.entrySet().stream()

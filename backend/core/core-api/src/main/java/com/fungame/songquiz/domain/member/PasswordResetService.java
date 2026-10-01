@@ -1,5 +1,6 @@
 package com.fungame.songquiz.domain.member;
 
+import com.fungame.songquiz.support.config.ClusterWide;
 import com.fungame.songquiz.support.error.CoreException;
 import com.fungame.songquiz.support.error.ErrorType;
 import lombok.RequiredArgsConstructor;
@@ -81,6 +82,7 @@ public class PasswordResetService {
         expireEverySessionOf(member);
     }
 
+    @ClusterWide
     @Scheduled(cron = DAILY_CLEANUP_CRON)
     public void deleteExpiredTokens() {
         passwordResetTokenWriter.removeExpiredBefore(now().minusDays(EXPIRED_TOKEN_RETENTION_DAYS));

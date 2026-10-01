@@ -14,25 +14,25 @@ import java.util.stream.LongStream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-class LockContextTest {
+class LocalRoomLockTest {
 
-    private final LockContext lockContext = new LockContext();
+    private final LocalRoomLock localRoomLock = new LocalRoomLock();
 
-    private ReentrantLock[] stripesOf(LockContext context) {
+    private ReentrantLock[] stripesOf(LocalRoomLock context) {
         return (ReentrantLock[]) ReflectionTestUtils.getField(context, "stripes");
     }
 
     @Test
     @DisplayName("사라진 방 번호로 계속 들어와도 보관하는 락 수가 늘지 않는다.")
     void deadRoomsDoNotAccumulateLocks() {
-        int lockCountBefore = stripesOf(lockContext).length;
+        int lockCountBefore = stripesOf(localRoomLock).length;
 
         LongStream.rangeClosed(1, 100_000)
-                .forEach(deadRoomId -> lockContext.processWithLockKey(deadRoomId, () -> {
+                .forEach(deadRoomId -> localRoomLock.processWithLockKey(deadRoomId, () -> {
                 }));
 
-        assertThat(stripesOf(lockContext)).hasSize(lockCountBefore);
-        assertThat(lockCountBefore).isEqualTo(LockContext.STRIPE_COUNT);
+        assertThat(stripesOf(localRoomLock)).hasSize(lockCountBefore);
+        assertThat(lockCountBefore).isEqualTo(LocalRoomLock.STRIPE_COUNT);
     }
 
     @Test
@@ -46,7 +46,7 @@ class LockContextTest {
 
         runConcurrently(threadCount, () -> {
             for (int i = 0; i < repeatCount; i++) {
-                lockContext.processWithLockKey(7L, () -> {
+                localRoomLock.processWithLockKey(7L, () -> {
                     if (insideCriticalSection.incrementAndGet() > 1) {
                         overlapCount.incrementAndGet();
                     }
@@ -64,13 +64,13 @@ class LockContextTest {
     @DisplayName("같은 스트라이프를 쓰는 다른 방들도 서로 겹치지 않는다.")
     void roomsSharingAStripeAreMutuallyExclusive() throws Exception {
         long roomId = 3L;
-        long sameStripeRoomId = roomId + LockContext.STRIPE_COUNT;
+        long sameStripeRoomId = roomId + LocalRoomLock.STRIPE_COUNT;
         AtomicInteger insideCriticalSection = new AtomicInteger();
         AtomicInteger overlapCount = new AtomicInteger();
 
         runConcurrently(8, () -> {
             for (int i = 0; i < 200; i++) {
-                lockContext.processWithLockKey(i % 2 == 0 ? roomId : sameStripeRoomId, () -> {
+                localRoomLock.processWithLockKey(i % 2 == 0 ? roomId : sameStripeRoomId, () -> {
                     if (insideCriticalSection.incrementAndGet() > 1) {
                         overlapCount.incrementAndGet();
                     }
@@ -85,8 +85,8 @@ class LockContextTest {
     @Test
     @DisplayName("락을 들고 같은 방을 다시 잠가도 막히지 않는다.")
     void reentrantOnTheSameRoom() {
-        String result = lockContext.processWithLockKey(7L,
-                () -> lockContext.processWithLockKey(7L, () -> "안쪽까지 들어왔다"));
+        String result = localRoomLock.processWithLockKey(7L,
+                () -> localRoomLock.processWithLockKey(7L, () -> "안쪽까지 들어왔다"));
 
         assertThat(result).isEqualTo("안쪽까지 들어왔다");
     }
@@ -95,13 +95,13 @@ class LockContextTest {
     @DisplayName("방을 만들고 지우기를 반복해도 락이 방 수에 비례해 늘지 않는다.")
     void repeatedRoomLifecycleDoesNotGrowLocks() {
         LongStream.rangeClosed(1, 10_000).forEach(roomId -> {
-            lockContext.processWithLockKey(roomId, () -> {
+            localRoomLock.processWithLockKey(roomId, () -> {
             });
-            lockContext.processWithLockKey(roomId, () -> {
+            localRoomLock.processWithLockKey(roomId, () -> {
             });
         });
 
-        assertThat(stripesOf(lockContext)).hasSize(LockContext.STRIPE_COUNT);
+        assertThat(stripesOf(localRoomLock)).hasSize(LocalRoomLock.STRIPE_COUNT);
     }
 
     private void runConcurrently(int threadCount, Runnable work) throws Exception {
