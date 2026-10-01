@@ -271,7 +271,13 @@ graph TB
 - [ ] `PresenceStore` 인터페이스 — `StompSessions` + `MemberConnectionTracker` 를 합쳐 하나의 포트로
 - [ ] `InviteStore` 인터페이스 + `LocalInviteStore`(현 `invitesById`)
 - [ ] `DomainEventBroadcaster` 인터페이스 + `LocalBroadcaster`(현 `ApplicationEventPublisher`)
-- [ ] `@Scheduled` 6곳에 **"인스턴스 로컬 / 전역"** 을 주석과 이름으로 명시한다. 이 한 줄이 3단계에서 큰 차이를 만든다
+- [x] `@Scheduled` 6곳의 범위를 분류했다. **표시는 3단계로 미룬다** — 마커만 먼저 넣으면
+      ShedLock 을 붙일 때 같은 메서드를 두 번 건드리고 `@SchedulerLock` 과 중복이 된다.
+
+      | 범위 | 작업 |
+      | --- | --- |
+      | 인스턴스 로컬 | 유휴 방 정리 · 접속 유예 만료 · 초대 만료 · 로비 팬아웃 |
+      | 전역 | 유튜브 스크래핑 · 비밀번호 재설정 토큰 정리 |
 - [ ] 각 인터페이스에 **계약 테스트**를 쓴다. 3단계에서 Redis 구현이 같은 테스트를 통과하면 교체가 안전하다
 
 **종료 조건**: 기존 테스트 전부 통과. 런타임 동작 변화 0. 배포해도 아무도 눈치채지 못한다.
