@@ -1,6 +1,7 @@
 rootProject.name = 'FunGame'
 include 'backend:core:core-enum'
 include 'backend:storage:db-core'
+include 'backend:storage:redis-core'
 include 'backend:clients:client-youtube'
 include 'backend:clients:client-mail'
 include 'backend:clients:client-discord'
