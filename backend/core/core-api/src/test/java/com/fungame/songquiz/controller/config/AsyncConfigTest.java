@@ -1,13 +1,8 @@
 package com.fungame.songquiz.controller.config;
 
-import com.fungame.songquiz.support.config.AppConfig;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.springframework.boot.autoconfigure.AutoConfigurations;
-import org.springframework.boot.autoconfigure.context.PropertyPlaceholderAutoConfiguration;
-import org.springframework.boot.autoconfigure.task.TaskExecutionAutoConfiguration;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
-import org.springframework.core.task.TaskExecutor;
 import org.springframework.scheduling.annotation.AsyncAnnotationBeanPostProcessor;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 
@@ -17,50 +12,35 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class AsyncConfigTest {
 
-    private static final String BOOT_EXECUTOR = TaskExecutionAutoConfiguration.APPLICATION_TASK_EXECUTOR_BEAN_NAME;
+    private static final String BEAN_NAME = "applicationTaskExecutor";
 
     private final ApplicationContextRunner contextRunner = new ApplicationContextRunner()
-            .withConfiguration(AutoConfigurations.of(
-                    PropertyPlaceholderAutoConfiguration.class,
-                    TaskExecutionAutoConfiguration.class))
-            .withUserConfiguration(AppConfig.class, AsyncConfig.class)
-            .withPropertyValues(
-                    "spring.task.execution.thread-name-prefix=app-async-",
-                    "spring.task.execution.pool.core-size=4",
-                    "spring.task.execution.pool.max-size=8",
-                    "spring.task.execution.pool.queue-capacity=1000");
+            .withUserConfiguration(AsyncConfig.class);
 
     @Test
-    @DisplayName("@Async 는 타입으로 executor 를 못 찾는다. taskExecutor 별칭이 유일한 연결고리다.")
-    void async_finds_the_executor_only_by_the_taskExecutor_alias() {
-        contextRunner.run(context -> {
-            assertThat(context.getBeanNamesForType(TaskExecutor.class)).hasSizeGreaterThan(1);
-
-            assertThat(context.getBeanFactory().getAliases(BOOT_EXECUTOR))
-                    .as("사라지면 SimpleAsyncTaskExecutor 로 조용히 폴백한다")
-                    .contains(AsyncAnnotationBeanPostProcessor.DEFAULT_TASK_EXECUTOR_BEAN_NAME);
-        });
+    @DisplayName("@Async 는 taskExecutor 별칭으로 executor 를 찾는다.")
+    void async_finds_the_executor_by_the_taskExecutor_alias() {
+        contextRunner.run(context -> assertThat(context.getBeanFactory().getAliases(BEAN_NAME))
+                .as("사라지면 SimpleAsyncTaskExecutor 로 조용히 폴백한다")
+                .contains(AsyncAnnotationBeanPostProcessor.DEFAULT_TASK_EXECUTOR_BEAN_NAME));
     }
 
     @Test
-    @DisplayName("@Async 큐에 상한이 있다. 부하가 오면 조용히 밀리는 대신 드러난다.")
-    void async_queue_is_bounded() {
-        contextRunner.run(context -> {
-            ThreadPoolTaskExecutor executor = context.getBean(BOOT_EXECUTOR, ThreadPoolTaskExecutor.class);
+    @DisplayName("기동과 함께 만들어진다. 첫 @Async 호출을 기다리지 않는다.")
+    void the_executor_is_created_eagerly() {
+        contextRunner.run(context ->
+                assertThat(context.getBeanFactory().containsSingleton(BEAN_NAME)).isTrue());
+    }
 
-            assertThat(executor.getThreadPoolExecutor().getQueue().remainingCapacity())
-                    .isEqualTo(1000);
+    @Test
+    @DisplayName("큐에 상한이 있고 차면 발행 스레드가 대신 실행한다.")
+    void the_queue_is_bounded_and_a_full_queue_slows_the_publisher() {
+        contextRunner.run(context -> {
+            ThreadPoolTaskExecutor executor = context.getBean(BEAN_NAME, ThreadPoolTaskExecutor.class);
+
+            assertThat(executor.getThreadPoolExecutor().getQueue().remainingCapacity()).isEqualTo(1000);
             assertThat(executor.getMaxPoolSize()).isEqualTo(8);
             assertThat(executor.getThreadNamePrefix()).isEqualTo("app-async-");
-        });
-    }
-
-    @Test
-    @DisplayName("큐가 차면 버리지 않고 발행 스레드가 대신 실행한다.")
-    void a_full_queue_slows_the_publisher_instead_of_dropping_the_message() {
-        contextRunner.run(context -> {
-            ThreadPoolTaskExecutor executor = context.getBean(BOOT_EXECUTOR, ThreadPoolTaskExecutor.class);
-
             assertThat(executor.getThreadPoolExecutor().getRejectedExecutionHandler())
                     .isInstanceOf(ThreadPoolExecutor.CallerRunsPolicy.class);
         });

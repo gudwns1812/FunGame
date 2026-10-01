@@ -4,6 +4,7 @@ import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.read.ListAppender;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -31,7 +32,8 @@ class GameTimerTest {
     private static final Duration LATER = Duration.ofMillis(150);
     private static final Duration NEVER_WITHIN_TEST = Duration.ofSeconds(30);
 
-    private final GameTimer gameTimer = new GameTimer(taskScheduler());
+    private final SimpleMeterRegistry meterRegistry = new SimpleMeterRegistry();
+    private final GameTimer gameTimer = new GameTimer(taskScheduler(), meterRegistry);
     private final List<String> fired = new CopyOnWriteArrayList<>();
     private final ListAppender<ILoggingEvent> logs = new ListAppender<>();
 
@@ -116,6 +118,28 @@ class GameTimerTest {
                     assertThat(logged.getFormattedMessage()).contains(String.valueOf(ROOM_ID));
                     assertThat(logged.getThrowableProxy().getMessage()).isEqualTo("라운드를 닫지 못했다");
                 }));
+    }
+
+    @Test
+    @DisplayName("예약이 터진 시점과 걸린 시간을 지표로 남긴다.")
+    void records_lateness_and_duration_of_each_reservation() {
+        gameTimer.startAfter(ROOM_ID, SOON, () -> fired.add("라운드 종료"));
+
+        await().atMost(2, TimeUnit.SECONDS).untilAsserted(() -> {
+            assertThat(meterRegistry.timer("fungame.game.timer.lateness").count()).isEqualTo(1);
+            assertThat(meterRegistry.timer("fungame.game.timer.task").count()).isEqualTo(1);
+        });
+    }
+
+    @Test
+    @DisplayName("예약이 터져도 걸린 시간은 남는다.")
+    void records_duration_even_when_the_reservation_blows_up() {
+        gameTimer.startAfter(ROOM_ID, SOON, () -> {
+            throw new IllegalStateException("라운드를 닫지 못했다");
+        });
+
+        await().atMost(2, TimeUnit.SECONDS).untilAsserted(() ->
+                assertThat(meterRegistry.timer("fungame.game.timer.task").count()).isEqualTo(1));
     }
 
     @SuppressWarnings("unchecked")

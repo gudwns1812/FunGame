@@ -242,10 +242,20 @@ graph TB
 **한 대의 한계를 숫자로 모르면 2대가 필요한지도 알 수 없다.** 이미 Actuator + Prometheus 가
 `support:monitoring` 에 붙어 있으니 지표만 추가한다.
 
-- [ ] 커스텀 게이지: 활성 방 수, 진행 중 게임 수, STOMP 연결 수, 접속 회원 수
-- [ ] 타이머: 라운드 전환 지연 분포, `endRound` 처리 시간
-- [ ] `@Async` executor 큐 깊이 · 거부 건수, 게임 스케줄러 풀 포화도
-- [ ] JVM 힙 · 스레드 · GC 대시보드 (t2.micro 1GB 에서 제일 먼저 터질 자리)
+- [x] 커스텀 게이지: `fungame_rooms_active` · `fungame_games_in_progress` · `fungame_room_players` ·
+      `fungame_stomp_sessions` · `fungame_members_online`
+- [x] 타이머: `fungame_game_timer_lateness`(예약 시각보다 늦게 시작한 정도) ·
+      `fungame_game_timer_task`(작업이 도는 데 걸린 시간). 앞엣것이 게임 풀 포화의 직접 지표다
+- [x] `@Async` executor 큐 · 게임 스케줄러 풀 — `executor_*` 로 나온다.
+      **부트가 `applicationTaskExecutor` 를 `@Lazy` 로 만들어 지표가 아예 없었다.**
+      그 빈을 우리가 갖는 것으로 바꿔 기동과 함께 만들어지게 했다. 스케줄러는 부트가 빈 이름으로
+      이미 붙이고 있어 따로 등록하지 않는다
+- [x] 그라파나 대시보드 `FunGame — 한 대의 한계` (`json-metrics/runtime-limits.json`). 패널 12개.
+      `lateness` 만 히스토그램으로 두어 p99 를 계산할 수 있게 했다. 범위를 5ms~2초로 묶어
+      시계열 비중을 16% 로 줄였다(안 묶으면 36%). GC 는 `jvm_gc_pause` 가 첫 GC 전까지
+      존재하지 않아 항상 있는 `jvm_gc_overhead` 를 주 계열로 쓴다.
+- [ ] **거부 건수는 지표가 없다.** 거부 정책이 `CallerRunsPolicy` 라 버려지는 일이 없다.
+      포화는 큐 깊이와 발행 스레드 지연으로 드러난다. 필요해지면 정책을 바꾸고 카운터를 단다.
 
 **종료 조건**: "인스턴스 1대의 한계는 동시 방 N개 / 동접 M명"이라고 근거를 대고 답할 수 있다.
 

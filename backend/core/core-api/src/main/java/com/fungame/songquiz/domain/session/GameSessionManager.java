@@ -36,6 +36,10 @@ public class GameSessionManager {
         return manager.get(roomId);
     }
 
+    public int count() {
+        return manager.size();
+    }
+
     public void endGameSession(Long roomId) {
         manager.remove(roomId);
     }

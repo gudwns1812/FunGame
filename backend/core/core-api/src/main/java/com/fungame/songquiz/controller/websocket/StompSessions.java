@@ -29,6 +29,10 @@ public class StompSessions {
                 .count();
     }
 
+    public int count() {
+        return memberIdBySessionId.size();
+    }
+
     public Set<Long> connectedMemberIds() {
         return Set.copyOf(memberIdBySessionId.values());
     }

@@ -51,6 +51,10 @@ public class MemberConnectionTracker {
         return liveConnectionIdsByMember.containsKey(memberId);
     }
 
+    public int onlineCount() {
+        return onlineMemberIds().size();
+    }
+
     public Set<Long> onlineMemberIds() {
         Set<Long> onlineMemberIds = new HashSet<>(liveConnectionIdsByMember.keySet());
 
