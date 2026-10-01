@@ -1,6 +1,7 @@
 package com.fungame.songquiz.support.monitoring;
 
 import com.fungame.songquiz.storage.MySqlTestContainer;
+import com.fungame.songquiz.storage.redis.RedisTestContainer;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.autoconfigure.actuate.observability.AutoConfigureObservability;
@@ -19,7 +20,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @AutoConfigureObservability
-@Import(MySqlTestContainer.class)
+@Import({MySqlTestContainer.class, RedisTestContainer.class})
 @TestPropertySource(properties = {
         "spring.session.jdbc.initialize-schema=always",
         "app.song-scrape.enabled=false",

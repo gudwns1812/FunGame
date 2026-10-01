@@ -8,6 +8,7 @@ import com.fungame.songquiz.enums.Role;
 import com.fungame.songquiz.storage.MemberEntity;
 import com.fungame.songquiz.storage.MemberRepository;
 import com.fungame.songquiz.storage.MySqlTestContainer;
+import com.fungame.songquiz.storage.redis.RedisTestContainer;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -49,7 +50,7 @@ import static org.awaitility.Awaitility.await;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@Import(MySqlTestContainer.class)
+@Import({MySqlTestContainer.class, RedisTestContainer.class})
 @TestPropertySource(properties = {
         "spring.session.jdbc.initialize-schema=always",
         "app.song-scrape.enabled=false"
