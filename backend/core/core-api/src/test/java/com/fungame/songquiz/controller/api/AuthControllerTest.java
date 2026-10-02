@@ -40,12 +40,8 @@ class AuthControllerTest {
                 .setControllerAdvice(new ApiControllerAdvice())
                 .build();
 
-        given(authService.getMyInfo(anyString())).willReturn(MemberInfo.builder()
-                .loginId("tester")
-                .nickname("테스터")
-                .email("tester@fun-game.club")
-                .role(Role.USER)
-                .build());
+        given(authService.getMyInfo(anyString())).willReturn(
+                MemberInfo.of(null, "tester", "테스터", "tester@fun-game.club", Role.USER));
     }
 
     private String loginBody() throws Exception {

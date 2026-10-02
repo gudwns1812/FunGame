@@ -24,11 +24,11 @@ public class Member {
         Assert.hasText(email, "이메일은 필수입니다.");
         Assert.notNull(role, "역할은 필수입니다.");
 
-        return new Member(new MemberInfo(null, loginId, nickname, email, role), password);
+        return new Member(MemberInfo.of(null, loginId, nickname, email, role), password);
     }
 
     public static Member restore(Long id, String loginId, String password, String nickname, String email, Role role) {
-        return new Member(new MemberInfo(id, loginId, nickname, email, role), password);
+        return new Member(MemberInfo.of(id, loginId, nickname, email, role), password);
     }
 
     public Long getId() {
