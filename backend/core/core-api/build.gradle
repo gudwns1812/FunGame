@@ -21,6 +21,8 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-web'
     implementation 'org.springframework.boot:spring-boot-starter-security'
     implementation 'org.springframework.boot:spring-boot-starter-websocket'
+    implementation 'org.springframework.boot:spring-boot-starter-cache'
+    implementation 'com.github.ben-manes.caffeine:caffeine'
     // @MessageMapping 핸들러에서 @AuthenticationPrincipal 을 쓰기 위한 모듈.
     // starter-security 에는 포함되지 않는다.
     implementation 'org.springframework.security:spring-security-messaging'
