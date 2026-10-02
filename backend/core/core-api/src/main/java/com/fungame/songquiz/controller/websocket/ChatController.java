@@ -1,6 +1,7 @@
 package com.fungame.songquiz.controller.websocket;
 
 import com.fungame.songquiz.domain.member.MemberAdapter;
+import com.fungame.songquiz.domain.member.MemberProfiles;
 import com.fungame.songquiz.domain.room.GameRoomManager;
 import com.fungame.songquiz.domain.session.GameService;
 import com.fungame.songquiz.controller.request.ChatRequest;
@@ -26,6 +27,7 @@ public class ChatController {
     private final SimpMessagingTemplate messagingTemplate;
     private final GameRoomManager gameRoomManager;
     private final GameService gameService;
+    private final MemberProfiles memberProfiles;
 
     @MessageMapping("/room/{roomId}/chat")
     public void chat(@DestinationVariable Long roomId, @AuthenticationPrincipal MemberAdapter user,
@@ -33,7 +35,7 @@ public class ChatController {
         Object payload = Map.of(
                 "type", "CHAT",
                 "memberId", user.getId(),
-                "nickname", user.getNickName(),
+                "nickname", memberProfiles.of(user.getId()).nickname(),
                 "message", request.message()
         );
 
