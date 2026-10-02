@@ -340,7 +340,6 @@ export const useGameLogic = () => {
               currentDisplay: '',
               wrongLetters: [],
               remainingTries: 6,
-              currentTurnPlayer: '대기 중...',
               currentTurnMemberId: null,
               isGameOver: false,
               isWin: false,
@@ -357,14 +356,13 @@ export const useGameLogic = () => {
 
           if (gameTypeRef.current === 'HANGMAN') {
             setHangmanStatus((prev) => {
-              if (prev && prev.currentTurnPlayer !== '대기 중...' && prev.currentTurnPlayer !== '불러오는 중...') {
+              if (prev && prev.currentTurnMemberId !== null) {
                 return prev;
               }
               return {
                 currentDisplay: event.content || '',
                 wrongLetters: [],
                 remainingTries: 6,
-                currentTurnPlayer: '불러오는 중...',
                 currentTurnMemberId: null,
                 isGameOver: false,
                 isWin: false,
@@ -425,10 +423,9 @@ export const useGameLogic = () => {
             currentDisplay: s[0],
             wrongLetters: s[1] ? s[1].split(',') : [],
             remainingTries: parseInt(s[2], 10),
-            currentTurnPlayer: s[3],
-            currentTurnMemberId: s[6] ? Number(s[6]) : null,
-            isGameOver: s[4] === 'true',
-            isWin: s[5] === 'true',
+            currentTurnMemberId: s[5] ? Number(s[5]) : null,
+            isGameOver: s[3] === 'true',
+            isWin: s[4] === 'true',
           });
           break;
         }
@@ -478,7 +475,6 @@ export const useGameLogic = () => {
   useEffect(() => {
     localStorage.setItem('ums_logs', JSON.stringify(logs));
   }, [logs]);
-
 
   const leaveRoom = useCallback(async () => {
     unsubscribeFromRoom();
@@ -559,10 +555,9 @@ export const useGameLogic = () => {
         currentDisplay: data[0] ?? '',
         wrongLetters: data[1] ? data[1].split(',') : [],
         remainingTries: parseInt(data[2] ?? '6', 10),
-        currentTurnPlayer: data[3] ?? '대기 중...',
-        currentTurnMemberId: data[6] ? Number(data[6]) : null,
-        isGameOver: data[4] === 'true',
-        isWin: data[5] === 'true',
+        currentTurnMemberId: data[5] ? Number(data[5]) : null,
+        isGameOver: data[3] === 'true',
+        isWin: data[4] === 'true',
       });
     } else if (state.content) {
       setCurrentVideoId(state.content);

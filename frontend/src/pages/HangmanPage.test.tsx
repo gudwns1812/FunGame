@@ -14,7 +14,6 @@ const STATUS: HangmanStatus = {
   currentDisplay: '_ _ _',
   wrongLetters: [],
   remainingTries: 6,
-  currentTurnPlayer: '나',
   currentTurnMemberId: 1,
   isGameOver: false,
   isWin: false,

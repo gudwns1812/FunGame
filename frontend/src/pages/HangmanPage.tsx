@@ -106,6 +106,8 @@ const HangmanPage: React.FC<HangmanPageProps> = ({
   }
 
   const isMyTurn = myMemberId !== null && myMemberId === status.currentTurnMemberId;
+  const currentTurnName =
+    players.find((player) => player.memberId === status.currentTurnMemberId)?.name ?? '대기 중...';
 
   return (
     <div className="app-frame">
@@ -129,7 +131,7 @@ const HangmanPage: React.FC<HangmanPageProps> = ({
           {/* 현재 턴 */}
           <div className="px-card shrink-0 px-3 py-2.5 flex items-center justify-between gap-3">
             <p className={`px-title text-sm truncate ${isMyTurn ? 'text-cherry' : ''}`}>
-              {isMyTurn ? '당신의 차례입니다!' : `${status.currentTurnPlayer} 님의 차례`}
+              {isMyTurn ? '당신의 차례입니다!' : `${currentTurnName} 님의 차례`}
             </p>
             <div className="flex items-center gap-1 shrink-0">
               {Array.from({ length: MAX_TRIES }).map((_, i) => (
