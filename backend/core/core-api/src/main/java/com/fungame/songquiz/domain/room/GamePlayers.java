@@ -102,11 +102,6 @@ public class GamePlayers {
         return players.get(memberId);
     }
 
-    public String nicknameOf(Long memberId) {
-        GamePlayer player = players.get(memberId);
-        return player == null ? null : player.nickname();
-    }
-
     public int getCurrentCount() {
         return players.size();
     }

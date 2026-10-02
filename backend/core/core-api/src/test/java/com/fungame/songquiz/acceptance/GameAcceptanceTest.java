@@ -93,7 +93,7 @@ public class GameAcceptanceTest {
 
         verify(gameRoomService).createRoom(
                 eq(new RoomSettings(GameType.SONG, "테스트 방", 5, Category.KPOP, 10, 0, CSQuizDifficulty.HARD)),
-                eq(GamePlayer.createNewPlayer(1L, "방장")));
+                eq(GamePlayer.createNewPlayer(1L)));
     }
 
     @Test
@@ -104,7 +104,7 @@ public class GameAcceptanceTest {
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk());
 
-        verify(gameRoomService).joinRoom(1L, GamePlayer.createNewPlayer(1L, "방장"));
+        verify(gameRoomService).joinRoom(1L, GamePlayer.createNewPlayer(1L));
     }
 
     @Test

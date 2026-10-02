@@ -39,7 +39,7 @@ public class GameRoomService {
     public void leaveRoom(Long roomId, Long memberId) {
         LeaveResult result = gameRoomManager.leaveRoom(roomId, memberId);
 
-        if (result.nickname() == null) {
+        if (!result.wasInRoom()) {
             return;
         }
 
@@ -52,7 +52,7 @@ public class GameRoomService {
         }
 
         applicationEventPublisher.publishEvent(new PlayerLeaveEvent(roomId,
-                GamePlayer.createNewPlayer(memberId, result.nickname()), result.state()));
+                GamePlayer.createNewPlayer(memberId), result.state()));
     }
 
     public void kickPlayer(Long roomId, Long hostId, Long targetId) {
@@ -100,7 +100,7 @@ public class GameRoomService {
 
         applicationEventPublisher.publishEvent(
                 new PlayerReadyEvent(roomId,
-                        new GamePlayer(memberId, result.nickname(), result.ready()), result.isAllReady(),
+                        new GamePlayer(memberId, result.ready()), result.isAllReady(),
                         result.state()));
 
         return PlayerReadyInfo.of(memberId, result);

@@ -59,7 +59,12 @@ class RoomInviteServiceTest {
     @BeforeEach
     void setUp() {
         roomInviteService = new RoomInviteService(
-                gameRoomService, memberReader, eventPublisher, memberConnectionTracker, clock);
+                gameRoomService,
+                new com.fungame.songquiz.domain.member.MemberProfiles(
+                        memberReader,
+                        new org.springframework.cache.concurrent.ConcurrentMapCacheManager(
+                                com.fungame.songquiz.domain.member.MemberProfiles.CACHE_NAME)),
+                eventPublisher, memberConnectionTracker, clock);
 
         inviter = MemberFixture.withId(INVITER_ID, "방장");
         target = MemberFixture.withId(TARGET_ID, "손님");
@@ -176,7 +181,7 @@ class RoomInviteServiceTest {
         @Test
         @DisplayName("수락하면 그 방에 입장하고 방 정보와 순번을 돌려준다.")
         void acceptJoinsRoom() {
-            given(gameRoomService.joinRoom(ROOM_ID, GamePlayer.createNewPlayer(TARGET_ID, "손님"))).willReturn(3);
+            given(gameRoomService.joinRoom(ROOM_ID, GamePlayer.createNewPlayer(TARGET_ID))).willReturn(3);
             String inviteId = invite();
 
             AcceptedInvite accepted = roomInviteService.accept(inviteId, TARGET_ID);
@@ -189,7 +194,7 @@ class RoomInviteServiceTest {
         @Test
         @DisplayName("같은 초대를 두 번 수락할 수 없다.")
         void rejectDoubleAccept() {
-            given(gameRoomService.joinRoom(ROOM_ID, GamePlayer.createNewPlayer(TARGET_ID, "손님"))).willReturn(3);
+            given(gameRoomService.joinRoom(ROOM_ID, GamePlayer.createNewPlayer(TARGET_ID))).willReturn(3);
             String inviteId = invite();
             roomInviteService.accept(inviteId, TARGET_ID);
 
@@ -224,7 +229,7 @@ class RoomInviteServiceTest {
         @Test
         @DisplayName("남이 가로채기를 시도해도 초대는 살아 있다.")
         void interceptAttemptDoesNotBurnInvite() {
-            given(gameRoomService.joinRoom(ROOM_ID, GamePlayer.createNewPlayer(TARGET_ID, "손님"))).willReturn(3);
+            given(gameRoomService.joinRoom(ROOM_ID, GamePlayer.createNewPlayer(TARGET_ID))).willReturn(3);
             String inviteId = invite();
 
             assertThatThrownBy(() -> roomInviteService.accept(inviteId, 99L))
@@ -256,7 +261,7 @@ class RoomInviteServiceTest {
         @Test
         @DisplayName("입장에 실패하면 그 사유가 그대로 올라온다.")
         void propagateJoinFailure() {
-            given(gameRoomService.joinRoom(ROOM_ID, GamePlayer.createNewPlayer(TARGET_ID, "손님")))
+            given(gameRoomService.joinRoom(ROOM_ID, GamePlayer.createNewPlayer(TARGET_ID)))
                     .willThrow(new CoreException(ErrorType.GAME_ROOM_MAX_PLAYER_EXCEED));
             String inviteId = invite();
 
@@ -301,15 +306,15 @@ class RoomInviteServiceTest {
     }
 
     private static RoomInfo waitingRoomInfo() {
-        return new RoomInfo(ROOM_ID, settings(), GamePlayer.createNewPlayer(INVITER_ID, "방장"), GameRoomStatus.WAITING, 2);
+        return new RoomInfo(ROOM_ID, settings(), GamePlayer.createNewPlayer(INVITER_ID), GameRoomStatus.WAITING, 2);
     }
 
     private static RoomInfo playingRoomInfo() {
-        return new RoomInfo(ROOM_ID, settings(), GamePlayer.createNewPlayer(INVITER_ID, "방장"), GameRoomStatus.PLAYING, 2);
+        return new RoomInfo(ROOM_ID, settings(), GamePlayer.createNewPlayer(INVITER_ID), GameRoomStatus.PLAYING, 2);
     }
 
     private static RoomStateInfo roomState() {
-        GamePlayer host = GamePlayer.createNewPlayer(INVITER_ID, "방장");
+        GamePlayer host = GamePlayer.createNewPlayer(INVITER_ID);
         return new RoomStateInfo(ROOM_ID, 1, GameRoomStatus.WAITING, settings(), List.of(host), host);
     }
 

@@ -6,6 +6,8 @@ import com.fungame.songquiz.controller.response.RoomResponse;
 import com.fungame.songquiz.domain.member.MemberAdapter;
 import com.fungame.songquiz.domain.member.MemberPresenceChangedEvent;
 import com.fungame.songquiz.domain.member.OnlineMemberInfo;
+import com.fungame.songquiz.domain.member.MemberProfiles;
+import com.fungame.songquiz.domain.member.MemberReader;
 import com.fungame.songquiz.domain.member.OnlineMemberService;
 import com.fungame.songquiz.domain.member.OnlineMembers;
 import com.fungame.songquiz.domain.room.GamePlayer;
@@ -45,8 +47,12 @@ class LobbyNotifyServiceTest {
     private final GameRoomService gameRoomService = mock(GameRoomService.class);
     private final OnlineMemberService onlineMemberService = mock(OnlineMemberService.class);
     private final StompSessions stompSessions = new StompSessions();
-    private final LobbyNotifyService lobbyNotifyService =
-            new LobbyNotifyService(messagingTemplate, gameRoomService, onlineMemberService, stompSessions);
+    private final MemberReader memberReader = mock(MemberReader.class);
+    private final MemberProfiles memberProfiles = new MemberProfiles(
+            memberReader,
+            new org.springframework.cache.concurrent.ConcurrentMapCacheManager(MemberProfiles.CACHE_NAME));
+    private final LobbyNotifyService lobbyNotifyService = new LobbyNotifyService(
+            messagingTemplate, gameRoomService, onlineMemberService, memberProfiles, stompSessions);
 
     @Test
     @DisplayName("방이 바뀌면 다시 물어보게 하지 않고 바뀐 방 목록을 로비로 실어 보낸다.")
@@ -57,7 +63,7 @@ class LobbyNotifyServiceTest {
         lobbyNotifyService.handleRoomChangedEvent(new RoomChangedEvent());
         lobbyNotifyService.processPendingUpdate();
 
-        assertThat(sentToLobby()).isEqualTo(RoomResponse.listFrom(rooms));
+        assertThat(sentToLobby()).isEqualTo(RoomResponse.listFrom(rooms, memberProfiles));
     }
 
     @Test
@@ -158,10 +164,16 @@ class LobbyNotifyServiceTest {
         return ArgumentCaptor.forClass(ApiResponse.class);
     }
 
+    @org.junit.jupiter.api.BeforeEach
+    void nameEveryMember() {
+        org.mockito.BDDMockito.given(memberReader.findMember(org.mockito.ArgumentMatchers.anyLong()))
+                .willAnswer(call -> com.fungame.songquiz.support.MemberFixture.withId(call.getArgument(0), "회원" + call.getArgument(0)));
+    }
+
     private static RoomInfo room() {
         return new RoomInfo(9L,
                 new RoomSettings(GameType.SONG, "방 제목", 8, Category.KPOP, 10, 0, CSQuizDifficulty.HARD),
-                GamePlayer.createNewPlayer(VIEWER_ID, "방장"), GameRoomStatus.WAITING, 1);
+                GamePlayer.createNewPlayer(VIEWER_ID), GameRoomStatus.WAITING, 1);
     }
 
     private static OnlineMemberInfo onlineMember(Long memberId) {

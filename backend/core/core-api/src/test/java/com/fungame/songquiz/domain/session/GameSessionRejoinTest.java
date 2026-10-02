@@ -17,9 +17,9 @@ import static org.mockito.Mockito.mock;
 
 class GameSessionRejoinTest {
 
-    private static final GamePlayer P1 = GamePlayer.createNewPlayer(1L, "p1");
-    private static final GamePlayer P2 = GamePlayer.createNewPlayer(2L, "p2");
-    private static final GamePlayer P3 = GamePlayer.createNewPlayer(3L, "p3");
+    private static final GamePlayer P1 = GamePlayer.createNewPlayer(1L);
+    private static final GamePlayer P2 = GamePlayer.createNewPlayer(2L);
+    private static final GamePlayer P3 = GamePlayer.createNewPlayer(3L);
     private static final Long OUTSIDER_ID = 99L;
 
     private GameSession quizSession(GamePlayer... players) {

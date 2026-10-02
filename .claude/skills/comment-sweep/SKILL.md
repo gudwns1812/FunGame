@@ -25,6 +25,8 @@ bash .claude/skills/comment-sweep/scripts/find-added-comments.sh HEAD~1
 출력은 `파일:줄: 내용` 이고, 후보가 하나라도 있으면 종료 코드가 1 이다.
 
 스크립트는 **이번 변경이 새로 추가한 줄**만 본다. 원래 있던 주석은 건드리지 않는다.
+아직 git 이 추적하지 않는 **새 파일은 통째로** 본다. 새로 만든 파일의 주석도 결국 이번
+변경이 추가한 것이라 같은 기준으로 지운다.
 
 **코드 파일만 본다** — `.java` `.js` `.jsx` `.ts` `.tsx` `.gradle` `.kt` `.kts`.
 `yml`, `properties`, `sh`, `Dockerfile`, `html`, `sql`, `md` 같은 설정·문서 파일은 검사하지 않는다.

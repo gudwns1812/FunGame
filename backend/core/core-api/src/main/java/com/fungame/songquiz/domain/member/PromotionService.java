@@ -17,6 +17,7 @@ public class PromotionService {
     private final PromotionRequestWriter promotionRequestWriter;
     private final MemberReader memberReader;
     private final MemberWriter memberWriter;
+    private final MemberProfiles memberProfiles;
 
     public void createPromotionRequest(String loginId) {
         Member member = readMember(loginId);
@@ -45,6 +46,7 @@ public class PromotionService {
                 .orElseThrow(() -> new CoreException(ErrorType.MEMBER_NOT_FOUND));
         member.updateRole(request.promotedRole());
         memberWriter.update(member);
+        memberProfiles.refresh(member);
     }
 
     public void rejectRequest(Long requestId) {

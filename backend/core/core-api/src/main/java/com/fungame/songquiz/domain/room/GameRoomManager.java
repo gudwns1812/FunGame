@@ -87,18 +87,18 @@ public class GameRoomManager {
         return roomLock.processWithLockKey(roomId, () -> {
             GameRoom gameRoom = getRoom(roomId);
             boolean wasPlaying = gameRoom.isPlaying();
-            String nickname = gameRoom.nicknameOf(memberId);
+            boolean wasInRoom = gameRoom.hasPlayer(memberId);
 
             gameRoom.leave(memberId);
             gameRoom.touch();
 
             if (gameRoom.isEmpty()) {
                 deleteRoom(roomId);
-                return new LeaveResult(true, wasPlaying, nickname, null);
+                return new LeaveResult(true, wasPlaying, wasInRoom, null);
             }
 
             applicationEventPublisher.publishEvent(new RoomChangedEvent());
-            return new LeaveResult(false, wasPlaying, nickname, RoomStateInfo.from(gameRoom));
+            return new LeaveResult(false, wasPlaying, wasInRoom, RoomStateInfo.from(gameRoom));
         });
     }
 
@@ -225,7 +225,7 @@ public class GameRoomManager {
 
             boolean ready = gameRoom.readyPlayer(memberId);
 
-            return new ReadyResult(ready, gameRoom.isAllReady(), gameRoom.nicknameOf(memberId),
+            return new ReadyResult(ready, gameRoom.isAllReady(),
                     RoomStateInfo.from(gameRoom));
         });
     }

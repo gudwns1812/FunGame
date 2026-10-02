@@ -47,7 +47,7 @@ public class HangmanGameService implements GameService {
                 new RoundStartEvent(roomId, hangmanQuiz.getStatus(), ONLY_ROUND, ONLY_ROUND, NO_ROUND_CLOCK));
 
         GamePlayer starter = hangmanQuiz.getCurrentTurnPlayer();
-        eventPublisher.publishEvent(new HangmanActionEvent(roomId, starter.memberId(), starter.nickname(),
+        eventPublisher.publishEvent(new HangmanActionEvent(roomId, starter.memberId(),
                 NO_LETTER, ActionResult.ACTION_SUCCESS, hangmanQuiz.getStatus()));
     }
 
@@ -71,7 +71,7 @@ public class HangmanGameService implements GameService {
         char letter = payload.charAt(0);
         ActionResult result = hangmanQuiz.guess(action.memberId(), letter);
 
-        eventPublisher.publishEvent(new HangmanActionEvent(roomId, actor.memberId(), actor.nickname(), letter, result,
+        eventPublisher.publishEvent(new HangmanActionEvent(roomId, actor.memberId(), letter, result,
                 hangmanQuiz.getStatus()));
 
         if (result == ActionResult.CORRECT || result == ActionResult.WRONG) {
@@ -82,19 +82,15 @@ public class HangmanGameService implements GameService {
     private void submitResult(Long roomId, HangmanQuiz hangmanQuiz) {
         String result = hangmanQuiz.getRemainingTries() == 0 ? "실패" : "성공";
 
-        List<PlayerScore> resultRows = List.of(
-                resultRow(result, hangmanQuiz.getRemainingTries()),
-                resultRow(hangmanQuiz.getAnswer().answer(), NO_SCORE));
+        List<ResultRow> resultRows = List.of(
+                ResultRow.labelled(result, hangmanQuiz.getRemainingTries()),
+                ResultRow.labelled(hangmanQuiz.getAnswer().answer(), NO_SCORE));
         // 브로드캐스트가 터져도 방이 PLAYING 으로 굳지 않게 한다.
         try {
             eventPublisher.publishEvent(new GameResultEvent(roomId, resultRows));
         } finally {
             gameRoomManager.endGame(roomId);
         }
-    }
-
-    private static PlayerScore resultRow(String label, int value) {
-        return new PlayerScore(GamePlayer.createNewPlayer(NO_MEMBER, label), value);
     }
 
     @Override
@@ -135,10 +131,10 @@ public class HangmanGameService implements GameService {
             return;
         }
 
-        String leaverNickname = session.nicknameOf(memberId);
+        boolean wasParticipant = session.hasParticipant(memberId);
         session.removePlayer(memberId);
 
-        if (leaverNickname == null) {
+        if (!wasParticipant) {
             return;
         }
 
@@ -147,6 +143,6 @@ public class HangmanGameService implements GameService {
         }
 
         eventPublisher.publishEvent(new HangmanActionEvent(
-                roomId, memberId, leaverNickname, NO_LETTER, ActionResult.ACTION_SUCCESS, hangmanQuiz.getStatus()));
+                roomId, memberId, NO_LETTER, ActionResult.ACTION_SUCCESS, hangmanQuiz.getStatus()));
     }
 }

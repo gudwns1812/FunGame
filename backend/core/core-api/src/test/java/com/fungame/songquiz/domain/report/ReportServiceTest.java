@@ -78,7 +78,7 @@ class ReportServiceTest {
         SongQuiz quiz = new SongQuiz(List.of(Song.stored(SONG_ID, SONG_TITLE, SINGER, List.of(Category.KPOP),
                 LocalDate.of(2017, 3, 24), VIDEO_LINK, 30, List.of(), SONG_HINT)), Category.KPOP);
 
-        return new GameSession(quiz, List.of(GamePlayer.createNewPlayer(MEMBER_ID, "신고자")));
+        return new GameSession(quiz, List.of(GamePlayer.createNewPlayer(MEMBER_ID)));
     }
 
     private void givenMemberIsInRoom() {

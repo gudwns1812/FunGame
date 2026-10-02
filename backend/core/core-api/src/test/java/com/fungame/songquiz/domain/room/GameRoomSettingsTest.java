@@ -27,9 +27,9 @@ import static org.mockito.Mockito.mock;
 @ExtendWith(MockitoExtension.class)
 class GameRoomSettingsTest {
 
-    private static final GamePlayer HOST = GamePlayer.createNewPlayer(1L, "방장");
-    private static final GamePlayer GUEST = GamePlayer.createNewPlayer(2L, "참가자");
-    private static final GamePlayer GUEST2 = GamePlayer.createNewPlayer(3L, "참가자2");
+    private static final GamePlayer HOST = GamePlayer.createNewPlayer(1L);
+    private static final GamePlayer GUEST = GamePlayer.createNewPlayer(2L);
+    private static final GamePlayer GUEST2 = GamePlayer.createNewPlayer(3L);
     private static final RoomSettings SETTINGS =
             new RoomSettings(GameType.SONG, "방", 8, Category.KPOP, 10, 0, CSQuizDifficulty.HARD);
 

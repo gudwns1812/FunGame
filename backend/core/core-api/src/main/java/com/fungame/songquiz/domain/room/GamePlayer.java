@@ -2,19 +2,18 @@ package com.fungame.songquiz.domain.room;
 
 public record GamePlayer(
         Long memberId,
-        String nickname,
         boolean isReady
 ) {
 
-    public static GamePlayer createNewPlayer(Long memberId, String nickname) {
-        return new GamePlayer(memberId, nickname, false);
+    public static GamePlayer createNewPlayer(Long memberId) {
+        return new GamePlayer(memberId, false);
     }
 
     public GamePlayer toggleReady() {
-        return new GamePlayer(memberId, nickname, !isReady);
+        return new GamePlayer(memberId, !isReady);
     }
 
     public GamePlayer setReady(boolean ready) {
-        return new GamePlayer(memberId, nickname, ready);
+        return new GamePlayer(memberId, ready);
     }
 }

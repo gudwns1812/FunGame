@@ -14,6 +14,12 @@ app:
 spring:
   application:
     name: fungame-backend
+  cache:
+    type: caffeine
+    caffeine:
+      # 닉네임 변경은 캐시를 바로 갱신한다(write-through). TTL 은 인스턴스가 여러 대일 때
+      # 다른 노드가 옛 값을 들고 있는 시간의 상한이다. Redis 로 바꾸면 그 상한이 필요 없어진다.
+      spec: expireAfterWrite=5m
   # 모듈이 자기 설정을 갖고 core-api 가 가져옵니다.
   config:
     import:

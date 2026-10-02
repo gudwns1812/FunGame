@@ -5,6 +5,7 @@ import com.fungame.songquiz.controller.response.OnlineMemberResponse;
 import com.fungame.songquiz.controller.response.RoomResponse;
 import com.fungame.songquiz.domain.member.MemberAdapter;
 import com.fungame.songquiz.domain.member.MemberPresenceChangedEvent;
+import com.fungame.songquiz.domain.member.MemberProfiles;
 import com.fungame.songquiz.domain.member.OnlineMemberService;
 import com.fungame.songquiz.domain.member.OnlineMembers;
 import com.fungame.songquiz.domain.room.GameRoomService;
@@ -25,6 +26,7 @@ public class LobbyNotifyService {
     private final SimpMessagingTemplate messagingTemplate;
     private final GameRoomService gameRoomService;
     private final OnlineMemberService onlineMemberService;
+    private final MemberProfiles memberProfiles;
     private final StompSessions stompSessions;
 
     private final AtomicBoolean hasPendingRoomUpdate = new AtomicBoolean(false);
@@ -47,7 +49,7 @@ public class LobbyNotifyService {
     public void processPendingUpdate() {
         if (hasPendingRoomUpdate.compareAndSet(true, false)) {
             messagingTemplate.convertAndSend(StompDestination.LOBBY,
-                    ApiResponse.success(RoomResponse.listFrom(gameRoomService.findAllRooms())));
+                    ApiResponse.success(RoomResponse.listFrom(gameRoomService.findAllRooms(), memberProfiles)));
         }
 
         if (hasPendingPresenceUpdate.compareAndSet(true, false)) {

@@ -29,9 +29,9 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 class HangmanGameServiceTest {
 
-    private static final GamePlayer HOST = GamePlayer.createNewPlayer(1L, "host");
-    private static final GamePlayer P1 = GamePlayer.createNewPlayer(1L, "p1");
-    private static final GamePlayer P2 = GamePlayer.createNewPlayer(2L, "p2");
+    private static final GamePlayer HOST = GamePlayer.createNewPlayer(1L);
+    private static final GamePlayer P1 = GamePlayer.createNewPlayer(1L);
+    private static final GamePlayer P2 = GamePlayer.createNewPlayer(2L);
     private static final RoomSettings SETTINGS =
             new RoomSettings(GameType.HANGMAN, "방", 8, Category.DEFAULT, 1, 0, CSQuizDifficulty.EASY);
 

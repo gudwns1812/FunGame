@@ -20,10 +20,6 @@ record Participant(GamePlayer player, int score, boolean playing) {
         return new Participant(player, score, true);
     }
 
-    String nickname() {
-        return player.nickname();
-    }
-
     PlayerScore toPlayerScore() {
         return new PlayerScore(player, score);
     }

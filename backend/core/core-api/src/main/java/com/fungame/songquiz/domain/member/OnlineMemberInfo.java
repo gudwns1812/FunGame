@@ -10,10 +10,10 @@ public record OnlineMemberInfo(
         Long currentRoomId
 ) {
 
-    public static OnlineMemberInfo of(Member member, MemberLocation location) {
+    public static OnlineMemberInfo of(MemberProfile profile, MemberLocation location) {
         return new OnlineMemberInfo(
-                member.getId(),
-                member.getNickname(),
+                profile.memberId(),
+                profile.nickname(),
                 location.status(),
                 location.roomId()
         );

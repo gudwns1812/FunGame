@@ -79,7 +79,6 @@ export interface HangmanStatus {
   currentDisplay: string;
   wrongLetters: string[];
   remainingTries: number;
-  currentTurnPlayer: string;
   currentTurnMemberId: number | null;
   isGameOver: boolean;
   isWin: boolean;

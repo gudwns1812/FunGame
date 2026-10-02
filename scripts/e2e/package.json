@@ -1,0 +1,14 @@
+{
+  "name": "fungame-e2e",
+  "private": true,
+  "description": "브라우저로 실제 화면을 보며 도는 E2E. 단위 테스트가 못 보는 통합 지점을 확인한다.",
+  "scripts": {
+    "test": "playwright test",
+    "test:headed": "playwright test --headed",
+    "test:ui": "playwright test --ui",
+    "report": "playwright show-report"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.49.1"
+  }
+}

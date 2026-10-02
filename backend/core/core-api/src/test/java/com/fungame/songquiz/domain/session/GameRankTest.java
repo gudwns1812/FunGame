@@ -12,11 +12,11 @@ class GameRankTest {
     @Test
     void 게임랭킹은_점수를_내림차순으로_반환한다() {
         //given
-        var park = GamePlayer.createNewPlayer(2L, "park");
+        var park = GamePlayer.createNewPlayer(2L);
         var players = List.of(
-                GamePlayer.createNewPlayer(1L, "hi"),
+                GamePlayer.createNewPlayer(1L),
                 park,
-                GamePlayer.createNewPlayer(3L, "jack"));
+                GamePlayer.createNewPlayer(3L));
         var gameRank = new GameRank(players);
         //when
         gameRank.updatePoint(park.memberId());

@@ -3,6 +3,7 @@ package com.fungame.songquiz.controller.api;
 import com.fungame.songquiz.domain.invite.RoomInviteNotification;
 import com.fungame.songquiz.domain.invite.RoomInviteService;
 import com.fungame.songquiz.domain.member.MemberAdapter;
+import com.fungame.songquiz.domain.member.MemberProfiles;
 import com.fungame.songquiz.controller.request.InviteMemberRequest;
 import com.fungame.songquiz.domain.invite.SentInvite;
 import com.fungame.songquiz.controller.response.AcceptedInviteResponse;
@@ -20,6 +21,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class RoomInviteController {
 
     private final RoomInviteService roomInviteService;
+    private final MemberProfiles memberProfiles;
 
     @PostMapping("/api/rooms/{roomId}/invites")
     public ApiResponse<SentInviteResponse> invite(
@@ -35,7 +37,7 @@ public class RoomInviteController {
             @PathVariable String inviteId,
             @AuthenticationPrincipal MemberAdapter member) {
         return ApiResponse.success(
-                AcceptedInviteResponse.from(roomInviteService.accept(inviteId, member.getId())));
+                AcceptedInviteResponse.from(roomInviteService.accept(inviteId, member.getId()), memberProfiles));
     }
 
     @PostMapping("/api/invites/{inviteId}/decline")

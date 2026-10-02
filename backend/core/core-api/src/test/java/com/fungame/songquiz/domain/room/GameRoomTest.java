@@ -16,9 +16,9 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class GameRoomTest {
 
-    private static final GamePlayer HOST = GamePlayer.createNewPlayer(1L, "host");
-    private static final GamePlayer PLAYER2 = GamePlayer.createNewPlayer(2L, "player2");
-    private static final GamePlayer PLAYER3 = GamePlayer.createNewPlayer(3L, "player3");
+    private static final GamePlayer HOST = GamePlayer.createNewPlayer(1L);
+    private static final GamePlayer PLAYER2 = GamePlayer.createNewPlayer(2L);
+    private static final GamePlayer PLAYER3 = GamePlayer.createNewPlayer(3L);
     private static final Long NOT_HOST_ID = 99L;
     private static final Long ROOM_ID = 1L;
 
@@ -54,24 +54,24 @@ class GameRoomTest {
         assertThat(result.newlyJoined()).isFalse();
         assertThat(result.playerNumber()).isEqualTo(2);
         assertThat(gameRoom.getRoomPlayers())
-                .extracting(GamePlayer::nickname)
-                .containsExactly("host", "player2");
+                .extracting(GamePlayer::memberId)
+                .containsExactly(HOST.memberId(), PLAYER2.memberId());
     }
 
     @Test
     @DisplayName("닉네임이 같아도 다른 회원이면 별개의 플레이어로 입장한다.")
-    void join_distinguishes_same_nickname() {
+    void join_distinguishes_by_member_id() {
         // given: 방장과 닉네임이 같지만 회원 번호가 다른 사람
-        GamePlayer sameNickname = GamePlayer.createNewPlayer(42L, HOST.nickname());
+        GamePlayer otherMember = GamePlayer.createNewPlayer(42L);
 
         // when
-        JoinResult result = gameRoom.join(sameNickname);
+        JoinResult result = gameRoom.join(otherMember);
 
         // then
         assertThat(result.newlyJoined()).isTrue();
         assertThat(gameRoom.getRoomPlayers())
                 .extracting(GamePlayer::memberId)
-                .containsExactly(HOST.memberId(), sameNickname.memberId());
+                .containsExactly(HOST.memberId(), otherMember.memberId());
     }
 
     @Test
@@ -131,7 +131,6 @@ class GameRoomTest {
 
         // then
         assertThat(kicked.memberId()).isEqualTo(PLAYER2.memberId());
-        assertThat(kicked.nickname()).isEqualTo(PLAYER2.nickname());
         assertThat(gameRoom.getRoomPlayers())
                 .extracting(GamePlayer::memberId)
                 .containsExactly(HOST.memberId());

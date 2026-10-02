@@ -25,9 +25,9 @@ class GameSessionTest {
     void setUp() {
         quiz = mock(Quiz.class);
         List<GamePlayer> players = List.of(
-                GamePlayer.createNewPlayer(1L, "p1"),
-                GamePlayer.createNewPlayer(2L, "p2"),
-                GamePlayer.createNewPlayer(3L, "p3"));
+                GamePlayer.createNewPlayer(1L),
+                GamePlayer.createNewPlayer(2L),
+                GamePlayer.createNewPlayer(3L));
         gameSession = new GameSession(quiz, players);
     }
 

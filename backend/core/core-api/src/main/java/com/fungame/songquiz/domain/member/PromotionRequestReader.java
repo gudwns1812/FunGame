@@ -50,7 +50,7 @@ public class PromotionRequestReader {
 
         return PromotionRequest.restore(
                 entity.getId(),
-                new MemberInfo(member.getId(), member.getLoginId(), member.getNickname(), member.getEmail(),
+                MemberInfo.of(member.getId(), member.getLoginId(), member.getNickname(), member.getEmail(),
                         member.getRole()),
                 entity.getStatus(),
                 entity.getCreatedAt(),

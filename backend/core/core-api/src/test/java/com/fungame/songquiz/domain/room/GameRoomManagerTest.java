@@ -36,9 +36,9 @@ import static org.mockito.Mockito.verify;
 class GameRoomManagerTest {
 
     private static final Long MISSING_ROOM_ID = 999L;
-    private static final GamePlayer HOST = GamePlayer.createNewPlayer(1L, "방장");
-    private static final GamePlayer GUEST = GamePlayer.createNewPlayer(2L, "참가자");
-    private static final GamePlayer INTRUDER = GamePlayer.createNewPlayer(9L, "난입자");
+    private static final GamePlayer HOST = GamePlayer.createNewPlayer(1L);
+    private static final GamePlayer GUEST = GamePlayer.createNewPlayer(2L);
+    private static final GamePlayer INTRUDER = GamePlayer.createNewPlayer(9L);
     private static final RoomSettings SETTINGS = new RoomSettings(GameType.SONG, "방", 8, Category.KPOP, 10, 0, CSQuizDifficulty.HARD);
 
     @Mock

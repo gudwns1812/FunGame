@@ -1,6 +1,7 @@
 package com.fungame.songquiz.acceptance;
 
 import com.fungame.songquiz.controller.websocket.StompDestination;
+import com.fungame.songquiz.domain.member.MemberProfiles;
 import com.fungame.songquiz.domain.room.GameRoomService;
 import com.fungame.songquiz.domain.room.RoomInfo;
 import com.fungame.songquiz.domain.room.RoomStateInfo;
@@ -17,6 +18,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.boot.test.web.server.LocalServerPort;
+import org.springframework.cache.Cache;
+import org.springframework.cache.CacheManager;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -79,6 +82,9 @@ class RealtimeChannelAcceptanceTest {
     @Autowired
     private JdbcTemplate jdbcTemplate;
 
+    @Autowired
+    private CacheManager cacheManager;
+
     private WebSocketStompClient stompClient;
     private Actor host;
     private Actor guest;
@@ -106,6 +112,16 @@ class RealtimeChannelAcceptanceTest {
     private void deleteAllMembers() {
         jdbcTemplate.update("delete from member_daily_active");
         memberRepository.deleteAll();
+        forgetCachedProfiles();
+    }
+
+    // 회원 행을 지웠는데 프로필 캐시를 남겨두면, 접속 유예(20초) 안에 있는 앞 테스트의
+    // 회원을 캐시가 대신 대답해 접속자 목록에 되살아난다. 방과 회원처럼 캐시도 같이 비운다.
+    private void forgetCachedProfiles() {
+        Cache profiles = cacheManager.getCache(MemberProfiles.CACHE_NAME);
+        if (profiles != null) {
+            profiles.clear();
+        }
     }
 
     private void emptyEveryRoom() {
