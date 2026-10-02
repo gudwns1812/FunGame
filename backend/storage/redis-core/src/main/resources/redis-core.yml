@@ -1,0 +1,15 @@
+spring:
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      timeout: 2s
+
+---
+spring:
+  config:
+    activate:
+      on-profile: local
+  data:
+    redis:
+      port: ${REDIS_PORT:16379}

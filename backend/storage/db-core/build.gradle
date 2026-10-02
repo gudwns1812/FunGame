@@ -33,4 +33,5 @@ dependencies {
     testFixturesApi 'org.springframework.boot:spring-boot-testcontainers'
     testFixturesApi 'org.testcontainers:junit-jupiter'
     testFixturesApi 'org.testcontainers:mysql'
+    testFixturesApi testFixtures(project(':backend:storage:redis-core'))
 }

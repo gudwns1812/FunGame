@@ -153,6 +153,8 @@ jobs:
               exit 1
             fi
 
+            docker compose up -d redis
+
             PREVIOUS_IMAGE=$(docker inspect --format '{{.Config.Image}}' "$CONTAINER_NAME" 2>/dev/null || echo '')
             echo "현재 이미지: ${PREVIOUS_IMAGE:-없음}"
 
