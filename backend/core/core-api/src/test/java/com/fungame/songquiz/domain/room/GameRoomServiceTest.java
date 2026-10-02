@@ -23,9 +23,9 @@ import static org.mockito.Mockito.verify;
 @ExtendWith(MockitoExtension.class)
 class GameRoomServiceTest {
 
-    private static final GamePlayer HOST = GamePlayer.createNewPlayer(1L, "방장");
-    private static final GamePlayer GUEST = GamePlayer.createNewPlayer(11L, "참가자");
-    private static final GamePlayer LEAVER = GamePlayer.createNewPlayer(12L, "이탈자");
+    private static final GamePlayer HOST = GamePlayer.createNewPlayer(1L);
+    private static final GamePlayer GUEST = GamePlayer.createNewPlayer(11L);
+    private static final GamePlayer LEAVER = GamePlayer.createNewPlayer(12L);
     private static final RoomSettings SETTINGS =
             new RoomSettings(GameType.SONG, "방2", 8, Category.KPOP, 10, 0, CSQuizDifficulty.HARD);
     private static final RoomStateInfo STATE = new RoomStateInfo(
@@ -96,7 +96,7 @@ class GameRoomServiceTest {
     void 게임_진행_중_이탈이면_게임별_이탈_처리를_위임한다() {
         // given
         given(gameRoomManager.leaveRoom(1L, LEAVER.memberId()))
-                .willReturn(new LeaveResult(false, true, LEAVER.nickname(), STATE));
+                .willReturn(new LeaveResult(false, true, true, STATE));
 
         // when
         service.leaveRoom(1L, LEAVER.memberId());
@@ -110,7 +110,7 @@ class GameRoomServiceTest {
     void 대기_중_이탈이면_게임_이탈_처리를_하지_않는다() {
         // given
         given(gameRoomManager.leaveRoom(1L, LEAVER.memberId()))
-                .willReturn(new LeaveResult(false, false, LEAVER.nickname(), STATE));
+                .willReturn(new LeaveResult(false, false, true, STATE));
 
         // when
         service.leaveRoom(1L, LEAVER.memberId());
@@ -124,7 +124,7 @@ class GameRoomServiceTest {
     void 마지막_인원이_나가_방이_사라지면_이탈_이벤트를_발행하지_않는다() {
         // given
         given(gameRoomManager.leaveRoom(1L, LEAVER.memberId()))
-                .willReturn(new LeaveResult(true, true, LEAVER.nickname(), null));
+                .willReturn(new LeaveResult(true, true, true, null));
 
         // when
         service.leaveRoom(1L, LEAVER.memberId());
@@ -138,7 +138,7 @@ class GameRoomServiceTest {
     void 방에_없던_사람의_이탈_처리는_아무_이벤트도_발행하지_않는다() {
         // given
         given(gameRoomManager.leaveRoom(1L, LEAVER.memberId()))
-                .willReturn(new LeaveResult(false, false, null, STATE));
+                .willReturn(new LeaveResult(false, false, false, STATE));
 
         // when
         service.leaveRoom(1L, LEAVER.memberId());

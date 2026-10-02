@@ -182,7 +182,6 @@ public class HangmanQuiz extends AbstractQuiz {
                 display,
                 wrongLetters.stream().map(String::valueOf).collect(Collectors.joining(",")),
                 String.valueOf(remainingTries),
-                currentTurnPlayer.nickname(),
                 String.valueOf(remainingTries <= 0 || isGameWon()),
                 String.valueOf(isGameWon()),
                 String.valueOf(currentTurnPlayer.memberId())

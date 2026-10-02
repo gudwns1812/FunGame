@@ -19,7 +19,7 @@ import static org.mockito.Mockito.mock;
 class GameSessionManagerTest {
 
     private static final Long ROOM_ID = 1L;
-    private static final GamePlayer HOST = GamePlayer.createNewPlayer(1L, "host");
+    private static final GamePlayer HOST = GamePlayer.createNewPlayer(1L);
     private static final RoomSettings SETTINGS =
             new RoomSettings(GameType.SONG, "방", 8, Category.KPOP, 10, 0, CSQuizDifficulty.HARD);
 

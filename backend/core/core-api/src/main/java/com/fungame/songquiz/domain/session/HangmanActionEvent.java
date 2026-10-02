@@ -9,7 +9,6 @@ import com.fungame.songquiz.enums.ActionResult;
 public record HangmanActionEvent(
         Long roomId,
         Long memberId,
-        String nickname,
         char letter,
         ActionResult result,
         QuizContent status

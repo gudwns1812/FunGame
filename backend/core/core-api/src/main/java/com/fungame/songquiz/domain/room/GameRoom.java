@@ -181,10 +181,6 @@ public class GameRoom {
         return players.hasPlayer(memberId);
     }
 
-    public String nicknameOf(Long memberId) {
-        return players.nicknameOf(memberId);
-    }
-
     public int getPlayerCount() {
         return players.getCurrentCount();
     }

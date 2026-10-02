@@ -22,17 +22,12 @@ public class GameRank {
                 .filter(Participant::playing)
                 .map(Participant::toPlayerScore)
                 .sorted(Comparator.comparingInt(PlayerScore::score).reversed()
-                        .thenComparing(PlayerScore::nickname))
+                        .thenComparing(PlayerScore::memberId))
                 .toList();
     }
 
     public void addPlayer(GamePlayer player) {
         participants.put(player.memberId(), Participant.joining(player));
-    }
-
-    public String nicknameOf(Long memberId) {
-        Participant participant = participants.get(memberId);
-        return participant == null ? null : participant.nickname();
     }
 
     public void deactivate(Long memberId) {

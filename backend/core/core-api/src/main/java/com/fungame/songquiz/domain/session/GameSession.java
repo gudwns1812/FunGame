@@ -57,8 +57,8 @@ public class GameSession {
         rank.updatePoint(memberId);
     }
 
-    public String nicknameOf(Long memberId) {
-        return rank.nicknameOf(memberId);
+    public boolean hasParticipant(Long memberId) {
+        return rank.hasParticipant(memberId);
     }
 
     public void removePlayer(Long memberId) {

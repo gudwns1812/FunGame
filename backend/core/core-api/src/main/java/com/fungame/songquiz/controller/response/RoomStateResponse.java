@@ -1,5 +1,6 @@
 package com.fungame.songquiz.controller.response;
 
+import com.fungame.songquiz.domain.member.MemberProfiles;
 import com.fungame.songquiz.domain.room.RoomStateInfo;
 
 import java.util.List;
@@ -11,11 +12,11 @@ public record RoomStateResponse(
         String hostNickname
 ) {
 
-    public static RoomStateResponse from(RoomStateInfo state) {
+    public static RoomStateResponse from(RoomStateInfo state, MemberProfiles profiles) {
         return new RoomStateResponse(
                 state.version(),
-                GamePlayerResponse.listFrom(state.players()),
+                GamePlayerResponse.listFrom(state.players(), profiles),
                 state.host().memberId(),
-                state.host().nickname());
+                profiles.of(state.host().memberId()).nickname());
     }
 }

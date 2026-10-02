@@ -1,5 +1,6 @@
 package com.fungame.songquiz.controller.websocket;
 
+import com.fungame.songquiz.domain.member.MemberProfiles;
 import com.fungame.songquiz.domain.quiz.QuizInfo;
 import com.fungame.songquiz.domain.room.GamePlayer;
 import com.fungame.songquiz.domain.room.PlayerJoinEvent;
@@ -12,13 +13,14 @@ import com.fungame.songquiz.domain.session.GameResultEvent;
 import com.fungame.songquiz.domain.session.GameSkipEvent;
 import com.fungame.songquiz.domain.session.GameStartEvent;
 import com.fungame.songquiz.domain.session.HangmanActionEvent;
-import com.fungame.songquiz.domain.session.PlayerScore;
+import com.fungame.songquiz.domain.session.ResultRow;
 import com.fungame.songquiz.domain.session.QuizGameHintEvent;
 import com.fungame.songquiz.domain.session.RoundEndEvent;
 import com.fungame.songquiz.domain.session.RoundStartEvent;
 import com.fungame.songquiz.controller.response.ApiResponse;
 import com.fungame.songquiz.controller.response.RoomSettingsResponse;
 import com.fungame.songquiz.controller.response.RoomStateResponse;
+import com.fungame.songquiz.support.error.CoreException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.event.EventListener;
@@ -36,6 +38,7 @@ import java.util.Map;
 public class GameNotifyService {
 
     private final SimpMessagingTemplate messagingTemplate;
+    private final MemberProfiles memberProfiles;
 
     @EventListener
     public void handleHangmanAction(HangmanActionEvent event) {
@@ -44,7 +47,6 @@ public class GameNotifyService {
         Object payload = Map.of(
                 "type", "HANGMAN_ACTION",
                 "memberId", event.memberId(),
-                "nickname", event.nickname(),
                 "letter", String.valueOf(event.letter()),
                 "result", event.result().name(),
                 "status", event.status().data()
@@ -57,7 +59,7 @@ public class GameNotifyService {
         log.info("Broadcasting room settings change in room {}", event.roomId());
         sendRoomState(event.roomId(), Map.of(
                 "type", "ROOM_SETTINGS_CHANGED",
-                "settings", RoomSettingsResponse.from(event.state())
+                "settings", RoomSettingsResponse.from(event.state(), memberProfiles)
         ), event.state());
     }
 
@@ -161,7 +163,7 @@ public class GameNotifyService {
         payload.put("answer", event.answer().answer());
         payload.put("explanation", event.answer().explanation());
         payload.put("winnerMemberId", event.winnerMemberId());
-        payload.put("winnerNickname", event.winnerNickname());
+        payload.put("winnerNickname", nicknameOrNull(event.winnerMemberId()));
         messagingTemplate.convertAndSend(destination, ApiResponse.success(payload));
     }
 
@@ -171,7 +173,7 @@ public class GameNotifyService {
         String destination = StompDestination.room(event.roomId());
 
         List<Map<String, Object>> rankings = event.rankings().stream()
-                .map(GameNotifyService::toRankingPayload)
+                .map(this::toRankingPayload)
                 .toList();
 
         Object payload = Map.of(
@@ -184,20 +186,37 @@ public class GameNotifyService {
 
     private void sendRoomState(Long roomId, Map<String, Object> payload, RoomStateInfo state) {
         Map<String, Object> withRoom = new HashMap<>(payload);
-        withRoom.put("room", RoomStateResponse.from(state));
+        withRoom.put("room", RoomStateResponse.from(state, memberProfiles));
 
         messagingTemplate.convertAndSend(StompDestination.room(roomId), ApiResponse.success(withRoom));
     }
 
-    private static Map<String, Object> whoDidIt(String type, GamePlayer player) {
-        return Map.of("type", type, "memberId", player.memberId(), "nickname", player.nickname());
+    private Map<String, Object> whoDidIt(String type, GamePlayer player) {
+        Map<String, Object> who = new HashMap<>();
+        who.put("type", type);
+        who.put("memberId", player.memberId());
+        who.put("nickname", nicknameOrNull(player.memberId()));
+        return who;
     }
 
-    private static Map<String, Object> toRankingPayload(PlayerScore score) {
+    private String nicknameOrNull(Long memberId) {
+        if (memberId == null) {
+            return null;
+        }
+
+        try {
+            return memberProfiles.of(memberId).nickname();
+        } catch (CoreException e) {
+            log.info("닉네임을 찾지 못했다: member {}", memberId);
+            return null;
+        }
+    }
+
+    private Map<String, Object> toRankingPayload(ResultRow row) {
         Map<String, Object> ranking = new HashMap<>();
-        ranking.put("memberId", score.memberId());
-        ranking.put("nickname", score.nickname());
-        ranking.put("score", score.score());
+        ranking.put("memberId", row.memberId());
+        ranking.put("nickname", row.label() != null ? row.label() : nicknameOrNull(row.memberId()));
+        ranking.put("score", row.score());
         return ranking;
     }
 }

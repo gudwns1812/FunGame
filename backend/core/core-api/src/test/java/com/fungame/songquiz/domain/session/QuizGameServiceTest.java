@@ -41,10 +41,10 @@ import static org.mockito.Mockito.verify;
 class QuizGameServiceTest {
 
     private static final Long ROOM_ID = 1L;
-    private static final GamePlayer P1 = GamePlayer.createNewPlayer(1L, "p1");
-    private static final GamePlayer P2 = GamePlayer.createNewPlayer(2L, "p2");
-    private static final GamePlayer P3 = GamePlayer.createNewPlayer(3L, "p3");
-    private static final GamePlayer P4 = GamePlayer.createNewPlayer(4L, "p4");
+    private static final GamePlayer P1 = GamePlayer.createNewPlayer(1L);
+    private static final GamePlayer P2 = GamePlayer.createNewPlayer(2L);
+    private static final GamePlayer P3 = GamePlayer.createNewPlayer(3L);
+    private static final GamePlayer P4 = GamePlayer.createNewPlayer(4L);
     private static final RoomSettings SETTINGS =
             new RoomSettings(GameType.SONG, "방", 8, Category.KPOP, 3, 0, CSQuizDifficulty.EASY);
     private static final Duration ROUND_LENGTH = Duration.ofSeconds(30);

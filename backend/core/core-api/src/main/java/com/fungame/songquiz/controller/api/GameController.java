@@ -1,6 +1,7 @@
 package com.fungame.songquiz.controller.api;
 
 import com.fungame.songquiz.domain.member.MemberAdapter;
+import com.fungame.songquiz.domain.member.MemberProfiles;
 import com.fungame.songquiz.domain.room.GamePlayer;
 import com.fungame.songquiz.domain.room.GameRoomService;
 import com.fungame.songquiz.domain.room.RoomSettings;
@@ -31,20 +32,21 @@ public class GameController {
 
     private final GameRoomService gameRoomService;
     private final GameService gameService;
+    private final MemberProfiles memberProfiles;
 
     @GetMapping
     public ApiResponse<List<RoomResponse>> findAllRoom() {
-        return ApiResponse.success(RoomResponse.listFrom(gameRoomService.findAllRooms()));
+        return ApiResponse.success(RoomResponse.listFrom(gameRoomService.findAllRooms(), memberProfiles));
     }
 
     @GetMapping("/{roomId}/users")
     public ApiResponse<RoomStateResponse> findUsers(@PathVariable Long roomId) {
-        return ApiResponse.success(RoomStateResponse.from(gameRoomService.findRoomState(roomId)));
+        return ApiResponse.success(RoomStateResponse.from(gameRoomService.findRoomState(roomId), memberProfiles));
     }
 
     @GetMapping("/{roomId}/settings")
     public ApiResponse<RoomSettingsResponse> findSettings(@PathVariable Long roomId) {
-        return ApiResponse.success(RoomSettingsResponse.from(gameRoomService.findRoomState(roomId)));
+        return ApiResponse.success(RoomSettingsResponse.from(gameRoomService.findRoomState(roomId), memberProfiles));
     }
 
     @PatchMapping("/{roomId}/settings")
@@ -54,7 +56,7 @@ public class GameController {
             @AuthenticationPrincipal MemberAdapter memberAdapter) {
         RoomSettings current = gameRoomService.findRoomState(roomId).settings();
         return ApiResponse.success(RoomSettingsResponse.from(gameRoomService.changeSettings(
-                roomId, memberAdapter.getId(), request.applyTo(current))));
+                roomId, memberAdapter.getId(), request.applyTo(current)), memberProfiles));
     }
 
     @GetMapping("/{roomId}/health")
@@ -70,7 +72,7 @@ public class GameController {
 
     @GetMapping("/{roomId}/play/rank")
     public ApiResponse<List<PlayerScoreResponse>> findPlayingUsers(@PathVariable Long roomId) {
-        List<PlayerScoreResponse> users = PlayerScoreResponse.listFrom(gameService.getPlayerRanks(roomId));
+        List<PlayerScoreResponse> users = PlayerScoreResponse.listFrom(gameService.getPlayerRanks(roomId), memberProfiles);
         return ApiResponse.success(users);
     }
 
@@ -140,7 +142,7 @@ public class GameController {
         return ApiResponse.success();
     }
 
-    private GamePlayer toPlayer(MemberAdapter memberAdapter) {
-        return GamePlayer.createNewPlayer(memberAdapter.getId(), memberAdapter.getNickName());
+    private static GamePlayer toPlayer(MemberAdapter memberAdapter) {
+        return GamePlayer.createNewPlayer(memberAdapter.getId());
     }
 }

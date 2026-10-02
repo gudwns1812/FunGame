@@ -15,7 +15,13 @@ import com.fungame.songquiz.enums.GameType;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
+import org.springframework.cache.CacheManager;
+import org.springframework.cache.concurrent.ConcurrentMapCacheManager;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
+
+import com.fungame.songquiz.domain.member.MemberProfiles;
+import com.fungame.songquiz.domain.member.MemberReader;
+import com.fungame.songquiz.support.MemberFixture;
 
 import java.util.List;
 import java.util.Map;
@@ -29,11 +35,20 @@ import static org.mockito.Mockito.verify;
 class GameNotifyServiceTest {
 
     private static final Long ROOM_ID = 7L;
-    private static final GamePlayer HOST = new GamePlayer(1L, "방장", true);
-    private static final GamePlayer GUEST = new GamePlayer(2L, "참가자", false);
+    private static final GamePlayer HOST = new GamePlayer(1L, true);
+    private static final GamePlayer GUEST = new GamePlayer(2L, false);
 
     private final SimpMessagingTemplate messagingTemplate = mock(SimpMessagingTemplate.class);
-    private final GameNotifyService gameNotifyService = new GameNotifyService(messagingTemplate);
+    private final MemberReader memberReader = mock(MemberReader.class);
+    private final CacheManager cacheManager = new ConcurrentMapCacheManager(MemberProfiles.CACHE_NAME);
+    private final MemberProfiles memberProfiles = new MemberProfiles(memberReader, cacheManager);
+    private final GameNotifyService gameNotifyService = new GameNotifyService(messagingTemplate, memberProfiles);
+
+    @org.junit.jupiter.api.BeforeEach
+    void nameEveryone() {
+        memberProfiles.refresh(MemberFixture.withId(HOST.memberId(), "방장"));
+        memberProfiles.refresh(MemberFixture.withId(GUEST.memberId(), "참가자"));
+    }
 
     @Test
     @DisplayName("입장 이벤트에 참가자 전체와 version 이 실린다.")
@@ -43,8 +58,8 @@ class GameNotifyServiceTest {
         Map<String, Object> payload = capturedPayload();
         assertThat(payload).containsEntry("type", "PLAYER_JOIN")
                 .containsEntry("memberId", GUEST.memberId())
-                .containsEntry("nickname", GUEST.nickname());
-        assertThat(payload.get("room")).isEqualTo(RoomStateResponse.from(state(3)));
+                .containsEntry("nickname", "참가자");
+        assertThat(payload.get("room")).isEqualTo(RoomStateResponse.from(state(3), memberProfiles));
     }
 
     @Test
@@ -54,7 +69,7 @@ class GameNotifyServiceTest {
 
         Map<String, Object> payload = capturedPayload();
         assertThat(payload).containsEntry("type", "PLAYER_LEAVE");
-        assertThat(payload.get("room")).isEqualTo(RoomStateResponse.from(state(4)));
+        assertThat(payload.get("room")).isEqualTo(RoomStateResponse.from(state(4), memberProfiles));
     }
 
     @Test
@@ -64,7 +79,7 @@ class GameNotifyServiceTest {
 
         Map<String, Object> payload = capturedPayload();
         assertThat(payload).containsEntry("type", "ROOM_SETTINGS_CHANGED").containsKey("settings");
-        assertThat(payload.get("room")).isEqualTo(RoomStateResponse.from(state(5)));
+        assertThat(payload.get("room")).isEqualTo(RoomStateResponse.from(state(5), memberProfiles));
     }
 
     @SuppressWarnings("unchecked")

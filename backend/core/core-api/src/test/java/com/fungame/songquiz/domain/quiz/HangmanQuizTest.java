@@ -15,9 +15,9 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class HangmanGameTest {
 
-    private static final GamePlayer PLAYER1 = GamePlayer.createNewPlayer(1L, "player1");
-    private static final GamePlayer PLAYER2 = GamePlayer.createNewPlayer(2L, "player2");
-    private static final GamePlayer PLAYER3 = GamePlayer.createNewPlayer(3L, "player3");
+    private static final GamePlayer PLAYER1 = GamePlayer.createNewPlayer(1L);
+    private static final GamePlayer PLAYER2 = GamePlayer.createNewPlayer(2L);
+    private static final GamePlayer PLAYER3 = GamePlayer.createNewPlayer(3L);
     private static final long WORD_ID = 77L;
 
     private HangmanQuiz quiz;
@@ -161,9 +161,9 @@ class HangmanGameTest {
 
         // then
         assertThat(quiz.getPlayerOrder())
-                .extracting(GamePlayer::nickname)
-                .containsExactly("player2", "player3");
-        assertThat(quiz.getCurrentTurnPlayer().nickname()).isEqualTo("player2");
+                .extracting(GamePlayer::memberId)
+                .containsExactly(PLAYER2.memberId(), PLAYER3.memberId());
+        assertThat(quiz.getCurrentTurnPlayer().memberId()).isEqualTo(PLAYER2.memberId());
     }
 
     @Test
@@ -173,13 +173,13 @@ class HangmanGameTest {
         quiz = HangmanQuiz.create(word("APPLE"));
         quiz.initPlayers(List.of(PLAYER1, PLAYER2, PLAYER3));
         quiz.guess(PLAYER1.memberId(), 'A');
-        assertThat(quiz.getCurrentTurnPlayer().nickname()).isEqualTo("player2");
+        assertThat(quiz.getCurrentTurnPlayer().memberId()).isEqualTo(PLAYER2.memberId());
 
         // when
         quiz.dropPlayer(PLAYER1.memberId());
 
         // then
-        assertThat(quiz.getCurrentTurnPlayer().nickname()).isEqualTo("player2");
+        assertThat(quiz.getCurrentTurnPlayer().memberId()).isEqualTo(PLAYER2.memberId());
     }
 
     @Test
@@ -187,13 +187,13 @@ class HangmanGameTest {
     void removePlayer_last_index_wraps() {
         // given: player1, player2 에서 player2 차례
         quiz.guess(PLAYER1.memberId(), 'A');
-        assertThat(quiz.getCurrentTurnPlayer().nickname()).isEqualTo("player2");
+        assertThat(quiz.getCurrentTurnPlayer().memberId()).isEqualTo(PLAYER2.memberId());
 
         // when
         quiz.dropPlayer(PLAYER2.memberId());
 
         // then
-        assertThat(quiz.getCurrentTurnPlayer().nickname()).isEqualTo("player1");
+        assertThat(quiz.getCurrentTurnPlayer().memberId()).isEqualTo(PLAYER1.memberId());
     }
 
     @Test

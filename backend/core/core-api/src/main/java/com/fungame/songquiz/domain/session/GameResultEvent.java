@@ -5,6 +5,6 @@ import java.util.List;
 
 public record GameResultEvent(
         Long roomId,
-        List<PlayerScore> rankings
+        List<ResultRow> rankings
 ) {
 }

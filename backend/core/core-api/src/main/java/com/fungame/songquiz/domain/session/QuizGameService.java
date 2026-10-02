@@ -96,13 +96,13 @@ public class QuizGameService implements GameService {
 
     private void processRoundResult(Long roomId, Long winnerId, GameSession gameSession) {
         if (winnerId == null) {
-            publisher.publishEvent(new RoundEndEvent(roomId, null, null, gameSession.getAnswer()));
+            publisher.publishEvent(new RoundEndEvent(roomId, null, gameSession.getAnswer()));
             return;
         }
 
         gameSession.updatePlayerPoint(winnerId);
         publisher.publishEvent(
-                new RoundEndEvent(roomId, winnerId, gameSession.nicknameOf(winnerId), gameSession.getAnswer()));
+                new RoundEndEvent(roomId, winnerId, gameSession.getAnswer()));
     }
 
     private void scheduleNextStep(Long roomId, GameSession gameSession) {
@@ -121,7 +121,7 @@ public class QuizGameService implements GameService {
         timer.startAfter(roomId, BEFORE_GAME_RESULT, () -> {
             // 브로드캐스트가 터져도 방이 PLAYING 으로 굳지 않게 한다.
             try {
-                publisher.publishEvent(new GameResultEvent(roomId, gameSession.getPlayerRanks()));
+                publisher.publishEvent(new GameResultEvent(roomId, ResultRow.listOf(gameSession.getPlayerRanks())));
             } finally {
                 gameRoomManager.endGame(roomId);
             }

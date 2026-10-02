@@ -7,8 +7,4 @@ public record PlayerScore(GamePlayer player, int score) {
     public Long memberId() {
         return player.memberId();
     }
-
-    public String nickname() {
-        return player.nickname();
-    }
 }

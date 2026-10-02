@@ -89,8 +89,8 @@ public class GameServiceIntegrationTest {
         Long hostId = saveMember(hostName);
         Long player1Id = saveMember(player1);
 
-        host = com.fungame.songquiz.domain.room.GamePlayer.createNewPlayer(hostId, hostName);
-        guest = com.fungame.songquiz.domain.room.GamePlayer.createNewPlayer(player1Id, player1);
+        host = com.fungame.songquiz.domain.room.GamePlayer.createNewPlayer(hostId);
+        guest = com.fungame.songquiz.domain.room.GamePlayer.createNewPlayer(player1Id);
 
         roomId = gameRoomService.createRoom(
                 new com.fungame.songquiz.domain.room.RoomSettings(GameType.CS, "테스트 방", 5, null, 2, 0, com.fungame.songquiz.enums.CSQuizDifficulty.HARD),

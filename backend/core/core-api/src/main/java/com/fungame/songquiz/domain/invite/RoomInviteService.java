@@ -1,8 +1,7 @@
 package com.fungame.songquiz.domain.invite;
 
-import com.fungame.songquiz.domain.member.Member;
 import com.fungame.songquiz.domain.member.MemberConnectionTracker;
-import com.fungame.songquiz.domain.member.MemberReader;
+import com.fungame.songquiz.domain.member.MemberProfiles;
 import com.fungame.songquiz.domain.room.GamePlayer;
 import com.fungame.songquiz.domain.room.GameRoomService;
 import com.fungame.songquiz.domain.room.RoomInfo;
@@ -33,7 +32,7 @@ public class RoomInviteService {
     private final Map<String, RoomInvite> invitesById = new ConcurrentHashMap<>();
 
     private final GameRoomService gameRoomService;
-    private final MemberReader memberReader;
+    private final MemberProfiles memberProfiles;
     private final ApplicationEventPublisher eventPublisher;
     private final MemberConnectionTracker memberConnectionTracker;
     private final Clock clock;
@@ -43,7 +42,6 @@ public class RoomInviteService {
             throw new CoreException(ErrorType.INVITE_TO_SELF);
         }
 
-        Member inviter = memberReader.findMember(inviterMemberId);
         if (!gameRoomService.findLocationOf(inviterMemberId).isWaitingIn(roomId)) {
             throw new CoreException(ErrorType.INVITE_NOT_FROM_WAITING_ROOM);
         }
@@ -51,7 +49,7 @@ public class RoomInviteService {
         requireWaitingRoom(roomId);
         requireInvitableTarget(targetMemberId);
 
-        RoomInvite invite = createInvite(roomId, inviter, targetMemberId);
+        RoomInvite invite = createInvite(roomId, inviterMemberId, targetMemberId);
         invitesById.put(invite.inviteId(), invite);
 
         RoomInviteNotification notification = notificationOf(invite);
@@ -62,14 +60,12 @@ public class RoomInviteService {
 
     public AcceptedInvite accept(String inviteId, Long memberId) {
         RoomInvite invite = consume(inviteId, memberId);
-        Member member = memberReader.findMember(memberId);
 
         if (!gameRoomService.findLocationOf(memberId).isInLobby()) {
             throw new CoreException(ErrorType.ALREADY_IN_ANOTHER_ROOM);
         }
 
-        int playerSequence = gameRoomService.joinRoom(invite.roomId(),
-                GamePlayer.createNewPlayer(memberId, member.getNickname()));
+        int playerSequence = gameRoomService.joinRoom(invite.roomId(), GamePlayer.createNewPlayer(memberId));
         RoomInfo room = gameRoomService.findRoomInfo(invite.roomId());
 
         return new AcceptedInvite(room, playerSequence);
@@ -115,11 +111,11 @@ public class RoomInviteService {
         }
     }
 
-    private RoomInvite createInvite(Long roomId, Member inviter, Long targetMemberId) {
+    private RoomInvite createInvite(Long roomId, Long inviterMemberId, Long targetMemberId) {
         return new RoomInvite(
                 UUID.randomUUID().toString(),
                 roomId,
-                GamePlayer.createNewPlayer(inviter.getId(), inviter.getNickname()),
+                inviterMemberId,
                 targetMemberId,
                 now().plus(INVITE_LIFETIME)
         );
@@ -133,7 +129,7 @@ public class RoomInviteService {
                 invite.roomId(),
                 settings.title(),
                 settings.gameType(),
-                invite.inviter().nickname(),
+                memberProfiles.of(invite.inviterMemberId()).nickname(),
                 INVITE_LIFETIME.toSeconds()
         );
     }

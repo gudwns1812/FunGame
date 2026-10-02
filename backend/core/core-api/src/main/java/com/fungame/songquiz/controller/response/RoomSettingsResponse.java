@@ -1,5 +1,6 @@
 package com.fungame.songquiz.controller.response;
 
+import com.fungame.songquiz.domain.member.MemberProfiles;
 import com.fungame.songquiz.domain.room.GamePlayer;
 import com.fungame.songquiz.domain.room.RoomSettings;
 import com.fungame.songquiz.domain.room.RoomStateInfo;
@@ -19,7 +20,7 @@ public record RoomSettingsResponse(
         String hostNickname
 ) {
 
-    public static RoomSettingsResponse from(RoomStateInfo state) {
+    public static RoomSettingsResponse from(RoomStateInfo state, MemberProfiles profiles) {
         RoomSettings roomSettings = state.settings();
         GamePlayer host = state.host();
 
@@ -32,6 +33,6 @@ public record RoomSettingsResponse(
                 roomSettings.difficulty(),
                 roomSettings.csDifficulty(),
                 host.memberId(),
-                host.nickname());
+                profiles.of(host.memberId()).nickname());
     }
 }
