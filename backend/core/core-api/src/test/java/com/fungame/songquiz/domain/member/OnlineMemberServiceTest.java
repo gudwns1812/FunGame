@@ -10,6 +10,9 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import org.springframework.cache.CacheManager;
+import org.springframework.cache.concurrent.ConcurrentMapCacheManager;
+
 import java.time.Instant;
 import java.time.ZoneId;
 import java.util.List;
@@ -34,9 +37,11 @@ class OnlineMemberServiceTest {
             },
             new MutableClock(Instant.parse("2026-08-14T00:00:00Z"), ZoneId.of("UTC")));
     private final MemberReader memberReader = mock(MemberReader.class);
+    private final CacheManager cacheManager = new ConcurrentMapCacheManager(MemberProfiles.CACHE_NAME);
+    private final MemberProfiles memberProfiles = new MemberProfiles(memberReader, cacheManager);
     private final GameRoomService gameRoomService = mock(GameRoomService.class);
     private final OnlineMemberService onlineMemberService =
-            new OnlineMemberService(memberConnectionTracker, memberReader, gameRoomService);
+            new OnlineMemberService(memberConnectionTracker, memberProfiles, gameRoomService);
 
     @BeforeEach
     void everyoneIsInLobbyByDefault() {
@@ -94,6 +99,30 @@ class OnlineMemberServiceTest {
                 .containsExactlyInAnyOrder(
                         tuple(VIEWER_ID, PlayerStatus.LOBBY, null),
                         tuple(OTHER_ID, PlayerStatus.PLAYING, ROOM_ID));
+    }
+
+    @Test
+    @DisplayName("닉네임 순으로 내어준다.")
+    void sortByNickname() {
+        connect(VIEWER_ID, OTHER_ID);
+        given(memberReader.findAllInOrderByNickname(any()))
+                .willReturn(List.of(MemberFixture.withId(VIEWER_ID, "하늘"), MemberFixture.withId(OTHER_ID, "가람")));
+
+        OnlineMembers onlineMembers = onlineMemberService.findAllOnline();
+
+        assertThat(onlineMembers.members()).extracting(OnlineMemberInfo::nickname).containsExactly("가람", "하늘");
+    }
+
+    @Test
+    @DisplayName("캐시에 이미 있는 사람은 저장소를 다시 묻지 않는다.")
+    void skipStorageWhenCached() {
+        connect(VIEWER_ID, OTHER_ID);
+        given(memberReader.findAllInOrderByNickname(any())).willReturn(List.of(member(VIEWER_ID), member(OTHER_ID)));
+        onlineMemberService.findAllOnline();
+
+        onlineMemberService.findAllOnline();
+
+        verify(memberReader, times(1)).findAllInOrderByNickname(any());
     }
 
     private void connect(Long... memberIds) {
