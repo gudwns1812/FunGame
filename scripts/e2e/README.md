@@ -29,6 +29,12 @@ npm run test:ui       # 단계별로 멈춰가며 디버깅
 npm run report        # 마지막 실행 리포트
 ```
 
+눈으로 따라가기 어려우면 `E2E_SLOW_MO` 로 동작마다 쉬게 한다. 단위는 ms 다.
+
+```bash
+E2E_SLOW_MO=600 npm run test:headed
+```
+
 다른 주소를 보려면 `E2E_BASE_URL` 을 준다.
 
 ## 이 테스트가 지키는 것
