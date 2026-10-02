@@ -15,6 +15,7 @@ import HangmanResultPage from './pages/HangmanResultPage';
 import ReportPage from './pages/ReportPage';
 import ResultPage from './pages/ResultPage';
 import { useGameLogic } from './hooks/useGameLogic';
+import { useIdentifyLoggedInMember } from './hooks/useIdentifyLoggedInMember';
 import { useButtonClickSound } from './hooks/useButtonClickSound';
 import type { GameStatus } from './types/game';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
@@ -26,7 +27,6 @@ import ConfirmDialog from './components/ConfirmDialog';
 import MaintenanceRoutes from './components/MaintenanceRoutes';
 import { PUBLIC_PAGES } from './publicPages';
 import { isMaintenanceMode } from './utils/maintenance';
-import { useEffect } from 'react';
 
 /** 방에 들어가 있는 동안은 클릭음이 게임을 방해해서 끈다 */
 const IN_ROOM_STATUSES: GameStatus[] = ['WAITING', 'PLAYING', 'RESULT'];
@@ -99,20 +99,7 @@ function AppContent() {
 
   useButtonClickSound({ enabled: !IN_ROOM_STATUSES.includes(status) });
 
-  // 로그인한 사용자가 누구인지 게임 로직에 알린다.
-  // 방 안에서 새로고침한 경우에도 회원 번호를 잃지 않도록 화면 상태와 분리한다.
-  useEffect(() => {
-    if (isAuthenticated && user) {
-      identify(user.id, user.nickname);
-    }
-  }, [isAuthenticated, user, identify]);
-
-  // 닉네임이 아직 연동되지 않았다면 로비에서 시작한다.
-  useEffect(() => {
-    if (isAuthenticated && user && nickname !== user.nickname) {
-      enterLobby(user.id, user.nickname);
-    }
-  }, [isAuthenticated, user, nickname, enterLobby]);
+  useIdentifyLoggedInMember({ isAuthenticated, user, nickname, identify, enterLobby });
 
   const publicPage = PUBLIC_PAGES.find((page) => page.path === location.pathname);
   if (publicPage) {
