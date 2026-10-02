@@ -3,7 +3,15 @@ set -uo pipefail
 
 RANGE="${1:-HEAD}"
 
-git diff "$RANGE" -U0 -- . | awk '
+# 추적 중인 파일은 diff 로, 아직 추적되지 않은 새 파일은 통째로 본다.
+# 새 파일은 git diff 에 아예 안 잡혀서 전에는 검사에서 통째로 빠졌다.
+{
+  git diff "$RANGE" -U0 -- .
+
+  git ls-files --others --exclude-standard -z | while IFS= read -r -d '' new_file; do
+    git diff --no-index -U0 --no-color -- /dev/null "$new_file" || true
+  done
+} | awk '
 function trimmed(s) {
   sub(/^[ \t]+/, "", s)
   return s
