@@ -35,7 +35,7 @@ class AuthServiceLoginMetricsTest {
             return new UsernamePasswordAuthenticationToken("놀이왕", "password");
         };
 
-        return new AuthService(null, null, null, authenticationManager, new LoginMetrics(registry));
+        return new AuthService(null, null, null, authenticationManager, new LoginMetrics(registry), null);
     }
 
     private double count(String result) {
