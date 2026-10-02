@@ -36,3 +36,7 @@ bin/
 .codex/skills/.system/**
 !.codex/prompts/
 !.codex/prompts/**
+
+# 포트폴리오 스크린샷 (로컬 산출물)
+portfolio-screenshots/
+portfolio-screenshots.zip
