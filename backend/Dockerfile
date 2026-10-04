@@ -11,6 +11,7 @@ COPY gradlew build.gradle settings.gradle /app/
 COPY backend/build.gradle /app/backend/build.gradle
 COPY backend/core/core-api/build.gradle /app/backend/core/core-api/build.gradle
 COPY backend/storage/db-core/build.gradle /app/backend/storage/db-core/build.gradle
+COPY backend/storage/redis-core/build.gradle /app/backend/storage/redis-core/build.gradle
 COPY backend/clients/client-youtube/build.gradle /app/backend/clients/client-youtube/build.gradle
 COPY backend/clients/client-mail/build.gradle /app/backend/clients/client-mail/build.gradle
 COPY backend/clients/client-discord/build.gradle /app/backend/clients/client-discord/build.gradle
@@ -27,6 +28,7 @@ RUN chmod +x gradlew && ./gradlew :backend:core:core-api:dependencies --no-daemo
 COPY backend/core/core-api/src /app/backend/core/core-api/src
 COPY backend/core/core-enum/src /app/backend/core/core-enum/src
 COPY backend/storage/db-core/src /app/backend/storage/db-core/src
+COPY backend/storage/redis-core/src /app/backend/storage/redis-core/src
 COPY backend/clients/client-youtube/src /app/backend/clients/client-youtube/src
 COPY backend/clients/client-mail/src /app/backend/clients/client-mail/src
 COPY backend/clients/client-discord/src /app/backend/clients/client-discord/src
