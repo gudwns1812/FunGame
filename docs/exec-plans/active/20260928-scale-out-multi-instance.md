@@ -312,6 +312,8 @@ Caddy 가 앞에서 나눈다. 프리티어 안에서 §2 의 모든 증상을 �
       로컬에는 즉시 전달하고 스트림에도 실어, Redis 장애가 "전체 먹통" 이 아니라 "전파만 끊김" 이 된다.
       `MINID` 로 5분 보관하며 정확 트림한다. 안 자르면 `maxmemory` + `noeviction` 에서 **발행이 실패**한다.
       `fungame_broadcast_published_total` · `fungame_broadcast_received_total` 로 전파가 살아 있는지 본다.
+      **스트림을 방별로 쪼개는 것은 방 소유권과 함께 한다** —
+      [20261005-broadcast-stream-key.md](20261005-broadcast-stream-key.md)
 - [ ] 보관 기간보다 오래 뒤처진 인스턴스 감지. `내 마지막 id < 스트림 첫 id` 면 그 인스턴스의
       구독자를 통째로 재동기화시켜야 한다. 확률은 낮지만 조용히 틀어진다.
 - [ ] `RedisPresenceStore` — 접속 세션과 유예를 Redis 로. **S6·S7·S8 해결**
