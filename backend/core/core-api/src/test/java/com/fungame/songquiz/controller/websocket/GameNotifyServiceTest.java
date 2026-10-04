@@ -19,7 +19,6 @@ import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.cache.CacheManager;
 import org.springframework.cache.concurrent.ConcurrentMapCacheManager;
-import org.springframework.messaging.simp.SimpMessagingTemplate;
 
 import com.fungame.songquiz.domain.member.MemberProfiles;
 import com.fungame.songquiz.domain.member.MemberReader;
@@ -40,11 +39,11 @@ class GameNotifyServiceTest {
     private static final GamePlayer HOST = new GamePlayer(1L, true);
     private static final GamePlayer GUEST = new GamePlayer(2L, false);
 
-    private final SimpMessagingTemplate messagingTemplate = mock(SimpMessagingTemplate.class);
+    private final StompBroadcaster broadcaster = mock(StompBroadcaster.class);
     private final MemberReader memberReader = mock(MemberReader.class);
     private final CacheManager cacheManager = new ConcurrentMapCacheManager(MemberProfiles.CACHE_NAME);
     private final MemberProfiles memberProfiles = new MemberProfiles(memberReader, cacheManager);
-    private final GameNotifyService gameNotifyService = new GameNotifyService(messagingTemplate, memberProfiles);
+    private final GameNotifyService gameNotifyService = new GameNotifyService(broadcaster, memberProfiles);
 
     @BeforeEach
     void nameEveryone() {
@@ -87,7 +86,7 @@ class GameNotifyServiceTest {
     @SuppressWarnings("unchecked")
     private Map<String, Object> capturedPayload() {
         ArgumentCaptor<ApiResponse<Object>> captor = ArgumentCaptor.forClass(ApiResponse.class);
-        verify(messagingTemplate).convertAndSend(eq(StompDestination.room(ROOM_ID)), captor.capture());
+        verify(broadcaster).send(eq(StompDestination.room(ROOM_ID)), captor.capture());
 
         return (Map<String, Object>) captor.getValue().getData();
     }

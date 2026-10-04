@@ -13,7 +13,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.messaging.handler.annotation.DestinationVariable;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.Payload;
-import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.stereotype.Controller;
 
@@ -24,7 +23,7 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class ChatController {
 
-    private final SimpMessagingTemplate messagingTemplate;
+    private final StompBroadcaster broadcaster;
     private final GameRoomManager gameRoomManager;
     private final GameService gameService;
     private final MemberProfiles memberProfiles;
@@ -39,7 +38,7 @@ public class ChatController {
                 "message", request.message()
         );
 
-        messagingTemplate.convertAndSend(StompDestination.room(roomId), ApiResponse.success(payload));
+        broadcaster.send(StompDestination.room(roomId), ApiResponse.success(payload));
 
         try {
             gameRoomManager.touch(roomId);

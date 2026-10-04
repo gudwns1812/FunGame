@@ -5,18 +5,17 @@ import com.fungame.songquiz.domain.invite.RoomInviteCreatedEvent;
 import com.fungame.songquiz.domain.member.MemberAdapter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.event.EventListener;
-import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 
 @Service
 @RequiredArgsConstructor
 public class InviteNotifyService {
 
-    private final SimpMessagingTemplate messagingTemplate;
+    private final StompBroadcaster broadcaster;
 
     @EventListener
     public void handleRoomInviteCreated(RoomInviteCreatedEvent event) {
-        messagingTemplate.convertAndSendToUser(
+        broadcaster.sendToUser(
                 MemberAdapter.principalNameOf(event.targetMemberId()),
                 StompDestination.INVITE,
                 ApiResponse.success(event.notification()));

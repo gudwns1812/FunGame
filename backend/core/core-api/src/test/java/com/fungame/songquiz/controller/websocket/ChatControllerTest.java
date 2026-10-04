@@ -14,7 +14,6 @@ import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.cache.CacheManager;
 import org.springframework.cache.concurrent.ConcurrentMapCacheManager;
-import org.springframework.messaging.simp.SimpMessagingTemplate;
 
 import java.util.Map;
 
@@ -32,12 +31,12 @@ class ChatControllerTest {
     private static final String OLD_NICKNAME = "반달";
     private static final String NEW_NICKNAME = "보름달";
 
-    private final SimpMessagingTemplate messagingTemplate = mock(SimpMessagingTemplate.class);
+    private final StompBroadcaster broadcaster = mock(StompBroadcaster.class);
     private final MemberReader memberReader = mock(MemberReader.class);
     private final CacheManager cacheManager = new ConcurrentMapCacheManager(MemberProfiles.CACHE_NAME);
     private final MemberProfiles memberProfiles = new MemberProfiles(memberReader, cacheManager);
     private final ChatController chatController = new ChatController(
-            messagingTemplate,
+            broadcaster,
             mock(GameRoomManager.class),
             mock(GameService.class),
             memberProfiles);
@@ -69,7 +68,7 @@ class ChatControllerTest {
     @SuppressWarnings("unchecked")
     private Map<String, Object> capturedPayload() {
         ArgumentCaptor<ApiResponse<Object>> captor = ArgumentCaptor.forClass(ApiResponse.class);
-        verify(messagingTemplate).convertAndSend(eq(StompDestination.room(ROOM_ID)), captor.capture());
+        verify(broadcaster).send(eq(StompDestination.room(ROOM_ID)), captor.capture());
 
         return (Map<String, Object>) captor.getValue().getData();
     }
