@@ -22,10 +22,6 @@ public class StompBroadcaster {
     public static final String STREAM_KEY = "fungame:broadcast";
 
     private static final Duration RETENTION = Duration.ofMinutes(5);
-    private static final String INSTANCE_FIELD = "instance";
-    private static final String DESTINATION_FIELD = "destination";
-    private static final String USER_FIELD = "user";
-    private static final String PAYLOAD_FIELD = "payload";
 
     private final SimpMessagingTemplate messagingTemplate;
     private final StringRedisTemplate redisTemplate;
@@ -57,25 +53,22 @@ public class StompBroadcaster {
         spread(destination, user, payload);
     }
 
-    public void deliverLocally(BroadcastMessage message) {
+    public void deliverLocally(BroadcastMessage message, Object payload) {
         if (message.isForEveryone()) {
-            messagingTemplate.convertAndSend(message.destination(), message.payload());
+            messagingTemplate.convertAndSend(message.destination(), payload);
             return;
         }
 
-        messagingTemplate.convertAndSendToUser(message.user(), message.destination(), message.payload());
+        messagingTemplate.convertAndSendToUser(message.user(), message.destination(), payload);
     }
 
     private void spread(String destination, String user, Object payload) {
         try {
-            Map<String, String> body = Map.of(
-                    INSTANCE_FIELD, instanceId.value(),
-                    DESTINATION_FIELD, destination,
-                    USER_FIELD, user,
-                    PAYLOAD_FIELD, objectMapper.writeValueAsString(payload));
+            BroadcastMessage message = new BroadcastMessage(
+                    instanceId.value(), destination, user, objectMapper.writeValueAsString(payload));
 
             redisTemplate.opsForStream()
-                    .add(StreamRecords.mapBacked(body).withStreamKey(STREAM_KEY), retention());
+                    .add(StreamRecords.mapBacked(message.toFields()).withStreamKey(STREAM_KEY), retention());
 
             published.increment();
         } catch (Exception e) {

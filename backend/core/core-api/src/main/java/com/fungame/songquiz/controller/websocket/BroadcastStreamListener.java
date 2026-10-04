@@ -9,8 +9,6 @@ import org.springframework.data.redis.connection.stream.MapRecord;
 import org.springframework.data.redis.stream.StreamListener;
 import org.springframework.stereotype.Component;
 
-import java.util.Map;
-
 @Slf4j
 @Component
 public class BroadcastStreamListener implements StreamListener<String, MapRecord<String, String, String>> {
@@ -34,21 +32,18 @@ public class BroadcastStreamListener implements StreamListener<String, MapRecord
 
     @Override
     public void onMessage(MapRecord<String, String, String> record) {
-        Map<String, String> body = record.getValue();
-        String origin = body.get("instance");
+        BroadcastMessage message = BroadcastMessage.from(record.getValue());
 
-        if (instanceId.isMine(origin)) {
+        if (instanceId.isMine(message.instanceId())) {
             return;
         }
 
         try {
-            Object payload = objectMapper.readValue(body.get("payload"), Object.class);
-            broadcaster.deliverLocally(new BroadcastMessage(
-                    origin, body.get("destination"), body.get("user"), payload));
+            broadcaster.deliverLocally(message, objectMapper.readValue(message.payload(), Object.class));
 
             received.increment();
         } catch (Exception e) {
-            log.error("다른 인스턴스가 보낸 브로드캐스트를 전달하지 못했다: {}", body.get("destination"), e);
+            log.error("다른 인스턴스가 보낸 브로드캐스트를 전달하지 못했다: {}", message.destination(), e);
         }
     }
 }
