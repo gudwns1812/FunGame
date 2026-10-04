@@ -1,32 +1,19 @@
 package com.fungame.songquiz.support.monitoring;
 
-import com.fungame.songquiz.storage.MySqlTestContainer;
-import com.fungame.songquiz.storage.redis.RedisTestContainer;
+import com.fungame.songquiz.support.ApiIntegrationTest;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.springframework.boot.test.autoconfigure.actuate.observability.AutoConfigureObservability;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.boot.test.web.server.LocalManagementPort;
 import org.springframework.boot.test.web.server.LocalServerPort;
-import org.springframework.context.annotation.Import;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.test.context.TestPropertySource;
 
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@AutoConfigureObservability
-@Import({MySqlTestContainer.class, RedisTestContainer.class})
-@TestPropertySource(properties = {
-        "spring.session.jdbc.initialize-schema=always",
-        "app.song-scrape.enabled=false",
-        "management.server.port=0"
-})
-class ManagementEndpointTest {
+class ManagementEndpointTest extends ApiIntegrationTest {
 
     @LocalManagementPort
     private int managementPort;

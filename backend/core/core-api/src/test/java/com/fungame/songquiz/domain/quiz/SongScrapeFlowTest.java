@@ -1,8 +1,8 @@
 package com.fungame.songquiz.domain.quiz;
 
+import com.fungame.songquiz.support.ApiIntegrationTest;
 import com.fungame.songquiz.client.youtube.YoutubeScraper;
 import com.fungame.songquiz.enums.Category;
-import com.fungame.songquiz.storage.IntegrationTest;
 import com.fungame.songquiz.support.error.CoreException;
 import com.fungame.songquiz.support.error.ErrorType;
 import org.junit.jupiter.api.BeforeEach;
@@ -24,8 +24,7 @@ import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
-@IntegrationTest
-class SongScrapeFlowTest {
+class SongScrapeFlowTest extends ApiIntegrationTest {
 
     private static final String VIDEO_ID = "BzYnNdJhZQw";
     private static final LocalDate RELEASE_DATE = LocalDate.of(2017, 3, 24);
@@ -38,9 +37,6 @@ class SongScrapeFlowTest {
 
     @Autowired
     private JdbcTemplate jdbcTemplate;
-
-    @MockitoBean
-    private YoutubeScraper youtubeScraper;
 
     @BeforeEach
     void clearSongs() {

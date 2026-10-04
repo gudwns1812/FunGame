@@ -1,7 +1,7 @@
 package com.fungame.songquiz.domain.member;
 
+import com.fungame.songquiz.support.ApiIntegrationTest;
 import com.fungame.songquiz.enums.Role;
-import com.fungame.songquiz.storage.IntegrationTest;
 import com.fungame.songquiz.storage.MemberActivityDao;
 import com.fungame.songquiz.storage.MemberEntity;
 import com.fungame.songquiz.storage.MemberRepository;
@@ -13,8 +13,7 @@ import java.time.LocalDate;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-@IntegrationTest
-class MemberActivityDaoTest {
+class MemberActivityDaoTest extends ApiIntegrationTest {
 
     // 테스트끼리 행을 되돌리지 않으므로 날짜를 겹치지 않게 나눠 쓴다.
     private static final LocalDate 첫방문일 = LocalDate.of(2026, 1, 1);

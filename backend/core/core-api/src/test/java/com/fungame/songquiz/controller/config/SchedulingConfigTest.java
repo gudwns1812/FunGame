@@ -1,7 +1,7 @@
 package com.fungame.songquiz.controller.config;
 
+import com.fungame.songquiz.support.ApiIntegrationTest;
 import com.fungame.songquiz.domain.session.GameTimer;
-import com.fungame.songquiz.storage.IntegrationTest;
 import com.fungame.songquiz.support.config.AppTaskScheduler;
 import com.fungame.songquiz.support.config.GameTaskScheduler;
 import org.junit.jupiter.api.DisplayName;
@@ -15,8 +15,7 @@ import org.springframework.test.util.ReflectionTestUtils;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-@IntegrationTest
-class SchedulingConfigTest {
+class SchedulingConfigTest extends ApiIntegrationTest {
 
     @Autowired
     private ApplicationContext applicationContext;

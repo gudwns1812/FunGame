@@ -1,7 +1,7 @@
 package com.fungame.songquiz.domain.quiz;
 
+import com.fungame.songquiz.support.ApiIntegrationTest;
 import com.fungame.songquiz.enums.Category;
-import com.fungame.songquiz.storage.IntegrationTest;
 import com.fungame.songquiz.storage.SongEntity;
 import com.fungame.songquiz.storage.SongRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -14,8 +14,7 @@ import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-@IntegrationTest
-class SongCategoryPersistenceTest {
+class SongCategoryPersistenceTest extends ApiIntegrationTest {
 
     private static final LocalDate RELEASE_DATE = LocalDate.of(2017, 3, 24);
     private static final int PLAY_SECONDS = 30;

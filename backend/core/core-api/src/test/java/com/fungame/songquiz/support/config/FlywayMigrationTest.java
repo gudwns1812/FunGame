@@ -1,6 +1,6 @@
 package com.fungame.songquiz.support.config;
 
-import com.fungame.songquiz.storage.IntegrationTest;
+import com.fungame.songquiz.support.ApiIntegrationTest;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -10,8 +10,7 @@ import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-@IntegrationTest
-class FlywayMigrationTest {
+class FlywayMigrationTest extends ApiIntegrationTest {
 
     @Autowired
     private JdbcTemplate jdbcTemplate;

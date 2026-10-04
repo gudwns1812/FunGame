@@ -1,6 +1,6 @@
 package com.fungame.songquiz.domain.quiz;
 
-import com.fungame.songquiz.storage.IntegrationTest;
+import com.fungame.songquiz.support.ApiIntegrationTest;
 import com.fungame.songquiz.support.error.CoreException;
 import com.fungame.songquiz.support.error.ErrorType;
 import org.junit.jupiter.api.DisplayName;
@@ -14,8 +14,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-@IntegrationTest
-class HangmanWordReaderTest {
+class HangmanWordReaderTest extends ApiIntegrationTest {
 
     @Autowired
     private HangmanWordReader hangmanWordReader;

@@ -1,14 +1,13 @@
 package com.fungame.songquiz.domain.quiz;
 
+import com.fungame.songquiz.support.ApiIntegrationTest;
 import com.fungame.songquiz.enums.Category;
-import com.fungame.songquiz.storage.IntegrationTest;
 import com.fungame.songquiz.storage.SongEntity;
 import com.fungame.songquiz.storage.SongRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
@@ -16,10 +15,8 @@ import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-@IntegrationTest
-@ActiveProfiles("test")
 @Transactional
-class SongServiceIntegrationTest {
+class SongServiceIntegrationTest extends ApiIntegrationTest {
 
     @Autowired
     private SongService songService;

@@ -1,7 +1,7 @@
 package com.fungame.songquiz.domain.member;
 
+import com.fungame.songquiz.support.ApiIntegrationTest;
 import com.fungame.songquiz.enums.Role;
-import com.fungame.songquiz.storage.IntegrationTest;
 import com.fungame.songquiz.storage.MemberEntity;
 import com.fungame.songquiz.storage.MemberRepository;
 import com.fungame.songquiz.storage.PasswordResetTokenEntity;
@@ -9,22 +9,18 @@ import com.fungame.songquiz.storage.PasswordResetTokenRepository;
 import com.fungame.songquiz.support.MutableClock;
 import com.fungame.songquiz.support.error.CoreException;
 import com.fungame.songquiz.support.error.ErrorType;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.test.context.bean.override.convention.TestBean;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.transaction.support.TransactionTemplate;
 
-import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDateTime;
-import java.time.ZoneId;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -35,8 +31,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.timeout;
 import static org.mockito.Mockito.verify;
 
-@IntegrationTest
-class PasswordResetServiceTest {
+class PasswordResetServiceTest extends ApiIntegrationTest {
 
     private static final String LOGIN_ID = "resetter";
     private static final String EMAIL = "resetter@fun-game.club";
@@ -63,22 +58,11 @@ class PasswordResetServiceTest {
     @Autowired
     private TransactionTemplate transactionTemplate;
 
-    @TestBean
-    private Clock clock;
-
-    static Clock clock() {
-        return new MutableClock(FIXED_INSTANT, ZoneId.systemDefault());
-    }
-
-    @MockitoBean
-    private PasswordResetMailSender mailSender;
-
     private MutableClock mutableClock;
 
     @BeforeEach
     void setUp() {
-        mutableClock = (MutableClock) clock;
-        clearMembers();
+        mutableClock = movableClock();
         memberRepository.save(MemberEntity.builder()
                 .loginId(LOGIN_ID)
                 .password(passwordEncoder.encode(OLD_PASSWORD))
@@ -86,11 +70,6 @@ class PasswordResetServiceTest {
                 .email(EMAIL)
                 .role(Role.USER)
                 .build());
-    }
-
-    @AfterEach
-    void tearDown() {
-        clearMembers();
     }
 
     @Test
@@ -220,10 +199,5 @@ class PasswordResetServiceTest {
 
         String lastLink = link.getAllValues().get(link.getAllValues().size() - 1);
         return lastLink.substring(lastLink.indexOf("token=") + "token=".length());
-    }
-
-    private void clearMembers() {
-        passwordResetTokenRepository.deleteAll();
-        memberRepository.deleteAll();
     }
 }

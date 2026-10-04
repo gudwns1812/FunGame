@@ -1,7 +1,7 @@
 package com.fungame.songquiz.domain.member;
 
+import com.fungame.songquiz.support.ApiIntegrationTest;
 import com.fungame.songquiz.enums.Role;
-import com.fungame.songquiz.storage.IntegrationTest;
 import com.fungame.songquiz.storage.MemberEntity;
 import com.fungame.songquiz.storage.MemberRepository;
 import org.junit.jupiter.api.DisplayName;
@@ -13,8 +13,7 @@ import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-@IntegrationTest
-class MemberPersistenceTest {
+class MemberPersistenceTest extends ApiIntegrationTest {
 
     @Autowired
     private AuthService authService;

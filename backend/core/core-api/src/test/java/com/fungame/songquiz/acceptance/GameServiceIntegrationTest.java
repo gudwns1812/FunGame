@@ -1,27 +1,31 @@
 package com.fungame.songquiz.acceptance;
 
+import com.fungame.songquiz.domain.room.RoomSettings;
+
+import com.fungame.songquiz.storage.MemberEntity;
+
+import com.fungame.songquiz.storage.ComputerScienceEntity;
+
+import com.fungame.songquiz.enums.Role;
+
+import com.fungame.songquiz.enums.CSQuizDifficulty;
+
+import com.fungame.songquiz.storage.ComputerScienceRepository;
+import com.fungame.songquiz.storage.MemberRepository;
+import com.fungame.songquiz.support.TestEventCapture;
+import com.fungame.songquiz.support.ApiIntegrationTest;
 import com.fungame.songquiz.domain.room.GamePlayer;
 import com.fungame.songquiz.domain.room.GameRoomService;
-import com.fungame.songquiz.domain.room.RoomSettings;
 import com.fungame.songquiz.domain.session.GameResultEvent;
 import com.fungame.songquiz.domain.session.GameService;
 import com.fungame.songquiz.domain.session.GameStartEvent;
-import com.fungame.songquiz.domain.session.GameTimer;
 import com.fungame.songquiz.domain.session.RoundEndEvent;
 import com.fungame.songquiz.domain.session.RoundStartEvent;
-import com.fungame.songquiz.enums.CSQuizDifficulty;
 import com.fungame.songquiz.enums.GameType;
-import com.fungame.songquiz.enums.Role;
-import com.fungame.songquiz.storage.IntegrationTest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.Import;
-import org.springframework.context.event.EventListener;
-import org.springframework.stereotype.Component;
-import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 import java.time.Duration;
 import java.util.ArrayList;
@@ -33,10 +37,7 @@ import static org.awaitility.Awaitility.await;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
 
-@IntegrationTest
-@ActiveProfiles("test")
-@Import(GameServiceIntegrationTest.TestEventCapture.class)
-public class GameServiceIntegrationTest {
+public class GameServiceIntegrationTest extends ApiIntegrationTest {
 
     private static final Duration LONGEST_GAME_FLOW_TRANSITION = Duration.ofSeconds(5);
     private static final long SETTLE_MILLIS = 10L;
@@ -47,53 +48,50 @@ public class GameServiceIntegrationTest {
     @Autowired
     private GameRoomService gameRoomService;
 
-    @MockitoBean
-    private GameTimer gameTimer;
-
     @Autowired
     private TestEventCapture eventCapture;
 
     @Autowired
-    private com.fungame.songquiz.storage.ComputerScienceRepository computerScienceRepository;
+    private ComputerScienceRepository computerScienceRepository;
 
     @Autowired
-    private com.fungame.songquiz.storage.MemberRepository memberRepository;
+    private MemberRepository memberRepository;
 
     private Long roomId;
     private final String hostName = "host";
     private final String player1 = "player1";
-    private com.fungame.songquiz.domain.room.GamePlayer host;
-    private com.fungame.songquiz.domain.room.GamePlayer guest;
+    private GamePlayer host;
+    private GamePlayer guest;
 
     @BeforeEach
     void setUp() {
         eventCapture.clear();
 
         // CS 문제 데이터 추가 (정답을 명시적으로 알기 위해 고정)
-        computerScienceRepository.save(com.fungame.songquiz.storage.ComputerScienceEntity.builder()
+        computerScienceRepository.save(ComputerScienceEntity.builder()
                 .field("OS")
                 .content("문제1")
                 .answers(List.of("정답1"))
                 .explanation("설명1")
-                .difficulty(com.fungame.songquiz.enums.CSQuizDifficulty.EASY)
+                .difficulty(CSQuizDifficulty.EASY)
                 .build());
-        computerScienceRepository.save(com.fungame.songquiz.storage.ComputerScienceEntity.builder()
+        computerScienceRepository.save(ComputerScienceEntity.builder()
                 .field("DB")
                 .content("문제2")
                 .answers(List.of("정답2"))
                 .explanation("설명2")
-                .difficulty(com.fungame.songquiz.enums.CSQuizDifficulty.NORMAL)
+                .difficulty(CSQuizDifficulty.NORMAL)
                 .build());
 
         // 방 생성 및 입장
         Long hostId = saveMember(hostName);
         Long player1Id = saveMember(player1);
 
-        host = com.fungame.songquiz.domain.room.GamePlayer.createNewPlayer(hostId);
-        guest = com.fungame.songquiz.domain.room.GamePlayer.createNewPlayer(player1Id);
+        host = GamePlayer.createNewPlayer(hostId);
+        guest = GamePlayer.createNewPlayer(player1Id);
 
         roomId = gameRoomService.createRoom(
-                new com.fungame.songquiz.domain.room.RoomSettings(GameType.CS, "테스트 방", 5, null, 2, 0, com.fungame.songquiz.enums.CSQuizDifficulty.HARD),
+                new RoomSettings(GameType.CS, "테스트 방", 5, null, 2, 0, CSQuizDifficulty.HARD),
                 host
         );
         gameRoomService.joinRoom(roomId, guest);
@@ -161,39 +159,15 @@ public class GameServiceIntegrationTest {
         });
     }
 
-    @Component
-    public static class TestEventCapture {
-        private final List<Object> events = java.util.Collections.synchronizedList(new ArrayList<>());
 
-        @EventListener
-        public void capture(Object event) {
-            if (event.getClass().getPackageName().startsWith("com.fungame.songquiz.domain")) {
-                events.add(event);
-            }
-        }
-
-        public void clear() {
-            events.clear();
-        }
-
-        @SuppressWarnings("unchecked")
-        public <T> List<T> getEvents(Class<T> type) {
-            synchronized (events) {
-                return events.stream()
-                        .filter(type::isInstance)
-                        .map(e -> (T) e)
-                        .toList();
-            }
-        }
-    }
 
     private Long saveMember(String nickname) {
-        return memberRepository.save(com.fungame.songquiz.storage.MemberEntity.builder()
+        return memberRepository.save(MemberEntity.builder()
                 .loginId(nickname)
                 .password("password")
                 .nickname(nickname)
                 .email(nickname + "@fun-game.club")
-                .role(com.fungame.songquiz.enums.Role.USER)
+                .role(Role.USER)
                 .build()).getId();
     }
 }
