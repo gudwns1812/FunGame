@@ -97,7 +97,7 @@ graph TB
 |---|---|---|
 | M1 | `WebSocketConfig:49` `enableSimpleBroker` | A 가 `/topic/room/1` 로 보낸 걸 B 의 구독자가 **못 받는다.** 같은 방인데 화면이 따로 논다 |
 | M2 | `ApplicationEventPublisher` 8종 이벤트 (`RoomChangedEvent`, `PlayerJoinEvent`, `MemberPresenceChangedEvent`, `RoomInviteCreatedEvent` …) | 프로세스 밖으로 안 나간다. M1 의 근본 원인 |
-| M3 | `LobbyNotifyService:53` `/topic/lobby`, `:63` `/queue/presence`, `InviteNotifyService` `/queue/invite` | **방과 무관한 전역 채널.** 방 단위 라우팅으로는 절대 해결되지 않는다. 크로스 인스턴스 팬아웃이 반드시 필요한 지점 |
+| M3 | `LobbyNotifier:53` `/topic/lobby`, `:63` `/queue/presence`, `InviteNotifier` `/queue/invite` | **방과 무관한 전역 채널.** 방 단위 라우팅으로는 절대 해결되지 않는다. 크로스 인스턴스 팬아웃이 반드시 필요한 지점 |
 | M4 | `RoomSubscriptionAuthorization:33` | 비소유 인스턴스에서 `hasPlayer` 가 false → **구독을 조용히 버린다.** 클라이언트는 구독에 성공한 줄 안다 |
 | M5 | `WebSocketConfig:44` `withSockJS()` | XHR 폴백은 한 연결의 여러 요청이 같은 인스턴스로 가야 한다. 스티키 없으면 폴백 자체가 실패 |
 
@@ -108,7 +108,7 @@ graph TB
 | J1 | `GameRoomManager:181` `cleanupIdleRooms` (60s) | 소유 방만 대상이어야 | 소유권 필터 추가 |
 | J2 | `MemberConnectionTracker:66` `expireReconnectGrace` (1s) | 상태가 공유되면 전역 작업 | 상태 이관 후 리더 1대만 |
 | J3 | `RoomInviteService:82` `purgeExpiredInvites` (30s) | 상태가 공유되면 전역 | Redis TTL 로 대체하면 스케줄 자체가 없어짐 |
-| J4 | `LobbyNotifyService:46` `processPendingUpdate` (500ms) | **인스턴스 로컬** (자기 구독자에게만 보냄) | 그대로 둔다 |
+| J4 | `LobbyNotifier:46` `processPendingUpdate` (500ms) | **인스턴스 로컬** (자기 구독자에게만 보냄) | 그대로 둔다 |
 | J5 | `SongScrapeScheduler:15` `fillPendingSongs` (60s) | **전역.** `findOldest(10)` 에 클레임이 없어 두 인스턴스가 같은 행을 동시에 긁는다 | 유튜브 호출 N배 + 중복 upsert. 리더 1대 또는 행 클레임 |
 | J6 | `PasswordResetService:84` `deleteExpiredTokens` (daily) | 전역. 멱등 DELETE 라 무해하지만 중복 | 리더 1대 |
 
@@ -365,6 +365,22 @@ A 에서 만든 방이 B 목록에 보이고 / B 로 들어온 정답이 처리�
 - Cloudflare 무료 플랜을 앞에 두고 오리진 2개. 스티키는 Cloudflare 유료 기능이라 **SockJS 폴백을 끄고
   WebSocket 만 쓰도록 프런트를 고정해야 한다**(브라우저 지원율을 보면 실현 가능한 선택이다)
 
+### 후속 — websocket 모듈 분리 (보류, 2026-10-05)
+
+사용자에게 보이는 동작이 바뀌지 않고 선행 작업이 3단계와 겹쳐서 미뤘다. 3단계를 진행할 때 함께 한다.
+
+**역할 경계: 연결은 모듈, 의미는 core.**
+- websocket 모듈: 핸드셰이크 인증, `StompSessions`(sessionId ↔ memberId), 목적지 규칙, 구독 권한 조회,
+  `fungame:broadcast` 를 읽어 로컬 구독자에게 전달, 연결·끊김을 이벤트로 발행, 입력 프레임을 해석 없이 Redis 로 전달
+- core: `*Notifier` 가 응답을 조립해 스트림에 넣는다. 끊김 유예(`RoomLeaveGrace`), 접속 상태, 일일 활성처럼
+  연결이 도메인에서 갖는 의미는 core 가 판단한다
+- 모듈은 게임을 모르고 core 는 STOMP 를 모른다. SSE + REST 안은 프런트를 다시 짜야 해서 기각했다
+
+**선행 작업**
+- [ ] HTTP 세션 저장소를 Redis 로 옮긴다. 그대로면 모듈이 인증 때문에 MySQL 세션 테이블을 읽어야 한다
+- [ ] `RedisRoomRegistry` 에 방 인원을 싣는다. 구독 권한 조회를 모듈이 Redis 에서 해야 한다
+- [ ] 같은 회원이 여러 인스턴스에 붙었을 때 "마지막 세션이 끊겼는가" 판단을 Redis 세션 수 또는 core 집계로 정한다
+
 ---
 
 ## 5. 파일별 착수 지도
@@ -377,12 +393,12 @@ A 에서 만든 방이 B 목록에 보이고 / B 로 들어온 정답이 처리�
 | `domain/session/GameSessionManager.java` | — | — | 명령 전달 경로 |
 | `domain/session/GameTimer.java` | **B4** | — | 소유 방만 |
 | `support/config/AppConfig.java` | **B3** | — | — |
-| `controller/config/AsyncConfig.java` | **B2** | — | — |
-| `controller/config/WebSocketConfig.java` | — | — | Pub/Sub 브리지, 스티키 전제 |
-| `controller/websocket/StompSessions.java` | — | `PresenceStore` | Redis |
-| `controller/websocket/RoomLeaveGrace.java` | — | `PresenceStore` | Redis |
-| `controller/websocket/RoomSubscriptionAuthorization.java` | — | — | **M4** 에러 프레임 |
-| `controller/websocket/LobbyNotifyService.java` | — | `DomainEventBroadcaster` | J4 는 로컬 유지 |
+| `api/config/AsyncConfig.java` | **B2** | — | — |
+| `api/config/WebSocketConfig.java` | — | — | Pub/Sub 브리지, 스티키 전제 |
+| `api/websocket/StompSessions.java` | — | `PresenceStore` | Redis |
+| `api/websocket/RoomLeaveGrace.java` | — | `PresenceStore` | Redis |
+| `api/websocket/RoomSubscriptionAuthorization.java` | — | — | **M4** 에러 프레임 |
+| `api/websocket/LobbyNotifier.java` | — | `DomainEventBroadcaster` | J4 는 로컬 유지 |
 | `domain/member/MemberConnectionTracker.java` | — | `PresenceStore` | Redis, J2 리더 |
 | `domain/invite/RoomInviteService.java` | — | `InviteStore` | Redis TTL, J3 삭제 |
 | `domain/quiz/SongScrapeScheduler.java` | — | "전역" 명시 | **J5 리더 선출** |

@@ -13,7 +13,7 @@
 
 1. **TDD 준수:** 모든 기능 구현 전 `src/test`에 테스트 코드를 먼저 작성합니다.
 2. **도메인 객체가 규칙을 가진다:** 서비스에 로직을 몰아넣지 않고, 도메인 객체가 스스로 상태를 바꾸고 규칙을 검증합니다.
-3. **상태 변화는 이벤트로 알린다:** 도메인 상태가 바뀌면 `ApplicationEventPublisher` 로 이벤트를 발행하고, WebSocket 전송은 `GameNotifyService` 같은 리스너가 맡습니다.
+3. **상태 변화는 이벤트로 알린다:** 도메인 상태가 바뀌면 `ApplicationEventPublisher` 로 이벤트를 발행하고, WebSocket 전송은 `GameNotifier` 같은 리스너가 맡습니다.
 4. **예외 처리:** 비즈니스 에러는 `ErrorType` 에 정의하고 런타임 예외 `CoreException` 으로 던집니다. `ApiControllerAdvice` 가 공통 응답 포맷으로 바꿉니다.
 5. **의존성 주입:** 생성자 주입만 씁니다. Lombok 의 `@Data`, `@AllArgsConstructor` 는 쓰지 않습니다.
 6. **근거 없는 일반화 금지** : 확장은 지표가 한계를 보일 때 합니다. 목표 아키텍처(방 소유권 + Redis Pub/Sub 브리지)와 단계별 진입 조건은 [docs/exec-plans/active/20260928-scale-out-multi-instance.md](../docs/exec-plans/active/20260928-scale-out-multi-instance.md) 에 있습니다. 그 문서의 단계에 없는 분산 장치(외부 STOMP 브로커, 이벤트 소싱, 서비스 분해, Kubernetes)는 도입하지 않습니다.
