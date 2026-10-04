@@ -13,7 +13,7 @@
 
 ### 2. 세션 유지 및 복구 (Re-entry)
 *   **네트워크 대응**: 불안정한 네트워크 연결이나 재접속 시에도 기존 점수와 세션을 유지할 수 있도록 설계되었습니다.
-*   **유연한 세션 관리**: 짧은 접속 끊김(예: 30초) 동안 플레이어를 퇴장시키지 않고 상태를 유지하여 '이어하기'가 가능합니다.
+*   **유연한 세션 관리**: 짧은 접속 끊김(15초) 동안 플레이어를 퇴장시키지 않고 상태를 유지하여 '이어하기'가 가능합니다.
 
 ### 3. 게임 엔진 및 동기화 로직
 *   **서버측 타이머 관리**: 서버에서 게임 라운드 및 진행 시간을 정밀하게 기록하여 모든 클라이언트가 동일한 시점에 동기화되도록 합니다.
@@ -24,16 +24,17 @@
 ## 🛠 기술 스택
 
 ### **Backend**
-*   **Language**: Java 17+
+*   **Language**: Java 21
 *   **Framework**: Spring Boot
 *   **Build Tool**: Gradle
-*   **API Docs**: Spring Rest Docs (MockMvc 기반 자동 생성)
+*   **Database**: MySQL 8.0, Redis (로컬은 H2)
+*   **API Docs**: Spring Rest Docs + `api/*.md`
 *   **Messaging**: Spring WebSocket (STOMP)
 
 ### **Frontend**
-*   **Framework**: React (Vite)
+*   **Framework**: React 19 (Vite)
 *   **Language**: TypeScript
-*   **Styling**: Vanilla CSS
+*   **Styling**: Tailwind CSS 4
 *   **Test Tool**: Vitest
 
 ---
@@ -44,9 +45,11 @@
 FunGame/
 ├── backend/        # Spring Boot 기반 백엔드 (Java)
 ├── frontend/       # React 기반 프론트엔드 (TypeScript)
-├── api/            # 자동 생성된 API 명세 (Markdown)
-├── docs/           # 프로젝트 설계 및 가이드라인 문서
-└── GEMINI.md       # AI 협업 및 작업 규칙
+├── api/            # REST · WebSocket 명세 (Markdown)
+├── docs/           # 설계 문서와 실행 계획
+├── infra/          # 배포 · 모니터링 설정
+├── scripts/        # E2E 등 보조 스크립트
+└── CLAUDE.md       # AI 협업 및 작업 규칙
 ```
 
 ---
@@ -90,6 +93,8 @@ CS 퀴즈 5문제가 들어 있어 CS 퀴즈는 바로 플레이할 수 있습�
 
 ## 📜 개발 가이드라인
 본 프로젝트는 특정 협업 규칙과 코드 스타일을 준수합니다. 상세 내용은 다음 문서를 참고하세요:
-*   [전체 가이드라인 (GEMINI.md)](GEMINI.md)
+*   [공통 규칙 (CLAUDE.md)](CLAUDE.md)
 *   [백엔드 작업 지침 (BACKEND.md)](backend/BACKEND.md)
-*   [프론트엔드 작업 지침 (FRONTEND.md)](frontend/docs/FRONTEND.md)
+*   [백엔드 구조 (ARCHITECTURE.md)](backend/ARCHITECTURE.md)
+*   [프론트엔드 작업 지침 (FRONTEND.md)](frontend/FRONTEND.md)
+*   [API 명세 (api/)](api/)
