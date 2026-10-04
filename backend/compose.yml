@@ -30,8 +30,11 @@ services:
       SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/fungame
       SPRING_DATASOURCE_USERNAME: ${MYSQL_USER}
       SPRING_DATASOURCE_PASSWORD: ${MYSQL_PASSWORD}
-      # AWS_REGION · MAIL_FROM · PASSWORD_RESET_LINK_BASE_URL 은 넘기지 않습니다.
+      # MAIL_FROM · MAIL_HOST · PASSWORD_RESET_LINK_BASE_URL 은 넘기지 않습니다.
       # yml 기본값이 이미 운영값이고, .env 에 없으면 빈 문자열이 그 기본값을 덮습니다.
+      # Brevo SMTP 계정. 배포 워크플로가 GitHub Secret 에서 서버 .env 로 채웁니다.
+      MAIL_USERNAME: ${MAIL_USERNAME}
+      MAIL_PASSWORD: ${MAIL_PASSWORD}
       # 신고 알림을 받을 디스코드 웹훅. 정답과 힌트까지 실리므로 비공개 채널이어야 합니다.
       # 주소를 아는 사람은 누구나 그 채널에 메시지를 쏠 수 있으므로 .env 에만 둡니다.
       DISCORD_REPORT_WEBHOOK_URL: ${DISCORD_REPORT_WEBHOOK_URL}

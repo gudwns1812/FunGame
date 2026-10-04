@@ -129,7 +129,7 @@ jobs:
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.EC2_SSH_KEY }}
           port: ${{ secrets.EC2_PORT || 22 }}
-          envs: IMAGE_NAME,IMAGE_TAG,SERVICE,CONTAINER_NAME,REGISTRY_USER,REGISTRY_TOKEN,PROJECT_DIR
+          envs: IMAGE_NAME,IMAGE_TAG,SERVICE,CONTAINER_NAME,REGISTRY_USER,REGISTRY_TOKEN,PROJECT_DIR,MAIL_USERNAME,MAIL_PASSWORD
           script_stop: true
           script: |
             set -euo pipefail
@@ -175,15 +175,19 @@ jobs:
               return 1
             }
 
+            set_env() {
+              install -m 600 /dev/null .env.next
+              if [ -f .env ]; then
+                { grep -v "^$1=" .env || true; } >> .env.next
+                chmod --reference=.env .env.next
+              fi
+              printf '%s=%s\n' "$1" "$2" >> .env.next
+              mv .env.next .env
+            }
+
             pin_running_image_in_env() {
               if [ "$1" = "${1%:latest}" ]; then
-                install -m 600 /dev/null .env.next
-                if [ -f .env ]; then
-                  { grep -v '^BACKEND_IMAGE=' .env || true; } >> .env.next
-                  chmod --reference=.env .env.next
-                fi
-                echo "BACKEND_IMAGE=$1" >> .env.next
-                mv .env.next .env
+                set_env BACKEND_IMAGE "$1"
                 echo ".env 에 고정했다: BACKEND_IMAGE=$1"
                 echo "이제 서버에서 맨손으로 docker compose up -d 를 쳐도 이 버전이 뜬다"
               else
@@ -201,6 +205,10 @@ jobs:
                 docker compose up -d caddy
               fi
             }
+
+            # 비밀값은 서버에만 둔다. 컨테이너가 뜨기 전에 .env 를 Secret 과 맞춘다.
+            set_env MAIL_USERNAME "$MAIL_USERNAME"
+            set_env MAIL_PASSWORD "$MAIL_PASSWORD"
 
             # set -e 가 여기서 스크립트를 죽이면 아래 롤백 블록에 도달하지 못한다.
             # 기동 명령이 실패해도 일단 넘기고 헬스체크가 판정하게 둔다.
@@ -244,6 +252,8 @@ jobs:
           REGISTRY_USER: ${{ github.actor }}
           REGISTRY_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PROJECT_DIR: ${{ secrets.BACKEND_PROJECT_DIR || '/home/ubuntu/fungame' }}
+          MAIL_USERNAME: ${{ secrets.BREVO_SMTP_LOGIN }}
+          MAIL_PASSWORD: ${{ secrets.BREVO_SMTP_KEY }}
 
       - name: 실패하면 설정을 직전 백업으로 되돌린다
         if: failure()
