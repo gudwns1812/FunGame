@@ -1,7 +1,9 @@
 package com.fungame.songquiz.acceptance;
 
-import com.fungame.songquiz.support.ApiIntegrationTest;
-import com.fungame.songquiz.controller.websocket.StompDestination;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.awaitility.Awaitility.await;
+
+import com.fungame.songquiz.api.websocket.StompDestination;
 import com.fungame.songquiz.domain.member.MemberProfiles;
 import com.fungame.songquiz.domain.room.GameRoomService;
 import com.fungame.songquiz.domain.room.RoomInfo;
@@ -9,6 +11,16 @@ import com.fungame.songquiz.domain.room.RoomStateInfo;
 import com.fungame.songquiz.enums.Role;
 import com.fungame.songquiz.storage.MemberEntity;
 import com.fungame.songquiz.storage.MemberRepository;
+import com.fungame.songquiz.support.ApiIntegrationTest;
+import java.lang.reflect.Type;
+import java.time.Duration;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.TimeUnit;
+import java.util.function.Predicate;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -23,30 +35,16 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.messaging.converter.MappingJackson2MessageConverter;
 import org.springframework.messaging.simp.stomp.StompFrameHandler;
 import org.springframework.messaging.simp.stomp.StompHeaders;
 import org.springframework.messaging.simp.stomp.StompSession;
 import org.springframework.messaging.simp.stomp.StompSessionHandlerAdapter;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.socket.WebSocketHttpHeaders;
 import org.springframework.web.socket.client.standard.StandardWebSocketClient;
 import org.springframework.web.socket.messaging.WebSocketStompClient;
-
-import java.lang.reflect.Type;
-import java.time.Duration;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.TimeUnit;
-import java.util.function.Predicate;
-
-import static org.awaitility.Awaitility.await;
-
-import static org.assertj.core.api.Assertions.assertThat;
 
 class RealtimeChannelAcceptanceTest extends ApiIntegrationTest {
 

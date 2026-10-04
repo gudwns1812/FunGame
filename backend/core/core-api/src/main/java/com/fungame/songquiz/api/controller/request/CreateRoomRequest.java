@@ -1,0 +1,33 @@
+package com.fungame.songquiz.api.controller.request;
+
+import com.fungame.songquiz.domain.room.RoomSettings;
+import com.fungame.songquiz.enums.CSQuizDifficulty;
+import com.fungame.songquiz.enums.Category;
+import com.fungame.songquiz.enums.GameType;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+
+@Getter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
+public class CreateRoomRequest {
+    private GameType gameType;
+    private String title;
+    private int maxPlayers;
+    private Category category;
+    private int totalRound;
+    private int difficulty;
+    private CSQuizDifficulty csDifficulty;
+
+    public RoomSettings toRoomSettings() {
+        return new RoomSettings(gameType, title, maxPlayers, category, totalRound, difficulty,
+                csDifficultyOrAllQuestions());
+    }
+
+    private CSQuizDifficulty csDifficultyOrAllQuestions() {
+        return csDifficulty == null ? CSQuizDifficulty.HARD : csDifficulty;
+    }
+}

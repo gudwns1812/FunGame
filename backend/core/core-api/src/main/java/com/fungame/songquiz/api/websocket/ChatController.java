@@ -1,0 +1,60 @@
+package com.fungame.songquiz.api.websocket;
+
+import com.fungame.songquiz.api.controller.request.ChatRequest;
+import com.fungame.songquiz.api.controller.request.GameActionRequest;
+import com.fungame.songquiz.api.controller.response.ApiResponse;
+import com.fungame.songquiz.domain.member.MemberAdapter;
+import com.fungame.songquiz.domain.member.MemberProfiles;
+import com.fungame.songquiz.domain.room.GameRoomManager;
+import com.fungame.songquiz.domain.session.GameService;
+import com.fungame.songquiz.support.error.CoreException;
+import java.util.Map;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.messaging.handler.annotation.DestinationVariable;
+import org.springframework.messaging.handler.annotation.MessageMapping;
+import org.springframework.messaging.handler.annotation.Payload;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.stereotype.Controller;
+
+@Controller
+@Slf4j
+@RequiredArgsConstructor
+public class ChatController {
+
+    private final StompBroadcaster broadcaster;
+    private final GameRoomManager gameRoomManager;
+    private final GameService gameService;
+    private final MemberProfiles memberProfiles;
+
+    @MessageMapping("/room/{roomId}/chat")
+    public void chat(@DestinationVariable Long roomId, @AuthenticationPrincipal MemberAdapter user,
+                     @Payload ChatRequest request) {
+        Object payload = Map.of(
+                "type", "CHAT",
+                "memberId", user.getId(),
+                "nickname", memberProfiles.of(user.getId()).nickname(),
+                "message", request.message()
+        );
+
+        broadcaster.send(StompDestination.room(roomId), ApiResponse.success(payload));
+
+        try {
+            gameRoomManager.touch(roomId);
+            gameService.processAnswer(roomId, user.getId(), request.message());
+        } catch (CoreException e) {
+            log.info("Chat for missing room {}: {}", roomId, e.getMessage());
+        }
+    }
+
+    @MessageMapping("/room/{roomId}/action")
+    public void handleAction(@DestinationVariable Long roomId, @AuthenticationPrincipal MemberAdapter user,
+                             GameActionRequest request) {
+        try {
+            gameRoomManager.touch(roomId);
+            gameService.handleAction(roomId, request.toAction(user.getId()));
+        } catch (CoreException e) {
+            log.info("Action for missing room {}: {}", roomId, e.getMessage());
+        }
+    }
+}
