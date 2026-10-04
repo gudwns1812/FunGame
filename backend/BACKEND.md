@@ -1,30 +1,37 @@
-# 백엔드 작업 가이드라인 (BACKEND.md)
+# 백엔드 작업 지침 (BACKEND.md)
+
+모듈·계층·패키지 구조는 [ARCHITECTURE.md](ARCHITECTURE.md) 가 기준이다. 이 문서에는 구조 밖의 작업 규칙을 적는다.
 
 ## 기술 스택
-- **언어:** Java
-- **프레임워크:** Spring Boot
+
+- **언어:** Java 21
+- **프레임워크:** Spring Boot, Spring WebSocket (STOMP)
 - **빌드 도구:** Gradle
-- **데이터베이스:** (현재 설정된 DB 확인 필요)
+- **데이터베이스:** MySQL 8.0 (운영), H2 (`local` 프로파일), Redis
 
 ## 작업 지침
+
 1. **TDD 준수:** 모든 기능 구현 전 `src/test`에 테스트 코드를 먼저 작성합니다.
-2. **패키지 구조:** 기존의 패키지 구조(`com.fungame...`)를 유지하며 일관성 있게 확장합니다.
-3. **API 명세:** `api_spec.md`가 있는 경우 이를 최신 상태로 유지합니다.
-4. **로깅 및 예외 처리:** 일관된 예외 처리 전략과 적절한 로깅 수준을 사용합니다.
-5. **문서화:** 모든 백엔드 작업 결과와 응답은 한글로 작성합니다.
+2. **도메인 객체가 규칙을 가진다:** 서비스에 로직을 몰아넣지 않고, 도메인 객체가 스스로 상태를 바꾸고 규칙을 검증합니다.
+3. **상태 변화는 이벤트로 알린다:** 도메인 상태가 바뀌면 `ApplicationEventPublisher` 로 이벤트를 발행하고, WebSocket 전송은 `GameNotifyService` 같은 리스너가 맡습니다.
+4. **예외 처리:** 비즈니스 에러는 `ErrorType` 에 정의하고 런타임 예외 `CoreException` 으로 던집니다. `ApiControllerAdvice` 가 공통 응답 포맷으로 바꿉니다.
+5. **의존성 주입:** 생성자 주입만 씁니다. Lombok 의 `@Data`, `@AllArgsConstructor` 는 쓰지 않습니다.
 6. **근거 없는 일반화 금지** : 확장은 지표가 한계를 보일 때 합니다. 목표 아키텍처(방 소유권 + Redis Pub/Sub 브리지)와 단계별 진입 조건은 [docs/exec-plans/active/20260928-scale-out-multi-instance.md](../docs/exec-plans/active/20260928-scale-out-multi-instance.md) 에 있습니다. 그 문서의 단계에 없는 분산 장치(외부 STOMP 브로커, 이벤트 소싱, 서비스 분해, Kubernetes)는 도입하지 않습니다.
 7. **인스턴스는 여러 대가 될 수 있다** : 서버 1대를 전제한 코드는 더 이상 쓰지 않습니다. 새로 만드는 상태는 **인스턴스 로컬이어도 되는지**를 먼저 판단하고, 아니라면 공유 저장소(DB·Redis) 뒤에 둡니다. `@Scheduled` 작업에는 **로컬 대상인지 전역 대상인지**를 주석으로 남깁니다. 기존 인메모리 상태를 지금 당장 전부 걷어내라는 뜻은 아닙니다 — 계획 문서의 단계를 따릅니다.
 
-##  API 문서화 (API Documentation)
-1. **Spring Rest Docs 사용** : 모든 Controller 테스트는 MockMvc와 Spring Rest Docs를 결합하여 API 명세서를 자동 생성해야 합니다.
-2. **테스트 기반 문서** : 성공하는 테스트 케이스뿐만 아니라, 주요 예외 상황(400, 404 등)에 대한 스니펫도 반드시 포함합니다.
-3. **산출물 관리 규칙** :
-빌드 시 생성된 .adoc 또는 .html 명세서는 프로젝트 루트의 api/{api-name}/ 경로로 배포되어야 합니다. 또한 AI가 잘 알아볼 수 있도록 md 파일로 작성합니다.
-(예: backend 모듈의 로그인 API -> root/api/user.md)
+## 테스트
 
-## 실행 지침 (Implementation)
+- **단위 테스트:** 도메인 로직은 스프링 없이 JUnit5 와 AssertJ 로 검증합니다. 가짜가 필요하면 목보다 스텁을 먼저 씁니다. 외부 라이브러리 때문에 스텁이 지저분해질 때만 목을 허용합니다.
+- **통합·인수 테스트:** 스프링 컨텍스트는 하나만 띄웁니다. 빈 바꿔치기는 `ApiIntegrationTest` 한 곳에 모읍니다. 클래스마다 설정이 갈리면 컨텍스트를 다시 띄워 CI 가 느려집니다.
+- 테스트 메서드 이름은 한글을 허용합니다.
 
-1. 테스트 클래스에 `@AutoConfigureRestDocs`를 사용하십시오.
-2. 테스트 작성시에 최대한 Mock 테스트(스프링 컨테이너를 띄우는 테스트)를 쓰지말고 최대한 스텁으로 해결한다. 단. 외부 라이브러리를 쓰면서 너무 스텁을 만들기 지저분해지면 Mock 테스트를 허용한다.
-3. `build.gradle`의 `copyDocument` 태스크를 설정하여, 빌드 완료 후 `build/docs/asciidoc`의 결과물을 루트의 `api/` 폴더로 복사하도록 구성합니다.
-4. AI는 새로운 API 개발 시, 해당 API에 대응하는 `RestDocs`용 테스트 코드를 반드시 제안해야 합니다.
+## API 문서
+
+1. **RestDocs 스니펫:** 컨트롤러를 새로 만들면 RestDocs 테스트(`*DocsTest`)를 함께 씁니다. 성공뿐 아니라 주요 예외(400, 404 등) 스니펫도 남깁니다. 결과물은 `bootJar` 가 `static/docs` 로 넣습니다. 상세는 [ARCHITECTURE.md](ARCHITECTURE.md#api-문서).
+2. **`api/*.md`:** 루트 [api/](../api/) 는 손으로 관리하는 명세다. 빌드 산출물이 그리로 흘러가지 않으므로, API·이벤트 페이로드를 바꾸면 같은 PR 에서 직접 고칩니다.
+
+## 함께 보는 문서
+
+- [docs/BACKLOG.md](docs/BACKLOG.md) — 범위 때문에 미뤄 둔 일
+- [docs/LEGACY.md](docs/LEGACY.md) — 개선이 필요한 기존 구조
+- [ARCHITECTURE_MIGRATION.md](ARCHITECTURE_MIGRATION.md) — 목표 구조로 가는 단계별 기록

@@ -1,13 +1,23 @@
 # CLAUDE.md
 
-Claude Code 작업 규칙. 프로젝트 공통 규칙은 아래 문서를 따르고, 이 파일에는 **Claude 에게만 해당하는 것**을 적는다.
+Claude Code 작업 규칙. 모듈별 지침은 아래 문서를 따른다.
 
 | 문서 | 내용 |
 |---|---|
-| [GEMINI.md](GEMINI.md) | 워크스페이스 공통 — 한글 응답, plan-first, 커밋 규칙, TDD |
-| [backend/BACKEND.md](backend/BACKEND.md) | 백엔드 작업 지침, API 문서화 |
+| [backend/BACKEND.md](backend/BACKEND.md) | 백엔드 작업 지침, 테스트, API 문서화 |
 | [backend/ARCHITECTURE.md](backend/ARCHITECTURE.md) | 모듈 · 계층 · 패키지 구조 |
+| [frontend/FRONTEND.md](frontend/FRONTEND.md) | 프론트엔드 작업 지침 |
+| [api/](api/) | REST · WebSocket 명세 |
 | [docs/exec-plans/active/](docs/exec-plans/active/) | 진행 중인 실행 계획 |
+
+---
+
+## 공통 규칙
+
+- 모든 응답과 문서는 **한글**로 쓴다.
+- 구현 코드보다 **테스트를 먼저** 쓴다. 기능 추가, 수정, 리팩토링 모두 해당한다.
+- 커밋 메시지는 `타입: [모듈] 내용` 형식이다. 예: `feat: [backend] 방 초대 기능을 추가한다`.
+  타입은 `feat` `fix` `chore` `docs` `perf` `refactor` 등, 모듈은 `backend` `frontend` 처럼 대괄호로 적고, 내용은 한글로 쓴다.
 
 ---
 
@@ -73,8 +83,8 @@ R: 어떻게 됐고 무엇이 남았나. 아직이면 `미해결 — <다음 할
 
 ## 계획 문서
 
-`GEMINI.md` 의 plan-first 규칙을 따른다. 여러 단계에 걸친 큰 작업은 루트 `plan.md` 대신
-`docs/exec-plans/active/YYYYMMDD-<주제>.md` 에 둔다. 끝나면 회고를 Obsidian 에 남기고 계획 문서를 정리한다.
+구현 지시를 받으면 바로 코드를 고치지 않고 계획을 먼저 보여 주고 승인을 받는다.
+여러 단계에 걸친 큰 작업은 계획을 `docs/exec-plans/active/YYYYMMDD-<주제>.md` 에 둔다. 끝나면 회고를 Obsidian 에 남기고 계획 문서를 정리한다.
 
 ---
 
