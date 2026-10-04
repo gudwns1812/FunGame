@@ -57,6 +57,7 @@ function AppContent() {
     players,
     rooms,
     timeLeft,
+    roundStartedAt,
     totalTime,
     logs,
     currentVideoId,
@@ -249,6 +250,7 @@ function AppContent() {
               players={players}
               roomId={roomId || ''}
               timeLeft={timeLeft}
+              roundStartedAt={roundStartedAt}
               totalTime={totalTime}
               currentVideoId={currentVideoId}
               logs={logs}

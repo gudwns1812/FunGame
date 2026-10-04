@@ -17,6 +17,7 @@ const renderGamePage = (roomId: string, onLeave = vi.fn()) =>
       players={[]}
       roomId={roomId}
       timeLeft={30}
+      roundStartedAt={null}
       totalTime={30}
       currentVideoId="문제"
       logs={[]}

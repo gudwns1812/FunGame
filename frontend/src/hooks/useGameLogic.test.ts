@@ -190,6 +190,145 @@ describe('useGameLogic 참가자 색', () => {
   });
 });
 
+describe('useGameLogic 새로고침 뒤 참가자 색', () => {
+  const ROOM_ID = '7';
+  const MY_MEMBER_ID = 2;
+
+  const ROOM = {
+    id: ROOM_ID,
+    name: '테스트방',
+    hostMemberId: 1,
+    hostName: '방장',
+    playerCount: 3,
+    maxPlayers: 8,
+    status: 'WAITING' as const,
+    gameType: 'SONG',
+    csDifficulty: 'HARD',
+  };
+
+  const firstState = {
+    version: 1,
+    players: [
+      { memberId: 1, nickname: '방장', isReady: false },
+      { memberId: MY_MEMBER_ID, nickname: '나', isReady: false },
+      { memberId: 3, nickname: '셋째', isReady: false },
+    ],
+    hostMemberId: 1,
+    hostNickname: '방장',
+  };
+
+  const firstLeftState = { ...firstState, players: firstState.players.slice(1) };
+
+  const mockedAxios = axios as unknown as {
+    get: ReturnType<typeof vi.fn>;
+    post: ReturnType<typeof vi.fn>;
+    defaults: Partial<typeof axios.defaults>;
+  };
+
+  let roomState: typeof firstState;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    localStorage.clear();
+    localStorage.setItem('ums_nickname', '나');
+    localStorage.setItem('ums_member_id', String(MY_MEMBER_ID));
+    roomState = firstState;
+
+    mockedAxios.post = vi.fn().mockResolvedValue({ data: { result: 'SUCCESS', data: 1 } });
+    mockedAxios.get = vi.fn().mockImplementation((url: string) => {
+      if (url.endsWith('/users')) {
+        return Promise.resolve({ data: { result: 'SUCCESS', data: roomState } });
+      }
+      if (url.endsWith('/play/state')) {
+        return Promise.resolve({
+          data: {
+            result: 'SUCCESS',
+            data: {
+              gameType: 'SONG',
+              category: 'KPOP',
+              totalCount: 3,
+              currentRound: 2,
+              totalRound: 3,
+              content: 'video-id',
+              statusData: null,
+              remainingMillis: 12_000,
+            },
+          },
+        });
+      }
+      if (url.endsWith('/play/rank')) {
+        return Promise.resolve({
+          data: {
+            result: 'SUCCESS',
+            data: roomState.players.map(({ memberId, nickname }) => ({ memberId, nickname, score: 0 })),
+          },
+        });
+      }
+      return Promise.resolve({ data: { result: 'SUCCESS', data: [] } });
+    });
+    mockedAxios.defaults = { baseURL: '', withCredentials: true };
+  });
+
+  const colorsByName = (players: { name: string; colorIndex?: number }[]) =>
+    Object.fromEntries(players.map((player) => [player.name, player.colorIndex]));
+
+  const joinThenFirstPlayerLeaves = async () => {
+    const stomp = createStompStub();
+    const { result, unmount } = renderHook(() => useGameLogic(), { wrapper: stomp.wrapper });
+
+    await act(async () => {
+      await result.current.joinRoom(ROOM);
+    });
+    await act(async () => {
+      await stomp.connect();
+    });
+    await waitFor(() => expect(result.current.players).toHaveLength(3));
+
+    roomState = firstLeftState;
+    act(() => {
+      stomp.emit(roomTopic(ROOM_ID), {
+        type: 'PLAYER_LEAVE',
+        memberId: 1,
+        nickname: '방장',
+        room: { ...firstLeftState, version: 2 },
+      });
+    });
+    expect(colorsByName(result.current.players)).toEqual({ 나: 1, 셋째: 2 });
+
+    unmount();
+  };
+
+  const reload = async () => {
+    const stomp = createStompStub();
+    const { result } = renderHook(() => useGameLogic(), { wrapper: stomp.wrapper });
+
+    await act(async () => {
+      await stomp.connect();
+    });
+
+    return result;
+  };
+
+  it('대기실에서 새로고침해도 색이 그대로다', async () => {
+    await joinThenFirstPlayerLeaves();
+
+    const result = await reload();
+
+    await waitFor(() => expect(result.current.players).toHaveLength(2));
+    expect(colorsByName(result.current.players)).toEqual({ 나: 1, 셋째: 2 });
+  });
+
+  it('게임 중에 새로고침해도 색이 그대로다', async () => {
+    await joinThenFirstPlayerLeaves();
+    localStorage.setItem('ums_status', 'PLAYING');
+
+    const result = await reload();
+
+    await waitFor(() => expect(result.current.players).toHaveLength(2));
+    expect(colorsByName(result.current.players)).toEqual({ 나: 1, 셋째: 2 });
+  });
+});
+
 describe('useGameLogic 게임 중 뒤로가기', () => {
   const ROOM_ID = '7';
   const MY_MEMBER_ID = 2;

@@ -9,6 +9,7 @@ interface GamePageProps {
   players: Player[];
   roomId: string;
   timeLeft: number;
+  roundStartedAt: number | null;
   totalTime: number;
   currentVideoId: string;
   logs: string[];
@@ -28,6 +29,7 @@ const GamePage: React.FC<GamePageProps> = ({
   players,
   roomId,
   timeLeft,
+  roundStartedAt,
   totalTime,
   currentVideoId,
   logs,
@@ -67,6 +69,7 @@ const GamePage: React.FC<GamePageProps> = ({
           players={players}
           roomId={roomId}
           timeLeft={timeLeft}
+          roundStartedAt={roundStartedAt}
           totalTime={totalTime}
           currentVideoId={currentVideoId}
           logs={logs}

@@ -165,6 +165,50 @@ describe('useGameLogic 라운드 남은 시간', () => {
     expect(result.current.timeLeft).toBe(0);
   });
 
+  it('시간 초과로 끝났는데 로컬 시계가 1초 미만을 남겨 두었어도 0 으로 보여 준다', async () => {
+    const { result } = await joinAndConnect();
+
+    act(() => {
+      stomp.emit(roomTopic(ROOM_ID), roundStart(ROUND_MILLIS));
+    });
+    await waitFor(() => expect(result.current.timeLeft).toBe(30));
+
+    await advance(ROUND_MILLIS - 400);
+    expect(result.current.timeLeft).toBe(1);
+
+    act(() => {
+      stomp.emit(roomTopic(ROOM_ID), {
+        type: 'ROUND_END',
+        answer: '정답',
+        winnerMemberId: null,
+        winnerNickname: null,
+      });
+    });
+
+    expect(result.current.timeLeft).toBe(0);
+  });
+
+  it('스킵으로 라운드 중간에 끝나면 남은 시간을 그대로 둔다', async () => {
+    const { result } = await joinAndConnect();
+
+    act(() => {
+      stomp.emit(roomTopic(ROOM_ID), roundStart(ROUND_MILLIS));
+    });
+    await waitFor(() => expect(result.current.timeLeft).toBe(30));
+    await advance(8_000);
+
+    act(() => {
+      stomp.emit(roomTopic(ROOM_ID), {
+        type: 'ROUND_END',
+        answer: '정답',
+        winnerMemberId: null,
+        winnerNickname: null,
+      });
+    });
+
+    expect(result.current.timeLeft).toBe(22);
+  });
+
   it('탭이 숨어 카운터가 멈춰 있었어도 다시 보이는 순간 기준점에서 맞춘다', async () => {
     const { result } = await joinAndConnect();
 
@@ -222,6 +266,23 @@ describe('useGameLogic 라운드 남은 시간', () => {
 
     await advance(4_000);
     expect(result.current.timeLeft).toBe(8);
+  });
+
+  it('라운드 도중에 다시 들어오면 노래를 라운드가 시작된 시각 기준으로 이어서 튼다', async () => {
+    localStorage.setItem('ums_status', 'PLAYING');
+    localStorage.setItem('ums_roomId', ROOM_ID);
+
+    stomp = createStompStub();
+    const { result } = renderHook(() => useGameLogic(), { wrapper: stomp.wrapper });
+
+    await act(async () => {
+      await stomp.connect();
+    });
+    await waitFor(() => expect(result.current.roundStartedAt).not.toBeNull());
+
+    const elapsedMillis = Date.now() - result.current.roundStartedAt!;
+    expect(elapsedMillis).toBeGreaterThanOrEqual(ROUND_MILLIS - 12_000);
+    expect(elapsedMillis).toBeLessThan(ROUND_MILLIS - 11_000);
   });
 
   it('라운드 사이에 들어오면 남은 시간이 없으므로 세지 않는다', async () => {

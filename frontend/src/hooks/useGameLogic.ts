@@ -32,6 +32,8 @@ const KICKED_NOTICE = '방장이 회원님을 방에서 내보냈습니다.';
 const NOT_RENDERING_ROOM_STATE = -1;
 const ROUND_LENGTH_SECONDS = 30;
 const ROUND_TIMER_REFRESH_MS = 200;
+const TIME_OVER_TOLERANCE_MS = 1000;
+const PLAYER_COLORS_KEY = 'ums_playerColors';
 
 const secondsLeftUntil = (deadline: number) => Math.max(0, Math.ceil((deadline - Date.now()) / 1000));
 
@@ -41,6 +43,41 @@ const firstFreeColorIndex = (taken: Set<number>) => {
   let colorIndex = 0;
   while (taken.has(colorIndex)) colorIndex += 1;
   return colorIndex;
+};
+
+const loadRememberedColors = (): Map<number, number> => {
+  try {
+    const saved = localStorage.getItem(PLAYER_COLORS_KEY);
+    return new Map(saved ? (JSON.parse(saved) as [number, number][]) : []);
+  } catch {
+    return new Map();
+  }
+};
+
+const rememberColors = (players: Player[]) => {
+  const colored = players
+    .filter((player) => player.colorIndex !== undefined)
+    .map((player) => [player.memberId, player.colorIndex]);
+  if (colored.length === 0) return;
+  localStorage.setItem(PLAYER_COLORS_KEY, JSON.stringify(colored));
+};
+
+const withColors = <T extends { memberId: number }>(members: T[], previous: Player[]) => {
+  const remembered = loadRememberedColors();
+  const seenBefore = new Map(previous.map((player) => [player.memberId, player.colorIndex]));
+  const knownColorOf = (memberId: number) => seenBefore.get(memberId) ?? remembered.get(memberId);
+
+  const takenColors = new Set(
+    members
+      .map((member) => knownColorOf(member.memberId))
+      .filter((colorIndex): colorIndex is number => colorIndex !== undefined),
+  );
+
+  return members.map((member) => {
+    const colorIndex = knownColorOf(member.memberId) ?? firstFreeColorIndex(takenColors);
+    takenColors.add(colorIndex);
+    return { ...member, colorIndex };
+  });
 };
 
 const toRooms = (rawRooms: any[]): Room[] =>
@@ -74,6 +111,7 @@ export const useGameLogic = () => {
   const [timeLeft, setTimeLeft] = useState(ROUND_LENGTH_SECONDS);
   const [totalTime, setTotalTime] = useState(ROUND_LENGTH_SECONDS);
   const [roundDeadline, setRoundDeadline] = useState<number | null>(null);
+  const [roundStartedAt, setRoundStartedAt] = useState<number | null>(null);
   const [logs, setLogs] = useState<string[]>(() => {
     const savedLogs = localStorage.getItem('ums_logs');
     return savedLogs ? JSON.parse(savedLogs) : [];
@@ -111,10 +149,11 @@ export const useGameLogic = () => {
     setRoundDeadline(deadline);
   }, []);
 
-  const stopCountDown = useCallback(() => {
+  const stopCountDown = useCallback((timedOut = false) => {
     const deadline = roundDeadlineRef.current;
     if (deadline !== null) {
-      setTimeLeft(secondsLeftUntil(deadline));
+      const isTimeOver = timedOut && deadline - Date.now() < TIME_OVER_TOLERANCE_MS;
+      setTimeLeft(isTimeOver ? 0 : secondsLeftUntil(deadline));
     }
 
     roundDeadlineRef.current = null;
@@ -187,7 +226,9 @@ export const useGameLogic = () => {
     setCurrentVideoId('');
     localStorage.removeItem('ums_currentVideoId');
     localStorage.removeItem(PLAYER_COLOR_INDEX_KEY);
+    localStorage.removeItem(PLAYER_COLORS_KEY);
     setMyColorIndex(null);
+    setRoundStartedAt(null);
   }, [forgetRenderedRoomState, enterStatus]);
 
   const forgetRoom = useCallback(() => {
@@ -200,27 +241,18 @@ export const useGameLogic = () => {
     renderedRoomVersion.current = room.version;
 
     setPlayers((prev) => {
-      const seenBefore = new Map(prev.map((player) => [player.memberId, player]));
-      const takenColors = new Set(
-        room.players
-          .map((player) => seenBefore.get(player.memberId)?.colorIndex)
-          .filter((colorIndex): colorIndex is number => colorIndex !== undefined),
-      );
+      const scoreBefore = new Map(prev.map((player) => [player.memberId, player.score]));
 
-      return room.players.map((player) => {
-        const before = seenBefore.get(player.memberId);
-        const colorIndex = before?.colorIndex ?? firstFreeColorIndex(takenColors);
-        takenColors.add(colorIndex);
-
-        return {
+      return withColors(
+        room.players.map((player) => ({
           memberId: player.memberId,
           name: player.nickname,
           isHost: player.memberId === room.hostMemberId,
           isReady: player.isReady,
-          score: before?.score ?? 0,
-          colorIndex,
-        };
-      });
+          score: scoreBefore.get(player.memberId) ?? 0,
+        })),
+        prev,
+      );
     });
   }, []);
 
@@ -381,6 +413,7 @@ export const useGameLogic = () => {
             setTotalTime(Math.round(event.remainingMillis / 1000));
           }
           countDownUntil(event.remainingMillis);
+          setRoundStartedAt(Date.now());
           addLog(`================================================================================`);
           break;
 
@@ -399,7 +432,7 @@ export const useGameLogic = () => {
 
         case 'ROUND_END': {
           setHint('');
-          stopCountDown();
+          stopCountDown(event.winnerMemberId === null);
           const isCsRound = gameTypeRef.current === 'CS';
           if (event.winnerMemberId !== null) {
             playSound('correctAnswer');
@@ -456,7 +489,7 @@ export const useGameLogic = () => {
               isHost: false,
               isReady: false,
             }));
-            setPlayers(finalRankings);
+            setPlayers((prev) => withColors(finalRankings, prev));
           }
           break;
         }
@@ -475,6 +508,10 @@ export const useGameLogic = () => {
   useEffect(() => {
     localStorage.setItem('ums_logs', JSON.stringify(logs));
   }, [logs]);
+
+  useEffect(() => {
+    rememberColors(players);
+  }, [players]);
 
   const leaveRoom = useCallback(async () => {
     unsubscribeFromRoom();
@@ -548,6 +585,7 @@ export const useGameLogic = () => {
     setRoundIndex(state.currentRound);
     setTotalRound(state.totalRound);
     countDownUntil(state.remainingMillis ?? 0);
+    setRoundStartedAt(Date.now() - (ROUND_LENGTH_SECONDS * 1000 - (state.remainingMillis ?? 0)));
 
     if (restoredGameType === 'HANGMAN') {
       const data: string[] = state.statusData ?? [];
@@ -567,14 +605,17 @@ export const useGameLogic = () => {
     const rankResponse = await axios.get(`/game/rooms/${targetRoomId}/play/rank`);
     const rankData: RankingEntry[] = rankResponse.data?.data ?? [];
     if (rankData.length > 0) {
-      setPlayers(
-        rankData.map(({ memberId, nickname: name, score }) => ({
-          memberId: memberId ?? 0,
-          name,
-          isHost: false,
-          isReady: false,
-          score,
-        })),
+      setPlayers((prev) =>
+        withColors(
+          rankData.map(({ memberId, nickname: name, score }) => ({
+            memberId: memberId ?? 0,
+            name,
+            isHost: false,
+            isReady: false,
+            score,
+          })),
+          prev,
+        ),
       );
     }
 
@@ -968,6 +1009,7 @@ export const useGameLogic = () => {
     players,
     rooms,
     timeLeft,
+    roundStartedAt,
     totalTime,
     logs,
     currentVideoId,
