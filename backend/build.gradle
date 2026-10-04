@@ -28,4 +28,9 @@ subprojects {
         compileOnly "org.projectlombok:lombok:${lombokVersion}"
         annotationProcessor "org.projectlombok:lombok:${lombokVersion}"
     }
+
+    tasks.withType(Test).configureEach {
+        boolean runningOnCi = System.getenv('CI') != null
+        environment 'TESTCONTAINERS_REUSE_ENABLE', String.valueOf(!runningOnCi)
+    }
 }

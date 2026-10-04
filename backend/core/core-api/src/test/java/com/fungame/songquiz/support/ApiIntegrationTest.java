@@ -5,6 +5,7 @@ import com.fungame.songquiz.domain.session.GameTimer;
 import com.fungame.songquiz.domain.member.PasswordResetMailSender;
 import com.fungame.songquiz.storage.IntegrationTest;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
 import org.springframework.boot.test.web.client.TestRestTemplate;
@@ -77,6 +78,20 @@ public abstract class ApiIntegrationTest {
 
     @Autowired
     private ApplicationContext applicationContext;
+
+    /**
+     * 컨테이너를 재사용하면 앞선 실행이 중간에 죽으며 남긴 행이 그대로 남아 있다.
+     * 첫 테스트 전에 한 번만 비워 그 찌꺼기를 끊는다.
+     */
+    private static boolean firstTestOfThisRun = true;
+
+    @BeforeEach
+    void dropLeftoversFromEarlierRun() {
+        if (firstTestOfThisRun) {
+            firstTestOfThisRun = false;
+            new DatabaseCleaner(dataSource).clean();
+        }
+    }
 
     @AfterEach
     void cleanSharedState() {
