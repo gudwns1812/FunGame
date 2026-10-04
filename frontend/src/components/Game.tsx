@@ -6,11 +6,13 @@ import RankingList from './RankingList';
 import LogList from './LogList';
 
 const CS_BACKGROUND_VIDEO_ID = 'U34kLXjdw90';
+const MIN_RESUME_SECONDS = 1;
 
 interface GameProps {
   players: Player[];
   roomId: string;
   timeLeft: number;
+  roundStartedAt: number | null;
   totalTime: number;
   currentVideoId: string;
   onAnswerSubmit: (answer: string) => void;
@@ -41,6 +43,7 @@ const Equalizer: React.FC = () => (
 const Game: React.FC<GameProps> = ({
   players,
   timeLeft,
+  roundStartedAt,
   totalTime,
   currentVideoId,
   onAnswerSubmit,
@@ -246,7 +249,12 @@ const Game: React.FC<GameProps> = ({
                 controls={false}
                 width={0}
                 height={0}
-                onStart={() => {
+                onStart={(event) => {
+                  const elapsedSeconds = roundStartedAt === null ? 0 : (Date.now() - roundStartedAt) / 1000;
+                  if (gameType === 'SONG' && elapsedSeconds >= MIN_RESUME_SECONDS) {
+                    event.currentTarget.currentTime = elapsedSeconds;
+                  }
+
                   console.log('[Player] 유튜브 재생 시작! 미디어 세션 탈취 및 고정 시도');
 
                   // 1. 무음 오디오 생성 및 재생

@@ -18,6 +18,7 @@ describe('Game UI 렌더링과 상호작용', () => {
     players: [],
     roomId: '123',
     timeLeft: 30,
+    roundStartedAt: null,
     totalTime: 30,
     currentVideoId: 'Test Question Content',
     onAnswerSubmit: vi.fn(),
