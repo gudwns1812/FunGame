@@ -40,7 +40,7 @@ import org.mockito.ArgumentMatchers;
 import org.mockito.BDDMockito;
 import org.springframework.cache.concurrent.ConcurrentMapCacheManager;
 
-class LobbyNotifyServiceTest {
+class LobbyNotifierTest {
 
     private static final Long VIEWER_ID = 1L;
     private static final Long OTHER_ID = 2L;
@@ -53,7 +53,7 @@ class LobbyNotifyServiceTest {
     private final MemberProfiles memberProfiles = new MemberProfiles(
             memberReader,
             new ConcurrentMapCacheManager(MemberProfiles.CACHE_NAME));
-    private final LobbyNotifyService lobbyNotifyService = new LobbyNotifyService(
+    private final LobbyNotifier lobbyNotifier = new LobbyNotifier(
             broadcaster, gameRoomService, onlineMemberService, memberProfiles, stompSessions);
 
     @Test
@@ -62,8 +62,8 @@ class LobbyNotifyServiceTest {
         List<RoomInfo> rooms = List.of(room());
         given(gameRoomService.findAllRooms()).willReturn(rooms);
 
-        lobbyNotifyService.handleRoomChangedEvent(new RoomChangedEvent());
-        lobbyNotifyService.processPendingUpdate();
+        lobbyNotifier.handleRoomChangedEvent(new RoomChangedEvent());
+        lobbyNotifier.processPendingUpdate();
 
         assertThat(sentToLobby()).isEqualTo(RoomResponse.listFrom(rooms, memberProfiles));
     }
@@ -73,10 +73,10 @@ class LobbyNotifyServiceTest {
     void aggregateRoomChangesWithinOneCycle() {
         given(gameRoomService.findAllRooms()).willReturn(List.of(room()));
 
-        lobbyNotifyService.handleRoomChangedEvent(new RoomChangedEvent());
-        lobbyNotifyService.handleRoomChangedEvent(new RoomChangedEvent());
-        lobbyNotifyService.handleRoomChangedEvent(new RoomChangedEvent());
-        lobbyNotifyService.processPendingUpdate();
+        lobbyNotifier.handleRoomChangedEvent(new RoomChangedEvent());
+        lobbyNotifier.handleRoomChangedEvent(new RoomChangedEvent());
+        lobbyNotifier.handleRoomChangedEvent(new RoomChangedEvent());
+        lobbyNotifier.processPendingUpdate();
 
         verify(gameRoomService, times(1)).findAllRooms();
         verify(broadcaster, times(1)).send(eq(StompDestination.LOBBY), any(Object.class));
@@ -90,8 +90,8 @@ class LobbyNotifyServiceTest {
         given(onlineMemberService.findAllOnline())
                 .willReturn(new OnlineMembers(List.of(onlineMember(VIEWER_ID), onlineMember(OTHER_ID))));
 
-        lobbyNotifyService.handleMemberPresenceChangedEvent(new MemberPresenceChangedEvent());
-        lobbyNotifyService.processPendingUpdate();
+        lobbyNotifier.handleMemberPresenceChangedEvent(new MemberPresenceChangedEvent());
+        lobbyNotifier.processPendingUpdate();
 
         assertThat(sentToViewer(VIEWER_ID)).isEqualTo(List.of(OnlineMemberResponse.from(onlineMember(OTHER_ID))));
         assertThat(sentToViewer(OTHER_ID)).isEqualTo(List.of(OnlineMemberResponse.from(onlineMember(VIEWER_ID))));
@@ -105,9 +105,9 @@ class LobbyNotifyServiceTest {
         given(onlineMemberService.findAllOnline())
                 .willReturn(new OnlineMembers(List.of(onlineMember(VIEWER_ID))));
 
-        lobbyNotifyService.handleMemberPresenceChangedEvent(new MemberPresenceChangedEvent());
-        lobbyNotifyService.handleMemberPresenceChangedEvent(new MemberPresenceChangedEvent());
-        lobbyNotifyService.processPendingUpdate();
+        lobbyNotifier.handleMemberPresenceChangedEvent(new MemberPresenceChangedEvent());
+        lobbyNotifier.handleMemberPresenceChangedEvent(new MemberPresenceChangedEvent());
+        lobbyNotifier.processPendingUpdate();
 
         verify(onlineMemberService, times(1)).findAllOnline();
     }
@@ -120,8 +120,8 @@ class LobbyNotifyServiceTest {
         given(onlineMemberService.findAllOnline())
                 .willReturn(new OnlineMembers(List.of(onlineMember(VIEWER_ID))));
 
-        lobbyNotifyService.handleMemberPresenceChangedEvent(new MemberPresenceChangedEvent());
-        lobbyNotifyService.processPendingUpdate();
+        lobbyNotifier.handleMemberPresenceChangedEvent(new MemberPresenceChangedEvent());
+        lobbyNotifier.processPendingUpdate();
 
         verify(broadcaster, times(1)).sendToUser(
                 eq(MemberAdapter.principalNameOf(VIEWER_ID)), eq(StompDestination.PRESENCE), any(Object.class));
@@ -132,8 +132,8 @@ class LobbyNotifyServiceTest {
     void skipPresenceWithoutAnyConnection() {
         given(onlineMemberService.findAllOnline()).willReturn(new OnlineMembers(List.of()));
 
-        lobbyNotifyService.handleMemberPresenceChangedEvent(new MemberPresenceChangedEvent());
-        lobbyNotifyService.processPendingUpdate();
+        lobbyNotifier.handleMemberPresenceChangedEvent(new MemberPresenceChangedEvent());
+        lobbyNotifier.processPendingUpdate();
 
         verify(broadcaster, never()).sendToUser(any(), any(), any(Object.class));
     }
@@ -141,7 +141,7 @@ class LobbyNotifyServiceTest {
     @Test
     @DisplayName("바뀐 것이 없으면 조회도 전송도 하지 않는다.")
     void skipWhenNothingChanged() {
-        lobbyNotifyService.processPendingUpdate();
+        lobbyNotifier.processPendingUpdate();
 
         verifyNoInteractions(broadcaster, gameRoomService, onlineMemberService);
     }

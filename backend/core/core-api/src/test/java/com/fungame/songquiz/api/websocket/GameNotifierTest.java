@@ -30,7 +30,7 @@ import org.springframework.cache.CacheManager;
 import org.springframework.cache.concurrent.ConcurrentMapCacheManager;
 
 @DisplayName("방 이벤트는 델타가 아니라 바뀐 뒤의 방 전체를 싣는다")
-class GameNotifyServiceTest {
+class GameNotifierTest {
 
     private static final Long ROOM_ID = 7L;
     private static final GamePlayer HOST = new GamePlayer(1L, true);
@@ -40,7 +40,7 @@ class GameNotifyServiceTest {
     private final MemberReader memberReader = mock(MemberReader.class);
     private final CacheManager cacheManager = new ConcurrentMapCacheManager(MemberProfiles.CACHE_NAME);
     private final MemberProfiles memberProfiles = new MemberProfiles(memberReader, cacheManager);
-    private final GameNotifyService gameNotifyService = new GameNotifyService(broadcaster, memberProfiles);
+    private final GameNotifier gameNotifier = new GameNotifier(broadcaster, memberProfiles);
 
     @BeforeEach
     void nameEveryone() {
@@ -51,7 +51,7 @@ class GameNotifyServiceTest {
     @Test
     @DisplayName("입장 이벤트에 참가자 전체와 version 이 실린다.")
     void playerJoinCarriesWholeRoom() {
-        gameNotifyService.handlePlayerJoin(new PlayerJoinEvent(ROOM_ID, GUEST, state(3)));
+        gameNotifier.handlePlayerJoin(new PlayerJoinEvent(ROOM_ID, GUEST, state(3)));
 
         Map<String, Object> payload = capturedPayload();
         assertThat(payload).containsEntry("type", "PLAYER_JOIN")
@@ -63,7 +63,7 @@ class GameNotifyServiceTest {
     @Test
     @DisplayName("퇴장 이벤트도 같은 모양으로 방 전체를 싣는다.")
     void playerLeaveCarriesWholeRoom() {
-        gameNotifyService.handlePlayerLeave(new PlayerLeaveEvent(ROOM_ID, GUEST, state(4)));
+        gameNotifier.handlePlayerLeave(new PlayerLeaveEvent(ROOM_ID, GUEST, state(4)));
 
         Map<String, Object> payload = capturedPayload();
         assertThat(payload).containsEntry("type", "PLAYER_LEAVE");
@@ -73,7 +73,7 @@ class GameNotifyServiceTest {
     @Test
     @DisplayName("설정 변경 이벤트는 설정과 방 전체를 함께 싣는다. 준비 상태가 초기화되기 때문이다.")
     void settingsChangeCarriesSettingsAndRoom() {
-        gameNotifyService.handleRoomSettingsChanged(new RoomSettingsChangedEvent(ROOM_ID, state(5)));
+        gameNotifier.handleRoomSettingsChanged(new RoomSettingsChangedEvent(ROOM_ID, state(5)));
 
         Map<String, Object> payload = capturedPayload();
         assertThat(payload).containsEntry("type", "ROOM_SETTINGS_CHANGED").containsKey("settings");

@@ -1,6 +1,6 @@
 # WebSocket 및 실시간 이벤트 (websocket.md)
 
-이 문서는 WebSocket(STOMP)을 통한 실시간 통신 명세와 서버에서 발생하는 이벤트 메시지 형식을 정의합니다. 실제 백엔드 `ChatController` 및 `GameNotifyService` 로직과 동기화되었습니다.
+이 문서는 WebSocket(STOMP)을 통한 실시간 통신 명세와 서버에서 발생하는 이벤트 메시지 형식을 정의합니다. 실제 백엔드 `ChatController` 및 `GameNotifier` 로직과 동기화되었습니다.
 
 ## 1. 연결 정보 (Connection)
 

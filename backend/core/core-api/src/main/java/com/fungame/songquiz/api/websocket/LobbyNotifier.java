@@ -15,11 +15,11 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.annotation.Scheduled;
-import org.springframework.stereotype.Service;
+import org.springframework.stereotype.Component;
 
-@Service
+@Component
 @RequiredArgsConstructor
-public class LobbyNotifyService {
+public class LobbyNotifier {
 
     private final StompBroadcaster broadcaster;
     private final GameRoomService gameRoomService;

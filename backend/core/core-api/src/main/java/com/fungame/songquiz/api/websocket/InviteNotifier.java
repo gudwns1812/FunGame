@@ -5,11 +5,11 @@ import com.fungame.songquiz.domain.invite.RoomInviteCreatedEvent;
 import com.fungame.songquiz.domain.member.MemberAdapter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.event.EventListener;
-import org.springframework.stereotype.Service;
+import org.springframework.stereotype.Component;
 
-@Service
+@Component
 @RequiredArgsConstructor
-public class InviteNotifyService {
+public class InviteNotifier {
 
     private final StompBroadcaster broadcaster;
 

@@ -28,12 +28,12 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Async;
-import org.springframework.stereotype.Service;
+import org.springframework.stereotype.Component;
 
-@Service
+@Component
 @RequiredArgsConstructor
 @Slf4j
-public class GameNotifyService {
+public class GameNotifier {
 
     private final StompBroadcaster broadcaster;
     private final MemberProfiles memberProfiles;

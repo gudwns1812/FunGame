@@ -37,11 +37,13 @@ graph TD
 
 | 계층 | 실제 위치 |
 | --- | --- |
-| presentation | `controller/` |
+| presentation | `api/` — REST 는 `api/controller/`, STOMP 는 `api/websocket/` |
 | service, implement | `domain/<aggregate>/` — Service 와 Reader · Writer 가 한 폴더에 평평하게 있다 |
 | repository | `storage:db-core` |
 
-`service → implement` 규율은 폴더로 강제하지 않는다. 기계로 검사하는 것은 `controller → domain` 방향뿐이고(`LayerDependencyTest`), 나머지는 리뷰로 지킨다.
+`service → implement` 규율은 폴더로 강제하지 않는다. 기계로 검사하는 것은 `api → domain` 방향과 `api` 에 `@Service` 를 두지 않는다는 것뿐이고(`LayerDependencyTest`), 나머지는 리뷰로 지킨다.
+
+`api/websocket` 에서 도메인 이벤트를 받아 STOMP 로 내보내는 클래스는 `*Notifier` 로 부르고 `@Component` 를 단다. 이벤트를 메시지로 바꾸는 presentation 어댑터이지 service 계층이 아니다.
 
 ## 모듈 구성
 
@@ -146,7 +148,7 @@ dependencies {
 
 | 모듈 | 패키지 |
 | --- | --- |
-| `core:core-api` | `com.fungame.songquiz.{controller, domain, support}` |
+| `core:core-api` | `com.fungame.songquiz.{api, domain, support}` |
 | `core:core-enum` | `com.fungame.songquiz.enums` |
 | `storage:db-core` | `com.fungame.songquiz.storage` |
 | `clients:client-youtube` | `com.fungame.songquiz.client.youtube` |
@@ -170,12 +172,12 @@ core/core-api/
 ├── src/docs/asciidoc/
 ├── src/main/java/com/fungame/songquiz/
 │   ├── SongquizApplication.java
-│   ├── controller/                presentation
-│   │   ├── api/                   REST 컨트롤러
+│   ├── api/                       presentation
 │   │   ├── config/                시큐리티 · 웹 · 웹소켓 · 비동기 설정
-│   │   ├── request/               요청 모델
-│   │   ├── response/              ApiResponse
-│   │   └── websocket/             STOMP 핸들러 · 세션 · 로비 · 초대 알림
+│   │   ├── controller/            REST 컨트롤러
+│   │   │   ├── request/           요청 모델
+│   │   │   └── response/          ApiResponse
+│   │   └── websocket/             STOMP 핸들러 · 세션 · 게임 · 로비 · 초대 알림(*Notifier)
 │   ├── domain/                    aggregate 하나에 폴더 하나
 │   │   ├── member/
 │   │   ├── room/
@@ -190,7 +192,7 @@ core/core-api/
 └── src/test/java/com/fungame/songquiz/
     ├── acceptance/
     ├── architecture/              ArchUnit 규칙
-    ├── controller/
+    ├── api/
     ├── domain/                    main 과 같은 aggregate 폴더
     └── support/                   테스트 픽스처(MemberFixture, MutableClock)
 ```

@@ -14,12 +14,12 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
-class InviteNotifyServiceTest {
+class InviteNotifierTest {
 
     private static final Long TARGET_ID = 7L;
 
     private final StompBroadcaster broadcaster = mock(StompBroadcaster.class);
-    private final InviteNotifyService inviteNotifyService = new InviteNotifyService(broadcaster);
+    private final InviteNotifier inviteNotifier = new InviteNotifier(broadcaster);
 
     @Test
     @DisplayName("초대는 초대받은 사람에게만 간다.")
@@ -27,7 +27,7 @@ class InviteNotifyServiceTest {
         RoomInviteNotification notification =
                 new RoomInviteNotification("invite-1", 9L, "방 제목", GameType.SONG, "방장", 30);
 
-        inviteNotifyService.handleRoomInviteCreated(new RoomInviteCreatedEvent(TARGET_ID, notification));
+        inviteNotifier.handleRoomInviteCreated(new RoomInviteCreatedEvent(TARGET_ID, notification));
 
         @SuppressWarnings("unchecked")
         ArgumentCaptor<ApiResponse<Object>> sent = ArgumentCaptor.forClass(ApiResponse.class);
