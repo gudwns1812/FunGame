@@ -1,6 +1,6 @@
 package com.fungame.songquiz.domain.member;
 
-import com.fungame.songquiz.client.mail.SesMailSender;
+import com.fungame.songquiz.client.mail.SmtpMailSender;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
@@ -8,15 +8,15 @@ import org.springframework.stereotype.Component;
 @Component
 @Profile("prod")
 @RequiredArgsConstructor
-public class SesPasswordResetMailSender implements PasswordResetMailSender {
+public class SmtpPasswordResetMailSender implements PasswordResetMailSender {
 
     private static final String SUBJECT = "[FunGame] 비밀번호 재설정 안내";
 
-    private final SesMailSender sesMailSender;
+    private final SmtpMailSender smtpMailSender;
 
     @Override
     public void send(String email, String resetLink) {
-        sesMailSender.send(email, SUBJECT, body(resetLink));
+        smtpMailSender.send(email, SUBJECT, body(resetLink));
     }
 
     private String body(String resetLink) {

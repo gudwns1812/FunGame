@@ -1,6 +1,27 @@
 client:
   mail:
-    # SES 아이덴티티를 만든 리전. prod 프로파일에서만 클라이언트가 생성됩니다.
-    aws-region: ${AWS_REGION:ap-northeast-2}
-    # SES 에 verify 된 발신 주소여야 합니다.
+    # Brevo 에서 도메인 인증(SPF·DKIM)을 마친 fun-game.club 주소여야 스팸함으로 빠지지 않습니다.
     from: ${MAIL_FROM:no-reply@fun-game.club}
+spring:
+  mail:
+    host: ${MAIL_HOST:smtp-relay.brevo.com}
+    port: ${MAIL_PORT:587}
+    # Brevo 의 SMTP 로그인과 SMTP 키. 서버 .env 로만 주입되고 배포 워크플로가 GitHub Secret 에서 채웁니다.
+    username: ${MAIL_USERNAME:}
+    password: ${MAIL_PASSWORD:}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+            required: true
+          # 메일은 비동기 리스너가 보내지만, 타임아웃이 없으면 SMTP 가 멈췄을 때 그 스레드가 영영 묶입니다.
+          connectiontimeout: 5000
+          timeout: 5000
+          writetimeout: 5000
+management:
+  health:
+    mail:
+      # 켜 두면 SMTP 가 잠깐 흔들릴 때 헬스체크가 DOWN 이 되어 배포가 롤백됩니다.
+      enabled: false

@@ -15,6 +15,13 @@ jar {
 dependencies {
     implementation 'org.springframework:spring-context'
     implementation 'org.slf4j:slf4j-api'
-    implementation platform('software.amazon.awssdk:bom:2.31.30')
-    implementation 'software.amazon.awssdk:sesv2'
+    implementation 'org.springframework.boot:spring-boot-starter-mail'
+
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+
+tasks.named('test') {
+    useJUnitPlatform()
 }
