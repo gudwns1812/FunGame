@@ -1,11 +1,10 @@
 package com.fungame.songquiz.domain.member;
 
+import com.fungame.songquiz.support.ApiIntegrationTest;
 import com.fungame.songquiz.enums.Role;
-import com.fungame.songquiz.storage.IntegrationTest;
 import com.fungame.songquiz.storage.MemberEntity;
 import com.fungame.songquiz.storage.MemberRepository;
 import com.fungame.songquiz.storage.PasswordResetTokenRepository;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -30,8 +29,7 @@ import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.timeout;
 import static org.mockito.Mockito.verify;
 
-@IntegrationTest
-class PasswordResetConcurrencyTest {
+class PasswordResetConcurrencyTest extends ApiIntegrationTest {
 
     private static final String LOGIN_ID = "racer";
     private static final String EMAIL = "racer@fun-game.club";
@@ -52,12 +50,8 @@ class PasswordResetConcurrencyTest {
     @Autowired
     private PasswordEncoder passwordEncoder;
 
-    @MockitoBean
-    private PasswordResetMailSender mailSender;
-
     @BeforeEach
     void setUp() {
-        clearMembers();
         memberRepository.save(MemberEntity.builder()
                 .loginId(LOGIN_ID)
                 .password(passwordEncoder.encode(PASSWORD))
@@ -65,11 +59,6 @@ class PasswordResetConcurrencyTest {
                 .email(EMAIL)
                 .role(Role.USER)
                 .build());
-    }
-
-    @AfterEach
-    void tearDown() {
-        clearMembers();
     }
 
     @Test
@@ -156,11 +145,6 @@ class PasswordResetConcurrencyTest {
         return passwordResetTokenRepository.findAll().stream()
                 .filter(token -> token.getUsedAt() == null && now.isBefore(token.getExpiresAt()))
                 .count();
-    }
-
-    private void clearMembers() {
-        passwordResetTokenRepository.deleteAll();
-        memberRepository.deleteAll();
     }
 
     private interface ConcurrentAttempt {

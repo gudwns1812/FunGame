@@ -1,5 +1,19 @@
 package com.fungame.songquiz.controller.api;
 
+import java.util.Collection;
+
+import org.mockito.BDDMockito;
+
+import org.mockito.ArgumentMatchers;
+
+import org.springframework.cache.concurrent.ConcurrentMapCacheManager;
+
+import com.fungame.songquiz.support.MemberFixture;
+
+import com.fungame.songquiz.domain.member.MemberReader;
+
+import com.fungame.songquiz.domain.member.MemberProfiles;
+
 import com.fungame.songquiz.domain.member.MemberAdapter;
 import com.fungame.songquiz.domain.room.GamePlayer;
 import com.fungame.songquiz.domain.room.RoomSettings;
@@ -15,7 +29,6 @@ import com.fungame.songquiz.enums.CSQuizDifficulty;
 import com.fungame.songquiz.enums.Category;
 import com.fungame.songquiz.enums.GameRoomStatus;
 import com.fungame.songquiz.enums.GameType;
-import com.fungame.songquiz.support.MemberFixture;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -55,22 +68,22 @@ class GameControllerTest {
     private MockMvc mockMvc;
     private final GameRoomService gameRoomService = mock(GameRoomService.class);
     private final GameService gameService = mock(GameService.class);
-    private final com.fungame.songquiz.domain.member.MemberReader memberReader =
-            mock(com.fungame.songquiz.domain.member.MemberReader.class);
-    private final com.fungame.songquiz.domain.member.MemberProfiles memberProfiles =
-            new com.fungame.songquiz.domain.member.MemberProfiles(
+    private final MemberReader memberReader =
+            mock(MemberReader.class);
+    private final MemberProfiles memberProfiles =
+            new MemberProfiles(
                     memberReader,
-                    new org.springframework.cache.concurrent.ConcurrentMapCacheManager(
-                            com.fungame.songquiz.domain.member.MemberProfiles.CACHE_NAME));
+                    new ConcurrentMapCacheManager(
+                            MemberProfiles.CACHE_NAME));
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     @BeforeEach
     void nameEveryMember() {
-        org.mockito.BDDMockito.given(memberReader.findMember(org.mockito.ArgumentMatchers.anyLong()))
-                .willAnswer(call -> com.fungame.songquiz.support.MemberFixture.withId(call.getArgument(0), "회원" + call.getArgument(0)));
-        org.mockito.BDDMockito.given(memberReader.findAllInOrderByNickname(org.mockito.ArgumentMatchers.any()))
-                .willAnswer(call -> ((java.util.Collection<Long>) call.getArgument(0)).stream()
-                        .map(id -> com.fungame.songquiz.support.MemberFixture.withId(id, "회원" + id))
+        BDDMockito.given(memberReader.findMember(ArgumentMatchers.anyLong()))
+                .willAnswer(call -> MemberFixture.withId(call.getArgument(0), "회원" + call.getArgument(0)));
+        BDDMockito.given(memberReader.findAllInOrderByNickname(ArgumentMatchers.any()))
+                .willAnswer(call -> ((Collection<Long>) call.getArgument(0)).stream()
+                        .map(id -> MemberFixture.withId(id, "회원" + id))
                         .toList());
     }
 
@@ -114,7 +127,7 @@ class GameControllerTest {
     @DisplayName("방 참가자 목록의 각 참가자는 memberId, nickname, isReady 로 내려간다.")
     void findUsers() throws Exception {
         // given: 닉네임은 방이 아니라 프로필 캐시에서 온다
-        memberProfiles.refresh(com.fungame.songquiz.support.MemberFixture.withId(2L, "방장닉네임"));
+        memberProfiles.refresh(MemberFixture.withId(2L, "방장닉네임"));
         given(gameRoomService.findRoomState(1L)).willReturn(new RoomStateInfo(1L, 4, GameRoomStatus.WAITING,
                 new RoomSettings(GameType.SONG, "K-POP 퀴즈방", 8, Category.KPOP, 10, 0, CSQuizDifficulty.HARD),
                 List.of(new GamePlayer(2L, true), new GamePlayer(3L, false)),

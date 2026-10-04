@@ -1,5 +1,6 @@
 package com.fungame.songquiz.acceptance;
 
+import com.fungame.songquiz.support.ApiIntegrationTest;
 import com.fungame.songquiz.controller.websocket.StompDestination;
 import com.fungame.songquiz.domain.member.MemberProfiles;
 import com.fungame.songquiz.domain.room.GameRoomService;
@@ -8,19 +9,15 @@ import com.fungame.songquiz.domain.room.RoomStateInfo;
 import com.fungame.songquiz.enums.Role;
 import com.fungame.songquiz.storage.MemberEntity;
 import com.fungame.songquiz.storage.MemberRepository;
-import com.fungame.songquiz.storage.MySqlTestContainer;
-import com.fungame.songquiz.storage.redis.RedisTestContainer;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.cache.Cache;
 import org.springframework.cache.CacheManager;
-import org.springframework.context.annotation.Import;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
@@ -33,7 +30,6 @@ import org.springframework.messaging.simp.stomp.StompSession;
 import org.springframework.messaging.simp.stomp.StompSessionHandlerAdapter;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.test.context.TestPropertySource;
 import org.springframework.web.socket.WebSocketHttpHeaders;
 import org.springframework.web.socket.client.standard.StandardWebSocketClient;
 import org.springframework.web.socket.messaging.WebSocketStompClient;
@@ -52,17 +48,11 @@ import static org.awaitility.Awaitility.await;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@Import({MySqlTestContainer.class, RedisTestContainer.class})
-@TestPropertySource(properties = {
-        "spring.session.jdbc.initialize-schema=always",
-        "app.song-scrape.enabled=false"
-})
-class RealtimeChannelAcceptanceTest {
+class RealtimeChannelAcceptanceTest extends ApiIntegrationTest {
 
     private static final String PASSWORD = "password1";
     private static final Duration MESSAGE_TIMEOUT = Duration.ofSeconds(5);
-    private static final Duration LONGER_THAN_LEAVE_GRACE = Duration.ofSeconds(25);
+    private static final Duration PAST_LEAVE_GRACE = Duration.ofSeconds(5);
 
     @LocalServerPort
     private int port;
@@ -244,7 +234,7 @@ class RealtimeChannelAcceptanceTest {
             returner.disconnectWebSocket();
             returner.reconnectWebSocket();
 
-            await().atMost(LONGER_THAN_LEAVE_GRACE).untilAsserted(() ->
+            await().atMost(PAST_LEAVE_GRACE).untilAsserted(() ->
                     assertThat(nicknamesOf(playersOf(host.readRoomState(roomId))))
                             .containsExactlyInAnyOrder("방장", "복귀자"));
         } finally {
@@ -263,7 +253,7 @@ class RealtimeChannelAcceptanceTest {
         guest.leave(leftRoomId);
         guest.join(movedRoomId);
 
-        await().atMost(LONGER_THAN_LEAVE_GRACE).untilAsserted(() ->
+        await().atMost(PAST_LEAVE_GRACE).untilAsserted(() ->
                 assertThat(nicknamesOf(playersOf(host.readRoomState(movedRoomId)))).containsExactly("방장"));
         assertThat(nicknamesOf(playersOf(host.readRoomState(leftRoomId)))).containsExactly("방장");
     }

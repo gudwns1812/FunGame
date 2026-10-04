@@ -41,7 +41,7 @@ class RoomLeaveGraceTest {
     @BeforeEach
     void setUp() {
         stompSessions = new StompSessions();
-        roomLeaveGrace = new RoomLeaveGrace(gameRoomService, taskScheduler, stompSessions);
+        roomLeaveGrace = new RoomLeaveGrace(gameRoomService, taskScheduler, stompSessions, 15);
     }
 
     @Test

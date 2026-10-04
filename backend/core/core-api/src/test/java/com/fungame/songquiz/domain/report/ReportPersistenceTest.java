@@ -1,10 +1,10 @@
 package com.fungame.songquiz.domain.report;
 
+import com.fungame.songquiz.support.ApiIntegrationTest;
 import com.fungame.songquiz.enums.GameType;
 import com.fungame.songquiz.enums.ReportReason;
 import com.fungame.songquiz.enums.ReportSource;
 import com.fungame.songquiz.enums.ReportStatus;
-import com.fungame.songquiz.storage.IntegrationTest;
 import com.fungame.songquiz.storage.MemberRepository;
 import com.fungame.songquiz.support.MemberFixture;
 import org.junit.jupiter.api.DisplayName;
@@ -18,8 +18,7 @@ import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-@IntegrationTest
-class ReportPersistenceTest {
+class ReportPersistenceTest extends ApiIntegrationTest {
 
     private static final Long ROOM_ID = 7L;
     private static final Long CONTENT_ID = 4321L;

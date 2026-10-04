@@ -1,5 +1,7 @@
 package com.fungame.songquiz.controller.websocket;
 
+import org.junit.jupiter.api.BeforeEach;
+
 import com.fungame.songquiz.controller.response.ApiResponse;
 import com.fungame.songquiz.controller.response.RoomStateResponse;
 import com.fungame.songquiz.domain.room.GamePlayer;
@@ -44,7 +46,7 @@ class GameNotifyServiceTest {
     private final MemberProfiles memberProfiles = new MemberProfiles(memberReader, cacheManager);
     private final GameNotifyService gameNotifyService = new GameNotifyService(messagingTemplate, memberProfiles);
 
-    @org.junit.jupiter.api.BeforeEach
+    @BeforeEach
     void nameEveryone() {
         memberProfiles.refresh(MemberFixture.withId(HOST.memberId(), "방장"));
         memberProfiles.refresh(MemberFixture.withId(GUEST.memberId(), "참가자"));

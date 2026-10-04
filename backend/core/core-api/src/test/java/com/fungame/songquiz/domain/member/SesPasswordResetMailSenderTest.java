@@ -1,5 +1,7 @@
 package com.fungame.songquiz.domain.member;
 
+import org.mockito.ArgumentMatchers;
+
 import com.fungame.songquiz.client.mail.SesMailSender;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -31,7 +33,7 @@ class SesPasswordResetMailSenderTest {
 
         ArgumentCaptor<String> subject = ArgumentCaptor.forClass(String.class);
         ArgumentCaptor<String> body = ArgumentCaptor.forClass(String.class);
-        verify(sesMailSender).send(org.mockito.ArgumentMatchers.eq(EMAIL), subject.capture(), body.capture());
+        verify(sesMailSender).send(ArgumentMatchers.eq(EMAIL), subject.capture(), body.capture());
 
         assertThat(subject.getValue()).contains("비밀번호 재설정");
         assertThat(body.getValue())
