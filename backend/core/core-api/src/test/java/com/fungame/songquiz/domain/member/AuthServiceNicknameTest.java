@@ -1,5 +1,7 @@
 package com.fungame.songquiz.domain.member;
 
+import org.mockito.ArgumentMatchers;
+
 import com.fungame.songquiz.support.MemberFixture;
 import com.fungame.songquiz.support.error.CoreException;
 import org.junit.jupiter.api.AfterEach;
@@ -67,7 +69,7 @@ class AuthServiceNicknameTest {
         assertThatThrownBy(() -> authService.updateNickname(LOGIN_ID, NEW_NICKNAME))
                 .isInstanceOf(CoreException.class);
 
-        verify(memberProfiles, never()).refresh(org.mockito.ArgumentMatchers.any());
+        verify(memberProfiles, never()).refresh(ArgumentMatchers.any());
     }
 
     @Test

@@ -1,5 +1,7 @@
 package com.fungame.songquiz.client.discord;
 
+import org.hamcrest.Matchers;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -66,7 +68,7 @@ class DiscordWebhookSenderTest {
 
         server.expect(requestTo(WEBHOOK_URL))
                 .andExpect(jsonPath("$.embeds[0].fields[0].value")
-                        .value(org.hamcrest.Matchers.hasLength(DiscordWebhookSender.MAX_FIELD_VALUE_LENGTH)))
+                        .value(Matchers.hasLength(DiscordWebhookSender.MAX_FIELD_VALUE_LENGTH)))
                 .andRespond(withNoContent());
 
         sender.send(embed(tooLong));

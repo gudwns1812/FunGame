@@ -1,5 +1,9 @@
 package com.fungame.songquiz.domain.invite;
 
+import org.springframework.cache.concurrent.ConcurrentMapCacheManager;
+
+import com.fungame.songquiz.domain.member.MemberProfiles;
+
 import com.fungame.songquiz.domain.member.Member;
 import com.fungame.songquiz.domain.member.MemberConnectionTracker;
 import com.fungame.songquiz.domain.member.MemberReader;
@@ -60,10 +64,10 @@ class RoomInviteServiceTest {
     void setUp() {
         roomInviteService = new RoomInviteService(
                 gameRoomService,
-                new com.fungame.songquiz.domain.member.MemberProfiles(
+                new MemberProfiles(
                         memberReader,
-                        new org.springframework.cache.concurrent.ConcurrentMapCacheManager(
-                                com.fungame.songquiz.domain.member.MemberProfiles.CACHE_NAME)),
+                        new ConcurrentMapCacheManager(
+                                MemberProfiles.CACHE_NAME)),
                 eventPublisher, memberConnectionTracker, clock);
 
         inviter = MemberFixture.withId(INVITER_ID, "방장");

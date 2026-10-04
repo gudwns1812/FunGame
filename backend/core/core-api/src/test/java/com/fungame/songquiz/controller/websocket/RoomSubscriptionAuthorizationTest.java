@@ -1,5 +1,7 @@
 package com.fungame.songquiz.controller.websocket;
 
+import java.security.Principal;
+
 import com.fungame.songquiz.domain.room.GameRoomService;
 import com.fungame.songquiz.support.StompMessages;
 import org.junit.jupiter.api.DisplayName;
@@ -46,7 +48,7 @@ class RoomSubscriptionAuthorizationTest {
         assertThat(authorize("/topic/lobby", null)).isNotNull();
     }
 
-    private Object authorize(String destination, java.security.Principal user) {
+    private Object authorize(String destination, Principal user) {
         return authorization.preSend(StompMessages.subscribe("session-1", destination, user), null);
     }
 }

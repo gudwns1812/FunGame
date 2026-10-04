@@ -1,5 +1,15 @@
 package com.fungame.songquiz.controller.websocket;
 
+import org.junit.jupiter.api.BeforeEach;
+
+import org.mockito.BDDMockito;
+
+import org.mockito.ArgumentMatchers;
+
+import org.springframework.cache.concurrent.ConcurrentMapCacheManager;
+
+import com.fungame.songquiz.support.MemberFixture;
+
 import com.fungame.songquiz.controller.response.ApiResponse;
 import com.fungame.songquiz.controller.response.OnlineMemberResponse;
 import com.fungame.songquiz.controller.response.RoomResponse;
@@ -50,7 +60,7 @@ class LobbyNotifyServiceTest {
     private final MemberReader memberReader = mock(MemberReader.class);
     private final MemberProfiles memberProfiles = new MemberProfiles(
             memberReader,
-            new org.springframework.cache.concurrent.ConcurrentMapCacheManager(MemberProfiles.CACHE_NAME));
+            new ConcurrentMapCacheManager(MemberProfiles.CACHE_NAME));
     private final LobbyNotifyService lobbyNotifyService = new LobbyNotifyService(
             messagingTemplate, gameRoomService, onlineMemberService, memberProfiles, stompSessions);
 
@@ -164,10 +174,10 @@ class LobbyNotifyServiceTest {
         return ArgumentCaptor.forClass(ApiResponse.class);
     }
 
-    @org.junit.jupiter.api.BeforeEach
+    @BeforeEach
     void nameEveryMember() {
-        org.mockito.BDDMockito.given(memberReader.findMember(org.mockito.ArgumentMatchers.anyLong()))
-                .willAnswer(call -> com.fungame.songquiz.support.MemberFixture.withId(call.getArgument(0), "회원" + call.getArgument(0)));
+        BDDMockito.given(memberReader.findMember(ArgumentMatchers.anyLong()))
+                .willAnswer(call -> MemberFixture.withId(call.getArgument(0), "회원" + call.getArgument(0)));
     }
 
     private static RoomInfo room() {
