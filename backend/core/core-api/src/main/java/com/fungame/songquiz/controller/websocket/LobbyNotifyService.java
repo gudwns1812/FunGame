@@ -12,7 +12,6 @@ import com.fungame.songquiz.domain.room.GameRoomService;
 import com.fungame.songquiz.domain.room.RoomChangedEvent;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.event.EventListener;
-import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
@@ -23,7 +22,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 @RequiredArgsConstructor
 public class LobbyNotifyService {
 
-    private final SimpMessagingTemplate messagingTemplate;
+    private final StompBroadcaster broadcaster;
     private final GameRoomService gameRoomService;
     private final OnlineMemberService onlineMemberService;
     private final MemberProfiles memberProfiles;
@@ -48,7 +47,7 @@ public class LobbyNotifyService {
     @Scheduled(fixedDelay = 500)
     public void processPendingUpdate() {
         if (hasPendingRoomUpdate.compareAndSet(true, false)) {
-            messagingTemplate.convertAndSend(StompDestination.LOBBY,
+            broadcaster.send(StompDestination.LOBBY,
                     ApiResponse.success(RoomResponse.listFrom(gameRoomService.findAllRooms(), memberProfiles)));
         }
 
@@ -61,7 +60,7 @@ public class LobbyNotifyService {
         OnlineMembers onlineMembers = onlineMemberService.findAllOnline();
 
         stompSessions.connectedMemberIds().forEach(viewerId ->
-                messagingTemplate.convertAndSendToUser(
+                broadcaster.sendToUser(
                         MemberAdapter.principalNameOf(viewerId),
                         StompDestination.PRESENCE,
                         ApiResponse.success(OnlineMemberResponse.listFrom(onlineMembers.excluding(viewerId)))));

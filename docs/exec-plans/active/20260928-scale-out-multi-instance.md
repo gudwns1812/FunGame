@@ -298,8 +298,22 @@ Caddy 가 앞에서 나눈다. 프리티어 안에서 §2 의 모든 증상을 �
 - [ ] `RoomOwnership` — `SET room:{id}:owner {instanceId} NX EX 30` + 주기 갱신. 만료되면 인수 후 방 제거
 - [ ] **명령 전달 경로** — 비소유 인스턴스가 방 명령을 받으면 소유자 사설 IP 로 전달.
       `GameServiceRouter` 앞에 한 겹. **S3 해결**
-- [ ] `RedisBroadcaster` — 도메인 이벤트를 Redis Pub/Sub 으로. 각 인스턴스가 받아 로컬 `SimpleBroker` 에 흘린다.
-      **M1·M2·M3 해결**
+- [x] `StompBroadcaster` — STOMP 전송을 **Redis Streams** 로 전파한다. **M1·M2·M3 해결**
+      **Pub/Sub 이 아니라 Streams 를 쓴다.** Pub/Sub 은 구독이 끊긴 동안의 메시지를 영구히 잃고,
+      느린 구독자는 Redis 가 연결을 끊어 조용히 사라진다. 라운드 전환(`ROUND_START` · `ROUND_END` ·
+      `GAME_RESULT`)은 전체 상태를 싣지 않아 **잃으면 복구 경로가 없다.**
+      처리량·지연은 차이가 없다(로컬 실측 `PUBLISH` 149k rps / `XADD` 161k rps).
+      소비자 그룹은 쓰지 않는다. 그룹은 한 메시지를 한 소비자에게만 주는 작업 분배용이고 우리는
+      팬아웃이 필요하다. ACK 가 추가로 막아주는 칸은 "읽은 뒤 처리 전 프로세스 사망" 하나뿐인데
+      그건 클라이언트 재연결 재동기화가 이미 덮는다.
+      스트림 하나에 목적지를 필드로 싣는다. 방마다 스트림을 파면 블로킹 읽기가 방 수만큼 늘고
+      방이 생길 때마다 키 목록을 다시 깔아야 한다.
+      기동 시 `$` 부터 읽어 과거를 재생하지 않는다. 오프셋을 저장하지 않는다.
+      로컬에는 즉시 전달하고 스트림에도 실어, Redis 장애가 "전체 먹통" 이 아니라 "전파만 끊김" 이 된다.
+      `MINID` 로 5분 보관하며 정확 트림한다. 안 자르면 `maxmemory` + `noeviction` 에서 **발행이 실패**한다.
+      `fungame_broadcast_published_total` · `fungame_broadcast_received_total` 로 전파가 살아 있는지 본다.
+- [ ] 보관 기간보다 오래 뒤처진 인스턴스 감지. `내 마지막 id < 스트림 첫 id` 면 그 인스턴스의
+      구독자를 통째로 재동기화시켜야 한다. 확률은 낮지만 조용히 틀어진다.
 - [ ] `RedisPresenceStore` — 접속 세션과 유예를 Redis 로. **S6·S7·S8 해결**
 - [ ] `RedisInviteStore` — Redis TTL 30초. **S9 해결, J3 스케줄 삭제**
 - [ ] `RoomSubscriptionAuthorization` 이 공유 레지스트리를 보게. 거부할 때는 **조용히 버리지 말고**

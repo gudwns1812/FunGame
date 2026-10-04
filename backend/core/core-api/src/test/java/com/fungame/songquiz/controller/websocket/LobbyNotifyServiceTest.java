@@ -33,7 +33,6 @@ import com.fungame.songquiz.enums.PlayerStatus;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
-import org.springframework.messaging.simp.SimpMessagingTemplate;
 
 import java.util.List;
 
@@ -53,7 +52,7 @@ class LobbyNotifyServiceTest {
     private static final Long VIEWER_ID = 1L;
     private static final Long OTHER_ID = 2L;
 
-    private final SimpMessagingTemplate messagingTemplate = mock(SimpMessagingTemplate.class);
+    private final StompBroadcaster broadcaster = mock(StompBroadcaster.class);
     private final GameRoomService gameRoomService = mock(GameRoomService.class);
     private final OnlineMemberService onlineMemberService = mock(OnlineMemberService.class);
     private final StompSessions stompSessions = new StompSessions();
@@ -62,7 +61,7 @@ class LobbyNotifyServiceTest {
             memberReader,
             new ConcurrentMapCacheManager(MemberProfiles.CACHE_NAME));
     private final LobbyNotifyService lobbyNotifyService = new LobbyNotifyService(
-            messagingTemplate, gameRoomService, onlineMemberService, memberProfiles, stompSessions);
+            broadcaster, gameRoomService, onlineMemberService, memberProfiles, stompSessions);
 
     @Test
     @DisplayName("방이 바뀌면 다시 물어보게 하지 않고 바뀐 방 목록을 로비로 실어 보낸다.")
@@ -87,7 +86,7 @@ class LobbyNotifyServiceTest {
         lobbyNotifyService.processPendingUpdate();
 
         verify(gameRoomService, times(1)).findAllRooms();
-        verify(messagingTemplate, times(1)).convertAndSend(eq(StompDestination.LOBBY), any(Object.class));
+        verify(broadcaster, times(1)).send(eq(StompDestination.LOBBY), any(Object.class));
     }
 
     @Test
@@ -131,7 +130,7 @@ class LobbyNotifyServiceTest {
         lobbyNotifyService.handleMemberPresenceChangedEvent(new MemberPresenceChangedEvent());
         lobbyNotifyService.processPendingUpdate();
 
-        verify(messagingTemplate, times(1)).convertAndSendToUser(
+        verify(broadcaster, times(1)).sendToUser(
                 eq(MemberAdapter.principalNameOf(VIEWER_ID)), eq(StompDestination.PRESENCE), any(Object.class));
     }
 
@@ -143,7 +142,7 @@ class LobbyNotifyServiceTest {
         lobbyNotifyService.handleMemberPresenceChangedEvent(new MemberPresenceChangedEvent());
         lobbyNotifyService.processPendingUpdate();
 
-        verify(messagingTemplate, never()).convertAndSendToUser(any(), any(), any(Object.class));
+        verify(broadcaster, never()).sendToUser(any(), any(), any(Object.class));
     }
 
     @Test
@@ -151,19 +150,19 @@ class LobbyNotifyServiceTest {
     void skipWhenNothingChanged() {
         lobbyNotifyService.processPendingUpdate();
 
-        verifyNoInteractions(messagingTemplate, gameRoomService, onlineMemberService);
+        verifyNoInteractions(broadcaster, gameRoomService, onlineMemberService);
     }
 
     private Object sentToLobby() {
         ArgumentCaptor<ApiResponse<Object>> sent = captor();
-        verify(messagingTemplate).convertAndSend(eq(StompDestination.LOBBY), sent.capture());
+        verify(broadcaster).send(eq(StompDestination.LOBBY), sent.capture());
 
         return sent.getValue().getData();
     }
 
     private Object sentToViewer(Long viewerId) {
         ArgumentCaptor<ApiResponse<Object>> sent = captor();
-        verify(messagingTemplate).convertAndSendToUser(
+        verify(broadcaster).sendToUser(
                 eq(MemberAdapter.principalNameOf(viewerId)), eq(StompDestination.PRESENCE), sent.capture());
 
         return sent.getValue().getData();

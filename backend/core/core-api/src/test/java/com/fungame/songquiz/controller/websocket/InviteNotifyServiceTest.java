@@ -8,7 +8,6 @@ import com.fungame.songquiz.enums.GameType;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
-import org.springframework.messaging.simp.SimpMessagingTemplate;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.eq;
@@ -19,8 +18,8 @@ class InviteNotifyServiceTest {
 
     private static final Long TARGET_ID = 7L;
 
-    private final SimpMessagingTemplate messagingTemplate = mock(SimpMessagingTemplate.class);
-    private final InviteNotifyService inviteNotifyService = new InviteNotifyService(messagingTemplate);
+    private final StompBroadcaster broadcaster = mock(StompBroadcaster.class);
+    private final InviteNotifyService inviteNotifyService = new InviteNotifyService(broadcaster);
 
     @Test
     @DisplayName("초대는 초대받은 사람에게만 간다.")
@@ -32,7 +31,7 @@ class InviteNotifyServiceTest {
 
         @SuppressWarnings("unchecked")
         ArgumentCaptor<ApiResponse<Object>> sent = ArgumentCaptor.forClass(ApiResponse.class);
-        verify(messagingTemplate).convertAndSendToUser(
+        verify(broadcaster).sendToUser(
                 eq(MemberAdapter.principalNameOf(TARGET_ID)), eq(StompDestination.INVITE), sent.capture());
 
         assertThat(sent.getValue().getData()).isEqualTo(notification);

@@ -24,7 +24,6 @@ import com.fungame.songquiz.support.error.CoreException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.event.EventListener;
-import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
@@ -37,7 +36,7 @@ import java.util.Map;
 @Slf4j
 public class GameNotifyService {
 
-    private final SimpMessagingTemplate messagingTemplate;
+    private final StompBroadcaster broadcaster;
     private final MemberProfiles memberProfiles;
 
     @EventListener
@@ -51,7 +50,7 @@ public class GameNotifyService {
                 "result", event.result().name(),
                 "status", event.status().data()
         );
-        messagingTemplate.convertAndSend(destination, ApiResponse.success(payload));
+        broadcaster.send(destination, ApiResponse.success(payload));
     }
 
     @EventListener
@@ -110,7 +109,7 @@ public class GameNotifyService {
                 "songCount", quizInfo.totalCount(),
                 "message", "채팅에 정답을 입력하면 됩니다. 띄어쓰기 없이 입력해주시고 영어이름은 소문자로 입력해주세요. 게임이 5초 뒤 시작됩니다."
         );
-        messagingTemplate.convertAndSend(destination, ApiResponse.success(payload));
+        broadcaster.send(destination, ApiResponse.success(payload));
     }
 
     @Async
@@ -125,7 +124,7 @@ public class GameNotifyService {
                 "content", event.content().description(),
                 "remainingMillis", event.remainingMillis()
         );
-        messagingTemplate.convertAndSend(destination, ApiResponse.success(payload));
+        broadcaster.send(destination, ApiResponse.success(payload));
     }
 
     @EventListener
@@ -137,7 +136,7 @@ public class GameNotifyService {
                 "hint", event.hint()
         );
 
-        messagingTemplate.convertAndSend(destination, ApiResponse.success(payload));
+        broadcaster.send(destination, ApiResponse.success(payload));
     }
 
     @EventListener
@@ -149,7 +148,7 @@ public class GameNotifyService {
                 "skipCount", event.skipCount(),
                 "totalCount", event.totalCount()
         );
-        messagingTemplate.convertAndSend(destination, ApiResponse.success(payload));
+        broadcaster.send(destination, ApiResponse.success(payload));
     }
 
     @Async
@@ -164,7 +163,7 @@ public class GameNotifyService {
         payload.put("explanation", event.answer().explanation());
         payload.put("winnerMemberId", event.winnerMemberId());
         payload.put("winnerNickname", nicknameOrNull(event.winnerMemberId()));
-        messagingTemplate.convertAndSend(destination, ApiResponse.success(payload));
+        broadcaster.send(destination, ApiResponse.success(payload));
     }
 
     @EventListener
@@ -181,14 +180,14 @@ public class GameNotifyService {
                 "rankings", rankings,
                 "message", "5초 뒤 게임이 종료됩니다."
         );
-        messagingTemplate.convertAndSend(destination, ApiResponse.success(payload));
+        broadcaster.send(destination, ApiResponse.success(payload));
     }
 
     private void sendRoomState(Long roomId, Map<String, Object> payload, RoomStateInfo state) {
         Map<String, Object> withRoom = new HashMap<>(payload);
         withRoom.put("room", RoomStateResponse.from(state, memberProfiles));
 
-        messagingTemplate.convertAndSend(StompDestination.room(roomId), ApiResponse.success(withRoom));
+        broadcaster.send(StompDestination.room(roomId), ApiResponse.success(withRoom));
     }
 
     private Map<String, Object> whoDidIt(String type, GamePlayer player) {
