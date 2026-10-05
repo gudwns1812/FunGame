@@ -170,7 +170,6 @@ exclusive·auto-delete 큐는 끊긴 동안 유실되고, durable per-instance �
 
 | | 작업 | 지금 생기는 일 |
 |---|---|---|
-| N3 | `ChatController` → `ChatNotifier`, ArchUnit 규칙 | `StompBroadcaster` 를 부르는 곳이 Notifier 3개 + 컨트롤러 1개. 에코가 판정보다 먼저라는 순서를 지켜야 한다 |
 | N6 | 보관 기간 추월 감지 — `내 마지막 id < 스트림 첫 id` | 5분보다 뒤처진 인스턴스가 조용히 틀어진다 |
 
 ### 2단계 — Redis 분리와 플립
@@ -272,6 +271,7 @@ SSE + REST 안은 프런트를 다시 짜야 해서 기각했다.
 | 버그 | `ReadOffset.latest()` 가 폴링마다 `$` 로 되돌아가 버스트의 첫 건만 남기던 것을 고쳤다. 라운드 전환이 몰려 오면 그 사이가 통째로 사라졌다 |
 | R1 · R2 | Redis 를 전용 호스트로 옮기고 ACL 을 걸었다. 앱은 `REDIS_USERNAME` · `REDIS_PASSWORD` 로 붙고, 배포 워크플로가 앱을 건드리기 전에 자격 증명을 확인한 뒤 앱 호스트에 남은 컨테이너를 내린다 |
 | N4 · N4a | 전달을 전부 스트림 경유로 바꿨다. 보낸 인스턴스도 자기가 실은 것을 되받아 전달하므로 스큐가 없고 스트림이 유일한 순서다. Redis 헬스 지표를 다시 켰다 |
+| N3 | 채팅도 `ChatMessageEvent` → `ChatNotifier` 를 타게 해 `StompBroadcaster` 를 부르는 곳을 `*Notifier` 로 모았다. ArchUnit 이 지킨다 |
 | N1 · N2 · N5 | 전파가 멈춘 Redis 에 전달 스레드를 묶지 않게 했다. `XADD` 는 동기로 두고 Resilience4j 서킷 브레이커가 실패나 0.5초 넘는 느린 호출이 쌓이면 막는다(§1.4). `StompBroadcaster` 는 Redis 를 모른다. Grafana 에 `브로드캐스트 전파` 대시보드를 붙였다 |
 
 검증한 것: Redis 를 내려도 로컬 전달이 유지된다(실제 구독자로 확인). 복구는 자동이지만 Lettuce

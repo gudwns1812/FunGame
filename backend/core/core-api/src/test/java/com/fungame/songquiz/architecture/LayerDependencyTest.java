@@ -36,6 +36,16 @@ class LayerDependencyTest {
                     .as("domain 은 api 를 모르고, support 는 모든 레이어가 쓰는 공유 커널이다");
 
     @ArchTest
+    static final ArchRule STOMP_로_내보내는_것은_Notifier_뿐이다 =
+            noClasses()
+                    .that().resideInAPackage(API_PACKAGE)
+                    .and().haveSimpleNameNotEndingWith("Notifier")
+                    .and().haveSimpleNameNotEndingWith("StreamListener")
+                    .and().haveSimpleNameNotEndingWith("Spreader")
+                    .should().dependOnClassesThat().haveSimpleName("StompBroadcaster")
+                    .as("STOMP 로 내보내는 입구는 *Notifier 하나다. 컨트롤러에서 바로 쏘지 않는다");
+
+    @ArchTest
     static final ArchRule api에는_서비스_계층을_두지_않는다 =
             noClasses()
                     .that().resideInAPackage(API_PACKAGE)

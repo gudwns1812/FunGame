@@ -1,82 +1,63 @@
 package com.fungame.songquiz.api.websocket;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.BDDMockito.given;
+import static org.mockito.BDDMockito.willThrow;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
 import com.fungame.songquiz.api.controller.request.ChatRequest;
-import com.fungame.songquiz.api.controller.response.ApiResponse;
 import com.fungame.songquiz.domain.member.Member;
 import com.fungame.songquiz.domain.member.MemberAdapter;
-import com.fungame.songquiz.domain.member.MemberProfiles;
-import com.fungame.songquiz.domain.member.MemberReader;
+import com.fungame.songquiz.domain.room.ChatMessageEvent;
 import com.fungame.songquiz.domain.room.GameRoomManager;
 import com.fungame.songquiz.domain.session.GameService;
 import com.fungame.songquiz.support.MemberFixture;
-import java.util.Map;
+import com.fungame.songquiz.support.error.CoreException;
+import com.fungame.songquiz.support.error.ErrorType;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.mockito.ArgumentCaptor;
-import org.springframework.cache.CacheManager;
-import org.springframework.cache.concurrent.ConcurrentMapCacheManager;
+import org.mockito.InOrder;
+import org.springframework.context.ApplicationEventPublisher;
 
-@DisplayName("채팅에 실리는 닉네임은 소켓을 연 시점이 아니라 지금 값이다")
 class ChatControllerTest {
 
     private static final Long ROOM_ID = 7L;
     private static final Long MEMBER_ID = 1L;
-    private static final String OLD_NICKNAME = "반달";
-    private static final String NEW_NICKNAME = "보름달";
 
-    private final StompBroadcaster broadcaster = mock(StompBroadcaster.class);
-    private final MemberReader memberReader = mock(MemberReader.class);
-    private final CacheManager cacheManager = new ConcurrentMapCacheManager(MemberProfiles.CACHE_NAME);
-    private final MemberProfiles memberProfiles = new MemberProfiles(memberReader, cacheManager);
-    private final ChatController chatController = new ChatController(
-            broadcaster,
-            mock(GameRoomManager.class),
-            mock(GameService.class),
-            memberProfiles);
+    private final ApplicationEventPublisher eventPublisher = mock(ApplicationEventPublisher.class);
+    private final GameRoomManager gameRoomManager = mock(GameRoomManager.class);
+    private final GameService gameService = mock(GameService.class);
+    private final ChatController chatController =
+            new ChatController(eventPublisher, gameRoomManager, gameService);
 
-    @Test
-    @DisplayName("닉네임을 캐시에서 읽어 싣는다.")
-    void carryNicknameFromCache() {
-        given(memberReader.findMember(MEMBER_ID)).willReturn(member(OLD_NICKNAME));
+    private static MemberAdapter principal() {
+        Member member = MemberFixture.withId(MEMBER_ID, "반달");
 
-        chatController.chat(ROOM_ID, principalWith(OLD_NICKNAME), new ChatRequest("안녕"));
-
-        assertThat(capturedPayload()).containsEntry("memberId", MEMBER_ID)
-                .containsEntry("nickname", OLD_NICKNAME)
-                .containsEntry("message", "안녕");
+        return new MemberAdapter(member);
     }
 
     @Test
-    @DisplayName("프린시펄이 옛 닉네임을 들고 있어도 캐시가 갱신되면 새 닉네임으로 나간다.")
-    void preferCacheOverStalePrincipal() {
-        given(memberReader.findMember(MEMBER_ID)).willReturn(member(OLD_NICKNAME));
-        memberProfiles.refresh(member(NEW_NICKNAME));
+    @DisplayName("내 말이 화면에 뜨고 나서 정답 판정이 돈다. 순서가 뒤집히면 정답 안내가 내 말보다 먼저 보인다.")
+    void theEchoGoesOutBeforeTheAnswerIsJudged() {
+        chatController.chat(ROOM_ID, principal(), new ChatRequest("정답"));
 
-        // 소켓은 닉네임을 바꾸기 전에 열렸으므로 프린시펄에는 옛 닉네임이 박혀 있다.
-        chatController.chat(ROOM_ID, principalWith(OLD_NICKNAME), new ChatRequest("안녕"));
-
-        assertThat(capturedPayload()).containsEntry("nickname", NEW_NICKNAME);
+        InOrder inOrder = inOrder(eventPublisher, gameService);
+        inOrder.verify(eventPublisher).publishEvent(new ChatMessageEvent(ROOM_ID, MEMBER_ID, "정답"));
+        inOrder.verify(gameService).processAnswer(ROOM_ID, MEMBER_ID, "정답");
     }
 
-    @SuppressWarnings("unchecked")
-    private Map<String, Object> capturedPayload() {
-        ArgumentCaptor<ApiResponse<Object>> captor = ArgumentCaptor.forClass(ApiResponse.class);
-        verify(broadcaster).send(eq(StompDestination.room(ROOM_ID)), captor.capture());
+    @Test
+    @DisplayName("게임이 없는 방에서도 내 말은 뜬다.")
+    void theEchoSurvivesARoomWithoutAGame() {
+        willThrow(new CoreException(ErrorType.GAME_ROOM_NOT_FOUND))
+                .given(gameRoomManager).touch(ROOM_ID);
 
-        return (Map<String, Object>) captor.getValue().getData();
-    }
+        chatController.chat(ROOM_ID, principal(), new ChatRequest("안녕"));
 
-    private static MemberAdapter principalWith(String nickname) {
-        return new MemberAdapter(member(nickname));
-    }
-
-    private static Member member(String nickname) {
-        return MemberFixture.withId(MEMBER_ID, nickname);
+        verify(eventPublisher).publishEvent(eq(new ChatMessageEvent(ROOM_ID, MEMBER_ID, "안녕")));
+        verify(gameService, never()).processAnswer(any(), any(), any());
     }
 }
