@@ -5,6 +5,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fungame.songquiz.storage.IntegrationTest;
@@ -57,8 +58,8 @@ class StompBroadcasterTest {
         senderSide = new StompBroadcaster(senderStomp, spreader(sender));
         receiverSide = new BroadcastStreamListener(
                 new StompBroadcaster(receiverStomp, spreader(receiver)),
-                objectMapper, receiver, new SimpleMeterRegistry());
-        senderSideListener = new BroadcastStreamListener(senderSide, objectMapper, sender, new SimpleMeterRegistry());
+                objectMapper, new SimpleMeterRegistry());
+        senderSideListener = new BroadcastStreamListener(senderSide, objectMapper, new SimpleMeterRegistry());
     }
 
     private RedisStreamSpreader spreader(InstanceId instanceId) {
@@ -85,29 +86,30 @@ class StompBroadcasterTest {
     }
 
     @Test
-    @DisplayName("보낸 인스턴스는 자기 구독자에게 바로 주고, 스트림에도 실어 다른 인스턴스가 받게 한다.")
-    void a_broadcast_reaches_subscribers_on_another_instance() {
+    @DisplayName("같은 메시지가 양쪽 인스턴스의 구독자에게 같은 시점에 간다.")
+    void the_same_message_reaches_both_instances() {
         senderSide.send(DESTINATION, Map.of("type", "ROUND_START", "round", 3));
 
+        MapRecord<String, String, String> record = onlyRecord();
+        senderSideListener.onMessage(record);
+        receiverSide.onMessage(record);
+
         verify(senderStomp).convertAndSend(eq(DESTINATION), eq(Map.of("type", "ROUND_START", "round", 3)));
-
-        receiverSide.onMessage(onlyRecord());
-
         verify(receiverStomp).convertAndSend(eq(DESTINATION), eq(Map.of("type", "ROUND_START", "round", 3)));
     }
 
     @Test
-    @DisplayName("로컬 전달을 먼저 하고 같은 메시지를 스트림에도 싣는다.")
-    void it_delivers_locally_then_puts_it_on_the_stream() {
+    @DisplayName("보낸 인스턴스도 자기 구독자에게 바로 주지 않는다. 스트림을 거쳐야 모두가 같은 시점에 받는다.")
+    void the_publisher_does_not_short_circuit_to_its_own_subscribers() {
         senderSide.send(DESTINATION, Map.of("type", "ROUND_START"));
 
-        verify(senderStomp).convertAndSend(eq(DESTINATION), eq(Map.of("type", "ROUND_START")));
+        verifyNoInteractions(senderStomp);
         assertThat(readStream()).hasSize(1);
     }
 
     @Test
-    @DisplayName("자기가 실은 메시지는 다시 꺼내 보내지 않는다.")
-    void an_instance_skips_the_message_it_published() {
+    @DisplayName("보낸 인스턴스도 자기가 실은 것을 스트림에서 꺼내 전달한다.")
+    void the_publisher_delivers_its_own_message_from_the_stream() {
         senderSide.send(DESTINATION, Map.of("type", "ROUND_END"));
 
         senderSideListener.onMessage(onlyRecord());

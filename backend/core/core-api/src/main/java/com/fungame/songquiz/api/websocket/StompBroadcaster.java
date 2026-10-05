@@ -12,12 +12,10 @@ public class StompBroadcaster {
     private final RedisStreamSpreader spreader;
 
     public void send(String destination, Object payload) {
-        messagingTemplate.convertAndSend(destination, payload);
         spreader.spread(destination, BroadcastMessage.EVERYONE, payload);
     }
 
     public void sendToUser(String user, String destination, Object payload) {
-        messagingTemplate.convertAndSendToUser(user, destination, payload);
         spreader.spread(destination, user, payload);
     }
 

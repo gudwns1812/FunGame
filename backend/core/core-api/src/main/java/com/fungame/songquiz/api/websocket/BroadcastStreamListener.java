@@ -1,7 +1,6 @@
 package com.fungame.songquiz.api.websocket;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fungame.songquiz.support.config.InstanceId;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
 import lombok.extern.slf4j.Slf4j;
@@ -15,28 +14,21 @@ public class BroadcastStreamListener implements StreamListener<String, MapRecord
 
     private final StompBroadcaster broadcaster;
     private final ObjectMapper objectMapper;
-    private final InstanceId instanceId;
     private final Counter received;
 
     public BroadcastStreamListener(StompBroadcaster broadcaster,
                                    ObjectMapper objectMapper,
-                                   InstanceId instanceId,
                                    MeterRegistry meterRegistry) {
         this.broadcaster = broadcaster;
         this.objectMapper = objectMapper;
-        this.instanceId = instanceId;
         this.received = Counter.builder("fungame.broadcast.received")
-                .description("다른 인스턴스에서 받아 내 구독자에게 전달한 브로드캐스트 수")
+                .description("스트림에서 꺼내 내 구독자에게 전달한 브로드캐스트 수")
                 .register(meterRegistry);
     }
 
     @Override
     public void onMessage(MapRecord<String, String, String> record) {
         BroadcastMessage message = BroadcastMessage.from(record.getValue());
-
-        if (instanceId.isMine(message.instanceId())) {
-            return;
-        }
 
         try {
             broadcaster.deliverLocally(message, objectMapper.readValue(message.payload(), Object.class));
