@@ -9,6 +9,7 @@ import static org.mockito.Mockito.verify;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fungame.songquiz.storage.IntegrationTest;
 import com.fungame.songquiz.support.config.InstanceId;
+import io.github.resilience4j.circuitbreaker.CircuitBreaker;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import java.time.Clock;
@@ -30,8 +31,6 @@ class StompBroadcasterTest {
 
     private static final String DESTINATION = "/topic/room/7";
     private static final String OTHER_USER = "member:42";
-    private static final int THRESHOLD = 3;
-    private static final long COOLDOWN_MILLIS = 5_000;
 
     @Autowired
     private StringRedisTemplate redisTemplate;
@@ -68,7 +67,7 @@ class StompBroadcasterTest {
         return new RedisStreamSpreader(
                 new BroadcastMessages(instanceId, objectMapper, meterRegistry),
                 new BroadcastStream(redisTemplate, Clock.systemUTC(), meterRegistry),
-                new BroadcastCircuitBreaker(Clock.systemUTC(), meterRegistry, THRESHOLD, COOLDOWN_MILLIS));
+                CircuitBreaker.ofDefaults("test"), meterRegistry);
     }
 
 

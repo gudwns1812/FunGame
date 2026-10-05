@@ -2,6 +2,7 @@ package com.fungame.songquiz.api.websocket;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -9,14 +10,15 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fungame.songquiz.support.MutableClock;
 import com.fungame.songquiz.support.config.InstanceId;
+import io.github.resilience4j.circuitbreaker.CircuitBreaker;
+import io.github.resilience4j.circuitbreaker.CircuitBreakerConfig;
+import io.github.resilience4j.circuitbreaker.CircuitBreakerConfig.SlidingWindowType;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import java.time.Duration;
-import java.time.Instant;
-import java.time.ZoneId;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -26,23 +28,30 @@ import org.springframework.dao.QueryTimeoutException;
 class RedisStreamSpreaderTest {
 
     private static final String DESTINATION = "/topic/room/7";
-    private static final int THRESHOLD = 3;
-    private static final long COOLDOWN_MILLIS = 5_000;
+    private static final int MINIMUM_CALLS = 3;
+    private static final Duration SLOW_CALL = Duration.ofMillis(100);
 
-    private MutableClock clock;
     private MeterRegistry meterRegistry;
     private BroadcastStream stream;
+    private CircuitBreaker breaker;
     private RedisStreamSpreader spreader;
 
     @BeforeEach
     void setUp() {
-        clock = new MutableClock(Instant.parse("2026-10-06T00:00:00Z"), ZoneId.of("UTC"));
         meterRegistry = new SimpleMeterRegistry();
         stream = mock(BroadcastStream.class);
+        breaker = CircuitBreaker.of("test", CircuitBreakerConfig.custom()
+                .slidingWindowType(SlidingWindowType.COUNT_BASED)
+                .slidingWindowSize(5)
+                .minimumNumberOfCalls(MINIMUM_CALLS)
+                .failureRateThreshold(50)
+                .slowCallDurationThreshold(SLOW_CALL)
+                .slowCallRateThreshold(50)
+                .permittedNumberOfCallsInHalfOpenState(1)
+                .build());
         spreader = new RedisStreamSpreader(
                 new BroadcastMessages(new InstanceId("instance-a"), new ObjectMapper(), meterRegistry),
-                stream,
-                new BroadcastCircuitBreaker(clock, meterRegistry, THRESHOLD, COOLDOWN_MILLIS));
+                stream, breaker, meterRegistry);
     }
 
     private void spread() {
@@ -51,9 +60,13 @@ class RedisStreamSpreaderTest {
 
     private void breakIt() {
         doThrow(new QueryTimeoutException("Redis command timed out")).when(stream).write(any());
-        for (int i = 0; i < THRESHOLD; i++) {
+        for (int i = 0; i < MINIMUM_CALLS; i++) {
             spread();
         }
+    }
+
+    private double droppedOpen() {
+        return meterRegistry.counter("fungame.broadcast.dropped", "reason", "circuit_open").count();
     }
 
     @Test
@@ -79,25 +92,41 @@ class RedisStreamSpreaderTest {
     }
 
     @Test
-    @DisplayName("연속 실패가 쌓이면 더 이상 Redis 를 건드리지 않는다. 멈춘 Redis 에 2초씩 계속 물지 않는다.")
-    void it_stops_touching_redis_after_repeated_failures() {
+    @DisplayName("연속 실패가 쌓이면 더 이상 Redis 를 건드리지 않는다. 멈춘 Redis 에 계속 물지 않는다.")
+    void it_stops_touching_redis_once_the_breaker_opens() {
         breakIt();
 
         spread();
         spread();
 
-        verify(stream, times(THRESHOLD)).write(any());
+        verify(stream, times(MINIMUM_CALLS)).write(any());
+        assertThat(droppedOpen()).isEqualTo(2);
     }
 
     @Test
-    @DisplayName("쿨다운이 지나면 한 건으로 복구를 확인한다.")
-    void it_probes_once_after_the_cooldown() {
-        breakIt();
-        clock.plus(Duration.ofMillis(COOLDOWN_MILLIS + 1));
+    @DisplayName("실패하지 않아도 느리기만 하면 막는다. 멈춘 Redis 는 실패가 아니라 느림으로 먼저 온다.")
+    void slow_writes_open_the_breaker_even_without_failing() {
+        doAnswer(invocation -> {
+            TimeUnit.MILLISECONDS.sleep(SLOW_CALL.toMillis() + 50);
+            return null;
+        }).when(stream).write(any());
 
+        for (int i = 0; i < MINIMUM_CALLS; i++) {
+            spread();
+        }
+
+        assertThat(breaker.getState()).isEqualTo(CircuitBreaker.State.OPEN);
+    }
+
+    @Test
+    @DisplayName("쿨다운 뒤에는 한 건으로 복구를 확인한다.")
+    void it_probes_once_when_half_open() {
+        breakIt();
+
+        breaker.transitionToHalfOpenState();
         spread();
 
-        verify(stream, times(THRESHOLD + 1)).write(any());
+        verify(stream, times(MINIMUM_CALLS + 1)).write(any());
     }
 
     @Test

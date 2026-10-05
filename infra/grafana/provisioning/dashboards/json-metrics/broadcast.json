@@ -155,7 +155,7 @@
       "id": 3,
       "type": "stat",
       "title": "전파 차단됨",
-      "description": "연속 실패로 Redis 전송을 막고 있는 동안 버린 수. 0 이 아니면 Redis 가 응답하지 않는다는 뜻이다.",
+      "description": "연속 실패나 느린 호출이 기준을 넘으면 전송을 막는다. 멈춘 Redis 는 실패가 아니라 느림으로 먼저 오므로 느린 호출도 실패로 센다.",
       "datasource": {
         "type": "prometheus",
         "uid": "${datasource}"
@@ -174,15 +174,28 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
+                "color": "text",
                 "value": null
-              },
-              {
-                "color": "red",
-                "value": 1
               }
             ]
-          }
+          },
+          "mappings": [
+            {
+              "type": "value",
+              "options": {
+                "0": {
+                  "text": "정상",
+                  "color": "green",
+                  "index": 0
+                },
+                "1": {
+                  "text": "차단됨",
+                  "color": "red",
+                  "index": 1
+                }
+              }
+            }
+          ]
         },
         "overrides": []
       },
@@ -204,8 +217,8 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "sum(increase(fungame_broadcast_dropped_total{namespace=\"$namespace\",reason=\"circuit_open\"}[5m]))",
-          "legendFormat": "차단 중 버림"
+          "expr": "max(resilience4j_circuitbreaker_state{namespace=\"$namespace\",name=\"broadcast\",state=\"open\"})",
+          "legendFormat": "차단"
         }
       ]
     },
@@ -450,7 +463,7 @@
       "id": 8,
       "type": "timeseries",
       "title": "차단 구간",
-      "description": "브레이커가 열려 있는 동안 버린 수. 연속 실패가 기준에 닿으면 막고, 쿨다운 뒤 한 건으로 복구를 확인한다.",
+      "description": "브레이커가 열려 있던 구간과 그동안 버린 수.",
       "datasource": {
         "type": "prometheus",
         "uid": "${datasource}"
@@ -493,8 +506,17 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
+          "expr": "max(resilience4j_circuitbreaker_state{namespace=\"$namespace\",name=\"broadcast\",state=\"open\"}) by (instance)",
+          "legendFormat": "차단 {{instance}}"
+        },
+        {
+          "refId": "B",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
           "expr": "sum(rate(fungame_broadcast_dropped_total{namespace=\"$namespace\",reason=\"circuit_open\"}[5m])) by (instance)",
-          "legendFormat": "{{instance}}"
+          "legendFormat": "버림 {{instance}}"
         }
       ]
     },
