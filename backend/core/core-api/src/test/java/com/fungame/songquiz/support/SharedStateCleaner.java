@@ -11,6 +11,8 @@ import com.fungame.songquiz.domain.room.GameRoomManager;
 import com.fungame.songquiz.domain.session.GameServiceRouter;
 import com.fungame.songquiz.domain.session.GameSessionManager;
 import com.fungame.songquiz.domain.session.GameTimer;
+import io.github.resilience4j.circuitbreaker.CircuitBreaker;
+import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
 import java.lang.reflect.Modifier;
 import java.util.Collection;
 import java.util.List;
@@ -63,6 +65,7 @@ public class SharedStateCleaner {
     public void clean() {
         STATEFUL_BEANS.forEach(this::resetBean);
         clearCaches();
+        closeCircuitBreakers();
     }
 
     /**
@@ -126,6 +129,15 @@ public class SharedStateCleaner {
         if (value instanceof Future<?> future) {
             future.cancel(false);
         }
+    }
+
+    private void closeCircuitBreakers() {
+        CircuitBreakerRegistry registry = context.getBeanProvider(CircuitBreakerRegistry.class).getIfAvailable();
+        if (registry == null) {
+            return;
+        }
+
+        registry.getAllCircuitBreakers().forEach(CircuitBreaker::reset);
     }
 
     private void clearCaches() {
