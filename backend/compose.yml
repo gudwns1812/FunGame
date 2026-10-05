@@ -38,34 +38,14 @@ services:
       # 신고 알림을 받을 디스코드 웹훅. 정답과 힌트까지 실리므로 비공개 채널이어야 합니다.
       # 주소를 아는 사람은 누구나 그 채널에 메시지를 쏠 수 있으므로 .env 에만 둡니다.
       DISCORD_REPORT_WEBHOOK_URL: ${DISCORD_REPORT_WEBHOOK_URL}
-      REDIS_HOST: redis
+      # Redis 는 전용 호스트에 있습니다. 값은 배포 워크플로가 Secret 에서 .env 로 채웁니다.
+      REDIS_HOST: ${REDIS_HOST}
+      REDIS_PORT: ${REDIS_PORT}
+      REDIS_USERNAME: ${REDIS_USERNAME}
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
     depends_on:
       mysql:
         condition: service_healthy
-      redis:
-        condition: service_healthy
-
-  redis:
-    image: redis:7-alpine
-    container_name: fungame-redis
-    restart: unless-stopped
-    command:
-      - redis-server
-      - --save
-      - ""
-      - --appendonly
-      - "no"
-      - --maxmemory
-      - 64mb
-      - --maxmemory-policy
-      - noeviction
-    expose:
-      - "6379"
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 10s
-      timeout: 3s
-      retries: 10
 
   mysql:
     image: mysql:8.0
