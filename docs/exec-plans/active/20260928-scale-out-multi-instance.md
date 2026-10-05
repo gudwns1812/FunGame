@@ -247,7 +247,7 @@ SSE + REST 안은 프런트를 다시 짜야 해서 기각했다.
 | 2단계 | `RoomLock` 추출 |
 | 3단계 | Redis 컨테이너 · `storage:redis-core` 모듈 · Streams 전파 브리지 |
 | 버그 | `ReadOffset.latest()` 가 폴링마다 `$` 로 되돌아가 버스트의 첫 건만 남기던 것을 고쳤다. 라운드 전환이 몰려 오면 그 사이가 통째로 사라졌다 |
-| N1 · N2 · N5 | 전파를 전달 스레드에서 떼어냈다. `RedisStreamSpreader` 가 바운디드 큐와 워커 하나를 들고, 나이 한계(기본 500ms)를 넘긴 것은 버린다. `StompBroadcaster` 는 Redis 를 모른다 |
+| N1 · N2 · N5 | 전파를 전달 스레드에서 떼어냈다. `RedisStreamSpreader` 가 바운디드 큐와 워커 하나를 들고, 나이 한계(기본 500ms)를 넘긴 것은 버린다. `StompBroadcaster` 는 Redis 를 모른다. Grafana 에 `브로드캐스트 전파` 대시보드를 붙였다 |
 
 검증한 것: Redis 를 내려도 로컬 전달이 유지된다(실제 구독자로 확인). 복구는 자동이지만 Lettuce
 재연결 전 한 건은 유실된다. 멈춘 Redis 는 죽은 Redis 보다 나쁘다(§1.4).
