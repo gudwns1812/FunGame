@@ -129,7 +129,7 @@ jobs:
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.EC2_SSH_KEY }}
           port: ${{ secrets.EC2_PORT || 22 }}
-          envs: IMAGE_NAME,IMAGE_TAG,SERVICE,CONTAINER_NAME,REGISTRY_USER,REGISTRY_TOKEN,PROJECT_DIR,MAIL_USERNAME,MAIL_PASSWORD
+          envs: IMAGE_NAME,IMAGE_TAG,SERVICE,CONTAINER_NAME,REGISTRY_USER,REGISTRY_TOKEN,PROJECT_DIR,MAIL_USERNAME,MAIL_PASSWORD,REDIS_HOST,REDIS_PORT,REDIS_USERNAME,REDIS_PASSWORD
           script_stop: true
           script: |
             set -euo pipefail
@@ -139,6 +139,31 @@ jobs:
             # Caddyfile 이 깨졌으면 백엔드를 건드리기 전에 멈춘다.
             docker run --rm -v "$PWD/caddy:/etc/caddy:ro" caddy:2 \
               caddy validate --config /etc/caddy/Caddyfile
+
+            # 전용 호스트의 Redis 에 이 자격 증명으로 닿는지 먼저 본다.
+            # 돌아가는 앱을 건드린 뒤에 알게 되면 롤백할 이전 이미지도 같은 Redis 를
+            # 못 붙어(옛 이미지는 ACL 을 모른다) 롤백까지 실패한다.
+            verify_redis() {
+              set -- -h "$REDIS_HOST" -p "$REDIS_PORT"
+
+              if [ -n "$REDIS_USERNAME" ]; then
+                set -- "$@" --user "$REDIS_USERNAME"
+              fi
+
+              if [ -n "$REDIS_PASSWORD" ]; then
+                set -- "$@" --pass "$REDIS_PASSWORD"
+              fi
+
+              docker run --rm redis:7-alpine redis-cli --no-auth-warning "$@" ping
+            }
+
+            if ! verify_redis | grep -qx PONG; then
+              echo "Redis($REDIS_HOST:$REDIS_PORT) 에 닿지 못했다. 배포하지 않는다"
+              echo "REDIS_HOST · REDIS_PORT · REDIS_USERNAME · REDIS_PASSWORD Secret 과"
+              echo "Redis 호스트의 보안 그룹을 확인한다"
+              exit 1
+            fi
+            echo "Redis($REDIS_HOST:$REDIS_PORT) 응답 확인"
 
             echo "$REGISTRY_TOKEN" | docker login ghcr.io -u "$REGISTRY_USER" --password-stdin
             trap 'docker logout ghcr.io >/dev/null 2>&1 || true' EXIT
@@ -152,8 +177,6 @@ jobs:
               echo "image: \${BACKEND_IMAGE:-${IMAGE_NAME}:latest} 로 바꿔야 한다"
               exit 1
             fi
-
-            docker compose up -d redis
 
             PREVIOUS_IMAGE=$(docker inspect --format '{{.Config.Image}}' "$CONTAINER_NAME" 2>/dev/null || echo '')
             echo "현재 이미지: ${PREVIOUS_IMAGE:-없음}"
@@ -206,9 +229,27 @@ jobs:
               fi
             }
 
+            # Redis 는 전용 호스트로 옮겼다. 앱 호스트에 남아 있던 컨테이너를 내린다.
+            # compose.yml 에서 서비스를 지우는 것만으로는 떠 있는 컨테이너가 사라지지 않는다.
+            retire_local_redis() {
+              if [ -z "$(docker ps -aq -f name='^fungame-redis$')" ]; then
+                return
+              fi
+
+              echo "앱 호스트에 남은 fungame-redis 를 내린다"
+              docker rm -f fungame-redis
+            }
+
             # 비밀값은 서버에만 둔다. 컨테이너가 뜨기 전에 .env 를 Secret 과 맞춘다.
             set_env MAIL_USERNAME "$MAIL_USERNAME"
             set_env MAIL_PASSWORD "$MAIL_PASSWORD"
+            set_env REDIS_HOST "$REDIS_HOST"
+            set_env REDIS_PORT "$REDIS_PORT"
+            set_env REDIS_USERNAME "$REDIS_USERNAME"
+            set_env REDIS_PASSWORD "$REDIS_PASSWORD"
+
+            # 새 이미지가 전용 호스트에 붙는 것을 확인한 뒤에 내린다.
+            # 먼저 내리면 롤백한 이전 이미지가 붙을 Redis 가 사라진다.
 
             # set -e 가 여기서 스크립트를 죽이면 아래 롤백 블록에 도달하지 못한다.
             # 기동 명령이 실패해도 일단 넘기고 헬스체크가 판정하게 둔다.
@@ -218,6 +259,7 @@ jobs:
 
             if wait_until_healthy; then
               echo "배포 성공: $TARGET_IMAGE"
+              retire_local_redis
               reload_caddy
               pin_running_image_in_env "$TARGET_IMAGE"
               docker image prune -f
@@ -254,6 +296,10 @@ jobs:
           PROJECT_DIR: ${{ secrets.BACKEND_PROJECT_DIR || '/home/ubuntu/fungame' }}
           MAIL_USERNAME: ${{ secrets.BREVO_SMTP_LOGIN }}
           MAIL_PASSWORD: ${{ secrets.BREVO_SMTP_KEY }}
+          REDIS_HOST: ${{ secrets.REDIS_HOST }}
+          REDIS_PORT: ${{ secrets.REDIS_PORT }}
+          REDIS_USERNAME: ${{ secrets.REDIS_USERNAME }}
+          REDIS_PASSWORD: ${{ secrets.REDIS_PASSWORD }}
 
       - name: 실패하면 설정을 직전 백업으로 되돌린다
         if: failure()

@@ -177,9 +177,8 @@ exclusive·auto-delete 큐는 끊긴 동안 유실되고, durable per-instance �
 
 | | 작업 | 지금 생기는 일 |
 |---|---|---|
-| R1 | Redis 를 전용 호스트로 (또는 ElastiCache) | 1GB 한 대에 Caddy·백엔드·MySQL·Redis 가 동거한다. **`free -m` 을 아직 안 쟀다 — 이 숫자가 일정을 정한다** |
-| R2 | 보안 그룹: 6379 는 앱 SG 에서만 | |
 | N4 | 전부 스트림 경유로 플립 | §1.3 |
+| N4a | Redis 헬스 지표를 다시 켠다 | R1 에서 껐다. 플립 뒤에는 Redis 가 끊기면 실시간이 진짜로 죽으므로 health 가 DOWN 인 것이 맞다 |
 | N4c | 리더 스레드를 destination 해시로 N개 분할 | 전달이 `broadcast-1` 하나로 모인다. **지표가 한계를 보일 때만** |
 
 ### 3단계 — 공유 상태 (소유권 없이 되는 것)
@@ -273,6 +272,7 @@ SSE + REST 안은 프런트를 다시 짜야 해서 기각했다.
 | 2단계 | `RoomLock` 추출 |
 | 3단계 | Redis 컨테이너 · `storage:redis-core` 모듈 · Streams 전파 브리지 |
 | 버그 | `ReadOffset.latest()` 가 폴링마다 `$` 로 되돌아가 버스트의 첫 건만 남기던 것을 고쳤다. 라운드 전환이 몰려 오면 그 사이가 통째로 사라졌다 |
+| R1 · R2 | Redis 를 전용 호스트로 옮기고 ACL 을 걸었다. 앱은 `REDIS_USERNAME` · `REDIS_PASSWORD` 로 붙고, 배포 워크플로가 앱을 건드리기 전에 자격 증명을 확인한 뒤 앱 호스트에 남은 컨테이너를 내린다 |
 | N1 · N2 · N5 | 전파가 멈춘 Redis 에 전달 스레드를 묶지 않게 했다. `XADD` 는 동기로 두고 Resilience4j 서킷 브레이커가 실패나 0.5초 넘는 느린 호출이 쌓이면 막는다(§1.4). `StompBroadcaster` 는 Redis 를 모른다. Grafana 에 `브로드캐스트 전파` 대시보드를 붙였다 |
 
 검증한 것: Redis 를 내려도 로컬 전달이 유지된다(실제 구독자로 확인). 복구는 자동이지만 Lettuce
