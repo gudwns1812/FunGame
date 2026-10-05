@@ -9,6 +9,7 @@ import static org.mockito.Mockito.verify;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fungame.songquiz.storage.IntegrationTest;
 import com.fungame.songquiz.support.config.InstanceId;
+import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import java.time.Clock;
 import java.util.List;
@@ -50,7 +51,7 @@ class StompBroadcasterTest {
 
     @BeforeEach
     void setUp() {
-        redisTemplate.delete(RedisStreamSpreader.STREAM_KEY);
+        redisTemplate.delete(BroadcastStream.KEY);
 
         senderStomp = mock(SimpMessagingTemplate.class);
         receiverStomp = mock(SimpMessagingTemplate.class);
@@ -64,8 +65,12 @@ class StompBroadcasterTest {
     }
 
     private RedisStreamSpreader spreader(InstanceId instanceId) {
-        return new RedisStreamSpreader(redisTemplate, objectMapper, instanceId, Clock.systemUTC(),
-                new SimpleMeterRegistry(), QUEUE_CAPACITY, MAX_AGE_MILLIS);
+        MeterRegistry meterRegistry = new SimpleMeterRegistry();
+
+        return new RedisStreamSpreader(
+                new BroadcastMessages(instanceId, objectMapper, meterRegistry),
+                new BroadcastQueue(Clock.systemUTC(), meterRegistry, QUEUE_CAPACITY, MAX_AGE_MILLIS),
+                new BroadcastStream(redisTemplate, Clock.systemUTC(), meterRegistry));
     }
 
     private void spreadPending() throws InterruptedException {
@@ -74,7 +79,7 @@ class StompBroadcasterTest {
 
     private List<MapRecord<String, Object, Object>> readStream() {
         return redisTemplate.opsForStream()
-                .read(StreamOffset.fromStart(RedisStreamSpreader.STREAM_KEY));
+                .read(StreamOffset.fromStart(BroadcastStream.KEY));
     }
 
     @SuppressWarnings("unchecked")
@@ -135,7 +140,7 @@ class StompBroadcasterTest {
     void old_entries_are_trimmed() throws InterruptedException {
         redisTemplate.opsForStream().add(StreamRecords
                 .mapBacked(Map.of("instance", "old", "destination", "x", "user", "", "payload", "{}"))
-                .withStreamKey(RedisStreamSpreader.STREAM_KEY)
+                .withStreamKey(BroadcastStream.KEY)
                 .withId(RecordId.of("1-0")));
 
         senderSide.send(DESTINATION, Map.of("type", "PING"));

@@ -1,7 +1,7 @@
 package com.fungame.songquiz.support;
 
 import com.fungame.songquiz.api.websocket.LobbyNotifier;
-import com.fungame.songquiz.api.websocket.RedisStreamSpreader;
+import com.fungame.songquiz.api.websocket.BroadcastQueue;
 import com.fungame.songquiz.api.websocket.RoomLeaveGrace;
 import com.fungame.songquiz.api.websocket.StompSessions;
 import com.fungame.songquiz.domain.invite.RoomInviteService;
@@ -45,7 +45,7 @@ public class SharedStateCleaner {
             StompSessions.class,
             DailyActiveMembers.class,
             LobbyNotifier.class,
-            RedisStreamSpreader.class);
+            BroadcastQueue.class);
 
     /**
      * 기동 때 한 번 채우고 그 뒤로 바뀌지 않는 레지스트리. 테스트 사이에 비우면 앱이 죽는다. 상태를 든 것처럼 보이지만 치우면 안 되는 것들이라 여기 적어 구분한다.
