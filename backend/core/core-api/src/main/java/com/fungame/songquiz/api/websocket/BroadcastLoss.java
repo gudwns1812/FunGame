@@ -6,8 +6,7 @@ import io.micrometer.core.instrument.MeterRegistry;
 public final class BroadcastLoss {
 
     public static final String SERIALIZE = "serialize";
-    public static final String QUEUE_FULL = "queue_full";
-    public static final String STALE = "stale";
+    public static final String CIRCUIT_OPEN = "circuit_open";
     public static final String ERROR = "error";
 
     private static final String NAME = "fungame.broadcast.dropped";

@@ -9,13 +9,11 @@ cors:
   allowed-origins: ${CORS_ALLOWED_ORIGINS:https://www.fun-game.club,https://fun-game.club}
 app:
   broadcast:
-    # 다른 인스턴스로 내보낼 방송이 쌓이는 큐. 호출 스레드는 넣기만 하고 워커 하나가 Redis 로 보냅니다.
-    # 가득 차면 가장 오래된 것부터 버립니다. payload 대부분이 전체 스냅샷이라 새것이 옛것을 덮습니다.
-    queue-capacity: ${BROADCAST_QUEUE_CAPACITY:1000}
-    # 이 시간을 넘긴 방송은 보내지 않고 버립니다. 크로스 인스턴스 전달 지연의 상한입니다.
-    # 500ms 로 뒀더니 접속자 500명에서 접속자 목록 팬아웃(뷰어당 1건)이 그 한계를 넘겨
-    # 30초에 256건이 조용히 버려졌습니다. 그 팬아웃을 1건으로 줄이기 전까지는 2초가 필요합니다.
-    max-age-millis: ${BROADCAST_MAX_AGE_MILLIS:2000}
+    # 다른 인스턴스로 내보내는 길이 막혔을 때 연속 몇 번까지 기다려 볼지.
+    # 멈춘 Redis 는 호출마다 spring.data.redis.timeout 을 꽉 채우므로, 이 횟수만큼만 물고 막습니다.
+    failure-threshold: ${BROADCAST_FAILURE_THRESHOLD:3}
+    # 막은 뒤 이만큼 지나면 한 건만 흘려 보내 복구됐는지 확인합니다.
+    cooldown-millis: ${BROADCAST_COOLDOWN_MILLIS:5000}
   password-reset:
     # 메일에 실리는 재설정 페이지 주소. 뒤에 ?token=... 이 붙습니다.
     link-base-url: ${PASSWORD_RESET_LINK_BASE_URL:https://www.fun-game.club/reset-password}

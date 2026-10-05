@@ -30,8 +30,8 @@ class StompBroadcasterTest {
 
     private static final String DESTINATION = "/topic/room/7";
     private static final String OTHER_USER = "member:42";
-    private static final int QUEUE_CAPACITY = 10;
-    private static final long MAX_AGE_MILLIS = 60_000;
+    private static final int THRESHOLD = 3;
+    private static final long COOLDOWN_MILLIS = 5_000;
 
     @Autowired
     private StringRedisTemplate redisTemplate;
@@ -44,7 +44,6 @@ class StompBroadcasterTest {
 
     private SimpMessagingTemplate senderStomp;
     private SimpMessagingTemplate receiverStomp;
-    private RedisStreamSpreader senderSpreader;
     private StompBroadcaster senderSide;
     private BroadcastStreamListener receiverSide;
     private BroadcastStreamListener senderSideListener;
@@ -56,8 +55,7 @@ class StompBroadcasterTest {
         senderStomp = mock(SimpMessagingTemplate.class);
         receiverStomp = mock(SimpMessagingTemplate.class);
 
-        senderSpreader = spreader(sender);
-        senderSide = new StompBroadcaster(senderStomp, senderSpreader);
+        senderSide = new StompBroadcaster(senderStomp, spreader(sender));
         receiverSide = new BroadcastStreamListener(
                 new StompBroadcaster(receiverStomp, spreader(receiver)),
                 objectMapper, receiver, new SimpleMeterRegistry());
@@ -69,13 +67,10 @@ class StompBroadcasterTest {
 
         return new RedisStreamSpreader(
                 new BroadcastMessages(instanceId, objectMapper, meterRegistry),
-                new BroadcastQueue(Clock.systemUTC(), meterRegistry, QUEUE_CAPACITY, MAX_AGE_MILLIS),
-                new BroadcastStream(redisTemplate, Clock.systemUTC(), meterRegistry));
+                new BroadcastStream(redisTemplate, Clock.systemUTC(), meterRegistry),
+                new BroadcastCircuitBreaker(Clock.systemUTC(), meterRegistry, THRESHOLD, COOLDOWN_MILLIS));
     }
 
-    private void spreadPending() throws InterruptedException {
-        senderSpreader.pumpOnce();
-    }
 
     private List<MapRecord<String, Object, Object>> readStream() {
         return redisTemplate.opsForStream()
@@ -92,31 +87,29 @@ class StompBroadcasterTest {
 
     @Test
     @DisplayName("보낸 인스턴스는 자기 구독자에게 바로 주고, 스트림에도 실어 다른 인스턴스가 받게 한다.")
-    void a_broadcast_reaches_subscribers_on_another_instance() throws InterruptedException {
+    void a_broadcast_reaches_subscribers_on_another_instance() {
         senderSide.send(DESTINATION, Map.of("type", "ROUND_START", "round", 3));
 
         verify(senderStomp).convertAndSend(eq(DESTINATION), eq(Map.of("type", "ROUND_START", "round", 3)));
 
-        spreadPending();
         receiverSide.onMessage(onlyRecord());
 
         verify(receiverStomp).convertAndSend(eq(DESTINATION), eq(Map.of("type", "ROUND_START", "round", 3)));
     }
 
     @Test
-    @DisplayName("로컬 전달은 Redis 가 아직 받지 않았어도 이미 끝나 있다.")
-    void local_delivery_does_not_wait_for_the_stream() {
+    @DisplayName("로컬 전달을 먼저 하고 같은 메시지를 스트림에도 싣는다.")
+    void it_delivers_locally_then_puts_it_on_the_stream() {
         senderSide.send(DESTINATION, Map.of("type", "ROUND_START"));
 
         verify(senderStomp).convertAndSend(eq(DESTINATION), eq(Map.of("type", "ROUND_START")));
-        assertThat(readStream()).isEmpty();
+        assertThat(readStream()).hasSize(1);
     }
 
     @Test
     @DisplayName("자기가 실은 메시지는 다시 꺼내 보내지 않는다.")
-    void an_instance_skips_the_message_it_published() throws InterruptedException {
+    void an_instance_skips_the_message_it_published() {
         senderSide.send(DESTINATION, Map.of("type", "ROUND_END"));
-        spreadPending();
 
         senderSideListener.onMessage(onlyRecord());
 
@@ -125,9 +118,8 @@ class StompBroadcasterTest {
 
     @Test
     @DisplayName("특정 사용자에게 가는 메시지도 인스턴스를 건너 전달된다.")
-    void a_user_message_crosses_instances() throws InterruptedException {
+    void a_user_message_crosses_instances() {
         senderSide.sendToUser(OTHER_USER, "/queue/invite", Map.of("inviteId", "abc"));
-        spreadPending();
 
         receiverSide.onMessage(onlyRecord());
 
@@ -137,14 +129,13 @@ class StompBroadcasterTest {
 
     @Test
     @DisplayName("보관 기간이 지난 항목은 잘려 스트림이 무한히 자라지 않는다.")
-    void old_entries_are_trimmed() throws InterruptedException {
+    void old_entries_are_trimmed() {
         redisTemplate.opsForStream().add(StreamRecords
                 .mapBacked(Map.of("instance", "old", "destination", "x", "user", "", "payload", "{}"))
                 .withStreamKey(BroadcastStream.KEY)
                 .withId(RecordId.of("1-0")));
 
         senderSide.send(DESTINATION, Map.of("type", "PING"));
-        spreadPending();
 
         assertThat(readStream())
                 .singleElement()

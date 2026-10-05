@@ -154,8 +154,8 @@
     {
       "id": 3,
       "type": "stat",
-      "title": "전파 대기",
-      "description": "아직 내보내지 못하고 큐에 쌓인 수. 계속 0 이 아니면 Redis 가 못 따라가고 있다.",
+      "title": "전파 차단됨",
+      "description": "연속 실패로 Redis 전송을 막고 있는 동안 버린 수. 0 이 아니면 Redis 가 응답하지 않는다는 뜻이다.",
       "datasource": {
         "type": "prometheus",
         "uid": "${datasource}"
@@ -178,12 +178,8 @@
                 "value": null
               },
               {
-                "color": "orange",
-                "value": 1
-              },
-              {
                 "color": "red",
-                "value": 100
+                "value": 1
               }
             ]
           }
@@ -208,8 +204,8 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "sum(fungame_broadcast_queue_size{namespace=\"$namespace\"})",
-          "legendFormat": "전파 대기"
+          "expr": "sum(increase(fungame_broadcast_dropped_total{namespace=\"$namespace\",reason=\"circuit_open\"}[5m]))",
+          "legendFormat": "차단 중 버림"
         }
       ]
     },
@@ -337,7 +333,7 @@
       "id": 6,
       "type": "timeseries",
       "title": "잃은 것 — 원인별",
-      "description": "serialize 는 payload 직렬화 실패, queue_full 은 큐가 가득 참, stale 은 나이 한계를 넘김, error 는 XADD 실패. 전부 다른 인스턴스가 못 받은 것이다.",
+      "description": "serialize 는 payload 직렬화 실패, circuit_open 은 전송을 막고 있는 동안, error 는 XADD 실패. 전부 다른 인스턴스가 못 받은 것이다.",
       "datasource": {
         "type": "prometheus",
         "uid": "${datasource}"
@@ -453,8 +449,8 @@
     {
       "id": 8,
       "type": "timeseries",
-      "title": "전파 대기 큐",
-      "description": "워커 하나가 Redis 로 내보낸다. 쌓이기 시작하면 XADD 지연부터 본다.",
+      "title": "차단 구간",
+      "description": "브레이커가 열려 있는 동안 버린 수. 연속 실패가 기준에 닿으면 막고, 쿨다운 뒤 한 건으로 복구를 확인한다.",
       "datasource": {
         "type": "prometheus",
         "uid": "${datasource}"
@@ -467,7 +463,7 @@
       },
       "fieldConfig": {
         "defaults": {
-          "unit": "short",
+          "unit": "reqps",
           "decimals": 0,
           "custom": {
             "drawStyle": "line",
@@ -497,7 +493,7 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "sum(fungame_broadcast_queue_size{namespace=\"$namespace\"}) by (instance)",
+          "expr": "sum(rate(fungame_broadcast_dropped_total{namespace=\"$namespace\",reason=\"circuit_open\"}[5m])) by (instance)",
           "legendFormat": "{{instance}}"
         }
       ]
