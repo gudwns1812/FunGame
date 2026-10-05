@@ -13,8 +13,9 @@ app:
     # 가득 차면 가장 오래된 것부터 버립니다. payload 대부분이 전체 스냅샷이라 새것이 옛것을 덮습니다.
     queue-capacity: ${BROADCAST_QUEUE_CAPACITY:1000}
     # 이 시간을 넘긴 방송은 보내지 않고 버립니다. 크로스 인스턴스 전달 지연의 상한입니다.
-    # 늦게 도착한 라운드 전환은 쓸모없는 정도가 아니라 불공정합니다.
-    max-age-millis: ${BROADCAST_MAX_AGE_MILLIS:500}
+    # 500ms 로 뒀더니 접속자 500명에서 접속자 목록 팬아웃(뷰어당 1건)이 그 한계를 넘겨
+    # 30초에 256건이 조용히 버려졌습니다. 그 팬아웃을 1건으로 줄이기 전까지는 2초가 필요합니다.
+    max-age-millis: ${BROADCAST_MAX_AGE_MILLIS:2000}
   password-reset:
     # 메일에 실리는 재설정 페이지 주소. 뒤에 ?token=... 이 붙습니다.
     link-base-url: ${PASSWORD_RESET_LINK_BASE_URL:https://www.fun-game.club/reset-password}

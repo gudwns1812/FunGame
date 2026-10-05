@@ -25,7 +25,7 @@ public class BroadcastQueue {
     public BroadcastQueue(Clock clock,
                           MeterRegistry meterRegistry,
                           @Value("${app.broadcast.queue-capacity:1000}") int capacity,
-                          @Value("${app.broadcast.max-age-millis:500}") long maxAgeMillis) {
+                          @Value("${app.broadcast.max-age-millis:2000}") long maxAgeMillis) {
         this.pending = new LinkedBlockingDeque<>(capacity);
         this.clock = clock;
         this.maxAgeMillis = maxAgeMillis;
