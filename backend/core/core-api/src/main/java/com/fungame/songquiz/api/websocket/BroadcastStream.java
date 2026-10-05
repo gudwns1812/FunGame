@@ -7,6 +7,7 @@ import java.time.Clock;
 import java.time.Duration;
 import java.util.concurrent.TimeUnit;
 import org.springframework.data.redis.connection.RedisStreamCommands.XAddOptions;
+import org.springframework.data.redis.connection.stream.ReadOffset;
 import org.springframework.data.redis.connection.stream.RecordId;
 import org.springframework.data.redis.connection.stream.StreamRecords;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -53,6 +54,14 @@ public class BroadcastStream {
             throw e;
         } finally {
             writeDuration.record(System.nanoTime() - startedAt, TimeUnit.NANOSECONDS);
+        }
+    }
+
+    public ReadOffset startOffset(String streamKey) {
+        try {
+            return ReadOffset.from(redisTemplate.opsForStream().info(streamKey).lastGeneratedId());
+        } catch (Exception e) {
+            return ReadOffset.from(clock.millis() + "-0");
         }
     }
 
