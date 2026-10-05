@@ -50,4 +50,19 @@ case "$cmd" in
     ;;
 esac
 
+case "$cmd" in
+  *WIDE_CLASS=skip*) ;;
+  *)
+    if ! out=$(bash .claude/skills/split-wide-class/scripts/find-wide-classes.sh "$range" 2>&1); then
+      printf '%s
+
+' "$out" >&2
+      echo "split-wide-class: 협력자를 너무 많이 든 클래스가 있다. 쪼갤 수 있는지 본다." >&2
+      echo "쪼개지 않는 것이 맞다면 사용자에게 이유를 말하고 확인받은 뒤" >&2
+      echo "WIDE_CLASS=skip 을 앞에 붙여 커밋한다." >&2
+      fail=1
+    fi
+    ;;
+esac
+
 exit $((fail * 2))

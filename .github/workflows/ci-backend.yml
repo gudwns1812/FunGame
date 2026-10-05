@@ -1,8 +1,9 @@
 name: CI Backend
 
 on:
+  # 대상 브랜치를 가리지 않습니다. 스택으로 쌓은 PR 은 main 을 향하지 않아서,
+  # branches: [main] 로 두면 그 PR 들만 검사 없이 통과합니다.
   pull_request:
-    branches: [main]
     paths:
       - 'backend/**'
       - 'build.gradle'

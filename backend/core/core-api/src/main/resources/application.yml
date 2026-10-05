@@ -39,3 +39,25 @@ server:
         # 같아서 same-site 요청으로 취급되므로 lax 로도 쿠키가 전달됩니다.
         # 이 앱은 CSRF 보호가 꺼져 있어(SecurityConfig) lax 가 사실상 주요 CSRF 방어선입니다.
         same-site: ${SESSION_COOKIE_SAME_SITE:lax}
+resilience4j:
+  circuitbreaker:
+    instances:
+      broadcast:
+        # 멈춘 Redis 는 실패가 아니라 느림으로 먼저 나타납니다. 0.5초를 넘기면 실패로 셉니다.
+        # 정상 XADD 는 1~2ms 라 이 선에 닿을 일이 없습니다.
+        slow-call-duration-threshold: 500ms
+        slow-call-rate-threshold: 50
+        failure-rate-threshold: 50
+        sliding-window-type: COUNT_BASED
+        sliding-window-size: 5
+        # 이 횟수를 채워야 판정합니다. 막기까지 최악 노출이 이 횟수 × redis timeout 입니다.
+        minimum-number-of-calls: 3
+        wait-duration-in-open-state: 5s
+        permitted-number-of-calls-in-half-open-state: 1
+        automatic-transition-from-open-to-half-open-enabled: true
+management:
+  health:
+    circuitbreakers:
+      # 켜 두면 전파가 막힌 것만으로 헬스체크가 DOWN 이 되어 배포가 롤백되고
+      # 로드밸런서가 멀쩡히 서빙 중인 인스턴스를 뺍니다. 전파는 best-effort 입니다.
+      enabled: false

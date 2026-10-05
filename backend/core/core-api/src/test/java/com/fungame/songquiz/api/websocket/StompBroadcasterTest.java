@@ -9,7 +9,10 @@ import static org.mockito.Mockito.verify;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fungame.songquiz.storage.IntegrationTest;
 import com.fungame.songquiz.support.config.InstanceId;
+import io.github.resilience4j.circuitbreaker.CircuitBreaker;
+import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
+import java.time.Clock;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
@@ -46,21 +49,31 @@ class StompBroadcasterTest {
 
     @BeforeEach
     void setUp() {
-        redisTemplate.delete(StompBroadcaster.STREAM_KEY);
+        redisTemplate.delete(BroadcastStream.KEY);
 
         senderStomp = mock(SimpMessagingTemplate.class);
         receiverStomp = mock(SimpMessagingTemplate.class);
 
-        senderSide = new StompBroadcaster(senderStomp, redisTemplate, objectMapper, sender, new SimpleMeterRegistry());
+        senderSide = new StompBroadcaster(senderStomp, spreader(sender));
         receiverSide = new BroadcastStreamListener(
-                new StompBroadcaster(receiverStomp, redisTemplate, objectMapper, receiver, new SimpleMeterRegistry()),
+                new StompBroadcaster(receiverStomp, spreader(receiver)),
                 objectMapper, receiver, new SimpleMeterRegistry());
         senderSideListener = new BroadcastStreamListener(senderSide, objectMapper, sender, new SimpleMeterRegistry());
     }
 
+    private RedisStreamSpreader spreader(InstanceId instanceId) {
+        MeterRegistry meterRegistry = new SimpleMeterRegistry();
+
+        return new RedisStreamSpreader(
+                new BroadcastMessages(instanceId, objectMapper, meterRegistry),
+                new BroadcastStream(redisTemplate, Clock.systemUTC(), meterRegistry),
+                CircuitBreaker.ofDefaults("test"), meterRegistry);
+    }
+
+
     private List<MapRecord<String, Object, Object>> readStream() {
         return redisTemplate.opsForStream()
-                .read(StreamOffset.fromStart(StompBroadcaster.STREAM_KEY));
+                .read(StreamOffset.fromStart(BroadcastStream.KEY));
     }
 
     @SuppressWarnings("unchecked")
@@ -81,6 +94,15 @@ class StompBroadcasterTest {
         receiverSide.onMessage(onlyRecord());
 
         verify(receiverStomp).convertAndSend(eq(DESTINATION), eq(Map.of("type", "ROUND_START", "round", 3)));
+    }
+
+    @Test
+    @DisplayName("로컬 전달을 먼저 하고 같은 메시지를 스트림에도 싣는다.")
+    void it_delivers_locally_then_puts_it_on_the_stream() {
+        senderSide.send(DESTINATION, Map.of("type", "ROUND_START"));
+
+        verify(senderStomp).convertAndSend(eq(DESTINATION), eq(Map.of("type", "ROUND_START")));
+        assertThat(readStream()).hasSize(1);
     }
 
     @Test
@@ -109,7 +131,7 @@ class StompBroadcasterTest {
     void old_entries_are_trimmed() {
         redisTemplate.opsForStream().add(StreamRecords
                 .mapBacked(Map.of("instance", "old", "destination", "x", "user", "", "payload", "{}"))
-                .withStreamKey(StompBroadcaster.STREAM_KEY)
+                .withStreamKey(BroadcastStream.KEY)
                 .withId(RecordId.of("1-0")));
 
         senderSide.send(DESTINATION, Map.of("type", "PING"));

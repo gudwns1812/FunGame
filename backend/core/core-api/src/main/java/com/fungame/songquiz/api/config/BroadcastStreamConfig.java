@@ -1,7 +1,7 @@
 package com.fungame.songquiz.api.config;
 
 import com.fungame.songquiz.api.websocket.BroadcastStreamListener;
-import com.fungame.songquiz.api.websocket.StompBroadcaster;
+import com.fungame.songquiz.api.websocket.BroadcastStream;
 import java.time.Duration;
 import java.util.concurrent.Executors;
 import lombok.extern.slf4j.Slf4j;
@@ -9,7 +9,6 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
 import org.springframework.data.redis.connection.stream.MapRecord;
-import org.springframework.data.redis.connection.stream.ReadOffset;
 import org.springframework.data.redis.connection.stream.StreamOffset;
 import org.springframework.data.redis.stream.StreamMessageListenerContainer;
 import org.springframework.data.redis.stream.StreamMessageListenerContainer.StreamMessageListenerContainerOptions;
@@ -24,7 +23,9 @@ public class BroadcastStreamConfig {
 
     @Bean(destroyMethod = "stop")
     public StreamMessageListenerContainer<String, MapRecord<String, String, String>> broadcastStreamContainer(
-            RedisConnectionFactory connectionFactory, BroadcastStreamListener listener) {
+            RedisConnectionFactory connectionFactory,
+            BroadcastStreamListener listener,
+            BroadcastStream stream) {
         StreamMessageListenerContainerOptions<String, MapRecord<String, String, String>> options =
                 StreamMessageListenerContainerOptions.builder()
                         .pollTimeout(POLL_TIMEOUT)
@@ -36,7 +37,9 @@ public class BroadcastStreamConfig {
         StreamMessageListenerContainer<String, MapRecord<String, String, String>> container =
                 StreamMessageListenerContainer.create(connectionFactory, options);
 
-        container.receive(StreamOffset.create(StompBroadcaster.STREAM_KEY, ReadOffset.latest()), listener);
+        container.receive(
+                StreamOffset.create(BroadcastStream.KEY, stream.startOffset(BroadcastStream.KEY)),
+                listener);
         container.start();
 
         return container;
