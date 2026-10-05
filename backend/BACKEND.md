@@ -16,7 +16,7 @@
 3. **상태 변화는 이벤트로 알린다:** 도메인 상태가 바뀌면 `ApplicationEventPublisher` 로 이벤트를 발행하고, WebSocket 전송은 `GameNotifier` 같은 리스너가 맡습니다.
 4. **예외 처리:** 비즈니스 에러는 `ErrorType` 에 정의하고 런타임 예외 `CoreException` 으로 던집니다. `ApiControllerAdvice` 가 공통 응답 포맷으로 바꿉니다.
 5. **의존성 주입:** 생성자 주입만 씁니다. Lombok 의 `@Data`, `@AllArgsConstructor` 는 쓰지 않습니다.
-6. **근거 없는 일반화 금지** : 확장은 지표가 한계를 보일 때 합니다. 목표 아키텍처(방 소유권 + Redis Pub/Sub 브리지)와 단계별 진입 조건은 [docs/exec-plans/active/20260928-scale-out-multi-instance.md](../docs/exec-plans/active/20260928-scale-out-multi-instance.md) 에 있습니다. 그 문서의 단계에 없는 분산 장치(외부 STOMP 브로커, 이벤트 소싱, 서비스 분해, Kubernetes)는 도입하지 않습니다.
+6. **근거 없는 일반화 금지** : 확장은 지표가 한계를 보일 때 합니다. 목표 아키텍처(방 소유권 + Redis Streams 팬아웃)와 단계별 진입 조건은 [docs/exec-plans/active/20260928-scale-out-multi-instance.md](../docs/exec-plans/active/20260928-scale-out-multi-instance.md) 에 있습니다. 그 문서의 단계에 없는 분산 장치(외부 STOMP 브로커, 이벤트 소싱, 서비스 분해, Kubernetes)는 도입하지 않습니다.
 7. **인스턴스는 여러 대가 될 수 있다** : 서버 1대를 전제한 코드는 더 이상 쓰지 않습니다. 새로 만드는 상태는 **인스턴스 로컬이어도 되는지**를 먼저 판단하고, 아니라면 공유 저장소(DB·Redis) 뒤에 둡니다. `@Scheduled` 작업에는 **로컬 대상인지 전역 대상인지**를 주석으로 남깁니다. 기존 인메모리 상태를 지금 당장 전부 걷어내라는 뜻은 아닙니다 — 계획 문서의 단계를 따릅니다.
 
 ## 테스트

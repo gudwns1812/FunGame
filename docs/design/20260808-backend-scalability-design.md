@@ -17,7 +17,7 @@
 > **이 문서에서 이미 낡은 것** (그 사이 코드가 바뀐 부분):
 > - SSE(`SseService`, emitter, 하트비트)는 **전부 없어졌고** STOMP `/topic/lobby` · `/queue/presence` 로 대체되었습니다.
 >   §2 의 #6, §5.6 의 `sendHeartbeat` · `processPendingUpdate` 항목은 현재 코드에 없는 것을 가리킵니다.
-> - `roomId` 는 DB `CounterEntity` 가 아니라 `GameRoomManager.lastIssuedRoomId` 의 `AtomicLong` 이 발급합니다.
+> - `roomId` 발급은 `AtomicLong` 을 거쳐 다시 DB 카운터로 돌아왔습니다(2026-10월, 실행 계획 0단계).
 >   §2 의 #10 과 §5.4 가 지목한 lost update 는 **현재 `PlayerNumberWriter.issueNext`(플레이어 번호)** 에 남아 있습니다.
 > - §2 표의 파일 경로는 패키지 재편(`domain/<aggregate>/`) 이전 것이라 대부분 맞지 않습니다.
 > - `LEAVE_GRACE_SECONDS = 5` 는 현재 `RoomLeaveGrace.GRACE_SECONDS = 15` 입니다.
@@ -462,4 +462,4 @@ Kubernetes라면 `preStop` 훅 + 넉넉한 `terminationGracePeriodSeconds`, 그�
   `BACKEND.md` 의 규칙도 그에 맞게 개정되었습니다. 다만 3단계(멀티 인스턴스 정합성)는
   **EC2 1대 위 컨테이너 2개로 먼저 검증**하고, 실제 EC2 증설은 1단계 지표가 한계를 증명한 뒤에 합니다.
   그 전에 스레드 풀 튜닝과 스펙 상향을 먼저 시도하는 것은 그대로입니다.
-  단계와 종료 조건은 [실행 계획](../exec-plans/active/20260928-scale-out-multi-instance.md) §4 를 따릅니다.
+  단계와 종료 조건은 [실행 계획](../exec-plans/active/20260928-scale-out-multi-instance.md) §2 를 따릅니다.

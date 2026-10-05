@@ -1,7 +1,7 @@
 package com.fungame.songquiz.api.config;
 
 import com.fungame.songquiz.api.websocket.BroadcastStreamListener;
-import com.fungame.songquiz.api.websocket.StompBroadcaster;
+import com.fungame.songquiz.api.websocket.RedisStreamSpreader;
 import java.time.Duration;
 import java.util.concurrent.Executors;
 import lombok.extern.slf4j.Slf4j;
@@ -36,7 +36,7 @@ public class BroadcastStreamConfig {
         StreamMessageListenerContainer<String, MapRecord<String, String, String>> container =
                 StreamMessageListenerContainer.create(connectionFactory, options);
 
-        container.receive(StreamOffset.create(StompBroadcaster.STREAM_KEY, ReadOffset.latest()), listener);
+        container.receive(StreamOffset.create(RedisStreamSpreader.STREAM_KEY, ReadOffset.latest()), listener);
         container.start();
 
         return container;
