@@ -12,30 +12,18 @@ import com.fungame.songquiz.support.error.ErrorType;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
-
-import java.time.Clock;
-import java.time.Duration;
-import java.time.LocalDateTime;
-import java.util.Map;
-import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
 
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class RoomInviteService {
 
-    private static final Duration INVITE_LIFETIME = Duration.ofSeconds(30);
-
-    private final Map<String, RoomInvite> invitesById = new ConcurrentHashMap<>();
-
     private final GameRoomService gameRoomService;
     private final MemberProfiles memberProfiles;
     private final ApplicationEventPublisher eventPublisher;
     private final MemberConnectionTracker memberConnectionTracker;
-    private final Clock clock;
+    private final RoomInvites roomInvites;
 
     public RoomInviteNotification invite(Long roomId, Long inviterMemberId, Long targetMemberId) {
         if (inviterMemberId.equals(targetMemberId)) {
@@ -49,8 +37,7 @@ public class RoomInviteService {
         requireWaitingRoom(roomId);
         requireInvitableTarget(targetMemberId);
 
-        RoomInvite invite = createInvite(roomId, inviterMemberId, targetMemberId);
-        invitesById.put(invite.inviteId(), invite);
+        RoomInvite invite = roomInvites.issue(roomId, inviterMemberId, targetMemberId);
 
         RoomInviteNotification notification = notificationOf(invite);
         eventPublisher.publishEvent(new RoomInviteCreatedEvent(targetMemberId, notification));
@@ -75,24 +62,9 @@ public class RoomInviteService {
         consume(inviteId, memberId);
     }
 
-    @Scheduled(fixedDelay = 30000)
-    public void purgeExpiredInvites() {
-        LocalDateTime now = now();
-        invitesById.values().removeIf(invite -> invite.isExpiredAt(now));
-    }
-
     private RoomInvite consume(String inviteId, Long memberId) {
-        RoomInvite invite = invitesById.get(inviteId);
-
-        if (invite == null || invite.isNotFor(memberId) || invite.isExpiredAt(now())) {
-            throw new CoreException(ErrorType.INVITE_NOT_FOUND);
-        }
-
-        if (!invitesById.remove(inviteId, invite)) {
-            throw new CoreException(ErrorType.INVITE_NOT_FOUND);
-        }
-
-        return invite;
+        return roomInvites.take(inviteId, memberId)
+                .orElseThrow(() -> new CoreException(ErrorType.INVITE_NOT_FOUND));
     }
 
     private void requireWaitingRoom(Long roomId) {
@@ -111,16 +83,6 @@ public class RoomInviteService {
         }
     }
 
-    private RoomInvite createInvite(Long roomId, Long inviterMemberId, Long targetMemberId) {
-        return new RoomInvite(
-                UUID.randomUUID().toString(),
-                roomId,
-                inviterMemberId,
-                targetMemberId,
-                now().plus(INVITE_LIFETIME)
-        );
-    }
-
     private RoomInviteNotification notificationOf(RoomInvite invite) {
         RoomSettings settings = gameRoomService.findRoomState(invite.roomId()).settings();
 
@@ -130,11 +92,7 @@ public class RoomInviteService {
                 settings.title(),
                 settings.gameType(),
                 memberProfiles.of(invite.inviterMemberId()).nickname(),
-                INVITE_LIFETIME.toSeconds()
+                RoomInvites.LIFETIME.toSeconds()
         );
-    }
-
-    private LocalDateTime now() {
-        return LocalDateTime.now(clock);
     }
 }

@@ -3,7 +3,6 @@ package com.fungame.songquiz.support;
 import com.fungame.songquiz.api.websocket.LobbyNotifier;
 import com.fungame.songquiz.api.websocket.RoomLeaveGrace;
 import com.fungame.songquiz.api.websocket.StompSessions;
-import com.fungame.songquiz.domain.invite.RoomInviteService;
 import com.fungame.songquiz.domain.member.DailyActiveMembers;
 import com.fungame.songquiz.domain.member.MemberConnectionTracker;
 import com.fungame.songquiz.domain.quiz.QuizFactories;
@@ -14,6 +13,7 @@ import com.fungame.songquiz.domain.session.GameTimer;
 import io.github.resilience4j.circuitbreaker.CircuitBreaker;
 import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
 import com.fungame.songquiz.storage.redis.MemberPresenceDao;
+import com.fungame.songquiz.storage.redis.RoomInviteDao;
 import java.lang.reflect.Modifier;
 import java.util.Collection;
 import java.util.List;
@@ -46,7 +46,6 @@ public class SharedStateCleaner {
             GameSessionManager.class,
             GameTimer.class,
             MemberConnectionTracker.class,
-            RoomInviteService.class,
             RoomLeaveGrace.class,
             StompSessions.class,
             DailyActiveMembers.class,
@@ -59,6 +58,10 @@ public class SharedStateCleaner {
             QuizFactories.class,
             GameServiceRouter.class);
 
+    private static final List<String> REDIS_SHARED_STATE_PREFIXES = List.of(
+            MemberPresenceDao.KEY_PREFIX,
+            RoomInviteDao.KEY_PREFIX);
+
     private final ApplicationContext context;
 
     public SharedStateCleaner(ApplicationContext context) {
@@ -69,7 +72,7 @@ public class SharedStateCleaner {
         STATEFUL_BEANS.forEach(this::resetBean);
         clearCaches();
         closeCircuitBreakers();
-        clearRedisPresence();
+        clearRedisSharedState();
     }
 
     /**
@@ -135,16 +138,18 @@ public class SharedStateCleaner {
         }
     }
 
-    private void clearRedisPresence() {
+    private void clearRedisSharedState() {
         StringRedisTemplate redisTemplate = context.getBeanProvider(StringRedisTemplate.class).getIfAvailable();
         if (redisTemplate == null) {
             return;
         }
 
-        Set<String> presenceKeys = redisTemplate.keys(MemberPresenceDao.KEY_PREFIX + "*");
-        if (presenceKeys != null && !presenceKeys.isEmpty()) {
-            redisTemplate.delete(presenceKeys);
-        }
+        REDIS_SHARED_STATE_PREFIXES.forEach(prefix -> {
+            Set<String> keys = redisTemplate.keys(prefix + "*");
+            if (keys != null && !keys.isEmpty()) {
+                redisTemplate.delete(keys);
+            }
+        });
     }
 
     private void closeCircuitBreakers() {

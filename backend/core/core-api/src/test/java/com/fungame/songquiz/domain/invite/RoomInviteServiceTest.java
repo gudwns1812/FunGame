@@ -21,16 +21,24 @@ import com.fungame.songquiz.support.MemberFixture;
 import com.fungame.songquiz.support.MutableClock;
 import com.fungame.songquiz.support.error.CoreException;
 import com.fungame.songquiz.support.error.ErrorType;
+import com.fungame.songquiz.storage.redis.RedisTestContainer;
+import com.fungame.songquiz.storage.redis.RoomInviteDao;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.data.redis.DataRedisTest;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.context.annotation.Import;
+import org.springframework.data.redis.core.StringRedisTemplate;
 
 import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.util.List;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -42,6 +50,8 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import com.fungame.songquiz.domain.room.RoomSettings;
 
+@DataRedisTest
+@Import({RedisTestContainer.class, RoomInviteDao.class})
 class RoomInviteServiceTest {
 
     private static final Long ROOM_ID = 7L;
@@ -55,6 +65,12 @@ class RoomInviteServiceTest {
     private final MemberConnectionTracker memberConnectionTracker = mock(MemberConnectionTracker.class);
     private final MutableClock clock = new MutableClock(Instant.parse("2026-08-13T00:00:00Z"), ZoneId.of("UTC"));
 
+    @Autowired
+    private StringRedisTemplate redisTemplate;
+
+    @Autowired
+    private RoomInviteDao roomInviteDao;
+
     private RoomInviteService roomInviteService;
 
     private Member inviter;
@@ -62,13 +78,8 @@ class RoomInviteServiceTest {
 
     @BeforeEach
     void setUp() {
-        roomInviteService = new RoomInviteService(
-                gameRoomService,
-                new MemberProfiles(
-                        memberReader,
-                        new ConcurrentMapCacheManager(
-                                MemberProfiles.CACHE_NAME)),
-                eventPublisher, memberConnectionTracker, clock);
+        redisTemplate.delete(redisTemplate.keys(RoomInviteDao.KEY_PREFIX + "*"));
+        roomInviteService = serviceOnAnotherInstance();
 
         inviter = MemberFixture.withId(INVITER_ID, "방장");
         target = MemberFixture.withId(TARGET_ID, "손님");
@@ -276,8 +287,8 @@ class RoomInviteServiceTest {
     }
 
     @Nested
-    @DisplayName("초대 거절과 정리")
-    class DeclineAndPurge {
+    @DisplayName("초대 거절과 보관")
+    class DeclineAndStorage {
 
         @Test
         @DisplayName("거절한 초대는 다시 수락할 수 없다.")
@@ -292,17 +303,51 @@ class RoomInviteServiceTest {
         }
 
         @Test
-        @DisplayName("만료된 초대는 청소된다.")
-        void purgeExpired() {
-            String inviteId = invite();
-            clock.plus(Duration.ofSeconds(31));
+        @DisplayName("초대는 수명만큼의 TTL 로 저장돼 아무도 받지 않아도 저절로 사라진다.")
+        void inviteExpiresByItself() {
+            invite();
 
-            roomInviteService.purgeExpiredInvites();
+            Long ttlMillis = redisTemplate.getExpire(onlyInviteKey(), TimeUnit.MILLISECONDS);
+
+            assertThat(ttlMillis).isPositive().isLessThanOrEqualTo(Duration.ofSeconds(30).toMillis());
+        }
+
+        @Test
+        @DisplayName("다른 서버에서 만든 초대를 이 서버에서 수락할 수 있다.")
+        void acceptInviteCreatedOnAnotherInstance() {
+            given(gameRoomService.joinRoom(ROOM_ID, GamePlayer.createNewPlayer(TARGET_ID))).willReturn(3);
+            String inviteId = invite();
+
+            AcceptedInvite accepted = serviceOnAnotherInstance().accept(inviteId, TARGET_ID);
+
+            assertThat(accepted.playerSequence()).isEqualTo(3);
+        }
+
+        @Test
+        @DisplayName("여러 서버가 같은 초대를 동시에 수락해도 한 번만 성공한다.")
+        void onlyOneInstanceConsumesInvite() {
+            given(gameRoomService.joinRoom(ROOM_ID, GamePlayer.createNewPlayer(TARGET_ID))).willReturn(3);
+            String inviteId = invite();
+            serviceOnAnotherInstance().accept(inviteId, TARGET_ID);
 
             assertThatThrownBy(() -> roomInviteService.accept(inviteId, TARGET_ID))
                     .isInstanceOf(CoreException.class)
                     .hasFieldOrPropertyWithValue("type", ErrorType.INVITE_NOT_FOUND);
         }
+    }
+
+    private RoomInviteService serviceOnAnotherInstance() {
+        return new RoomInviteService(
+                gameRoomService,
+                new MemberProfiles(memberReader, new ConcurrentMapCacheManager(MemberProfiles.CACHE_NAME)),
+                eventPublisher, memberConnectionTracker, new RoomInvites(roomInviteDao, clock));
+    }
+
+    private String onlyInviteKey() {
+        Set<String> keys = redisTemplate.keys(RoomInviteDao.KEY_PREFIX + "*");
+        assertThat(keys).hasSize(1);
+
+        return keys.iterator().next();
     }
 
     private String invite() {
