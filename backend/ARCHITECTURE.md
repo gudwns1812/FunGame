@@ -45,21 +45,39 @@ graph TD
 
 `api/websocket` 에서 도메인 이벤트를 받아 STOMP 로 내보내는 클래스는 `*Notifier` 로 부르고 `@Component` 를 단다. 이벤트를 메시지로 바꾸는 presentation 어댑터이지 service 계층이 아니다.
 
+## 이름 규칙
+
+**복수형 이름은 값 묶음에만 쓴다.**
+
+스프링이 모르는 순수 객체가 같은 타입의 값을 묶어 들고 있을 때만 `Xs` 로 부른다. `GamePlayers` `OnlineMembers` `MemberLocations` `SkipVotes` 가 여기 해당한다. 이름이 곧 "`X` 의 묶음"이라는 뜻이고, 읽는 사람은 그 안에서 `X` 를 꺼내 쓸 수 있다고 기대한다.
+
+`@Component` · `@Service` 로 등록돼 주입되는 객체는 값 묶음이 아니라 **협력자**다. 안에 Map 을 하나 들고 있더라도 마찬가지다. 역할을 드러내는 이름을 쓴다.
+
+| 접미사 | 하는 일 | 예 |
+| --- | --- | --- |
+| `*Registry` | 보관하고 꺼내 준다 | `RoomInviteRegistry` `QuizFactoryRegistry` `StompSessionRegistry` |
+| `*Cache` | 원본을 두고 사본을 들고 있다 | `MemberProfileCache` |
+| `*Tracker` | 지나간 일을 기억한다 | `MemberConnectionTracker` `DailyActiveMemberTracker` |
+| `*Factory` | 값을 만들어 준다 | `BroadcastMessageFactory` |
+| `*Metrics` | 지표를 센다 | `LoginMetrics` |
+
+`*Metrics` 는 예외다. `LoginMetric` 이라는 타입이 없으니 복수형으로 오해할 여지가 없고, `Metrics` 자체가 이미 역할 이름이다.
+
+`BeanNamingTest` 가 기계로 검사한다.
+
 ## 모듈 구성
 
 ```
 backend/
 ├── build.gradle
-├── settings.gradle
-├── gradle/
-│   └── wrapper/
 │
 ├── core/
 │   ├── core-enum/
 │   └── core-api/
 │
 ├── storage/
-│   └── db-core/
+│   ├── db-core/
+│   └── redis-core/
 │
 ├── clients/
 │   ├── client-youtube/
@@ -70,11 +88,12 @@ backend/
 │   └── monitoring/
 ```
 
-저장소 루트에 프런트엔드가 함께 있어 gradle 경로는 `backend:` 로 시작한다.
+`settings.gradle` 과 gradle 래퍼는 저장소 루트에 있다. 프런트엔드가 함께 있어 gradle 경로는 `backend:` 로 시작한다.
 
 ```
 include 'backend:core:core-enum'
 include 'backend:storage:db-core'
+include 'backend:storage:redis-core'
 include 'backend:clients:client-youtube'
 include 'backend:clients:client-mail'
 include 'backend:clients:client-discord'
@@ -89,6 +108,7 @@ graph TD
     core-api["core:core-api"]
     core-enum["core:core-enum"]
     db-core["storage:db-core"]
+    redis-core["storage:redis-core"]
     youtube["clients:client-youtube"]
     mail["clients:client-mail"]
     discord["clients:client-discord"]
@@ -96,6 +116,7 @@ graph TD
 
     core-api --> core-enum
     core-api --> db-core
+    core-api --> redis-core
     core-api --> youtube
     core-api --> mail
     core-api --> discord

@@ -17,7 +17,7 @@ import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-class DailyActiveMembersTest {
+class DailyActiveMemberTrackerTest {
 
     private static final ZoneId 서울 = ZoneId.of("Asia/Seoul");
     private static final Instant 정오 = Instant.parse("2026-08-18T03:00:00Z");
@@ -25,18 +25,18 @@ class DailyActiveMembersTest {
     private StubDao dao;
     private MutableClock clock;
     private MeterRegistry registry;
-    private DailyActiveMembers dailyActiveMembers;
+    private DailyActiveMemberTracker dailyActiveMemberTracker;
 
     @BeforeEach
     void setUp() {
         dao = new StubDao();
         clock = new MutableClock(정오, 서울);
         registry = new SimpleMeterRegistry();
-        dailyActiveMembers = new DailyActiveMembers(dao, clock, registry);
+        dailyActiveMemberTracker = new DailyActiveMemberTracker(dao, clock, registry);
     }
 
     private double firstSeenCount() {
-        return registry.get(DailyActiveMembers.FIRST_SEEN_METER).counter().count();
+        return registry.get(DailyActiveMemberTracker.FIRST_SEEN_METER).counter().count();
     }
 
     @Test
@@ -48,7 +48,7 @@ class DailyActiveMembersTest {
     @Test
     @DisplayName("그날 처음 온 회원이면 카운터가 오른다.")
     void countsFirstVisitOfTheDay() {
-        dailyActiveMembers.record(1L);
+        dailyActiveMemberTracker.record(1L);
 
         assertThat(firstSeenCount()).isEqualTo(1);
     }
@@ -56,10 +56,10 @@ class DailyActiveMembersTest {
     @Test
     @DisplayName("같은 날 다시 접속하면 DB 를 보지 않고 카운터도 그대로다.")
     void skipsDatabaseOnSecondVisitOfSameDay() {
-        dailyActiveMembers.record(1L);
+        dailyActiveMemberTracker.record(1L);
         dao.recorded.clear();
 
-        dailyActiveMembers.record(1L);
+        dailyActiveMemberTracker.record(1L);
 
         assertThat(dao.recorded).isEmpty();
         assertThat(firstSeenCount()).isEqualTo(1);
@@ -68,10 +68,10 @@ class DailyActiveMembersTest {
     @Test
     @DisplayName("날짜가 바뀌면 같은 회원이라도 다시 센다.")
     void countsAgainAfterMidnight() {
-        dailyActiveMembers.record(1L);
+        dailyActiveMemberTracker.record(1L);
 
         clock.plus(Duration.ofDays(1));
-        dailyActiveMembers.record(1L);
+        dailyActiveMemberTracker.record(1L);
 
         assertThat(dao.recorded).contains(LocalDate.of(2026, 8, 19));
         assertThat(firstSeenCount()).isEqualTo(2);
@@ -82,7 +82,7 @@ class DailyActiveMembersTest {
     void doesNotCountWhenRowAlreadyExists() {
         dao.inserts = false;
 
-        dailyActiveMembers.record(1L);
+        dailyActiveMemberTracker.record(1L);
 
         assertThat(firstSeenCount()).isZero();
     }
@@ -91,10 +91,10 @@ class DailyActiveMembersTest {
     @DisplayName("DB 가 실패해도 접속 처리를 막지 않고, 다음 접속에 다시 시도한다.")
     void swallowsDatabaseFailureAndRetriesNextTime() {
         dao.fails = true;
-        dailyActiveMembers.record(1L);
+        dailyActiveMemberTracker.record(1L);
 
         dao.fails = false;
-        dailyActiveMembers.record(1L);
+        dailyActiveMemberTracker.record(1L);
 
         assertThat(firstSeenCount()).isEqualTo(1);
     }

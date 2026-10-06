@@ -1,7 +1,7 @@
 package com.fungame.songquiz.domain.session;
 
 import com.fungame.songquiz.domain.quiz.Quiz;
-import com.fungame.songquiz.domain.quiz.QuizFactories;
+import com.fungame.songquiz.domain.quiz.QuizFactoryRegistry;
 import com.fungame.songquiz.domain.room.GamePlayer;
 import com.fungame.songquiz.domain.room.RoomSettings;
 import lombok.RequiredArgsConstructor;
@@ -14,11 +14,11 @@ import java.util.concurrent.ConcurrentHashMap;
 @Component
 @RequiredArgsConstructor
 public class GameSessionManager {
-    private final QuizFactories quizFactories;
+    private final QuizFactoryRegistry quizFactoryRegistry;
     private final Map<Long, GameSession> manager = new ConcurrentHashMap<>();
 
     public Quiz createQuiz(RoomSettings settings) {
-        return quizFactories.create(settings);
+        return quizFactoryRegistry.create(settings);
     }
 
     public GameSession startGame(Long roomId, RoomSettings settings, List<GamePlayer> players) {

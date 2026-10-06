@@ -11,17 +11,17 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-class BroadcastMessagesTest {
+class BroadcastMessageFactoryTest {
 
     private static final String DESTINATION = "/topic/room/7";
 
     private MeterRegistry meterRegistry;
-    private BroadcastMessages messages;
+    private BroadcastMessageFactory messages;
 
     @BeforeEach
     void setUp() {
         meterRegistry = new SimpleMeterRegistry();
-        messages = new BroadcastMessages(new InstanceId("instance-a"), new ObjectMapper(), meterRegistry);
+        messages = new BroadcastMessageFactory(new InstanceId("instance-a"), new ObjectMapper(), meterRegistry);
     }
 
     @Test

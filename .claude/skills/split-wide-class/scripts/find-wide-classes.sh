@@ -17,7 +17,7 @@ report=$(
   changed_files | sort -u | while IFS= read -r file; do
     [ -f "$file" ] || continue
     case "$file" in
-      */src/test/*) continue ;;
+      (*/src/test/*) continue ;;
     esac
 
     # 스프링이 만들어 주는 빈만 본다. 엔티티와 값 객체의 필드는 협력자가 아니라 데이터라

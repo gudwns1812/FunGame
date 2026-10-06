@@ -15,7 +15,7 @@
 > 따라서 §0 의 "지금 코드를 고치지 않는다"는 결론과 §6 의 "3단계는 나중에"는 더 이상 유효하지 않습니다.
 >
 > **이 문서에서 이미 낡은 것** (그 사이 코드가 바뀐 부분):
-> - SSE(`SseService`, emitter, 하트비트)는 **전부 없어졌고** STOMP `/topic/lobby` · `/queue/presence` 로 대체되었습니다.
+> - SSE(`SseService`, emitter, 하트비트)는 **전부 없어졌고** STOMP `/topic/lobby` · `/topic/presence` 로 대체되었습니다.
 >   §2 의 #6, §5.6 의 `sendHeartbeat` · `processPendingUpdate` 항목은 현재 코드에 없는 것을 가리킵니다.
 > - `roomId` 발급은 `AtomicLong` 을 거쳐 다시 DB 카운터로 돌아왔습니다(2026-10월, 실행 계획 0단계).
 >   §2 의 #10 과 §5.4 가 지목한 lost update 는 **현재 `PlayerNumberWriter.issueNext`(플레이어 번호)** 에 남아 있습니다.

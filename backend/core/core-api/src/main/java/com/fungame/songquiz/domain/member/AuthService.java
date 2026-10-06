@@ -23,7 +23,7 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final AuthenticationManager authenticationManager;
     private final LoginMetrics loginMetrics;
-    private final MemberProfiles memberProfiles;
+    private final MemberProfileCache memberProfileCache;
 
     public boolean checkIdDuplicate(String loginId) {
         return memberReader.existsByLoginId(loginId);
@@ -85,7 +85,7 @@ public class AuthService {
         member.changeNickname(newNickname);
         memberWriter.update(member);
 
-        memberProfiles.refresh(member);
+        memberProfileCache.refresh(member);
         refreshAuthenticationOf(member);
     }
 

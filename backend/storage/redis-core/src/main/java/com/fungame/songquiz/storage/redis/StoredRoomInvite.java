@@ -1,16 +1,12 @@
-package com.fungame.songquiz.domain.invite;
+package com.fungame.songquiz.storage.redis;
 
 import java.time.Instant;
 
-public record RoomInvite(
+public record StoredRoomInvite(
         String inviteId,
         Long roomId,
         Long inviterMemberId,
         Long targetMemberId,
         Instant expiresAt
 ) {
-
-    public boolean isExpiredAt(Instant now) {
-        return !now.isBefore(expiresAt);
-    }
 }

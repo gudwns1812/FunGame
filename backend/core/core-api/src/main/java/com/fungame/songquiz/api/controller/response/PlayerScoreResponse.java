@@ -1,7 +1,7 @@
 package com.fungame.songquiz.api.controller.response;
 
 import com.fungame.songquiz.domain.member.MemberProfile;
-import com.fungame.songquiz.domain.member.MemberProfiles;
+import com.fungame.songquiz.domain.member.MemberProfileCache;
 import com.fungame.songquiz.domain.session.PlayerScore;
 
 import java.util.List;
@@ -13,7 +13,7 @@ public record PlayerScoreResponse(
         int score
 ) {
 
-    public static List<PlayerScoreResponse> listFrom(List<PlayerScore> scores, MemberProfiles profiles) {
+    public static List<PlayerScoreResponse> listFrom(List<PlayerScore> scores, MemberProfileCache profiles) {
         Map<Long, MemberProfile> found = profiles.allOf(scores.stream().map(PlayerScore::memberId).toList());
 
         return scores.stream()

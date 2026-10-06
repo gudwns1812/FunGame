@@ -14,14 +14,14 @@ import java.util.Set;
 public class OnlineMemberService {
 
     private final MemberConnectionTracker memberConnectionTracker;
-    private final MemberProfiles memberProfiles;
+    private final MemberProfileCache memberProfileCache;
     private final GameRoomService gameRoomService;
 
     public OnlineMembers findAllOnline() {
         Set<Long> onlineMemberIds = memberConnectionTracker.onlineMemberIds();
         MemberLocations locations = gameRoomService.findEveryLocation();
 
-        return new OnlineMembers(memberProfiles.allOf(onlineMemberIds).values().stream()
+        return new OnlineMembers(memberProfileCache.allOf(onlineMemberIds).values().stream()
                 .sorted(Comparator.comparing(MemberProfile::nickname))
                 .map(profile -> OnlineMemberInfo.of(profile, locations.of(profile.memberId())))
                 .toList());

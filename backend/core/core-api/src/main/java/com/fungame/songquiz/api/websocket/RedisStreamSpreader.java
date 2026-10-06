@@ -11,12 +11,12 @@ import org.springframework.stereotype.Component;
 @Component
 public class RedisStreamSpreader {
 
-    private final BroadcastMessages messages;
+    private final BroadcastMessageFactory messages;
     private final BroadcastStream stream;
     private final CircuitBreaker breaker;
     private final Counter droppedOpen;
 
-    public RedisStreamSpreader(BroadcastMessages messages,
+    public RedisStreamSpreader(BroadcastMessageFactory messages,
                                BroadcastStream stream,
                                CircuitBreaker breaker,
                                MeterRegistry meterRegistry) {

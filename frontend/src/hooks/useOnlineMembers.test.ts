@@ -3,7 +3,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import axios from 'axios';
 import { useOnlineMembers } from './useOnlineMembers';
 import { createStompStub } from '../test/stompTestUtils';
-import { PRESENCE_QUEUE } from '../utils/stompDestination';
+import { PRESENCE_TOPIC } from '../utils/stompDestination';
 import type { OnlineMember } from '../types/presence';
 
 vi.mock('axios');
@@ -12,6 +12,15 @@ const mockedAxios = axios as unknown as { get: ReturnType<typeof vi.fn> };
 
 const onlineMemberFetchCount = () =>
   mockedAxios.get.mock.calls.filter((call) => call[0] === '/api/members/online').length;
+
+const VIEWER_ID = 1;
+
+const VIEWER: OnlineMember = {
+  memberId: VIEWER_ID,
+  nickname: '나',
+  status: 'LOBBY',
+  currentRoomId: null,
+};
 
 const OTHER_MEMBER: OnlineMember = {
   memberId: 2,
@@ -25,7 +34,7 @@ describe('useOnlineMembers 접속자 목록 동기화', () => {
 
   const renderEnabled = () => {
     stomp = createStompStub();
-    return renderHook(() => useOnlineMembers(true), { wrapper: stomp.wrapper });
+    return renderHook(() => useOnlineMembers(true, VIEWER_ID), { wrapper: stomp.wrapper });
   };
 
   const connect = () =>
@@ -43,7 +52,7 @@ describe('useOnlineMembers 접속자 목록 동기화', () => {
 
     await connect();
 
-    expect(stomp.subscriberCountOf(PRESENCE_QUEUE)).toBe(1);
+    expect(stomp.subscriberCountOf(PRESENCE_TOPIC)).toBe(1);
     expect(onlineMemberFetchCount()).toBe(1);
   });
 
@@ -51,7 +60,16 @@ describe('useOnlineMembers 접속자 목록 동기화', () => {
     const { result } = renderEnabled();
     await connect();
 
-    act(() => stomp.emit(PRESENCE_QUEUE, [OTHER_MEMBER]));
+    act(() => stomp.emit(PRESENCE_TOPIC, [OTHER_MEMBER]));
+
+    expect(result.current).toEqual([OTHER_MEMBER]);
+  });
+
+  it('모두에게 같은 전체 목록이 오므로 자기 자신은 빼고 보여 준다', async () => {
+    const { result } = renderEnabled();
+    await connect();
+
+    act(() => stomp.emit(PRESENCE_TOPIC, [VIEWER, OTHER_MEMBER]));
 
     expect(result.current).toEqual([OTHER_MEMBER]);
   });
@@ -61,7 +79,7 @@ describe('useOnlineMembers 접속자 목록 동기화', () => {
     await connect();
     const fetchesBefore = onlineMemberFetchCount();
 
-    act(() => stomp.emit(PRESENCE_QUEUE, [OTHER_MEMBER]));
+    act(() => stomp.emit(PRESENCE_TOPIC, [OTHER_MEMBER]));
 
     expect(onlineMemberFetchCount()).toBe(fetchesBefore);
   });
@@ -72,7 +90,7 @@ describe('useOnlineMembers 접속자 목록 동기화', () => {
     const fetchesBefore = onlineMemberFetchCount();
 
     await act(async () => {
-      stomp.emit(PRESENCE_QUEUE, 'REFRESH');
+      stomp.emit(PRESENCE_TOPIC, 'REFRESH');
     });
 
     expect(onlineMemberFetchCount()).toBe(fetchesBefore + 1);
@@ -85,20 +103,20 @@ describe('useOnlineMembers 접속자 목록 동기화', () => {
 
     await connect();
 
-    expect(stomp.subscriberCountOf(PRESENCE_QUEUE)).toBe(1);
+    expect(stomp.subscriberCountOf(PRESENCE_TOPIC)).toBe(1);
     expect(onlineMemberFetchCount()).toBe(fetchesBefore + 1);
   });
 
   it('꺼지면 구독을 정리한다', async () => {
     const stub = createStompStub();
-    const { unmount } = renderHook(() => useOnlineMembers(true), { wrapper: stub.wrapper });
+    const { unmount } = renderHook(() => useOnlineMembers(true, VIEWER_ID), { wrapper: stub.wrapper });
     await act(async () => {
       await stub.connect();
     });
-    await waitFor(() => expect(stub.subscriberCountOf(PRESENCE_QUEUE)).toBe(1));
+    await waitFor(() => expect(stub.subscriberCountOf(PRESENCE_TOPIC)).toBe(1));
 
     unmount();
 
-    expect(stub.subscriberCountOf(PRESENCE_QUEUE)).toBe(0);
+    expect(stub.subscriberCountOf(PRESENCE_TOPIC)).toBe(0);
   });
 });

@@ -1,6 +1,6 @@
 package com.fungame.songquiz.api.controller.response;
 
-import com.fungame.songquiz.domain.member.MemberProfiles;
+import com.fungame.songquiz.domain.member.MemberProfileCache;
 import com.fungame.songquiz.domain.room.GamePlayer;
 import com.fungame.songquiz.domain.room.RoomInfo;
 import com.fungame.songquiz.domain.room.RoomSettings;
@@ -22,7 +22,7 @@ public record RoomResponse(
         CSQuizDifficulty csDifficulty
 ) {
 
-    public static RoomResponse from(RoomInfo room, MemberProfiles profiles) {
+    public static RoomResponse from(RoomInfo room, MemberProfileCache profiles) {
         RoomSettings settings = room.settings();
         GamePlayer host = room.host();
 
@@ -38,7 +38,7 @@ public record RoomResponse(
                 settings.csDifficulty());
     }
 
-    public static List<RoomResponse> listFrom(List<RoomInfo> rooms, MemberProfiles profiles) {
+    public static List<RoomResponse> listFrom(List<RoomInfo> rooms, MemberProfileCache profiles) {
         return rooms.stream()
                 .map(room -> from(room, profiles))
                 .toList();

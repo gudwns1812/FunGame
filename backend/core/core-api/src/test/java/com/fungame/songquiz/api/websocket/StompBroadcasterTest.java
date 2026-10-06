@@ -66,7 +66,7 @@ class StompBroadcasterTest {
         MeterRegistry meterRegistry = new SimpleMeterRegistry();
 
         return new RedisStreamSpreader(
-                new BroadcastMessages(instanceId, objectMapper, meterRegistry),
+                new BroadcastMessageFactory(instanceId, objectMapper, meterRegistry),
                 new BroadcastStream(redisTemplate, Clock.systemUTC(), meterRegistry),
                 CircuitBreaker.ofDefaults("test"), meterRegistry);
     }

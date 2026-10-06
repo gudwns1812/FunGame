@@ -1,6 +1,6 @@
 package com.fungame.songquiz.api.config;
 
-import com.fungame.songquiz.api.websocket.StompSessions;
+import com.fungame.songquiz.api.websocket.StompSessionRegistry;
 import com.fungame.songquiz.domain.member.MemberConnectionTracker;
 import com.fungame.songquiz.domain.room.GameRoomService;
 import com.fungame.songquiz.domain.session.GameSessionManager;
@@ -30,14 +30,14 @@ public class MetricsConfig {
     }
 
     @Bean
-    public MeterBinder connectionMetrics(StompSessions stompSessions, MemberConnectionTracker connectionTracker) {
+    public MeterBinder connectionMetrics(StompSessionRegistry stompSessionRegistry, MemberConnectionTracker connectionTracker) {
         return registry -> {
-            Gauge.builder("fungame.stomp.sessions", stompSessions, StompSessions::count)
+            Gauge.builder("fungame.stomp.sessions", stompSessionRegistry, StompSessionRegistry::count)
                     .description("열려 있는 STOMP 세션 수")
                     .register(registry);
 
             Gauge.builder("fungame.members.online", connectionTracker, MemberConnectionTracker::onlineCount)
-                    .description("접속 중인 회원 수. 재접속 유예 안에 있는 회원을 포함한다")
+                    .description("접속 중인 회원 수. 모든 서버가 같은 전체 수를 보고한다")
                     .register(registry);
         };
     }

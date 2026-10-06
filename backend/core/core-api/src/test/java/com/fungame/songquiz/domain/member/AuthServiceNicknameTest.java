@@ -32,15 +32,15 @@ class AuthServiceNicknameTest {
 
     private final MemberReader memberReader = mock(MemberReader.class);
     private final MemberWriter memberWriter = mock(MemberWriter.class);
-    private final MemberProfiles memberProfiles = mock(MemberProfiles.class);
-    private final CacheManager cacheManager = new ConcurrentMapCacheManager(MemberProfiles.CACHE_NAME);
+    private final MemberProfileCache memberProfileCache = mock(MemberProfileCache.class);
+    private final CacheManager cacheManager = new ConcurrentMapCacheManager(MemberProfileCache.CACHE_NAME);
     private final AuthService authService = new AuthService(
             memberReader,
             memberWriter,
             mock(PasswordEncoder.class),
             mock(AuthenticationManager.class),
             mock(LoginMetrics.class),
-            memberProfiles);
+            memberProfileCache);
 
     @AfterEach
     void clearAuthentication() {
@@ -56,7 +56,7 @@ class AuthServiceNicknameTest {
         authService.updateNickname(LOGIN_ID, NEW_NICKNAME);
 
         ArgumentCaptor<Member> refreshed = ArgumentCaptor.forClass(Member.class);
-        verify(memberProfiles).refresh(refreshed.capture());
+        verify(memberProfileCache).refresh(refreshed.capture());
         assertThat(refreshed.getValue().getId()).isEqualTo(MEMBER_ID);
         assertThat(refreshed.getValue().getNickname()).isEqualTo(NEW_NICKNAME);
     }
@@ -69,13 +69,13 @@ class AuthServiceNicknameTest {
         assertThatThrownBy(() -> authService.updateNickname(LOGIN_ID, NEW_NICKNAME))
                 .isInstanceOf(CoreException.class);
 
-        verify(memberProfiles, never()).refresh(ArgumentMatchers.any());
+        verify(memberProfileCache, never()).refresh(ArgumentMatchers.any());
     }
 
     @Test
     @DisplayName("캐시를 거쳐 읽으면 변경 직후에도 새 닉네임이 나온다.")
     void cacheServesNewNicknameRightAfterChange() {
-        MemberProfiles realProfiles = new MemberProfiles(memberReader, cacheManager);
+        MemberProfileCache realProfiles = new MemberProfileCache(memberReader, cacheManager);
         AuthService service = new AuthService(
                 memberReader,
                 memberWriter,

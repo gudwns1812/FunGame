@@ -13,9 +13,8 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import com.fungame.songquiz.api.controller.response.ApiResponse;
 import com.fungame.songquiz.api.controller.response.OnlineMemberResponse;
 import com.fungame.songquiz.api.controller.response.RoomResponse;
-import com.fungame.songquiz.domain.member.MemberAdapter;
 import com.fungame.songquiz.domain.member.MemberPresenceChangedEvent;
-import com.fungame.songquiz.domain.member.MemberProfiles;
+import com.fungame.songquiz.domain.member.MemberProfileCache;
 import com.fungame.songquiz.domain.member.MemberReader;
 import com.fungame.songquiz.domain.member.OnlineMemberInfo;
 import com.fungame.songquiz.domain.member.OnlineMemberService;
@@ -48,13 +47,12 @@ class LobbyNotifierTest {
     private final StompBroadcaster broadcaster = mock(StompBroadcaster.class);
     private final GameRoomService gameRoomService = mock(GameRoomService.class);
     private final OnlineMemberService onlineMemberService = mock(OnlineMemberService.class);
-    private final StompSessions stompSessions = new StompSessions();
     private final MemberReader memberReader = mock(MemberReader.class);
-    private final MemberProfiles memberProfiles = new MemberProfiles(
+    private final MemberProfileCache memberProfileCache = new MemberProfileCache(
             memberReader,
-            new ConcurrentMapCacheManager(MemberProfiles.CACHE_NAME));
+            new ConcurrentMapCacheManager(MemberProfileCache.CACHE_NAME));
     private final LobbyNotifier lobbyNotifier = new LobbyNotifier(
-            broadcaster, gameRoomService, onlineMemberService, memberProfiles, stompSessions);
+            broadcaster, gameRoomService, onlineMemberService, memberProfileCache);
 
     @Test
     @DisplayName("방이 바뀌면 다시 물어보게 하지 않고 바뀐 방 목록을 로비로 실어 보낸다.")
@@ -65,7 +63,7 @@ class LobbyNotifierTest {
         lobbyNotifier.handleRoomChangedEvent(new RoomChangedEvent());
         lobbyNotifier.processPendingUpdate();
 
-        assertThat(sentToLobby()).isEqualTo(RoomResponse.listFrom(rooms, memberProfiles));
+        assertThat(sentToLobby()).isEqualTo(RoomResponse.listFrom(rooms, memberProfileCache));
     }
 
     @Test
@@ -83,25 +81,29 @@ class LobbyNotifierTest {
     }
 
     @Test
-    @DisplayName("접속 상태가 바뀌면 접속 중인 사람마다 자기 자신을 뺀 목록을 보낸다.")
-    void pushOnlineMembersWithoutViewerSelf() {
-        stompSessions.add("session-1", VIEWER_ID);
-        stompSessions.add("session-2", OTHER_ID);
+    @DisplayName("접속 상태가 바뀌면 접속자 전체 목록을 한 건만 보낸다. 자기 자신은 받는 쪽이 뺀다.")
+    void pushWholeOnlineListOnce() {
         given(onlineMemberService.findAllOnline())
                 .willReturn(new OnlineMembers(List.of(onlineMember(VIEWER_ID), onlineMember(OTHER_ID))));
 
         lobbyNotifier.handleMemberPresenceChangedEvent(new MemberPresenceChangedEvent());
         lobbyNotifier.processPendingUpdate();
 
-        assertThat(sentToViewer(VIEWER_ID)).isEqualTo(List.of(OnlineMemberResponse.from(onlineMember(OTHER_ID))));
-        assertThat(sentToViewer(OTHER_ID)).isEqualTo(List.of(OnlineMemberResponse.from(onlineMember(VIEWER_ID))));
+        assertThat(sentToPresence()).isEqualTo(List.of(
+                OnlineMemberResponse.from(onlineMember(VIEWER_ID)),
+                OnlineMemberResponse.from(onlineMember(OTHER_ID))));
+        verify(broadcaster, never()).sendToUser(any(), any(), any(Object.class));
     }
 
     @Test
-    @DisplayName("접속 상태가 바뀌어도 접속자 조회는 한 번만 한다.")
-    void lookUpOnlineMembersOnlyOnce() {
-        stompSessions.add("session-1", VIEWER_ID);
-        stompSessions.add("session-2", VIEWER_ID);
+    @DisplayName("접속자 목록은 모두가 구독하는 /topic/presence 로 나간다. 프런트가 이 주소를 구독한다.")
+    void presenceGoesToSharedTopic() {
+        assertThat(StompDestination.PRESENCE).isEqualTo("/topic/presence");
+    }
+
+    @Test
+    @DisplayName("한 주기에 몰린 접속 변경은 한 번만 조회해서 한 번만 보낸다.")
+    void aggregatePresenceChangesWithinOneCycle() {
         given(onlineMemberService.findAllOnline())
                 .willReturn(new OnlineMembers(List.of(onlineMember(VIEWER_ID))));
 
@@ -110,32 +112,7 @@ class LobbyNotifierTest {
         lobbyNotifier.processPendingUpdate();
 
         verify(onlineMemberService, times(1)).findAllOnline();
-    }
-
-    @Test
-    @DisplayName("탭을 여러 개 열어도 회원 한 명에게는 한 번만 보낸다. 세션 배달은 브로커가 맡는다.")
-    void sendOncePerMemberNotPerSession() {
-        stompSessions.add("session-1", VIEWER_ID);
-        stompSessions.add("session-2", VIEWER_ID);
-        given(onlineMemberService.findAllOnline())
-                .willReturn(new OnlineMembers(List.of(onlineMember(VIEWER_ID))));
-
-        lobbyNotifier.handleMemberPresenceChangedEvent(new MemberPresenceChangedEvent());
-        lobbyNotifier.processPendingUpdate();
-
-        verify(broadcaster, times(1)).sendToUser(
-                eq(MemberAdapter.principalNameOf(VIEWER_ID)), eq(StompDestination.PRESENCE), any(Object.class));
-    }
-
-    @Test
-    @DisplayName("아무도 접속해 있지 않으면 접속자 목록을 보내지 않는다.")
-    void skipPresenceWithoutAnyConnection() {
-        given(onlineMemberService.findAllOnline()).willReturn(new OnlineMembers(List.of()));
-
-        lobbyNotifier.handleMemberPresenceChangedEvent(new MemberPresenceChangedEvent());
-        lobbyNotifier.processPendingUpdate();
-
-        verify(broadcaster, never()).sendToUser(any(), any(), any(Object.class));
+        verify(broadcaster, times(1)).send(eq(StompDestination.PRESENCE), any(Object.class));
     }
 
     @Test
@@ -153,10 +130,9 @@ class LobbyNotifierTest {
         return sent.getValue().getData();
     }
 
-    private Object sentToViewer(Long viewerId) {
+    private Object sentToPresence() {
         ArgumentCaptor<ApiResponse<Object>> sent = captor();
-        verify(broadcaster).sendToUser(
-                eq(MemberAdapter.principalNameOf(viewerId)), eq(StompDestination.PRESENCE), sent.capture());
+        verify(broadcaster).send(eq(StompDestination.PRESENCE), sent.capture());
 
         return sent.getValue().getData();
     }
@@ -170,6 +146,7 @@ class LobbyNotifierTest {
     void nameEveryMember() {
         BDDMockito.given(memberReader.findMember(ArgumentMatchers.anyLong()))
                 .willAnswer(call -> MemberFixture.withId(call.getArgument(0), "회원" + call.getArgument(0)));
+        given(onlineMemberService.findAllOnline()).willReturn(new OnlineMembers(List.of()));
     }
 
     private static RoomInfo room() {

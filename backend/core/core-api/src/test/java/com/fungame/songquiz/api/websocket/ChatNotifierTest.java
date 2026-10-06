@@ -8,7 +8,7 @@ import static org.mockito.Mockito.verify;
 
 import com.fungame.songquiz.api.controller.response.ApiResponse;
 import com.fungame.songquiz.domain.member.Member;
-import com.fungame.songquiz.domain.member.MemberProfiles;
+import com.fungame.songquiz.domain.member.MemberProfileCache;
 import com.fungame.songquiz.domain.member.MemberReader;
 import com.fungame.songquiz.domain.room.ChatMessageEvent;
 import com.fungame.songquiz.support.MemberFixture;
@@ -29,9 +29,9 @@ class ChatNotifierTest {
 
     private final StompBroadcaster broadcaster = mock(StompBroadcaster.class);
     private final MemberReader memberReader = mock(MemberReader.class);
-    private final CacheManager cacheManager = new ConcurrentMapCacheManager(MemberProfiles.CACHE_NAME);
-    private final MemberProfiles memberProfiles = new MemberProfiles(memberReader, cacheManager);
-    private final ChatNotifier chatNotifier = new ChatNotifier(broadcaster, memberProfiles);
+    private final CacheManager cacheManager = new ConcurrentMapCacheManager(MemberProfileCache.CACHE_NAME);
+    private final MemberProfileCache memberProfileCache = new MemberProfileCache(memberReader, cacheManager);
+    private final ChatNotifier chatNotifier = new ChatNotifier(broadcaster, memberProfileCache);
 
     @Test
     @DisplayName("닉네임을 캐시에서 읽어 싣는다.")
@@ -49,7 +49,7 @@ class ChatNotifierTest {
     @DisplayName("이벤트를 올린 시점의 닉네임이 아니라 캐시가 갱신된 새 닉네임으로 나간다.")
     void preferCacheOverStaleNickname() {
         given(memberReader.findMember(MEMBER_ID)).willReturn(member(OLD_NICKNAME));
-        memberProfiles.refresh(member(NEW_NICKNAME));
+        memberProfileCache.refresh(member(NEW_NICKNAME));
 
         chatNotifier.handleChatMessage(new ChatMessageEvent(ROOM_ID, MEMBER_ID, "안녕"));
 

@@ -1,12 +1,11 @@
 package com.fungame.songquiz.api.websocket;
 
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import org.springframework.stereotype.Component;
 
 @Component
-public class StompSessions {
+public class StompSessionRegistry {
 
     private final Map<String, Long> memberIdBySessionId = new ConcurrentHashMap<>();
 
@@ -18,10 +17,6 @@ public class StompSessions {
         return memberIdBySessionId.remove(sessionId);
     }
 
-    public boolean isConnected(Long memberId) {
-        return memberIdBySessionId.containsValue(memberId);
-    }
-
     public int countSessionsOf(Long memberId) {
         return (int) memberIdBySessionId.values().stream()
                 .filter(memberId::equals)
@@ -30,9 +25,5 @@ public class StompSessions {
 
     public int count() {
         return memberIdBySessionId.size();
-    }
-
-    public Set<Long> connectedMemberIds() {
-        return Set.copyOf(memberIdBySessionId.values());
     }
 }

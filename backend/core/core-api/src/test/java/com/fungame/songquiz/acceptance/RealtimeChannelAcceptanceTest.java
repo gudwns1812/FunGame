@@ -4,7 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
 import com.fungame.songquiz.api.websocket.StompDestination;
-import com.fungame.songquiz.domain.member.MemberProfiles;
+import com.fungame.songquiz.domain.member.MemberProfileCache;
 import com.fungame.songquiz.domain.room.GameRoomService;
 import com.fungame.songquiz.domain.room.RoomInfo;
 import com.fungame.songquiz.domain.room.RoomStateInfo;
@@ -106,7 +106,7 @@ class RealtimeChannelAcceptanceTest extends ApiIntegrationTest {
     // 회원 행을 지웠는데 프로필 캐시를 남겨두면, 접속 유예(20초) 안에 있는 앞 테스트의
     // 회원을 캐시가 대신 대답해 접속자 목록에 되살아난다. 방과 회원처럼 캐시도 같이 비운다.
     private void forgetCachedProfiles() {
-        Cache profiles = cacheManager.getCache(MemberProfiles.CACHE_NAME);
+        Cache profiles = cacheManager.getCache(MemberProfileCache.CACHE_NAME);
         if (profiles != null) {
             profiles.clear();
         }
@@ -135,15 +135,15 @@ class RealtimeChannelAcceptanceTest extends ApiIntegrationTest {
     }
 
     @Test
-    @DisplayName("접속자 목록은 받는 사람마다 자기 자신이 빠진 채로 온다.")
-    void presenceExcludesTheViewer() {
-        host.subscribe(userQueue(StompDestination.PRESENCE));
-        guest.subscribe(userQueue(StompDestination.PRESENCE));
+    @DisplayName("접속자 목록은 모두가 같은 전체 목록 한 건으로 받는다.")
+    void presenceIsOneWholeListForEveryone() {
+        host.subscribe(StompDestination.PRESENCE);
+        guest.subscribe(StompDestination.PRESENCE);
 
         host.createRoom("접속자 확인용 방");
 
-        assertThat(nicknamesOf(host.takeList(userQueue(StompDestination.PRESENCE)))).containsExactly("참가자");
-        assertThat(nicknamesOf(guest.takeList(userQueue(StompDestination.PRESENCE)))).containsExactly("방장");
+        assertThat(nicknamesOf(host.takeList(StompDestination.PRESENCE))).containsExactlyInAnyOrder("방장", "참가자");
+        assertThat(nicknamesOf(guest.takeList(StompDestination.PRESENCE))).containsExactlyInAnyOrder("방장", "참가자");
     }
 
     @Test

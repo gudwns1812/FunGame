@@ -10,13 +10,13 @@ import org.springframework.stereotype.Component;
 
 @Slf4j
 @Component
-public class BroadcastMessages {
+public class BroadcastMessageFactory {
 
     private final InstanceId instanceId;
     private final ObjectMapper objectMapper;
     private final Counter droppedSerialize;
 
-    public BroadcastMessages(InstanceId instanceId, ObjectMapper objectMapper, MeterRegistry meterRegistry) {
+    public BroadcastMessageFactory(InstanceId instanceId, ObjectMapper objectMapper, MeterRegistry meterRegistry) {
         this.instanceId = instanceId;
         this.objectMapper = objectMapper;
         this.droppedSerialize = BroadcastLoss.counter(meterRegistry, BroadcastLoss.SERIALIZE);

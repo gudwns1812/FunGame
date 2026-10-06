@@ -7,7 +7,7 @@
 - **Endpoint**: `/ws-quiz`
 - **Protocol**: SockJS 지원
 - **Message Broker**:
-    - **구독 경로(Subscribe)**: `/topic/room/{roomId}`
+    - **구독 경로(Subscribe)**: `/topic/room/{roomId}` · `/topic/presence`
     - **발행 경로(Publish)**: `/app/room/{roomId}/chat`
 
 ## 2. 클라이언트 송신 (Client to Server)
@@ -18,6 +18,23 @@
 - **Destination**: `/app/room/{roomId}/chat`
 - **Header**: `playerName: 닉네임` (필수)
 - **Payload (String)**: 유저가 입력한 메시지 내용.
+
+## 접속자 목록 (`/topic/presence`)
+
+접속 상태나 방 소속이 바뀌면 서버가 접속자 **전체 목록 한 건**을 모든 구독자에게 보낸다. 변경이 몰리면 0.5초 주기로 한 번만 보낸다.
+받는 사람마다 같은 목록이 오므로 **자기 자신은 클라이언트가 뺀다.** 처음 목록은 `GET /api/members/online` 으로 가져온다(이쪽은 자기 자신이 빠져 있다).
+
+```json
+{
+  "result": "SUCCESS",
+  "data": [
+    { "memberId": 1, "nickname": "방장", "status": "WAITING", "currentRoomId": 9 },
+    { "memberId": 2, "nickname": "참가자", "status": "LOBBY", "currentRoomId": null }
+  ]
+}
+```
+
+`status` 는 `LOBBY` · `WAITING` · `PLAYING` 이고, `currentRoomId` 는 로비에 있으면 `null` 이다.
 
 ## 3. 서버 브로드캐스트 이벤트 (Server to Client)
 

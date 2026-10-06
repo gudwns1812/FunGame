@@ -24,7 +24,7 @@ import com.fungame.songquiz.api.controller.request.ChangeRoomSettingsRequest;
 import com.fungame.songquiz.api.controller.request.CreateRoomRequest;
 import com.fungame.songquiz.api.controller.request.KickPlayerRequest;
 import com.fungame.songquiz.domain.member.MemberAdapter;
-import com.fungame.songquiz.domain.member.MemberProfiles;
+import com.fungame.songquiz.domain.member.MemberProfileCache;
 import com.fungame.songquiz.domain.member.MemberReader;
 import com.fungame.songquiz.domain.room.GamePlayer;
 import com.fungame.songquiz.domain.room.GameRoomService;
@@ -66,11 +66,11 @@ class GameControllerTest {
     private final GameService gameService = mock(GameService.class);
     private final MemberReader memberReader =
             mock(MemberReader.class);
-    private final MemberProfiles memberProfiles =
-            new MemberProfiles(
+    private final MemberProfileCache memberProfileCache =
+            new MemberProfileCache(
                     memberReader,
                     new ConcurrentMapCacheManager(
-                            MemberProfiles.CACHE_NAME));
+                            MemberProfileCache.CACHE_NAME));
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     @BeforeEach
@@ -85,7 +85,7 @@ class GameControllerTest {
 
     @BeforeEach
     void setUp(RestDocumentationContextProvider restDocumentation) {
-        this.mockMvc = MockMvcBuilders.standaloneSetup(new GameController(gameRoomService, gameService, memberProfiles))
+        this.mockMvc = MockMvcBuilders.standaloneSetup(new GameController(gameRoomService, gameService, memberProfileCache))
                 .apply(documentationConfiguration(restDocumentation))
                 .setCustomArgumentResolvers(new HandlerMethodArgumentResolver() {
                     @Override
@@ -124,7 +124,7 @@ class GameControllerTest {
     @DisplayName("방 참가자 목록의 각 참가자는 memberId, nickname, isReady 로 내려간다.")
     void findUsers() throws Exception {
         // given: 닉네임은 방이 아니라 프로필 캐시에서 온다
-        memberProfiles.refresh(MemberFixture.withId(2L, "방장닉네임"));
+        memberProfileCache.refresh(MemberFixture.withId(2L, "방장닉네임"));
         given(gameRoomService.findRoomState(1L)).willReturn(new RoomStateInfo(1L, 4, GameRoomStatus.WAITING,
                 new RoomSettings(GameType.SONG, "K-POP 퀴즈방", 8, Category.KPOP, 10, 0, CSQuizDifficulty.HARD),
                 List.of(new GamePlayer(2L, true), new GamePlayer(3L, false)),

@@ -2,21 +2,23 @@ package com.fungame.songquiz.support;
 
 import com.fungame.songquiz.api.websocket.LobbyNotifier;
 import com.fungame.songquiz.api.websocket.RoomLeaveGrace;
-import com.fungame.songquiz.api.websocket.StompSessions;
-import com.fungame.songquiz.domain.invite.RoomInviteService;
-import com.fungame.songquiz.domain.member.DailyActiveMembers;
+import com.fungame.songquiz.api.websocket.StompSessionRegistry;
+import com.fungame.songquiz.domain.member.DailyActiveMemberTracker;
 import com.fungame.songquiz.domain.member.MemberConnectionTracker;
-import com.fungame.songquiz.domain.quiz.QuizFactories;
+import com.fungame.songquiz.domain.quiz.QuizFactoryRegistry;
 import com.fungame.songquiz.domain.room.GameRoomManager;
 import com.fungame.songquiz.domain.session.GameServiceRouter;
 import com.fungame.songquiz.domain.session.GameSessionManager;
 import com.fungame.songquiz.domain.session.GameTimer;
 import io.github.resilience4j.circuitbreaker.CircuitBreaker;
 import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
+import com.fungame.songquiz.storage.redis.MemberPresenceDao;
+import com.fungame.songquiz.storage.redis.RoomInviteDao;
 import java.lang.reflect.Modifier;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -25,6 +27,7 @@ import java.util.stream.Stream;
 import org.springframework.cache.Cache;
 import org.springframework.cache.CacheManager;
 import org.springframework.context.ApplicationContext;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.util.ReflectionUtils;
 
 /**
@@ -42,19 +45,21 @@ public class SharedStateCleaner {
             GameRoomManager.class,
             GameSessionManager.class,
             GameTimer.class,
-            MemberConnectionTracker.class,
-            RoomInviteService.class,
             RoomLeaveGrace.class,
-            StompSessions.class,
-            DailyActiveMembers.class,
+            StompSessionRegistry.class,
+            DailyActiveMemberTracker.class,
             LobbyNotifier.class);
 
     /**
      * 기동 때 한 번 채우고 그 뒤로 바뀌지 않는 레지스트리. 테스트 사이에 비우면 앱이 죽는다. 상태를 든 것처럼 보이지만 치우면 안 되는 것들이라 여기 적어 구분한다.
      */
     private static final List<Class<?>> IMMUTABLE_REGISTRIES = List.of(
-            QuizFactories.class,
+            QuizFactoryRegistry.class,
             GameServiceRouter.class);
+
+    private static final List<String> REDIS_SHARED_STATE_PREFIXES = List.of(
+            MemberPresenceDao.KEY_PREFIX,
+            RoomInviteDao.KEY_PREFIX);
 
     private final ApplicationContext context;
 
@@ -66,6 +71,7 @@ public class SharedStateCleaner {
         STATEFUL_BEANS.forEach(this::resetBean);
         clearCaches();
         closeCircuitBreakers();
+        clearRedisSharedState();
     }
 
     /**
@@ -129,6 +135,21 @@ public class SharedStateCleaner {
         if (value instanceof Future<?> future) {
             future.cancel(false);
         }
+    }
+
+    private void clearRedisSharedState() {
+        StringRedisTemplate redisTemplate = context.getBeanProvider(StringRedisTemplate.class).getIfAvailable();
+        if (redisTemplate == null) {
+            return;
+        }
+
+        REDIS_SHARED_STATE_PREFIXES.forEach(prefix -> {
+            Set<String> keys = redisTemplate.keys(prefix + "*");
+            if (keys != null && !keys.isEmpty()) {
+                redisTemplate.delete(keys);
+            }
+        });
+        context.getBeanProvider(MemberConnectionTracker.class).ifAvailable(MemberConnectionTracker::start);
     }
 
     private void closeCircuitBreakers() {

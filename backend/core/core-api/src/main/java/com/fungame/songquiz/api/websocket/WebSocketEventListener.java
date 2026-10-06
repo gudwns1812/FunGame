@@ -1,6 +1,6 @@
 package com.fungame.songquiz.api.websocket;
 
-import com.fungame.songquiz.domain.member.DailyActiveMembers;
+import com.fungame.songquiz.domain.member.DailyActiveMemberTracker;
 import com.fungame.songquiz.domain.member.MemberConnectionTracker;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -15,10 +15,10 @@ import org.springframework.web.socket.messaging.SessionDisconnectEvent;
 @Slf4j
 public class WebSocketEventListener {
 
-    private final StompSessions stompSessions;
+    private final StompSessionRegistry stompSessionRegistry;
     private final RoomLeaveGrace roomLeaveGrace;
     private final MemberConnectionTracker memberConnectionTracker;
-    private final DailyActiveMembers dailyActiveMembers;
+    private final DailyActiveMemberTracker dailyActiveMemberTracker;
 
     @EventListener
     public void handleConnected(SessionConnectedEvent event) {
@@ -29,26 +29,26 @@ public class WebSocketEventListener {
             return;
         }
 
-        stompSessions.add(sessionId, memberId);
+        stompSessionRegistry.add(sessionId, memberId);
         memberConnectionTracker.connect(memberId, sessionId);
         roomLeaveGrace.cancelFor(memberId);
         // 활동일은 로그인이 아니라 여기서 남긴다. 세션이 유지되면 며칠씩 붙어 있어도 로그인은 한 번뿐이다.
-        dailyActiveMembers.record(memberId);
+        dailyActiveMemberTracker.record(memberId);
         log.debug("접속: 회원 {} (session {}), 열린 세션 {} 개",
-                memberId, sessionId, stompSessions.countSessionsOf(memberId));
+                memberId, sessionId, stompSessionRegistry.countSessionsOf(memberId));
     }
 
     @EventListener
     public void handleDisconnect(SessionDisconnectEvent event) {
         String sessionId = StompHeaderAccessor.wrap(event.getMessage()).getSessionId();
-        Long memberId = stompSessions.remove(sessionId);
+        Long memberId = stompSessionRegistry.remove(sessionId);
         if (memberId == null) {
             return;
         }
 
         memberConnectionTracker.disconnect(memberId, sessionId);
 
-        if (stompSessions.isConnected(memberId)) {
+        if (memberConnectionTracker.hasLiveConnection(memberId)) {
             log.debug("세션 {} 종료, 회원 {} 의 다른 세션이 살아 있어 유예를 걸지 않는다", sessionId, memberId);
             return;
         }
