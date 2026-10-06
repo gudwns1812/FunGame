@@ -1,0 +1,221 @@
+package com.fungame.songquiz.domain.room;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fungame.songquiz.enums.CSQuizDifficulty;
+import com.fungame.songquiz.enums.Category;
+import com.fungame.songquiz.enums.GameRoomStatus;
+import com.fungame.songquiz.enums.GameType;
+import com.fungame.songquiz.storage.redis.GameRoomDao;
+import com.fungame.songquiz.storage.redis.RedisTestContainer;
+import com.fungame.songquiz.support.error.CoreException;
+import com.fungame.songquiz.support.error.ErrorType;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.data.redis.DataRedisTest;
+import org.springframework.context.annotation.Import;
+import org.springframework.data.redis.core.StringRedisTemplate;
+
+@DataRedisTest
+@Import({RedisTestContainer.class, GameRoomDao.class})
+class RoomStoreTest {
+
+    private static final Long ROOM_ID = 7L;
+    private static final GamePlayer HOST = GamePlayer.createNewPlayer(1L);
+    private static final GamePlayer GUEST = GamePlayer.createNewPlayer(2L);
+    private static final RoomSettings SETTINGS =
+            new RoomSettings(GameType.SONG, "방", 8, Category.KPOP, 10, 0, CSQuizDifficulty.HARD);
+
+    @Autowired
+    private StringRedisTemplate redisTemplate;
+
+    @Autowired
+    private GameRoomDao gameRoomDao;
+
+    private RoomStore store;
+    private RoomStore otherInstance;
+
+    @BeforeEach
+    void setUp() {
+        redisTemplate.delete(redisTemplate.keys(GameRoomDao.KEY_PREFIX + "*"));
+        store = storeOnAnotherInstance();
+        otherInstance = storeOnAnotherInstance();
+    }
+
+    private RoomStore storeOnAnotherInstance() {
+        return new RoomStore(gameRoomDao, new ObjectMapper().findAndRegisterModules());
+    }
+
+    private void openRoom(int maxPlayers) {
+        store.create(GameRoom.create(ROOM_ID, withMaxPlayers(maxPlayers), HOST));
+    }
+
+    private static RoomSettings withMaxPlayers(int maxPlayers) {
+        return SETTINGS.changeTo(SETTINGS.gameType(), maxPlayers, SETTINGS.category(), SETTINGS.totalRound(),
+                SETTINGS.difficulty(), SETTINGS.csDifficulty());
+    }
+
+    @Test
+    @DisplayName("한 서버가 만든 방을 다른 서버가 그대로 읽는다.")
+    void anotherInstanceReadsTheRoom() {
+        openRoom(8);
+
+        GameRoom found = otherInstance.find(ROOM_ID).orElseThrow();
+
+        assertThat(found.getTitle()).isEqualTo("방");
+        assertThat(found.getHostId()).isEqualTo(HOST.memberId());
+        assertThat(otherInstance.findAll()).extracting(GameRoom::getRoomId).containsExactly(ROOM_ID);
+    }
+
+    @Test
+    @DisplayName("다른 서버가 바꾼 방을 읽으면 바뀐 상태다.")
+    void changesAreVisibleAcrossInstances() {
+        openRoom(8);
+
+        otherInstance.update(ROOM_ID, room -> room.join(GUEST));
+
+        assertThat(store.find(ROOM_ID).orElseThrow().getRoomPlayers())
+                .extracting(GamePlayer::memberId)
+                .containsExactly(HOST.memberId(), GUEST.memberId());
+    }
+
+    @Test
+    @DisplayName("회원이 어느 방에 있는지 들어오고 나갈 때마다 따라간다.")
+    void memberIndexFollowsJoinAndLeave() {
+        openRoom(8);
+        assertThat(store.roomIdOf(HOST.memberId())).contains(ROOM_ID);
+
+        store.update(ROOM_ID, room -> room.join(GUEST));
+        assertThat(otherInstance.roomIdOf(GUEST.memberId())).contains(ROOM_ID);
+
+        store.update(ROOM_ID, room -> {
+            room.leave(GUEST.memberId());
+            return null;
+        });
+        assertThat(otherInstance.roomIdOf(GUEST.memberId())).isEmpty();
+    }
+
+    @Test
+    @DisplayName("마지막 사람이 나가 빈 방은 지워진다. 목록과 위치에서도 빠진다.")
+    void emptiedRoomIsRemoved() {
+        openRoom(8);
+
+        store.update(ROOM_ID, room -> {
+            room.leave(HOST.memberId());
+            return null;
+        });
+
+        assertThat(otherInstance.find(ROOM_ID)).isEmpty();
+        assertThat(otherInstance.findAll()).isEmpty();
+        assertThat(otherInstance.roomIdOf(HOST.memberId())).isEmpty();
+    }
+
+    @Test
+    @DisplayName("없는 방을 바꾸려 하면 방이 없다고 답한다.")
+    void updatingMissingRoomFails() {
+        assertThatThrownBy(() -> store.update(ROOM_ID, room -> room.join(GUEST)))
+                .isInstanceOf(CoreException.class)
+                .hasFieldOrPropertyWithValue("type", ErrorType.GAME_ROOM_NOT_FOUND);
+    }
+
+    @Test
+    @DisplayName("두 서버가 동시에 바꿔도 어느 쪽 변경도 사라지지 않는다.")
+    void concurrentChangesAreNotLost() throws Exception {
+        openRoom(8);
+        List<GamePlayer> guests = List.of(
+                GamePlayer.createNewPlayer(11L), GamePlayer.createNewPlayer(12L), GamePlayer.createNewPlayer(13L),
+                GamePlayer.createNewPlayer(14L), GamePlayer.createNewPlayer(15L), GamePlayer.createNewPlayer(16L));
+
+        runConcurrently(guests.stream()
+                .map(guest -> (Runnable) () -> storeOnAnotherInstance().update(ROOM_ID, room -> room.join(guest)))
+                .toList());
+
+        assertThat(store.find(ROOM_ID).orElseThrow().getPlayerCount()).isEqualTo(1 + guests.size());
+    }
+
+    @Test
+    @DisplayName("한 자리 남은 방에 여럿이 동시에 들어오면 한 명만 들어온다. 정원을 넘지 않는다.")
+    void capacityHoldsUnderConcurrentJoins() throws Exception {
+        openRoom(2);
+        AtomicInteger admitted = new AtomicInteger();
+        AtomicInteger rejected = new AtomicInteger();
+
+        runConcurrently(List.of(11L, 12L, 13L, 14L, 15L).stream()
+                .map(memberId -> (Runnable) () -> {
+                    try {
+                        storeOnAnotherInstance().update(ROOM_ID,
+                                room -> room.join(GamePlayer.createNewPlayer(memberId)));
+                        admitted.incrementAndGet();
+                    } catch (CoreException e) {
+                        rejected.incrementAndGet();
+                    }
+                })
+                .toList());
+
+        assertThat(admitted.get()).isEqualTo(1);
+        assertThat(rejected.get()).isEqualTo(4);
+        assertThat(store.find(ROOM_ID).orElseThrow().getPlayerCount()).isEqualTo(2);
+    }
+
+    @Test
+    @DisplayName("조건이 맞는 방만 지운다. 여러 서버가 함께 지우려 해도 한 곳만 성공한다.")
+    void removeIfSucceedsOnce() {
+        store.create(GameRoom.restore(new RoomSnapshot(ROOM_ID, SETTINGS, List.of(HOST), HOST.memberId(),
+                GameRoomStatus.WAITING,
+                Instant.now().minus(31, ChronoUnit.MINUTES), 0)));
+        Instant threshold = Instant.now().minus(30, ChronoUnit.MINUTES);
+
+        boolean first = store.removeIf(ROOM_ID, room -> room.isIdle(threshold));
+        boolean second = otherInstance.removeIf(ROOM_ID, room -> room.isIdle(threshold));
+
+        assertThat(first).isTrue();
+        assertThat(second).isFalse();
+        assertThat(store.find(ROOM_ID)).isEmpty();
+    }
+
+    @Test
+    @DisplayName("조건이 맞지 않는 방은 지우지 않는다.")
+    void removeIfKeepsRoomThatDoesNotMatch() {
+        openRoom(8);
+
+        boolean removed = store.removeIf(ROOM_ID, room -> room.isIdle(Instant.now().minus(30, ChronoUnit.MINUTES)));
+
+        assertThat(removed).isFalse();
+        assertThat(store.find(ROOM_ID)).isPresent();
+    }
+
+    private static void runConcurrently(List<Runnable> tasks) throws Exception {
+        ExecutorService executor = Executors.newFixedThreadPool(tasks.size());
+        CountDownLatch start = new CountDownLatch(1);
+        List<Future<?>> futures = new ArrayList<>();
+        try {
+            for (Runnable task : tasks) {
+                futures.add(executor.submit(() -> {
+                    start.await();
+                    task.run();
+                    return null;
+                }));
+            }
+            start.countDown();
+            for (Future<?> future : futures) {
+                future.get(10, TimeUnit.SECONDS);
+            }
+        } finally {
+            executor.shutdownNow();
+        }
+    }
+}
