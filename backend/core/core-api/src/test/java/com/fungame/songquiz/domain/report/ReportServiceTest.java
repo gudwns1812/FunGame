@@ -27,6 +27,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
+import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -105,7 +106,7 @@ class ReportServiceTest {
         givenMemberIsInRoom();
         GameSession session = songSession();
         session.startRound();
-        given(gameSessionManager.getGameSession(ROOM_ID)).willReturn(session);
+        given(gameSessionManager.find(ROOM_ID)).willReturn(Optional.of(session));
 
         reportService.receive(MEMBER_ID, inGameCommand(ReportReason.HINT_WRONG, null));
 
@@ -126,7 +127,7 @@ class ReportServiceTest {
         givenMemberIsInRoom();
         GameSession session = songSession();
         session.startRound();
-        given(gameSessionManager.getGameSession(ROOM_ID)).willReturn(session);
+        given(gameSessionManager.find(ROOM_ID)).willReturn(Optional.of(session));
 
         reportService.receive(MEMBER_ID, inGameCommand(ReportReason.ANSWER_WRONG, null));
 
@@ -140,7 +141,7 @@ class ReportServiceTest {
     @DisplayName("게임 중이지만 라운드가 시작되지 않았으면 게임 종류까지만 담는다.")
     void snapshotsOnlyGameTypeBeforeRoundStarts() {
         givenMemberIsInRoom();
-        given(gameSessionManager.getGameSession(ROOM_ID)).willReturn(songSession());
+        given(gameSessionManager.find(ROOM_ID)).willReturn(Optional.of(songSession()));
 
         reportService.receive(MEMBER_ID, inGameCommand(ReportReason.CONTENT_NOT_SHOWN, null));
 
@@ -158,7 +159,7 @@ class ReportServiceTest {
     @DisplayName("대기실에서 신고하면 방의 게임 종류까지만 담는다.")
     void snapshotsRoomGameTypeInWaitingRoom() {
         givenMemberIsInRoom();
-        given(gameSessionManager.getGameSession(ROOM_ID)).willReturn(null);
+        given(gameSessionManager.find(ROOM_ID)).willReturn(Optional.empty());
         given(gameRoomManager.getGameType(ROOM_ID)).willReturn(GameType.CS);
 
         reportService.receive(MEMBER_ID, inGameCommand(ReportReason.CONTENT_WRONG, null));
@@ -246,7 +247,7 @@ class ReportServiceTest {
         givenMemberIsInRoom();
         GameSession session = songSession();
         session.startRound();
-        given(gameSessionManager.getGameSession(ROOM_ID)).willReturn(session);
+        given(gameSessionManager.find(ROOM_ID)).willReturn(Optional.of(session));
 
         reportService.receive(MEMBER_ID,
                 new ReportCommand(ReportSource.IN_GAME, ROOM_ID, ReportReason.HINT_WRONG, null, GameType.HANGMAN));
@@ -260,7 +261,7 @@ class ReportServiceTest {
         givenMemberIsInRoom();
         GameSession session = songSession();
         session.startRound();
-        given(gameSessionManager.getGameSession(ROOM_ID)).willReturn(session);
+        given(gameSessionManager.find(ROOM_ID)).willReturn(Optional.of(session));
 
         reportService.receive(MEMBER_ID, inGameCommand(ReportReason.HINT_WRONG, null));
 
@@ -273,7 +274,7 @@ class ReportServiceTest {
         givenMemberIsInRoom();
         GameSession session = songSession();
         session.startRound();
-        given(gameSessionManager.getGameSession(ROOM_ID)).willReturn(session);
+        given(gameSessionManager.find(ROOM_ID)).willReturn(Optional.of(session));
         given(reportWriter.append(any())).willReturn(REPORT_ID);
 
         reportService.receive(MEMBER_ID, inGameCommand(ReportReason.HINT_WRONG, null));
@@ -287,7 +288,7 @@ class ReportServiceTest {
         givenMemberIsInRoom();
         GameSession session = songSession();
         session.startRound();
-        given(gameSessionManager.getGameSession(ROOM_ID)).willReturn(session);
+        given(gameSessionManager.find(ROOM_ID)).willReturn(Optional.of(session));
         given(reportReader.existsSameReport(MEMBER_ID, SONG_ID, ReportReason.HINT_WRONG)).willReturn(true);
 
         reportService.receive(MEMBER_ID, inGameCommand(ReportReason.HINT_WRONG, null));

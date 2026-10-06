@@ -24,6 +24,8 @@ import org.springframework.context.ApplicationEventPublisher;
 
 import java.time.Duration;
 import java.util.List;
+import java.util.Optional;
+import java.util.function.Function;
 import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -152,28 +154,6 @@ class QuizGameServiceTest {
     }
 
     @Test
-    @DisplayName("게임 중 이탈자는 랭킹과 스킵 정족수에서 제외된다.")
-    void handlePlayerLeave_removes_player_from_session() {
-        // given
-        SongQuiz quiz = new SongQuiz(List.of(mock(Song.class)), Category.KPOP);
-        GameSession session = new GameSession(quiz, List.of(P1, P2, P3));
-        session.startRound();
-        given(sessionManager.getGameSession(ROOM_ID)).willReturn(session);
-
-        // when
-        quizGameService.handlePlayerLeave(ROOM_ID, P2.memberId());
-
-        // then
-        assertThat(session.getPlayerRanks())
-                .extracting(PlayerScore::memberId)
-                .containsExactlyInAnyOrder(P1.memberId(), P3.memberId());
-
-        // 남은 2명 중 1명만 스킵해도 정족수(max(1, n-1) = 1)를 채운다
-        assertThat(session.handleAction(GameAction.skipVote(P1.memberId())))
-                .isEqualTo(ActionResult.SKIP_VOTE_SUCCESS);
-    }
-
-    @Test
     @DisplayName("이탈로 남은 표가 줄어든 정족수를 채우면 라운드가 그 자리에서 끝난다.")
     void handlePlayerLeave_ends_round_when_skip_threshold_becomes_reached() {
         // given: 3명 중 1명이 스킵을 눌렀지만 정족수(max(1, 3-1) = 2)에 한 표 모자란다
@@ -181,6 +161,7 @@ class QuizGameServiceTest {
         quizGameService.increaseSkipVote(ROOM_ID, P1.memberId());
 
         // when: 다른 1명이 나가 정족수가 1로 내려간다
+        session.removePlayer(P2.memberId());
         quizGameService.handlePlayerLeave(ROOM_ID, P2.memberId());
 
         // then
@@ -193,10 +174,11 @@ class QuizGameServiceTest {
     @DisplayName("이탈해도 정족수에 모자라면 라운드를 그대로 둔다.")
     void handlePlayerLeave_keeps_round_when_skip_threshold_still_short() {
         // given: 4명 중 1명이 스킵을 눌렀고 정족수는 max(1, 4-1) = 3 이다
-        startedSessionOf(P1, P2, P3, P4);
+        GameSession session = startedSessionOf(P1, P2, P3, P4);
         quizGameService.increaseSkipVote(ROOM_ID, P1.memberId());
 
         // when: 1명이 나가도 정족수는 2 라 한 표로는 모자라다
+        session.removePlayer(P2.memberId());
         quizGameService.handlePlayerLeave(ROOM_ID, P2.memberId());
 
         // then
@@ -208,7 +190,7 @@ class QuizGameServiceTest {
     @DisplayName("세션이 이미 정리된 방의 이탈은 무시한다.")
     void handlePlayerLeave_ignores_missing_session() {
         // given
-        given(sessionManager.getGameSession(ROOM_ID)).willReturn(null);
+        noSession();
 
         // when & then: 예외 없이 통과
         quizGameService.handlePlayerLeave(ROOM_ID, P1.memberId());
@@ -220,7 +202,7 @@ class QuizGameServiceTest {
         // given
         SongQuiz quiz = new SongQuiz(Stream.of(mock(Song.class)).toList(), Category.KPOP);
         GameSession session = new GameSession(quiz, List.of(P1));
-        given(sessionManager.getGameSession(ROOM_ID)).willReturn(session);
+        useSession(session);
 
         // when & then: 예외 없이 통과
         quizGameService.processAnswer(ROOM_ID, P1.memberId(), "아무 채팅");
@@ -234,7 +216,7 @@ class QuizGameServiceTest {
         // given
         SongQuiz quiz = new SongQuiz(Stream.of(mock(Song.class)).toList(), Category.KPOP);
         GameSession session = new GameSession(quiz, List.of(P1));
-        given(sessionManager.getGameSession(ROOM_ID)).willReturn(session);
+        useSession(session);
 
         // when & then: 예외 없이 통과
         quizGameService.increaseSkipVote(ROOM_ID, P1.memberId());
@@ -247,7 +229,7 @@ class QuizGameServiceTest {
     @DisplayName("세션이 이미 정리된 방은 라운드를 시작하지 않는다.")
     void startRound_skips_when_session_gone() {
         // given
-        given(sessionManager.getGameSession(ROOM_ID)).willReturn(null);
+        noSession();
 
         // when
         quizGameService.startRound(ROOM_ID);
@@ -269,8 +251,7 @@ class QuizGameServiceTest {
                 .extracting(thrown -> ((CoreException) thrown).getType())
                 .isEqualTo(ErrorType.QUIZ_EMPTY);
 
-        verify(gameRoomManager, never()).startGame(any(), any());
-        verify(sessionManager, never()).startGame(any(), any(Quiz.class), any());
+        verify(gameRoomManager, never()).startGame(any(), any(), any());
         verify(timer, never()).startAfter(any(), any(Duration.class), any());
     }
 
@@ -278,13 +259,9 @@ class QuizGameServiceTest {
     @DisplayName("문제가 있으면 방을 시작하고 첫 라운드를 예약한다.")
     void startGame_starts_when_quiz_has_round() {
         // given
-        GameRoom startableRoom = givenStartableRoomWith(new SongQuiz(List.of(mock(Song.class)), Category.KPOP));
-        List<GamePlayer> players = List.of(P1);
-
-        given(gameRoomManager.startGame(ROOM_ID, P1.memberId())).willReturn(startableRoom);
-        given(startableRoom.getRoomPlayers()).willReturn(players);
-        given(sessionManager.startGame(eq(ROOM_ID), any(Quiz.class), eq(players)))
-                .willReturn(new GameSession(new SongQuiz(List.of(mock(Song.class)), Category.KPOP), players));
+        givenStartableRoomWith(new SongQuiz(List.of(mock(Song.class)), Category.KPOP));
+        given(gameRoomManager.startGame(eq(ROOM_ID), eq(P1.memberId()), any()))
+                .willReturn(new GameSession(new SongQuiz(List.of(mock(Song.class)), Category.KPOP), List.of(P1)));
 
         // when
         quizGameService.startGame(ROOM_ID, P1.memberId());
@@ -363,11 +340,24 @@ class QuizGameServiceTest {
         verify(timer).startAfter(eq(ROOM_ID), eq(BEFORE_GAME_RESULT), any());
     }
 
+    private void useSession(GameSession session) {
+        lenient().when(sessionManager.find(ROOM_ID)).thenReturn(Optional.of(session));
+        lenient().when(sessionManager.update(eq(ROOM_ID), any())).thenAnswer(invocation -> {
+            Function<GameSession, ?> change = invocation.getArgument(1);
+            return Optional.ofNullable(change.apply(session));
+        });
+    }
+
+    private void noSession() {
+        lenient().when(sessionManager.find(ROOM_ID)).thenReturn(Optional.empty());
+        lenient().when(sessionManager.update(eq(ROOM_ID), any())).thenReturn(Optional.empty());
+    }
+
     private GameSession startedSessionOf(GamePlayer... players) {
         SongQuiz quiz = new SongQuiz(List.of(playableSong(), playableSong()), Category.KPOP);
         GameSession session = new GameSession(quiz, List.of(players));
         session.startRound();
-        given(sessionManager.getGameSession(ROOM_ID)).willReturn(session);
+        useSession(session);
 
         return session;
     }
@@ -376,7 +366,7 @@ class QuizGameServiceTest {
         SongQuiz quiz = new SongQuiz(List.of(playableSong()), Category.KPOP);
         GameSession session = new GameSession(quiz, List.of(players));
         session.startRound();
-        given(sessionManager.getGameSession(ROOM_ID)).willReturn(session);
+        useSession(session);
     }
 
     private static Song playableSong() {

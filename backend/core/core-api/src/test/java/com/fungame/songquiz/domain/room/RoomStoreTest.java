@@ -4,6 +4,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fungame.songquiz.domain.quiz.Song;
+import com.fungame.songquiz.domain.quiz.SongQuiz;
+import com.fungame.songquiz.domain.session.GameAction;
+import com.fungame.songquiz.domain.session.GameSession;
+import com.fungame.songquiz.domain.session.PlayerScore;
 import com.fungame.songquiz.enums.CSQuizDifficulty;
 import com.fungame.songquiz.enums.Category;
 import com.fungame.songquiz.enums.GameRoomStatus;
@@ -13,6 +18,7 @@ import com.fungame.songquiz.storage.redis.RedisTestContainer;
 import com.fungame.songquiz.support.error.CoreException;
 import com.fungame.songquiz.support.error.ErrorType;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
@@ -198,6 +204,86 @@ class RoomStoreTest {
 
         assertThat(removed).isFalse();
         assertThat(store.find(ROOM_ID)).isPresent();
+    }
+
+    @Test
+    @DisplayName("판을 시작하면 방과 판이 한 번에 저장되고, 다른 서버가 그 판을 읽는다.")
+    void gameIsStoredWithItsRoom() {
+        openRoom(8);
+
+        store.updateTable(ROOM_ID, table -> {
+            GameSession game = new GameSession(songQuiz(), table.room().getRoomPlayers());
+            game.startRound();
+            table.startGame(game);
+            return null;
+        });
+
+        RoomTable found = otherInstance.findTable(ROOM_ID).orElseThrow();
+        assertThat(found.game()).isPresent();
+        assertThat(found.game().orElseThrow().getCurrentRound()).isEqualTo(1);
+    }
+
+    @Test
+    @DisplayName("한 서버가 시작한 판을 다른 서버가 이어서 바꾼다.")
+    void anotherInstanceContinuesTheGame() {
+        openRoom(8);
+        startGame();
+
+        otherInstance.updateTable(ROOM_ID, table -> {
+            table.game().orElseThrow().updatePlayerPoint(HOST.memberId());
+            return null;
+        });
+
+        assertThat(store.findTable(ROOM_ID).orElseThrow().game().orElseThrow().getPlayerRanks())
+                .extracting(PlayerScore::score)
+                .containsExactly(1);
+    }
+
+    @Test
+    @DisplayName("아무것도 바꾸지 않은 변경은 쓰지 않는다. 오답 채팅마다 Redis 에 쓰지 않는다.")
+    void unchangedTableIsNotWritten() {
+        openRoom(8);
+        startGame();
+        String revisionBefore = revisionOfRoom();
+
+        store.updateTable(ROOM_ID, table -> table.game().orElseThrow()
+                .handleAction(GameAction.submitAnswer(HOST.memberId(), "오답")));
+
+        assertThat(revisionOfRoom()).isEqualTo(revisionBefore);
+    }
+
+    @Test
+    @DisplayName("판을 끝내면 판이 지워지고 방은 남는다.")
+    void endingTheGameKeepsTheRoom() {
+        openRoom(8);
+        startGame();
+
+        store.updateTable(ROOM_ID, table -> {
+            table.endGame();
+            return null;
+        });
+
+        RoomTable found = otherInstance.findTable(ROOM_ID).orElseThrow();
+        assertThat(found.game()).isEmpty();
+        assertThat(found.room().getRoomId()).isEqualTo(ROOM_ID);
+    }
+
+    private void startGame() {
+        store.updateTable(ROOM_ID, table -> {
+            GameSession game = new GameSession(songQuiz(), table.room().getRoomPlayers());
+            game.startRound();
+            table.startGame(game);
+            return null;
+        });
+    }
+
+    private String revisionOfRoom() {
+        return (String) redisTemplate.opsForHash().get(GameRoomDao.KEY_PREFIX + ROOM_ID, "revision");
+    }
+
+    private static SongQuiz songQuiz() {
+        return new SongQuiz(List.of(Song.stored(10L, "정답", "가수", List.of(Category.KPOP),
+                LocalDate.of(2020, 1, 1), "youtube.com/10", 30, List.of(), "힌트")), Category.KPOP);
     }
 
     private static void runConcurrently(List<Runnable> tasks) throws Exception {

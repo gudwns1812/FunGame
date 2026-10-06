@@ -1,7 +1,8 @@
 package com.fungame.songquiz.domain.room;
 
-import com.fungame.songquiz.domain.session.GameSessionManager;
 import com.fungame.songquiz.domain.session.GameTimer;
+import com.fungame.songquiz.domain.quiz.Song;
+import com.fungame.songquiz.domain.quiz.SongQuiz;
 import com.fungame.songquiz.enums.CSQuizDifficulty;
 import com.fungame.songquiz.enums.Category;
 import com.fungame.songquiz.enums.GameRoomStatus;
@@ -23,6 +24,8 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.Import;
 import org.springframework.data.redis.core.StringRedisTemplate;
 
+import java.time.LocalDate;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -47,9 +50,6 @@ class GameRoomSettingsTest {
 
     @Mock
     GameTimer gameTimer;
-
-    @Mock
-    GameSessionManager gameSessionManager;
 
     @Mock
     RoomNumberWriter roomNumberWriter;
@@ -77,8 +77,7 @@ class GameRoomSettingsTest {
                 roomNumberWriter,
                 new RoomStore(gameRoomDao, new ObjectMapper().findAndRegisterModules()),
                 applicationEventPublisher,
-                gameTimer,
-                gameSessionManager
+                gameTimer
         );
         roomId = gameRoomManager.createGameRoom(SETTINGS, HOST);
     }
@@ -96,7 +95,7 @@ class GameRoomSettingsTest {
     @Test
     @DisplayName("게임이 진행 중이면 설정을 바꿀 수 없다.")
     void cannotChangeSettingsWhilePlaying() {
-        gameRoomManager.startGame(roomId, HOST.memberId());
+        gameRoomManager.startGame(roomId, HOST.memberId(), room -> songQuiz());
 
         assertThatThrownBy(() -> gameRoomManager.changeSettings(roomId, HOST.memberId(), SETTINGS))
                 .isInstanceOf(CoreException.class)
@@ -158,7 +157,7 @@ class GameRoomSettingsTest {
     void endGameKeepsRoomInWaiting() {
         gameRoomManager.joinRoom(roomId, GUEST);
         gameRoomManager.readyPlayer(roomId, GUEST.memberId());
-        gameRoomManager.startGame(roomId, HOST.memberId());
+        gameRoomManager.startGame(roomId, HOST.memberId(), room -> songQuiz());
 
         gameRoomManager.endGame(roomId);
 
@@ -170,4 +169,8 @@ class GameRoomSettingsTest {
         assertThat(room.isAllReady()).isFalse();
     }
 
+    private static SongQuiz songQuiz() {
+        return new SongQuiz(List.of(Song.stored(10L, "정답", "가수", List.of(Category.KPOP),
+                LocalDate.of(2020, 1, 1), "youtube.com/10", 30, List.of(), "힌트")), Category.KPOP);
+    }
 }

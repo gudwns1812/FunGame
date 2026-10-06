@@ -249,8 +249,6 @@ exclusive·auto-delete 큐는 끊긴 동안 유실되고, durable per-instance �
 | | 작업 | 2대에서 생기는 증상 |
 |---|---|---|
 | O0 | `INSTANCE_ID` 를 모든 로그·메트릭 라벨로 | 어느 인스턴스에서 난 일인지 구분이 안 된다 |
-| O2 | 판을 저장 가능한 값으로. `GameSession` · `GameRank` · `SkipVotes` · `RoundClock` · `SongQuiz` · `CsQuiz` · `HangmanQuiz` 의 상태를 스냅샷 레코드로 꺼내고 되살린다. `RoundClock` 은 주입한 `Clock` 과 저장된 시작 시각으로 잰다. **아직 힙에 둔다** — 왕복(스냅샷 → 되살림 → 같은 동작) 테스트로 저장 경계를 먼저 굳힌다 | — |
-| O3 | `GameSession` 을 Redis 로. 같은 해시의 `game` 필드에 두고 방과 한 version 으로 묶는다. 판 시작(방 PLAYING + 판 생성), 판 중 퇴장(방 인원 + 점수판), 판 끝(방 WAITING + 판 삭제)이 한 번의 쓰기다. `GameSessionManager` 의 맵을 지운다 | 정답 채팅이 B 로 들어오면 `gameSession == null` 로 **아무 일 없이 return** |
 | O4 | 타이머를 Redis 로. `fungame:timers` ZSET(작업 → 실행 시각). 인스턴스마다 200ms 마다 시각이 된 것을 Lua 로 **잠깐 미뤄 두며 가져가고**(다른 인스턴스는 그동안 못 가져간다), 실행이 끝나면 지운다. 가져간 인스턴스가 죽으면 미룬 시각이 지나 다른 인스턴스가 다시 가져간다. 작업은 라운드 번호를 실어 이미 지난 라운드면 아무것도 하지 않는다(멱등). 끊김 유예 뒤 퇴장(`RoomLeaveGrace`)도 이 큐로 옮긴다 | 판을 시작한 인스턴스가 죽으면 다음 라운드가 영원히 오지 않는다 |
 | O6 | 인스턴스 2개를 같은 Redis · MySQL 에 띄우는 통합 테스트. 5단계 종료 조건을 그대로 검사한다 | — |
 | O7 | 방별 스트림 키 | §부록 A |
@@ -331,6 +329,8 @@ SSE + REST 안은 프런트를 다시 짜야 해서 기각했다.
 | P2 | 초대를 Redis 로 옮겼다. `fungame:invite:{대상}:{inviteId}` 에 TTL 30초로 두고 수락·거절은 `GETDEL` 로 한 번만 꺼낸다. 키에 대상이 들어 있어 남이 가로채려 해도 초대가 타지 않는다. `purgeExpiredInvites` 스케줄을 지웠다. 수락 뒤 입장은 아직 그 서버의 방 맵을 보므로 방이 다른 서버에 있으면 `GAME_ROOM_NOT_FOUND` 다(O1 · O3) |
 | O1 | `GameRoom` 을 Redis 로 옮겼다. `fungame:room:{id}`(본문 · revision) · `fungame:room:ids` · `fungame:room:member:{id}`. `RoomStore` 가 읽고 → `GameRoom` 규칙 적용 → revision 이 그대로일 때만 쓰는 Lua 로 바꾸고 충돌하면 재시도한다. 위치 색인도 같은 Lua 에서 고친다. 타이머 정지 · 세션 정리 · 재입장 복원은 쓰기가 성공한 뒤에만 한다. `LocalRoomLock` 을 지웠다 |
 | O5 | 구독 권한이 Redis 의 방 인원을 본다(O1 로 따라왔다). 거부는 지금처럼 조용히 버리고 경고 로그만 남긴다 — STOMP ERROR 프레임은 연결을 끊어 방 하나 때문에 로비 · 초대까지 끊기고, 정상 흐름은 입장 뒤에 구독해 거부될 일이 거의 없다 |
+| O2 | 판을 저장 가능한 값으로 꺼냈다. `QuizSnapshot`(노래 · CS · 행맨, JSON `kind` 로 구분)과 `GameSnapshot`(퀴즈 · 점수판 · 스킵 투표 · 라운드 시작 시각). 라운드 처리 중 여부도 실어 되살린 판이 같은 라운드를 두 번 끝내지 않는다 |
+| O3 | 판을 Redis 로 옮겼다. 같은 해시의 `game` 필드에 두고 방과 한 revision 으로 쓴다. 판 시작 · 판 중 퇴장 · 재입장 · 판 끝이 각각 한 번의 쓰기다. 상태가 그대로인 변경(오답 채팅)은 쓰지 않는다. 타이머 작업은 라운드 번호를 들고 다녀 지난 라운드면 아무것도 하지 않는다. `GameSessionManager` 의 맵을 지웠다 |
 | N1 · N2 · N5 | 전파가 멈춘 Redis 에 전달 스레드를 묶지 않게 했다. `XADD` 는 동기로 두고 Resilience4j 서킷 브레이커가 실패나 0.5초 넘는 느린 호출이 쌓이면 막는다(§1.4). `StompBroadcaster` 는 Redis 를 모른다. Grafana 에 `브로드캐스트 전파` 대시보드를 붙였다 |
 
 검증한 것: Redis 를 내려도 로컬 전달이 유지된다(실제 구독자로 확인). 복구는 자동이지만 Lettuce

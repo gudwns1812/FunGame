@@ -3,7 +3,6 @@ package com.fungame.songquiz.storage.redis;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import org.springframework.core.io.ClassPathResource;
@@ -21,6 +20,8 @@ public class GameRoomDao {
     private static final String MEMBER_KEY_PREFIX = KEY_PREFIX + "member:";
     private static final String BODY = "body";
     private static final String REVISION = "revision";
+    private static final String GAME = "game";
+    private static final String NO_GAME = "";
     private static final long WRITTEN = 1;
 
     private final StringRedisTemplate redisTemplate;
@@ -40,7 +41,7 @@ public class GameRoomDao {
     }
 
     public Optional<StoredRoom> find(Long roomId) {
-        List<Object> fields = hashOperations().multiGet(roomKeyOf(roomId), List.of(BODY, REVISION));
+        List<Object> fields = hashOperations().multiGet(roomKeyOf(roomId), List.of(BODY, REVISION, GAME));
 
         return storedRoomOf(roomId, fields);
     }
@@ -63,11 +64,11 @@ public class GameRoomDao {
                 .map(Long::valueOf);
     }
 
-    public boolean replace(Long roomId, long expectedRevision, String body,
+    public boolean replace(Long roomId, long expectedRevision, String body, String game,
                            Collection<Long> joinedMemberIds, Collection<Long> leftMemberIds) {
         List<String> args = new ArrayList<>(List.of(
-                roomId.toString(), Long.toString(expectedRevision), body, MEMBER_KEY_PREFIX,
-                Integer.toString(joinedMemberIds.size())));
+                roomId.toString(), Long.toString(expectedRevision), body, game == null ? NO_GAME : game,
+                MEMBER_KEY_PREFIX, Integer.toString(joinedMemberIds.size())));
         joinedMemberIds.forEach(memberId -> args.add(memberId.toString()));
         leftMemberIds.forEach(memberId -> args.add(memberId.toString()));
 
@@ -82,11 +83,12 @@ public class GameRoomDao {
     }
 
     private Optional<StoredRoom> storedRoomOf(Long roomId, List<Object> fields) {
-        if (fields == null || fields.stream().anyMatch(Objects::isNull)) {
+        if (fields == null || fields.get(0) == null || fields.get(1) == null) {
             return Optional.empty();
         }
 
-        return Optional.of(new StoredRoom(roomId, (String) fields.get(0), Long.parseLong((String) fields.get(1))));
+        return Optional.of(new StoredRoom(roomId, (String) fields.get(0), (String) fields.get(2),
+                Long.parseLong((String) fields.get(1))));
     }
 
     private HashOperations<String, String, Object> hashOperations() {

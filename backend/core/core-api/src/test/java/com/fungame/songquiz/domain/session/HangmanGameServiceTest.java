@@ -2,6 +2,7 @@ package com.fungame.songquiz.domain.session;
 
 import com.fungame.songquiz.domain.quiz.HangmanQuiz;
 import com.fungame.songquiz.domain.quiz.HangmanWord;
+import com.fungame.songquiz.domain.quiz.Quiz;
 import com.fungame.songquiz.domain.room.GamePlayer;
 import com.fungame.songquiz.domain.room.GameRoom;
 import com.fungame.songquiz.domain.room.GameRoomManager;
@@ -19,6 +20,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.context.ApplicationEventPublisher;
 
 import java.util.List;
+import java.util.Optional;
+import java.util.function.Function;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -51,13 +54,16 @@ class HangmanGameServiceTest {
         // Given
         Long roomId = 1L;
         List<GamePlayer> players = List.of(HOST, P2);
-        GameRoom mockRoom = mock(GameRoom.class);
-        GameSession session = new GameSession(HangmanQuiz.create(new HangmanWord(1L, "APPLE", 1)), players);
-
-        given(gameRoomManager.startGame(roomId, HOST.memberId())).willReturn(mockRoom);
-        given(mockRoom.getSettings()).willReturn(SETTINGS);
-        given(mockRoom.getRoomPlayers()).willReturn(players);
-        given(gameSessionManager.startGame(eq(roomId), eq(SETTINGS), eq(players))).willReturn(session);
+        GameRoom startableRoom = mock(GameRoom.class);
+        HangmanQuiz preparedQuiz = HangmanQuiz.create(new HangmanWord(1L, "APPLE", 1));
+        given(gameRoomManager.findStartableRoom(roomId, HOST.memberId())).willReturn(startableRoom);
+        given(startableRoom.getSettings()).willReturn(SETTINGS);
+        given(startableRoom.getRoomPlayers()).willReturn(players);
+        given(gameSessionManager.createQuiz(SETTINGS)).willReturn(preparedQuiz);
+        given(gameRoomManager.startGame(eq(roomId), eq(HOST.memberId()), any())).willAnswer(invocation -> {
+            Function<GameRoom, Quiz> quizFor = invocation.getArgument(2);
+            return new GameSession(quizFor.apply(startableRoom), players);
+        });
 
         // When
         hangmanGameService.startGame(roomId, HOST.memberId());
@@ -76,7 +82,7 @@ class HangmanGameServiceTest {
         hangmanQuiz.initPlayers(players);
         GameAction action = new GameAction(P1.memberId(), ActionType.SUBMIT_ANSWER, "A");
 
-        given(gameSessionManager.getGameSession(roomId)).willReturn(new GameSession(hangmanQuiz, players));
+        useSession(roomId, new GameSession(hangmanQuiz, players));
 
         // When
         hangmanGameService.handleAction(roomId, action);
@@ -95,7 +101,7 @@ class HangmanGameServiceTest {
         hangmanQuiz.initPlayers(players);
         GameAction action = new GameAction(P1.memberId(), ActionType.SUBMIT_ANSWER, "A");
 
-        given(gameSessionManager.getGameSession(roomId)).willReturn(new GameSession(hangmanQuiz, players));
+        useSession(roomId, new GameSession(hangmanQuiz, players));
 
         // When
         hangmanGameService.handleAction(roomId, action);
@@ -116,7 +122,7 @@ class HangmanGameServiceTest {
         hangmanQuiz.initPlayers(players);
         GameAction action = new GameAction(P1.memberId(), ActionType.SUBMIT_ANSWER, "A");
 
-        given(gameSessionManager.getGameSession(roomId)).willReturn(new GameSession(hangmanQuiz, players));
+        useSession(roomId, new GameSession(hangmanQuiz, players));
         // 이 방의 다른 이벤트 발행까지 막지 않도록 lenient 로 둔다
         lenient().doThrow(new IllegalStateException("브로드캐스트 실패"))
                 .when(eventPublisher).publishEvent(any(GameResultEvent.class));
@@ -127,5 +133,13 @@ class HangmanGameServiceTest {
 
         // Then
         verify(gameRoomManager).endGame(roomId);
+    }
+
+    private void useSession(Long roomId, GameSession session) {
+        lenient().when(gameSessionManager.find(roomId)).thenReturn(Optional.of(session));
+        lenient().when(gameSessionManager.update(eq(roomId), any())).thenAnswer(invocation -> {
+            Function<GameSession, ?> change = invocation.getArgument(1);
+            return Optional.ofNullable(change.apply(session));
+        });
     }
 }

@@ -2,14 +2,18 @@ package com.fungame.songquiz.domain.room;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fungame.songquiz.domain.session.GameSession;
+import com.fungame.songquiz.domain.session.GameSnapshot;
 import com.fungame.songquiz.storage.redis.GameRoomDao;
 import com.fungame.songquiz.storage.redis.StoredRoom;
 import com.fungame.songquiz.support.error.CoreException;
 import com.fungame.songquiz.support.error.ErrorType;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.Callable;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
@@ -37,6 +41,10 @@ public class RoomStore {
         return gameRoomDao.find(roomId).flatMap(this::readableRoomOf);
     }
 
+    public Optional<RoomTable> findTable(Long roomId) {
+        return gameRoomDao.find(roomId).flatMap(this::readableTableOf);
+    }
+
     public List<GameRoom> findAll() {
         return gameRoomDao.findAll().stream()
                 .map(this::readableRoomOf)
@@ -49,16 +57,20 @@ public class RoomStore {
     }
 
     public <T> T update(Long roomId, Function<GameRoom, T> change) {
+        return updateTable(roomId, table -> change.apply(table.room()));
+    }
+
+    public <T> T updateTable(Long roomId, Function<RoomTable, T> change) {
         for (int attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
             StoredRoom stored = gameRoomDao.find(roomId)
                     .orElseThrow(() -> new CoreException(ErrorType.GAME_ROOM_NOT_FOUND));
-            GameRoom room = readableRoomOf(stored)
+            RoomTable table = readableTableOf(stored)
                     .orElseThrow(() -> new CoreException(ErrorType.GAME_ROOM_NOT_FOUND));
-            Set<Long> membersBefore = memberIdsOf(room);
+            Set<Long> membersBefore = memberIdsOf(table.room());
 
-            T result = change.apply(room);
+            T result = change.apply(table);
 
-            if (write(stored, room, membersBefore)) {
+            if (isUnchanged(stored, table) || write(stored, table, membersBefore)) {
                 return result;
             }
         }
@@ -88,20 +100,25 @@ public class RoomStore {
 
     public List<Long> removeUnreadable() {
         return gameRoomDao.findAll().stream()
-                .filter(stored -> readableRoomOf(stored).isEmpty())
+                .filter(stored -> readableTableOf(stored).isEmpty())
                 .filter(stored -> gameRoomDao.delete(stored.roomId(), stored.revision(), Set.of()))
                 .map(StoredRoom::roomId)
                 .toList();
     }
 
-    private boolean write(StoredRoom stored, GameRoom room, Set<Long> membersBefore) {
+    private boolean isUnchanged(StoredRoom stored, RoomTable table) {
+        return stored.body().equals(bodyOf(table.room())) && Objects.equals(stored.game(), gameOf(table));
+    }
+
+    private boolean write(StoredRoom stored, RoomTable table, Set<Long> membersBefore) {
+        GameRoom room = table.room();
         if (room.isEmpty()) {
             return gameRoomDao.delete(stored.roomId(), stored.revision(), membersBefore);
         }
 
         Set<Long> membersAfter = memberIdsOf(room);
 
-        return gameRoomDao.replace(stored.roomId(), stored.revision(), bodyOf(room),
+        return gameRoomDao.replace(stored.roomId(), stored.revision(), bodyOf(room), gameOf(table),
                 difference(membersAfter, membersBefore), difference(membersBefore, membersAfter));
     }
 
@@ -118,19 +135,48 @@ public class RoomStore {
     }
 
     private String bodyOf(GameRoom room) {
-        try {
-            return objectMapper.writeValueAsString(room.snapshot());
-        } catch (JsonProcessingException e) {
-            throw new IllegalStateException("방 " + room.getRoomId() + " 을 저장할 형태로 바꾸지 못했다", e);
-        }
+        return json(room.snapshot(), room.getRoomId());
+    }
+
+    private String gameOf(RoomTable table) {
+        return table.game()
+                .map(game -> json(game.snapshot(), table.room().getRoomId()))
+                .orElse(null);
+    }
+
+    private Optional<RoomTable> readableTableOf(StoredRoom stored) {
+        return readable(stored, () -> {
+            GameSession game = stored.game() == null
+                    ? null
+                    : GameSession.restore(objectMapper.readValue(stored.game(), GameSnapshot.class));
+
+            return new RoomTable(roomOf(stored), game);
+        });
     }
 
     private Optional<GameRoom> readableRoomOf(StoredRoom stored) {
+        return readable(stored, () -> roomOf(stored));
+    }
+
+    private <T> Optional<T> readable(StoredRoom stored, Callable<T> reading) {
         try {
-            return Optional.of(GameRoom.restore(objectMapper.readValue(stored.body(), RoomSnapshot.class)));
-        } catch (JsonProcessingException | RuntimeException e) {
+            return Optional.of(reading.call());
+        } catch (Exception e) {
             log.warn("저장된 방 {} 을 읽지 못해 없는 방으로 본다", stored.roomId(), e);
             return Optional.empty();
         }
     }
+
+    private GameRoom roomOf(StoredRoom stored) throws JsonProcessingException {
+        return GameRoom.restore(objectMapper.readValue(stored.body(), RoomSnapshot.class));
+    }
+
+    private String json(Object snapshot, Long roomId) {
+        try {
+            return objectMapper.writeValueAsString(snapshot);
+        } catch (JsonProcessingException e) {
+            throw new IllegalStateException("방 " + roomId + " 을 저장할 형태로 바꾸지 못했다", e);
+        }
+    }
+
 }

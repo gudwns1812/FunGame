@@ -1,7 +1,6 @@
 package com.fungame.songquiz.domain.report;
 
 import com.fungame.songquiz.domain.room.GameRoomManager;
-import com.fungame.songquiz.domain.session.GameSession;
 import com.fungame.songquiz.domain.session.GameSessionManager;
 import com.fungame.songquiz.enums.GameType;
 import com.fungame.songquiz.enums.ReportStatus;
@@ -88,11 +87,8 @@ public class ReportService {
             return ReportContext.outsideGame(null, declaredGameType);
         }
 
-        GameSession session = gameSessionManager.getGameSession(roomId);
-        if (session == null) {
-            return ReportContext.outsideGame(roomId, gameRoomManager.getGameType(roomId));
-        }
-
-        return ReportContext.of(roomId, session);
+        return gameSessionManager.find(roomId)
+                .map(session -> ReportContext.of(roomId, session))
+                .orElseGet(() -> ReportContext.outsideGame(roomId, gameRoomManager.getGameType(roomId)));
     }
 }
