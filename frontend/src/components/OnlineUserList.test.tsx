@@ -5,7 +5,7 @@ import axios from 'axios';
 import OnlineUserList from './OnlineUserList';
 import ToastStack from './ToastStack';
 import { createStompStub } from '../test/stompTestUtils';
-import { PRESENCE_QUEUE } from '../utils/stompDestination';
+import { PRESENCE_TOPIC } from '../utils/stompDestination';
 import { clearToasts } from '../utils/toast';
 import type { OnlineMember } from '../types/presence';
 
@@ -15,6 +15,8 @@ const mockedAxios = axios as unknown as {
   get: ReturnType<typeof vi.fn>;
   post: ReturnType<typeof vi.fn>;
 };
+
+const VIEWER_ID = 99;
 
 const members: OnlineMember[] = [
   { memberId: 1, nickname: '로비유저', status: 'LOBBY', currentRoomId: null },
@@ -27,7 +29,7 @@ const renderList = (invitingRoomId?: string | null) => {
   const { wrapper: Wrapper } = stomp;
   render(
     <Wrapper>
-      <OnlineUserList invitingRoomId={invitingRoomId} />
+      <OnlineUserList invitingRoomId={invitingRoomId} viewerId={VIEWER_ID} />
       <ToastStack />
     </Wrapper>,
   );
@@ -227,7 +229,7 @@ describe('OnlineUserList', () => {
     await screen.findByText('로비유저');
     const fetchesBefore = mockedAxios.get.mock.calls.length;
 
-    act(() => stomp.emit(PRESENCE_QUEUE, 'REFRESH'));
+    act(() => stomp.emit(PRESENCE_TOPIC, 'REFRESH'));
 
     await waitFor(() => expect(mockedAxios.get.mock.calls.length).toBe(fetchesBefore + 1));
   });
@@ -236,7 +238,7 @@ describe('OnlineUserList', () => {
     const stomp = renderList();
     await screen.findByText('로비유저');
 
-    act(() => stomp.emit(PRESENCE_QUEUE, [members[0]]));
+    act(() => stomp.emit(PRESENCE_TOPIC, [members[0]]));
 
     await waitFor(() => expect(screen.queryByText('대기유저')).not.toBeInTheDocument());
     expect(screen.getByText('로비유저')).toBeInTheDocument();

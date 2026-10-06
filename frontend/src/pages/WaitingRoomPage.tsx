@@ -66,7 +66,7 @@ const WaitingRoomPage: React.FC<WaitingRoomPageProps> = ({
           />
         </div>
 
-        <OnlineUserList invitingRoomId={roomId} />
+        <OnlineUserList invitingRoomId={roomId} viewerId={myMemberId} />
       </main>
 
       <AdSlot

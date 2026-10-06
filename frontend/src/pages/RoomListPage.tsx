@@ -122,7 +122,7 @@ const RoomListPage: React.FC<RoomListPageProps> = ({
           />
         </div>
 
-        <OnlineUserList />
+        <OnlineUserList viewerId={user?.id ?? null} />
       </main>
     </div>
   );

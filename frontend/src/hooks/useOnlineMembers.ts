@@ -1,10 +1,10 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
 import { useStomp } from '../contexts/StompContext';
-import { PRESENCE_QUEUE } from '../utils/stompDestination';
+import { PRESENCE_TOPIC } from '../utils/stompDestination';
 import type { OnlineMember } from '../types/presence';
 
-export const useOnlineMembers = (enabled: boolean) => {
+export const useOnlineMembers = (enabled: boolean, viewerId: number | null) => {
   const { onConnection } = useStomp();
   const [members, setMembers] = useState<OnlineMember[]>([]);
 
@@ -26,7 +26,7 @@ export const useOnlineMembers = (enabled: boolean) => {
     }
 
     return onConnection((channel) => {
-      channel.subscribe(PRESENCE_QUEUE, (pushedMembers) => {
+      channel.subscribe(PRESENCE_TOPIC, (pushedMembers) => {
         if (!Array.isArray(pushedMembers)) {
           void fetchMembers();
           return;
@@ -38,5 +38,8 @@ export const useOnlineMembers = (enabled: boolean) => {
     });
   }, [enabled, fetchMembers, onConnection]);
 
-  return members;
+  return useMemo(
+    () => members.filter((member) => member.memberId !== viewerId),
+    [members, viewerId],
+  );
 };

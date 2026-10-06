@@ -7,6 +7,7 @@ import type { OnlineMember, PresenceStatus } from '../types/presence';
 interface OnlineUserListProps {
   /** 대기실에서만 초대를 보낼 수 있다. 로비에서는 목록만 보여준다. */
   invitingRoomId?: string | null;
+  viewerId: number | null;
 }
 
 const STATUS_LABEL: Record<PresenceStatus, string> = {
@@ -53,8 +54,8 @@ const MagnifierIcon: React.FC = () => (
   </svg>
 );
 
-const OnlineUserList: React.FC<OnlineUserListProps> = ({ invitingRoomId }) => {
-  const members = useOnlineMembers(true);
+const OnlineUserList: React.FC<OnlineUserListProps> = ({ invitingRoomId, viewerId }) => {
+  const members = useOnlineMembers(true, viewerId);
   const [invitedMemberIds, setInvitedMemberIds] = useState<number[]>([]);
   const [collapsedGroups, setCollapsedGroups] = useState<GroupKey[]>(() =>
     groupsCollapsedWhileInviting(invitingRoomId),
