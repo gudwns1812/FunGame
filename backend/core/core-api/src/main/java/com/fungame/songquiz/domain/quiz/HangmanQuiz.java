@@ -38,6 +38,34 @@ public class HangmanQuiz extends AbstractQuiz {
         this.currentTurnIndex = 0;
     }
 
+    private HangmanQuiz(HangmanQuizSnapshot snapshot) {
+        super(snapshot.roundProcessing());
+        this.wordId = snapshot.wordId();
+        this.answer = snapshot.answer();
+        this.correctLetters = new LinkedHashSet<>(snapshot.correctLetters());
+        this.wrongLetters = new LinkedHashSet<>(snapshot.wrongLetters());
+        this.remainingTries = snapshot.remainingTries();
+        this.currentTurnIndex = snapshot.currentTurnIndex();
+        this.playerOrder = new ArrayList<>(snapshot.playerOrder());
+    }
+
+    static HangmanQuiz restore(HangmanQuizSnapshot snapshot) {
+        return new HangmanQuiz(snapshot);
+    }
+
+    @Override
+    public QuizSnapshot snapshot() {
+        return new HangmanQuizSnapshot(
+                wordId,
+                answer,
+                List.copyOf(correctLetters),
+                List.copyOf(wrongLetters),
+                remainingTries,
+                currentTurnIndex,
+                List.copyOf(playerOrder),
+                roundProcessing());
+    }
+
     public static HangmanQuiz create(HangmanWord word) {
         if (word == null || word.value() == null || word.value().isBlank()) {
             throw new CoreException(ErrorType.HANGMAN_ANSWER_EMPTY);

@@ -2,7 +2,7 @@ package com.fungame.songquiz.domain.session;
 
 import com.fungame.songquiz.domain.room.GamePlayer;
 
-record Participant(GamePlayer player, int score, boolean playing) {
+public record Participant(GamePlayer player, int score, boolean playing) {
 
     static Participant joining(GamePlayer player) {
         return new Participant(player, 0, true);

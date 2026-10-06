@@ -6,6 +6,17 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public abstract class AbstractQuiz implements Quiz {
     protected final AtomicBoolean isRoundProcessing = new AtomicBoolean(false);
 
+    protected AbstractQuiz() {
+    }
+
+    protected AbstractQuiz(boolean roundProcessing) {
+        isRoundProcessing.set(roundProcessing);
+    }
+
+    protected boolean roundProcessing() {
+        return isRoundProcessing.get();
+    }
+
     @Override
     public void dropPlayer(Long memberId) {
     }

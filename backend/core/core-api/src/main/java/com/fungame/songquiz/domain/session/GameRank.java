@@ -13,6 +13,16 @@ public class GameRank {
         players.forEach(this::addPlayer);
     }
 
+    static GameRank restore(List<Participant> participants) {
+        GameRank rank = new GameRank(List.of());
+        participants.forEach(participant -> rank.participants.put(participant.player().memberId(), participant));
+        return rank;
+    }
+
+    List<Participant> snapshot() {
+        return List.copyOf(participants.values());
+    }
+
     public void updatePoint(Long memberId) {
         participants.computeIfPresent(memberId, (id, participant) -> participant.scored());
     }

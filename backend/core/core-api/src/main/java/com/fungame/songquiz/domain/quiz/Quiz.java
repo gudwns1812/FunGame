@@ -36,4 +36,6 @@ public interface Quiz {
     int getTotalRound();
 
     String getHint();
+
+    QuizSnapshot snapshot();
 }

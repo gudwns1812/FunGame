@@ -11,6 +11,16 @@ public class RoundClock {
 
     private volatile Instant startedAt;
 
+    static RoundClock restore(Instant startedAt) {
+        RoundClock roundClock = new RoundClock();
+        roundClock.startedAt = startedAt;
+        return roundClock;
+    }
+
+    Instant snapshot() {
+        return startedAt;
+    }
+
     public void start() {
         startedAt = Instant.now();
     }
