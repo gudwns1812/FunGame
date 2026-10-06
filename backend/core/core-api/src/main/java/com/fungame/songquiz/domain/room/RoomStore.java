@@ -14,8 +14,10 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
+@Slf4j
 @Component
 @RequiredArgsConstructor
 public class RoomStore {
@@ -32,12 +34,13 @@ public class RoomStore {
     }
 
     public Optional<GameRoom> find(Long roomId) {
-        return gameRoomDao.find(roomId).map(this::roomOf);
+        return gameRoomDao.find(roomId).flatMap(this::readableRoomOf);
     }
 
     public List<GameRoom> findAll() {
         return gameRoomDao.findAll().stream()
-                .map(this::roomOf)
+                .map(this::readableRoomOf)
+                .flatMap(Optional::stream)
                 .toList();
     }
 
@@ -49,7 +52,8 @@ public class RoomStore {
         for (int attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
             StoredRoom stored = gameRoomDao.find(roomId)
                     .orElseThrow(() -> new CoreException(ErrorType.GAME_ROOM_NOT_FOUND));
-            GameRoom room = roomOf(stored);
+            GameRoom room = readableRoomOf(stored)
+                    .orElseThrow(() -> new CoreException(ErrorType.GAME_ROOM_NOT_FOUND));
             Set<Long> membersBefore = memberIdsOf(room);
 
             T result = change.apply(room);
@@ -69,17 +73,25 @@ public class RoomStore {
                 return false;
             }
 
-            GameRoom room = roomOf(stored.get());
-            if (!condition.test(room)) {
+            Optional<GameRoom> room = readableRoomOf(stored.get());
+            if (room.isEmpty() || !condition.test(room.get())) {
                 return false;
             }
 
-            if (gameRoomDao.delete(roomId, stored.get().revision(), memberIdsOf(room))) {
+            if (gameRoomDao.delete(roomId, stored.get().revision(), memberIdsOf(room.get()))) {
                 return true;
             }
         }
 
         return false;
+    }
+
+    public List<Long> removeUnreadable() {
+        return gameRoomDao.findAll().stream()
+                .filter(stored -> readableRoomOf(stored).isEmpty())
+                .filter(stored -> gameRoomDao.delete(stored.roomId(), stored.revision(), Set.of()))
+                .map(StoredRoom::roomId)
+                .toList();
     }
 
     private boolean write(StoredRoom stored, GameRoom room, Set<Long> membersBefore) {
@@ -113,11 +125,12 @@ public class RoomStore {
         }
     }
 
-    private GameRoom roomOf(StoredRoom stored) {
+    private Optional<GameRoom> readableRoomOf(StoredRoom stored) {
         try {
-            return GameRoom.restore(objectMapper.readValue(stored.body(), RoomSnapshot.class));
-        } catch (JsonProcessingException e) {
-            throw new IllegalStateException("저장된 방 " + stored.roomId() + " 을 읽지 못했다", e);
+            return Optional.of(GameRoom.restore(objectMapper.readValue(stored.body(), RoomSnapshot.class)));
+        } catch (JsonProcessingException | RuntimeException e) {
+            log.warn("저장된 방 {} 을 읽지 못해 없는 방으로 본다", stored.roomId(), e);
+            return Optional.empty();
         }
     }
 }

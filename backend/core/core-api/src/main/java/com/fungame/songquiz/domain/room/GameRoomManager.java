@@ -183,9 +183,18 @@ public class GameRoomManager {
                 .filter(roomId -> roomStore.removeIf(roomId, room -> room.isIdle(threshold)))
                 .forEach(roomId -> {
                     log.info("유휴 방 정리: {}", roomId);
-                    clearGameOf(roomId);
-                    applicationEventPublisher.publishEvent(new RoomChangedEvent());
+                    afterRemoved(roomId);
                 });
+
+        roomStore.removeUnreadable().forEach(roomId -> {
+            log.warn("읽을 수 없는 방 정리: {}", roomId);
+            afterRemoved(roomId);
+        });
+    }
+
+    private void afterRemoved(Long roomId) {
+        clearGameOf(roomId);
+        applicationEventPublisher.publishEvent(new RoomChangedEvent());
     }
 
     public List<GameRoom> findAllRooms() {

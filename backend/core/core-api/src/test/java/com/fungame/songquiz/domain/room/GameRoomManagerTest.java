@@ -23,6 +23,7 @@ import org.springframework.context.annotation.Import;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.test.util.ReflectionTestUtils;
 
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
 
 import java.time.Instant;
@@ -159,6 +160,24 @@ class GameRoomManagerTest {
         verify(gameSessionManager).endGameSession(roomId);
         assertThatThrownBy(() -> gameRoomManager.findRoom(roomId))
                 .isInstanceOf(CoreException.class);
+    }
+
+    @Test
+    void 저장_형태를_읽을_수_없는_방은_정리할_때_지우고_알린다() {
+        // given
+        openRoom(8);
+        redisTemplate.opsForHash().putAll(GameRoomDao.KEY_PREFIX + MISSING_ROOM_ID, Map.of("body", "{", "revision", "1"));
+        redisTemplate.opsForSet().add(GameRoomDao.KEY_PREFIX + "ids", MISSING_ROOM_ID.toString());
+
+        // when
+        gameRoomManager.cleanupIdleRooms();
+
+        // then
+        assertThat(redisTemplate.hasKey(GameRoomDao.KEY_PREFIX + MISSING_ROOM_ID)).isFalse();
+        assertThat(gameRoomManager.findAllRooms()).extracting(GameRoom::getRoomId).containsExactly(roomId);
+        verify(gameTimer).stop(MISSING_ROOM_ID);
+        verify(gameSessionManager).endGameSession(MISSING_ROOM_ID);
+        verify(applicationEventPublisher).publishEvent(any(RoomChangedEvent.class));
     }
 
     @Test

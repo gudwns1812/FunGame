@@ -16,6 +16,7 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -35,6 +36,7 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 class RoomStoreTest {
 
     private static final Long ROOM_ID = 7L;
+    private static final Long UNREADABLE_ROOM_ID = 99L;
     private static final GamePlayer HOST = GamePlayer.createNewPlayer(1L);
     private static final GamePlayer GUEST = GamePlayer.createNewPlayer(2L);
     private static final RoomSettings SETTINGS =
@@ -217,5 +219,43 @@ class RoomStoreTest {
         } finally {
             executor.shutdownNow();
         }
+    }
+    @Test
+    @DisplayName("저장 형태를 읽을 수 없는 방은 목록에서 빠지고 나머지 방은 그대로 보인다.")
+    void unreadableRoomIsLeftOutOfTheList() {
+        openRoom(8);
+        plantUnreadableRoom(UNREADABLE_ROOM_ID);
+
+        assertThat(store.findAll()).extracting(GameRoom::getRoomId).containsExactly(ROOM_ID);
+    }
+
+    @Test
+    @DisplayName("저장 형태를 읽을 수 없는 방은 없는 방으로 본다.")
+    void unreadableRoomIsTreatedAsMissing() {
+        plantUnreadableRoom(UNREADABLE_ROOM_ID);
+
+        assertThat(store.find(UNREADABLE_ROOM_ID)).isEmpty();
+        assertThatThrownBy(() -> store.update(UNREADABLE_ROOM_ID, room -> room.join(GUEST)))
+                .isInstanceOf(CoreException.class)
+                .extracting(e -> ((CoreException) e).getType())
+                .isEqualTo(ErrorType.GAME_ROOM_NOT_FOUND);
+    }
+
+    @Test
+    @DisplayName("읽을 수 없는 방을 치우면 그 방만 지우고 지운 방 번호를 돌려준다.")
+    void removeUnreadableRooms() {
+        openRoom(8);
+        plantUnreadableRoom(UNREADABLE_ROOM_ID);
+
+        List<Long> removed = store.removeUnreadable();
+
+        assertThat(removed).containsExactly(UNREADABLE_ROOM_ID);
+        assertThat(redisTemplate.hasKey(GameRoomDao.KEY_PREFIX + UNREADABLE_ROOM_ID)).isFalse();
+        assertThat(store.findAll()).extracting(GameRoom::getRoomId).containsExactly(ROOM_ID);
+    }
+
+    private void plantUnreadableRoom(Long roomId) {
+        redisTemplate.opsForHash().putAll(GameRoomDao.KEY_PREFIX + roomId, Map.of("body", "{\"roomId\":", "revision", "1"));
+        redisTemplate.opsForSet().add(GameRoomDao.KEY_PREFIX + "ids", roomId.toString());
     }
 }
