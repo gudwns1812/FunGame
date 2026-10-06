@@ -37,7 +37,7 @@ public class MetricsConfig {
                     .register(registry);
 
             Gauge.builder("fungame.members.online", connectionTracker, MemberConnectionTracker::onlineCount)
-                    .description("접속 중인 회원 수. 재접속 유예 안에 있는 회원을 포함한다")
+                    .description("접속 중인 회원 수. 모든 서버가 같은 전체 수를 보고한다")
                     .register(registry);
         };
     }

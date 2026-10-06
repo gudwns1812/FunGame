@@ -45,7 +45,6 @@ public class SharedStateCleaner {
             GameRoomManager.class,
             GameSessionManager.class,
             GameTimer.class,
-            MemberConnectionTracker.class,
             RoomLeaveGrace.class,
             StompSessionRegistry.class,
             DailyActiveMemberTracker.class,
@@ -150,6 +149,7 @@ public class SharedStateCleaner {
                 redisTemplate.delete(keys);
             }
         });
+        context.getBeanProvider(MemberConnectionTracker.class).ifAvailable(MemberConnectionTracker::start);
     }
 
     private void closeCircuitBreakers() {
