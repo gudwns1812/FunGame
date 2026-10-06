@@ -13,7 +13,7 @@ public final class StompDestination {
 
     public static final String LOBBY = BROKER_PREFIX + "/lobby";
 
-    public static final String PRESENCE = USER_BROKER_PREFIX + "/presence";
+    public static final String PRESENCE = BROKER_PREFIX + "/presence";
 
     public static final String INVITE = USER_BROKER_PREFIX + "/invite";
 

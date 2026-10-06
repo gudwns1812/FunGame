@@ -135,15 +135,15 @@ class RealtimeChannelAcceptanceTest extends ApiIntegrationTest {
     }
 
     @Test
-    @DisplayName("접속자 목록은 받는 사람마다 자기 자신이 빠진 채로 온다.")
-    void presenceExcludesTheViewer() {
-        host.subscribe(userQueue(StompDestination.PRESENCE));
-        guest.subscribe(userQueue(StompDestination.PRESENCE));
+    @DisplayName("접속자 목록은 모두가 같은 전체 목록 한 건으로 받는다.")
+    void presenceIsOneWholeListForEveryone() {
+        host.subscribe(StompDestination.PRESENCE);
+        guest.subscribe(StompDestination.PRESENCE);
 
         host.createRoom("접속자 확인용 방");
 
-        assertThat(nicknamesOf(host.takeList(userQueue(StompDestination.PRESENCE)))).containsExactly("참가자");
-        assertThat(nicknamesOf(guest.takeList(userQueue(StompDestination.PRESENCE)))).containsExactly("방장");
+        assertThat(nicknamesOf(host.takeList(StompDestination.PRESENCE))).containsExactlyInAnyOrder("방장", "참가자");
+        assertThat(nicknamesOf(guest.takeList(StompDestination.PRESENCE))).containsExactlyInAnyOrder("방장", "참가자");
     }
 
     @Test
