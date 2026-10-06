@@ -14,7 +14,7 @@ import java.util.Set;
 
 @Component
 @RequiredArgsConstructor
-public class MemberProfiles {
+public class MemberProfileCache {
 
     public static final String CACHE_NAME = "memberProfiles";
 

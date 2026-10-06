@@ -23,10 +23,10 @@ class PromotionServiceCacheTest {
     private final PromotionRequestWriter promotionRequestWriter = mock(PromotionRequestWriter.class);
     private final MemberReader memberReader = mock(MemberReader.class);
     private final MemberWriter memberWriter = mock(MemberWriter.class);
-    private final CacheManager cacheManager = new ConcurrentMapCacheManager(MemberProfiles.CACHE_NAME);
-    private final MemberProfiles memberProfiles = new MemberProfiles(memberReader, cacheManager);
+    private final CacheManager cacheManager = new ConcurrentMapCacheManager(MemberProfileCache.CACHE_NAME);
+    private final MemberProfileCache memberProfileCache = new MemberProfileCache(memberReader, cacheManager);
     private final PromotionService promotionService = new PromotionService(
-            promotionRequestReader, promotionRequestWriter, memberReader, memberWriter, memberProfiles);
+            promotionRequestReader, promotionRequestWriter, memberReader, memberWriter, memberProfileCache);
 
     @Test
     @DisplayName("승급을 승인하면 캐시에 남아 있던 옛 역할이 새 역할로 바뀐다.")
@@ -38,10 +38,10 @@ class PromotionServiceCacheTest {
                 PromotionRequest.open(member.getInfo())));
 
         // 승인 전에 누군가 프로필을 읽어 캐시에 USER 가 올라와 있다
-        assertThat(memberProfiles.of(MEMBER_ID).role()).isEqualTo(Role.USER);
+        assertThat(memberProfileCache.of(MEMBER_ID).role()).isEqualTo(Role.USER);
 
         promotionService.approveRequest(REQUEST_ID);
 
-        assertThat(memberProfiles.of(MEMBER_ID).role()).isEqualTo(Role.ADMIN);
+        assertThat(memberProfileCache.of(MEMBER_ID).role()).isEqualTo(Role.ADMIN);
     }
 }

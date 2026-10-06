@@ -7,7 +7,7 @@ import static org.mockito.Mockito.verify;
 
 import com.fungame.songquiz.api.controller.response.ApiResponse;
 import com.fungame.songquiz.api.controller.response.RoomStateResponse;
-import com.fungame.songquiz.domain.member.MemberProfiles;
+import com.fungame.songquiz.domain.member.MemberProfileCache;
 import com.fungame.songquiz.domain.member.MemberReader;
 import com.fungame.songquiz.domain.room.GamePlayer;
 import com.fungame.songquiz.domain.room.PlayerJoinEvent;
@@ -38,14 +38,14 @@ class GameNotifierTest {
 
     private final StompBroadcaster broadcaster = mock(StompBroadcaster.class);
     private final MemberReader memberReader = mock(MemberReader.class);
-    private final CacheManager cacheManager = new ConcurrentMapCacheManager(MemberProfiles.CACHE_NAME);
-    private final MemberProfiles memberProfiles = new MemberProfiles(memberReader, cacheManager);
-    private final GameNotifier gameNotifier = new GameNotifier(broadcaster, memberProfiles);
+    private final CacheManager cacheManager = new ConcurrentMapCacheManager(MemberProfileCache.CACHE_NAME);
+    private final MemberProfileCache memberProfileCache = new MemberProfileCache(memberReader, cacheManager);
+    private final GameNotifier gameNotifier = new GameNotifier(broadcaster, memberProfileCache);
 
     @BeforeEach
     void nameEveryone() {
-        memberProfiles.refresh(MemberFixture.withId(HOST.memberId(), "방장"));
-        memberProfiles.refresh(MemberFixture.withId(GUEST.memberId(), "참가자"));
+        memberProfileCache.refresh(MemberFixture.withId(HOST.memberId(), "방장"));
+        memberProfileCache.refresh(MemberFixture.withId(GUEST.memberId(), "참가자"));
     }
 
     @Test
@@ -57,7 +57,7 @@ class GameNotifierTest {
         assertThat(payload).containsEntry("type", "PLAYER_JOIN")
                 .containsEntry("memberId", GUEST.memberId())
                 .containsEntry("nickname", "참가자");
-        assertThat(payload.get("room")).isEqualTo(RoomStateResponse.from(state(3), memberProfiles));
+        assertThat(payload.get("room")).isEqualTo(RoomStateResponse.from(state(3), memberProfileCache));
     }
 
     @Test
@@ -67,7 +67,7 @@ class GameNotifierTest {
 
         Map<String, Object> payload = capturedPayload();
         assertThat(payload).containsEntry("type", "PLAYER_LEAVE");
-        assertThat(payload.get("room")).isEqualTo(RoomStateResponse.from(state(4), memberProfiles));
+        assertThat(payload.get("room")).isEqualTo(RoomStateResponse.from(state(4), memberProfileCache));
     }
 
     @Test
@@ -77,7 +77,7 @@ class GameNotifierTest {
 
         Map<String, Object> payload = capturedPayload();
         assertThat(payload).containsEntry("type", "ROOM_SETTINGS_CHANGED").containsKey("settings");
-        assertThat(payload.get("room")).isEqualTo(RoomStateResponse.from(state(5), memberProfiles));
+        assertThat(payload.get("room")).isEqualTo(RoomStateResponse.from(state(5), memberProfileCache));
     }
 
     @SuppressWarnings("unchecked")

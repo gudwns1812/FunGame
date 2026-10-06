@@ -5,7 +5,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import org.springframework.stereotype.Component;
 
 @Component
-public class StompSessions {
+public class StompSessionRegistry {
 
     private final Map<String, Long> memberIdBySessionId = new ConcurrentHashMap<>();
 

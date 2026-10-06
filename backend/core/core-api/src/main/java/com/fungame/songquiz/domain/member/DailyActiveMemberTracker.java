@@ -13,7 +13,7 @@ import java.util.Set;
 
 @Slf4j
 @Component
-public class DailyActiveMembers {
+public class DailyActiveMemberTracker {
 
     static final String FIRST_SEEN_METER = "fungame.member.first.seen";
 
@@ -24,7 +24,7 @@ public class DailyActiveMembers {
     private final Set<Long> memberIdsSeenToday = new HashSet<>();
     private LocalDate memoDate;
 
-    public DailyActiveMembers(MemberActivityDao memberActivityDao, Clock clock, MeterRegistry meterRegistry) {
+    public DailyActiveMemberTracker(MemberActivityDao memberActivityDao, Clock clock, MeterRegistry meterRegistry) {
         this.memberActivityDao = memberActivityDao;
         this.clock = clock;
         this.firstSeen = Counter.builder(FIRST_SEEN_METER)

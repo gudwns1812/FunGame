@@ -2,10 +2,10 @@ package com.fungame.songquiz.support;
 
 import com.fungame.songquiz.api.websocket.LobbyNotifier;
 import com.fungame.songquiz.api.websocket.RoomLeaveGrace;
-import com.fungame.songquiz.api.websocket.StompSessions;
-import com.fungame.songquiz.domain.member.DailyActiveMembers;
+import com.fungame.songquiz.api.websocket.StompSessionRegistry;
+import com.fungame.songquiz.domain.member.DailyActiveMemberTracker;
 import com.fungame.songquiz.domain.member.MemberConnectionTracker;
-import com.fungame.songquiz.domain.quiz.QuizFactories;
+import com.fungame.songquiz.domain.quiz.QuizFactoryRegistry;
 import com.fungame.songquiz.domain.room.GameRoomManager;
 import com.fungame.songquiz.domain.session.GameServiceRouter;
 import com.fungame.songquiz.domain.session.GameSessionManager;
@@ -47,15 +47,15 @@ public class SharedStateCleaner {
             GameTimer.class,
             MemberConnectionTracker.class,
             RoomLeaveGrace.class,
-            StompSessions.class,
-            DailyActiveMembers.class,
+            StompSessionRegistry.class,
+            DailyActiveMemberTracker.class,
             LobbyNotifier.class);
 
     /**
      * 기동 때 한 번 채우고 그 뒤로 바뀌지 않는 레지스트리. 테스트 사이에 비우면 앱이 죽는다. 상태를 든 것처럼 보이지만 치우면 안 되는 것들이라 여기 적어 구분한다.
      */
     private static final List<Class<?>> IMMUTABLE_REGISTRIES = List.of(
-            QuizFactories.class,
+            QuizFactoryRegistry.class,
             GameServiceRouter.class);
 
     private static final List<String> REDIS_SHARED_STATE_PREFIXES = List.of(

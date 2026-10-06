@@ -5,7 +5,7 @@ import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
-import com.fungame.songquiz.domain.member.DailyActiveMembers;
+import com.fungame.songquiz.domain.member.DailyActiveMemberTracker;
 import com.fungame.songquiz.domain.member.MemberConnectionTracker;
 import com.fungame.songquiz.support.StompMessages;
 import org.junit.jupiter.api.BeforeEach;
@@ -30,16 +30,16 @@ class WebSocketEventListenerTest {
     MemberConnectionTracker memberConnectionTracker;
 
     @Mock
-    DailyActiveMembers dailyActiveMembers;
+    DailyActiveMemberTracker dailyActiveMemberTracker;
 
-    StompSessions stompSessions;
+    StompSessionRegistry stompSessionRegistry;
     WebSocketEventListener listener;
 
     @BeforeEach
     void setUp() {
-        stompSessions = new StompSessions();
+        stompSessionRegistry = new StompSessionRegistry();
         listener = new WebSocketEventListener(
-                stompSessions, roomLeaveGrace, memberConnectionTracker, dailyActiveMembers);
+                stompSessionRegistry, roomLeaveGrace, memberConnectionTracker, dailyActiveMemberTracker);
     }
 
     @Test
@@ -47,10 +47,10 @@ class WebSocketEventListenerTest {
     void registerSessionAndCancelPendingLeaveOnConnect() {
         connect("session-1");
 
-        assertThat(stompSessions.countSessionsOf(MEMBER_ID)).isEqualTo(1);
+        assertThat(stompSessionRegistry.countSessionsOf(MEMBER_ID)).isEqualTo(1);
         verify(memberConnectionTracker).connect(MEMBER_ID, "session-1");
         verify(roomLeaveGrace).cancelFor(MEMBER_ID);
-        verify(dailyActiveMembers).record(MEMBER_ID);
+        verify(dailyActiveMemberTracker).record(MEMBER_ID);
     }
 
     @Test
@@ -58,9 +58,9 @@ class WebSocketEventListenerTest {
     void ignoreSessionWithoutMember() {
         listener.handleConnected(new SessionConnectedEvent(this, StompMessages.session("session-1"), null));
 
-        assertThat(stompSessions.count()).isZero();
+        assertThat(stompSessionRegistry.count()).isZero();
         verify(roomLeaveGrace, never()).cancelFor(MEMBER_ID);
-        verify(dailyActiveMembers, never()).record(MEMBER_ID);
+        verify(dailyActiveMemberTracker, never()).record(MEMBER_ID);
     }
 
     @Test
@@ -70,7 +70,7 @@ class WebSocketEventListenerTest {
 
         disconnect("session-1");
 
-        assertThat(stompSessions.count()).isZero();
+        assertThat(stompSessionRegistry.count()).isZero();
         verify(memberConnectionTracker).disconnect(MEMBER_ID, "session-1");
         verify(roomLeaveGrace).beginFor(MEMBER_ID);
     }

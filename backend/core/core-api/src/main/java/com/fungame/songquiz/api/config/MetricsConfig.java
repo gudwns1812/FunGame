@@ -1,6 +1,6 @@
 package com.fungame.songquiz.api.config;
 
-import com.fungame.songquiz.api.websocket.StompSessions;
+import com.fungame.songquiz.api.websocket.StompSessionRegistry;
 import com.fungame.songquiz.domain.member.MemberConnectionTracker;
 import com.fungame.songquiz.domain.room.GameRoomService;
 import com.fungame.songquiz.domain.session.GameSessionManager;
@@ -30,9 +30,9 @@ public class MetricsConfig {
     }
 
     @Bean
-    public MeterBinder connectionMetrics(StompSessions stompSessions, MemberConnectionTracker connectionTracker) {
+    public MeterBinder connectionMetrics(StompSessionRegistry stompSessionRegistry, MemberConnectionTracker connectionTracker) {
         return registry -> {
-            Gauge.builder("fungame.stomp.sessions", stompSessions, StompSessions::count)
+            Gauge.builder("fungame.stomp.sessions", stompSessionRegistry, StompSessionRegistry::count)
                     .description("열려 있는 STOMP 세션 수")
                     .register(registry);
 

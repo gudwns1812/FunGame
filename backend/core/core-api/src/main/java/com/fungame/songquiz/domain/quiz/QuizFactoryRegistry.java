@@ -12,11 +12,11 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Component
-public class QuizFactories {
+public class QuizFactoryRegistry {
 
     private final Map<GameType, QuizFactory> factories;
 
-    public QuizFactories(List<QuizFactory> factories) {
+    public QuizFactoryRegistry(List<QuizFactory> factories) {
         this.factories = factories.stream()
                 .collect(Collectors.toMap(QuizFactory::getSupportedType, Function.identity()));
     }

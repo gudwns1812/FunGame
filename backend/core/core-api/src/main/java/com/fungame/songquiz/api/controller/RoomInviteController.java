@@ -8,7 +8,7 @@ import com.fungame.songquiz.domain.invite.RoomInviteNotification;
 import com.fungame.songquiz.domain.invite.RoomInviteService;
 import com.fungame.songquiz.domain.invite.SentInvite;
 import com.fungame.songquiz.domain.member.MemberAdapter;
-import com.fungame.songquiz.domain.member.MemberProfiles;
+import com.fungame.songquiz.domain.member.MemberProfileCache;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -21,7 +21,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class RoomInviteController {
 
     private final RoomInviteService roomInviteService;
-    private final MemberProfiles memberProfiles;
+    private final MemberProfileCache memberProfileCache;
 
     @PostMapping("/api/rooms/{roomId}/invites")
     public ApiResponse<SentInviteResponse> invite(
@@ -37,7 +37,7 @@ public class RoomInviteController {
             @PathVariable String inviteId,
             @AuthenticationPrincipal MemberAdapter member) {
         return ApiResponse.success(
-                AcceptedInviteResponse.from(roomInviteService.accept(inviteId, member.getId()), memberProfiles));
+                AcceptedInviteResponse.from(roomInviteService.accept(inviteId, member.getId()), memberProfileCache));
     }
 
     @PostMapping("/api/invites/{inviteId}/decline")

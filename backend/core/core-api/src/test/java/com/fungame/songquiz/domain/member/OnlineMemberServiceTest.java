@@ -32,11 +32,11 @@ class OnlineMemberServiceTest {
 
     private final MemberConnectionTracker memberConnectionTracker = mock(MemberConnectionTracker.class);
     private final MemberReader memberReader = mock(MemberReader.class);
-    private final CacheManager cacheManager = new ConcurrentMapCacheManager(MemberProfiles.CACHE_NAME);
-    private final MemberProfiles memberProfiles = new MemberProfiles(memberReader, cacheManager);
+    private final CacheManager cacheManager = new ConcurrentMapCacheManager(MemberProfileCache.CACHE_NAME);
+    private final MemberProfileCache memberProfileCache = new MemberProfileCache(memberReader, cacheManager);
     private final GameRoomService gameRoomService = mock(GameRoomService.class);
     private final OnlineMemberService onlineMemberService =
-            new OnlineMemberService(memberConnectionTracker, memberProfiles, gameRoomService);
+            new OnlineMemberService(memberConnectionTracker, memberProfileCache, gameRoomService);
 
     @BeforeEach
     void everyoneIsInLobbyByDefault() {

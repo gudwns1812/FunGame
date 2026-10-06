@@ -50,7 +50,7 @@ class RedisStreamSpreaderTest {
                 .permittedNumberOfCallsInHalfOpenState(1)
                 .build());
         spreader = new RedisStreamSpreader(
-                new BroadcastMessages(new InstanceId("instance-a"), new ObjectMapper(), meterRegistry),
+                new BroadcastMessageFactory(new InstanceId("instance-a"), new ObjectMapper(), meterRegistry),
                 stream, breaker, meterRegistry);
     }
 

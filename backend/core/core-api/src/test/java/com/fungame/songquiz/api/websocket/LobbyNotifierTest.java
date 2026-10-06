@@ -14,7 +14,7 @@ import com.fungame.songquiz.api.controller.response.ApiResponse;
 import com.fungame.songquiz.api.controller.response.OnlineMemberResponse;
 import com.fungame.songquiz.api.controller.response.RoomResponse;
 import com.fungame.songquiz.domain.member.MemberPresenceChangedEvent;
-import com.fungame.songquiz.domain.member.MemberProfiles;
+import com.fungame.songquiz.domain.member.MemberProfileCache;
 import com.fungame.songquiz.domain.member.MemberReader;
 import com.fungame.songquiz.domain.member.OnlineMemberInfo;
 import com.fungame.songquiz.domain.member.OnlineMemberService;
@@ -48,11 +48,11 @@ class LobbyNotifierTest {
     private final GameRoomService gameRoomService = mock(GameRoomService.class);
     private final OnlineMemberService onlineMemberService = mock(OnlineMemberService.class);
     private final MemberReader memberReader = mock(MemberReader.class);
-    private final MemberProfiles memberProfiles = new MemberProfiles(
+    private final MemberProfileCache memberProfileCache = new MemberProfileCache(
             memberReader,
-            new ConcurrentMapCacheManager(MemberProfiles.CACHE_NAME));
+            new ConcurrentMapCacheManager(MemberProfileCache.CACHE_NAME));
     private final LobbyNotifier lobbyNotifier = new LobbyNotifier(
-            broadcaster, gameRoomService, onlineMemberService, memberProfiles);
+            broadcaster, gameRoomService, onlineMemberService, memberProfileCache);
 
     @Test
     @DisplayName("방이 바뀌면 다시 물어보게 하지 않고 바뀐 방 목록을 로비로 실어 보낸다.")
@@ -63,7 +63,7 @@ class LobbyNotifierTest {
         lobbyNotifier.handleRoomChangedEvent(new RoomChangedEvent());
         lobbyNotifier.processPendingUpdate();
 
-        assertThat(sentToLobby()).isEqualTo(RoomResponse.listFrom(rooms, memberProfiles));
+        assertThat(sentToLobby()).isEqualTo(RoomResponse.listFrom(rooms, memberProfileCache));
     }
 
     @Test

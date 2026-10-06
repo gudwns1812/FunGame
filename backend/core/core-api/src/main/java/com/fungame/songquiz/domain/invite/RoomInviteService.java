@@ -1,7 +1,7 @@
 package com.fungame.songquiz.domain.invite;
 
 import com.fungame.songquiz.domain.member.MemberConnectionTracker;
-import com.fungame.songquiz.domain.member.MemberProfiles;
+import com.fungame.songquiz.domain.member.MemberProfileCache;
 import com.fungame.songquiz.domain.room.GamePlayer;
 import com.fungame.songquiz.domain.room.GameRoomService;
 import com.fungame.songquiz.domain.room.RoomInfo;
@@ -20,10 +20,10 @@ import org.springframework.stereotype.Service;
 public class RoomInviteService {
 
     private final GameRoomService gameRoomService;
-    private final MemberProfiles memberProfiles;
+    private final MemberProfileCache memberProfileCache;
     private final ApplicationEventPublisher eventPublisher;
     private final MemberConnectionTracker memberConnectionTracker;
-    private final RoomInvites roomInvites;
+    private final RoomInviteRegistry roomInviteRegistry;
 
     public RoomInviteNotification invite(Long roomId, Long inviterMemberId, Long targetMemberId) {
         if (inviterMemberId.equals(targetMemberId)) {
@@ -37,7 +37,7 @@ public class RoomInviteService {
         requireWaitingRoom(roomId);
         requireInvitableTarget(targetMemberId);
 
-        RoomInvite invite = roomInvites.issue(roomId, inviterMemberId, targetMemberId);
+        RoomInvite invite = roomInviteRegistry.issue(roomId, inviterMemberId, targetMemberId);
 
         RoomInviteNotification notification = notificationOf(invite);
         eventPublisher.publishEvent(new RoomInviteCreatedEvent(targetMemberId, notification));
@@ -63,7 +63,7 @@ public class RoomInviteService {
     }
 
     private RoomInvite consume(String inviteId, Long memberId) {
-        return roomInvites.take(inviteId, memberId)
+        return roomInviteRegistry.take(inviteId, memberId)
                 .orElseThrow(() -> new CoreException(ErrorType.INVITE_NOT_FOUND));
     }
 
@@ -91,8 +91,8 @@ public class RoomInviteService {
                 invite.roomId(),
                 settings.title(),
                 settings.gameType(),
-                memberProfiles.of(invite.inviterMemberId()).nickname(),
-                RoomInvites.LIFETIME.toSeconds()
+                memberProfileCache.of(invite.inviterMemberId()).nickname(),
+                RoomInviteRegistry.LIFETIME.toSeconds()
         );
     }
 }

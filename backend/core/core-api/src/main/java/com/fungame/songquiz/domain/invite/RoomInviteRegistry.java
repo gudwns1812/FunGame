@@ -11,7 +11,7 @@ import org.springframework.stereotype.Component;
 
 @Component
 @RequiredArgsConstructor
-public class RoomInvites {
+public class RoomInviteRegistry {
 
     static final Duration LIFETIME = Duration.ofSeconds(30);
 

@@ -2,7 +2,7 @@ package com.fungame.songquiz.domain.invite;
 
 import org.springframework.cache.concurrent.ConcurrentMapCacheManager;
 
-import com.fungame.songquiz.domain.member.MemberProfiles;
+import com.fungame.songquiz.domain.member.MemberProfileCache;
 
 import com.fungame.songquiz.domain.member.Member;
 import com.fungame.songquiz.domain.member.MemberConnectionTracker;
@@ -339,8 +339,8 @@ class RoomInviteServiceTest {
     private RoomInviteService serviceOnAnotherInstance() {
         return new RoomInviteService(
                 gameRoomService,
-                new MemberProfiles(memberReader, new ConcurrentMapCacheManager(MemberProfiles.CACHE_NAME)),
-                eventPublisher, memberConnectionTracker, new RoomInvites(roomInviteDao, clock));
+                new MemberProfileCache(memberReader, new ConcurrentMapCacheManager(MemberProfileCache.CACHE_NAME)),
+                eventPublisher, memberConnectionTracker, new RoomInviteRegistry(roomInviteDao, clock));
     }
 
     private String onlyInviteKey() {

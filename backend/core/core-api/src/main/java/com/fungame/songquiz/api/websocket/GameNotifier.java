@@ -3,7 +3,7 @@ package com.fungame.songquiz.api.websocket;
 import com.fungame.songquiz.api.controller.response.ApiResponse;
 import com.fungame.songquiz.api.controller.response.RoomSettingsResponse;
 import com.fungame.songquiz.api.controller.response.RoomStateResponse;
-import com.fungame.songquiz.domain.member.MemberProfiles;
+import com.fungame.songquiz.domain.member.MemberProfileCache;
 import com.fungame.songquiz.domain.quiz.QuizInfo;
 import com.fungame.songquiz.domain.room.GamePlayer;
 import com.fungame.songquiz.domain.room.PlayerJoinEvent;
@@ -36,7 +36,7 @@ import org.springframework.stereotype.Component;
 public class GameNotifier {
 
     private final StompBroadcaster broadcaster;
-    private final MemberProfiles memberProfiles;
+    private final MemberProfileCache memberProfileCache;
 
     @EventListener
     public void handleHangmanAction(HangmanActionEvent event) {
@@ -57,7 +57,7 @@ public class GameNotifier {
         log.info("Broadcasting room settings change in room {}", event.roomId());
         sendRoomState(event.roomId(), Map.of(
                 "type", "ROOM_SETTINGS_CHANGED",
-                "settings", RoomSettingsResponse.from(event.state(), memberProfiles)
+                "settings", RoomSettingsResponse.from(event.state(), memberProfileCache)
         ), event.state());
     }
 
@@ -184,7 +184,7 @@ public class GameNotifier {
 
     private void sendRoomState(Long roomId, Map<String, Object> payload, RoomStateInfo state) {
         Map<String, Object> withRoom = new HashMap<>(payload);
-        withRoom.put("room", RoomStateResponse.from(state, memberProfiles));
+        withRoom.put("room", RoomStateResponse.from(state, memberProfileCache));
 
         broadcaster.send(StompDestination.room(roomId), ApiResponse.success(withRoom));
     }
@@ -203,7 +203,7 @@ public class GameNotifier {
         }
 
         try {
-            return memberProfiles.of(memberId).nickname();
+            return memberProfileCache.of(memberId).nickname();
         } catch (CoreException e) {
             log.info("닉네임을 찾지 못했다: member {}", memberId);
             return null;

@@ -12,7 +12,7 @@ import com.fungame.songquiz.api.controller.response.RoomResponse;
 import com.fungame.songquiz.api.controller.response.RoomSettingsResponse;
 import com.fungame.songquiz.api.controller.response.RoomStateResponse;
 import com.fungame.songquiz.domain.member.MemberAdapter;
-import com.fungame.songquiz.domain.member.MemberProfiles;
+import com.fungame.songquiz.domain.member.MemberProfileCache;
 import com.fungame.songquiz.domain.room.GamePlayer;
 import com.fungame.songquiz.domain.room.GameRoomService;
 import com.fungame.songquiz.domain.room.RoomSettings;
@@ -37,21 +37,21 @@ public class GameController {
 
     private final GameRoomService gameRoomService;
     private final GameService gameService;
-    private final MemberProfiles memberProfiles;
+    private final MemberProfileCache memberProfileCache;
 
     @GetMapping
     public ApiResponse<List<RoomResponse>> findAllRoom() {
-        return ApiResponse.success(RoomResponse.listFrom(gameRoomService.findAllRooms(), memberProfiles));
+        return ApiResponse.success(RoomResponse.listFrom(gameRoomService.findAllRooms(), memberProfileCache));
     }
 
     @GetMapping("/{roomId}/users")
     public ApiResponse<RoomStateResponse> findUsers(@PathVariable Long roomId) {
-        return ApiResponse.success(RoomStateResponse.from(gameRoomService.findRoomState(roomId), memberProfiles));
+        return ApiResponse.success(RoomStateResponse.from(gameRoomService.findRoomState(roomId), memberProfileCache));
     }
 
     @GetMapping("/{roomId}/settings")
     public ApiResponse<RoomSettingsResponse> findSettings(@PathVariable Long roomId) {
-        return ApiResponse.success(RoomSettingsResponse.from(gameRoomService.findRoomState(roomId), memberProfiles));
+        return ApiResponse.success(RoomSettingsResponse.from(gameRoomService.findRoomState(roomId), memberProfileCache));
     }
 
     @PatchMapping("/{roomId}/settings")
@@ -61,7 +61,7 @@ public class GameController {
             @AuthenticationPrincipal MemberAdapter memberAdapter) {
         RoomSettings current = gameRoomService.findRoomState(roomId).settings();
         return ApiResponse.success(RoomSettingsResponse.from(gameRoomService.changeSettings(
-                roomId, memberAdapter.getId(), request.applyTo(current)), memberProfiles));
+                roomId, memberAdapter.getId(), request.applyTo(current)), memberProfileCache));
     }
 
     @GetMapping("/{roomId}/health")
@@ -78,7 +78,7 @@ public class GameController {
     @GetMapping("/{roomId}/play/rank")
     public ApiResponse<List<PlayerScoreResponse>> findPlayingUsers(@PathVariable Long roomId) {
         List<PlayerScoreResponse> users = PlayerScoreResponse.listFrom(gameService.getPlayerRanks(roomId),
-                memberProfiles);
+                memberProfileCache);
         return ApiResponse.success(users);
     }
 
