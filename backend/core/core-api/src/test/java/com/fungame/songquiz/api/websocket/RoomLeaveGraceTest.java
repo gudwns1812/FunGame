@@ -7,12 +7,14 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
 import com.fungame.songquiz.domain.member.MemberConnectionTracker;
+import com.fungame.songquiz.domain.member.MembersWentOfflineEvent;
 import com.fungame.songquiz.domain.room.GameRoomService;
 import com.fungame.songquiz.domain.room.MemberLocation;
 import com.fungame.songquiz.domain.session.GameTimer;
 import com.fungame.songquiz.domain.session.GameTimerTask;
 import com.fungame.songquiz.enums.PlayerStatus;
 import java.time.Duration;
+import java.util.Set;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -107,6 +109,26 @@ class RoomLeaveGraceTest {
         given(memberConnectionTracker.hasLiveConnection(MEMBER_ID)).willReturn(true);
 
         roomLeaveGrace.onTimer(GameTimerTask.leaveRoom(MEMBER_ID));
+
+        verify(gameRoomService, never()).leaveRoom(any(), any());
+    }
+
+    @Test
+    @DisplayName("오프라인이 된 회원은 그때 있는 방에서 내보낸다. 연결이 붙어 있던 서버가 죽어도 빠진다.")
+    void evictMembersWhoWentOffline() {
+        placeIn(ROOM_ID);
+
+        roomLeaveGrace.handleMembersWentOffline(new MembersWentOfflineEvent(Set.of(MEMBER_ID)));
+
+        verify(gameRoomService).leaveRoom(ROOM_ID, MEMBER_ID);
+    }
+
+    @Test
+    @DisplayName("오프라인으로 알려졌어도 그사이 다시 접속했으면 내보내지 않는다.")
+    void keepMembersWhoCameBackBeforeEviction() {
+        given(memberConnectionTracker.hasLiveConnection(MEMBER_ID)).willReturn(true);
+
+        roomLeaveGrace.handleMembersWentOffline(new MembersWentOfflineEvent(Set.of(MEMBER_ID)));
 
         verify(gameRoomService, never()).leaveRoom(any(), any());
     }

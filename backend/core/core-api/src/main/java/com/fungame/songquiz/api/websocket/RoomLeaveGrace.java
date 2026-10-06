@@ -1,6 +1,7 @@
 package com.fungame.songquiz.api.websocket;
 
 import com.fungame.songquiz.domain.member.MemberConnectionTracker;
+import com.fungame.songquiz.domain.member.MembersWentOfflineEvent;
 import com.fungame.songquiz.domain.room.GameRoomService;
 import com.fungame.songquiz.domain.room.MemberLocation;
 import com.fungame.songquiz.domain.session.GameTimer;
@@ -11,6 +12,7 @@ import java.time.Duration;
 import java.util.List;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 
 @Slf4j
@@ -48,10 +50,15 @@ public class RoomLeaveGrace implements GameTimerHandler {
 
     @Override
     public void onTimer(GameTimerTask task) {
-        evictIfStillGone(task.targetId());
+        evictIfStillGone(task.targetId(), grace.toSeconds() + "초 안에 돌아오지 않아");
     }
 
-    private void evictIfStillGone(Long memberId) {
+    @EventListener
+    public void handleMembersWentOffline(MembersWentOfflineEvent event) {
+        event.memberIds().forEach(memberId -> evictIfStillGone(memberId, "접속이 끊긴 채 오프라인이 되어"));
+    }
+
+    private void evictIfStillGone(Long memberId, String reason) {
         if (memberConnectionTracker.hasLiveConnection(memberId)) {
             return;
         }
@@ -63,8 +70,7 @@ public class RoomLeaveGrace implements GameTimerHandler {
 
         try {
             gameRoomService.leaveRoom(location.roomId(), memberId);
-            log.info("{}초 안에 돌아오지 않아 방 {} 에서 회원 {} 을 내보낸다",
-                    grace.toSeconds(), location.roomId(), memberId);
+            log.info("{} 방 {} 에서 회원 {} 을 내보낸다", reason, location.roomId(), memberId);
         } catch (CoreException e) {
             log.info("이탈 처리 시점에 방 {} 이 이미 없다: 회원 {}", location.roomId(), memberId);
         } catch (Exception e) {

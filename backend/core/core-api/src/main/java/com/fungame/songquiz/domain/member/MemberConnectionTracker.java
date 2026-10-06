@@ -60,9 +60,13 @@ public class MemberConnectionTracker {
     }
 
     private void forgetDeadInstances() {
-        if (memberPresenceDao.forgetDeadInstances() > 0) {
-            announceOnlineChange();
+        Set<Long> wentOffline = memberPresenceDao.forgetDeadInstances();
+        if (wentOffline.isEmpty()) {
+            return;
         }
+
+        announceOnlineChange();
+        applicationEventPublisher.publishEvent(new MembersWentOfflineEvent(wentOffline));
     }
 
     private void announceOnlineChange() {
