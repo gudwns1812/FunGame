@@ -219,4 +219,32 @@ class GameRoomTest {
                 .containsExactly(HOST.memberId(), PLAYER2.memberId());
         assertThat(state.host().memberId()).isEqualTo(HOST.memberId());
     }
+
+    @Test
+    @DisplayName("스냅샷으로 되살린 방은 참가자 · 준비 · 방장 · 설정 · 상태 · version 이 같다.")
+    void restoredFromSnapshotIsTheSameRoom() {
+        gameRoom.join(PLAYER2);
+        gameRoom.readyPlayer(PLAYER2.memberId());
+        gameRoom.start(HOST.memberId());
+
+        GameRoom restored = GameRoom.restore(gameRoom.snapshot());
+
+        assertThat(restored.snapshot()).isEqualTo(gameRoom.snapshot());
+        assertThat(restored.getRoomPlayers()).isEqualTo(gameRoom.getRoomPlayers());
+        assertThat(restored.getHostId()).isEqualTo(HOST.memberId());
+        assertThat(restored.isPlaying()).isTrue();
+        assertThat(restored.getVersion()).isEqualTo(gameRoom.getVersion());
+    }
+
+    @Test
+    @DisplayName("되살린 방도 같은 규칙으로 움직인다. 정원이 찬 방에는 더 들어올 수 없다.")
+    void restoredRoomKeepsTheRules() {
+        gameRoom.join(PLAYER2);
+
+        GameRoom restored = GameRoom.restore(gameRoom.snapshot());
+
+        assertThatThrownBy(() -> restored.join(PLAYER3))
+                .isInstanceOf(CoreException.class)
+                .hasFieldOrPropertyWithValue("type", ErrorType.GAME_ROOM_MAX_PLAYER_EXCEED);
+    }
 }

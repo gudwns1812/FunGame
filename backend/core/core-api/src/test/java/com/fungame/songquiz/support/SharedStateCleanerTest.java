@@ -9,6 +9,7 @@ import static org.mockito.Mockito.verify;
 import io.github.resilience4j.circuitbreaker.CircuitBreaker;
 import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
 import com.fungame.songquiz.domain.member.MemberConnectionTracker;
+import com.fungame.songquiz.storage.redis.GameRoomDao;
 import com.fungame.songquiz.storage.redis.MemberPresenceDao;
 import com.fungame.songquiz.storage.redis.RoomInviteDao;
 import java.util.Set;
@@ -38,13 +39,15 @@ class SharedStateCleanerTest {
     }
 
     @Test
-    @DisplayName("Redis 에 남은 접속 상태와 초대를 지운다. 앞 테스트의 것이 다음 테스트에 섞이지 않는다.")
+    @DisplayName("Redis 에 남은 접속 상태 · 초대 · 방을 지운다. 앞 테스트의 것이 다음 테스트에 섞이지 않는다.")
     void it_clears_shared_state_left_in_redis() {
         StringRedisTemplate redisTemplate = mock(StringRedisTemplate.class);
         Set<String> presenceKeys = Set.of(MemberPresenceDao.KEY_PREFIX + "online");
         Set<String> inviteKeys = Set.of(RoomInviteDao.KEY_PREFIX + "2:invite-id");
+        Set<String> roomKeys = Set.of(GameRoomDao.KEY_PREFIX + "7");
         given(redisTemplate.keys(MemberPresenceDao.KEY_PREFIX + "*")).willReturn(presenceKeys);
         given(redisTemplate.keys(RoomInviteDao.KEY_PREFIX + "*")).willReturn(inviteKeys);
+        given(redisTemplate.keys(GameRoomDao.KEY_PREFIX + "*")).willReturn(roomKeys);
 
         try (GenericApplicationContext context = new GenericApplicationContext()) {
             context.registerBean(StringRedisTemplate.class, () -> redisTemplate);
@@ -55,6 +58,7 @@ class SharedStateCleanerTest {
 
         verify(redisTemplate).delete(presenceKeys);
         verify(redisTemplate).delete(inviteKeys);
+        verify(redisTemplate).delete(roomKeys);
     }
 
     @Test

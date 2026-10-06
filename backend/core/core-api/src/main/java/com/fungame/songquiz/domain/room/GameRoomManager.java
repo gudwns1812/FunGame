@@ -12,33 +12,29 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
+import java.time.Duration;
 import java.time.Instant;
-import java.time.temporal.ChronoUnit;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 
 @Slf4j
 @Component
 @RequiredArgsConstructor
 public class GameRoomManager {
-    private final Map<Long, GameRoom> gameRooms = new ConcurrentHashMap<>();
+
+    private static final Duration MAX_IDLE = Duration.ofMinutes(30);
+    private static final Duration TOUCH_INTERVAL = Duration.ofMinutes(1);
+
     private final RoomNumberWriter roomNumberWriter;
-    private final RoomLock roomLock;
+    private final RoomStore roomStore;
     private final ApplicationEventPublisher applicationEventPublisher;
     private final GameTimer gameTimer;
     private final GameSessionManager gameSessionManager;
 
-    private static final long MAX_IDLE_MINUTES = 30;
-
     private GameRoom getRoom(Long roomId) {
-        GameRoom gameRoom = gameRooms.get(roomId);
-        if (gameRoom == null) {
-            throw new CoreException(ErrorType.GAME_ROOM_NOT_FOUND);
-        }
-
-        return gameRoom;
+        return roomStore.find(roomId)
+                .orElseThrow(() -> new CoreException(ErrorType.GAME_ROOM_NOT_FOUND));
     }
 
     public GameRoom findRoom(Long roomId) {
@@ -47,28 +43,32 @@ public class GameRoomManager {
 
     public Long createGameRoom(RoomSettings settings, GamePlayer host) {
         Long roomId = roomNumberWriter.issueNext();
-        gameRooms.put(roomId, GameRoom.create(roomId, settings, host));
+        roomStore.create(GameRoom.create(roomId, settings, host));
 
         return roomId;
     }
 
     public JoinResult joinRoom(Long roomId, GamePlayer player) {
-        return roomLock.processWithLockKey(roomId, () -> {
-            GameRoom gameRoom = getRoom(roomId);
+        Admission admission = roomStore.update(roomId, gameRoom -> {
             gameRoom.touch();
 
-            JoinResult result = gameRoom.isPlaying()
+            return gameRoom.isPlaying()
                     ? rejoinPlayingRoom(roomId, gameRoom, player)
-                    : gameRoom.join(player);
-
-            applicationEventPublisher.publishEvent(new RoomChangedEvent());
-            return result;
+                    : new Admission(gameRoom.join(player), null);
         });
+
+        if (admission.restoredInto() != null) {
+            admission.restoredInto().restorePlayer(player);
+            log.info("게임 재입장: room {}, member {}", roomId, player.memberId());
+        }
+
+        applicationEventPublisher.publishEvent(new RoomChangedEvent());
+        return admission.result();
     }
 
-    private JoinResult rejoinPlayingRoom(Long roomId, GameRoom gameRoom, GamePlayer player) {
+    private Admission rejoinPlayingRoom(Long roomId, GameRoom gameRoom, GamePlayer player) {
         if (gameRoom.hasPlayer(player.memberId())) {
-            return new JoinResult(gameRoom.getPlayerCount(), false, RoomStateInfo.from(gameRoom));
+            return new Admission(new JoinResult(gameRoom.getPlayerCount(), false, RoomStateInfo.from(gameRoom)), null);
         }
 
         GameSession gameSession = gameSessionManager.getGameSession(roomId);
@@ -76,16 +76,14 @@ public class GameRoomManager {
             throw new CoreException(ErrorType.GAME_ALREADY_PLAYING);
         }
 
-        JoinResult result = gameRoom.rejoin(player);
-        gameSession.restorePlayer(player);
-        log.info("게임 재입장: room {}, member {}", roomId, player.memberId());
+        return new Admission(gameRoom.rejoin(player), gameSession);
+    }
 
-        return result;
+    private record Admission(JoinResult result, GameSession restoredInto) {
     }
 
     public LeaveResult leaveRoom(Long roomId, Long memberId) {
-        return roomLock.processWithLockKey(roomId, () -> {
-            GameRoom gameRoom = getRoom(roomId);
+        LeaveResult result = roomStore.update(roomId, gameRoom -> {
             boolean wasPlaying = gameRoom.isPlaying();
             boolean wasInRoom = gameRoom.hasPlayer(memberId);
 
@@ -93,112 +91,120 @@ public class GameRoomManager {
             gameRoom.touch();
 
             if (gameRoom.isEmpty()) {
-                deleteRoom(roomId);
                 return new LeaveResult(true, wasPlaying, wasInRoom, null);
             }
 
-            applicationEventPublisher.publishEvent(new RoomChangedEvent());
             return new LeaveResult(false, wasPlaying, wasInRoom, RoomStateInfo.from(gameRoom));
         });
+
+        if (result.destroyed()) {
+            clearGameOf(roomId);
+        }
+
+        applicationEventPublisher.publishEvent(new RoomChangedEvent());
+        return result;
     }
 
     public boolean hasPlayer(Long roomId, Long memberId) {
-        return roomLock.processWithLockKey(roomId, () -> {
-            GameRoom liveRoom = gameRooms.get(roomId);
-            return liveRoom != null && liveRoom.hasPlayer(memberId);
-        });
+        return roomStore.find(roomId)
+                .map(gameRoom -> gameRoom.hasPlayer(memberId))
+                .orElse(false);
     }
 
     public KickResult kickPlayer(Long roomId, Long hostId, Long targetId) {
-        return roomLock.processWithLockKey(roomId, () -> {
-            GameRoom gameRoom = getRoom(roomId);
-
+        KickResult result = roomStore.update(roomId, gameRoom -> {
             GamePlayer kicked = gameRoom.kick(hostId, targetId);
-            applicationEventPublisher.publishEvent(new RoomChangedEvent());
-
             return new KickResult(kicked, RoomStateInfo.from(gameRoom));
         });
+
+        applicationEventPublisher.publishEvent(new RoomChangedEvent());
+        return result;
     }
 
-    private void deleteRoom(Long roomId) {
-        if (gameRooms.remove(roomId) == null) {
-            return;
-        }
-
+    private void clearGameOf(Long roomId) {
         gameTimer.stop(roomId);
         gameSessionManager.endGameSession(roomId);
-        applicationEventPublisher.publishEvent(new RoomChangedEvent());
     }
 
     public GameRoom findStartableRoom(Long roomId, Long memberId) {
-        return roomLock.processWithLockKey(roomId, () -> {
-            GameRoom gameRoom = getRoom(roomId);
-            gameRoom.validateStart(memberId);
-            return gameRoom;
-        });
+        GameRoom gameRoom = getRoom(roomId);
+        gameRoom.validateStart(memberId);
+        return gameRoom;
     }
 
     public GameRoom startGame(Long roomId, Long memberId) {
-        return roomLock.processWithLockKey(roomId, () -> {
-            GameRoom gameRoom = getRoom(roomId);
+        GameRoom started = roomStore.update(roomId, gameRoom -> {
             gameRoom.start(memberId);
-            applicationEventPublisher.publishEvent(new RoomChangedEvent());
             return gameRoom;
         });
+
+        applicationEventPublisher.publishEvent(new RoomChangedEvent());
+        return started;
     }
 
     public void endGame(Long roomId) {
-        roomLock.processWithLockKey(roomId, () -> {
-            GameRoom gameRoom = gameRooms.get(roomId);
-            if (gameRoom == null) {
+        try {
+            roomStore.update(roomId, gameRoom -> {
+                gameRoom.finishGame();
+                return null;
+            });
+        } catch (CoreException e) {
+            if (e.getType() == ErrorType.GAME_ROOM_NOT_FOUND) {
                 return;
             }
+            throw e;
+        }
 
-            gameTimer.stop(roomId);
-            gameSessionManager.endGameSession(roomId);
-            gameRoom.finishGame();
-
-            applicationEventPublisher.publishEvent(new RoomChangedEvent());
-        });
+        clearGameOf(roomId);
+        applicationEventPublisher.publishEvent(new RoomChangedEvent());
     }
 
     public RoomStateInfo changeSettings(Long roomId, Long memberId, RoomSettings newSettings) {
-        return roomLock.processWithLockKey(roomId, () -> {
-            GameRoom gameRoom = getRoom(roomId);
+        RoomStateInfo changed = roomStore.update(roomId, gameRoom -> {
             if (!gameRoom.isHost(memberId)) {
                 throw new CoreException(ErrorType.NOT_VALID_HOST);
             }
 
             gameRoom.changeSettings(newSettings);
-            applicationEventPublisher.publishEvent(new RoomChangedEvent());
-
             return RoomStateInfo.from(gameRoom);
         });
+
+        applicationEventPublisher.publishEvent(new RoomChangedEvent());
+        return changed;
     }
 
     @Scheduled(fixedDelay = 60000)
     public void cleanupIdleRooms() {
-        Instant threshold = Instant.now().minus(MAX_IDLE_MINUTES, ChronoUnit.MINUTES);
+        Instant threshold = Instant.now().minus(MAX_IDLE);
 
-        List<Long> idleRoomIds = gameRooms.values().stream()
+        roomStore.findAll().stream()
                 .filter(room -> room.isIdle(threshold))
                 .map(GameRoom::getRoomId)
-                .toList();
+                .filter(roomId -> roomStore.removeIf(roomId, room -> room.isIdle(threshold)))
+                .forEach(roomId -> {
+                    log.info("유휴 방 정리: {}", roomId);
+                    afterRemoved(roomId);
+                });
 
-        idleRoomIds.forEach(roomId -> roomLock.processWithLockKey(roomId, () -> {
-            log.info("유휴 방 정리: {}", roomId);
-            deleteRoom(roomId);
-        }));
+        roomStore.removeUnreadable().forEach(roomId -> {
+            log.warn("읽을 수 없는 방 정리: {}", roomId);
+            afterRemoved(roomId);
+        });
+    }
+
+    private void afterRemoved(Long roomId) {
+        clearGameOf(roomId);
+        applicationEventPublisher.publishEvent(new RoomChangedEvent());
     }
 
     public List<GameRoom> findAllRooms() {
-        return List.copyOf(gameRooms.values());
+        return roomStore.findAll();
     }
 
     public MemberLocation locationOf(Long memberId) {
-        return gameRooms.values().stream()
+        return roomStore.roomIdOf(memberId)
+                .flatMap(roomStore::find)
                 .filter(room -> room.hasPlayer(memberId))
-                .findFirst()
                 .map(MemberLocation::in)
                 .orElseGet(MemberLocation::lobby);
     }
@@ -206,7 +212,7 @@ public class GameRoomManager {
     public MemberLocations locationsOfEveryPlayer() {
         Map<Long, MemberLocation> locationsByMember = new HashMap<>();
 
-        gameRooms.values().forEach(room -> {
+        roomStore.findAll().forEach(room -> {
             MemberLocation location = MemberLocation.in(room);
             room.getRoomPlayers().forEach(player -> locationsByMember.put(player.memberId(), location));
         });
@@ -215,23 +221,28 @@ public class GameRoomManager {
     }
 
     public RoomStateInfo findRoomState(Long roomId) {
-        return roomLock.processWithLockKey(roomId, () -> RoomStateInfo.from(getRoom(roomId)));
+        return RoomStateInfo.from(getRoom(roomId));
     }
 
     public ReadyResult readyPlayer(Long roomId, Long memberId) {
-        return roomLock.processWithLockKey(roomId, () -> {
-            GameRoom gameRoom = getRoom(roomId);
+        return roomStore.update(roomId, gameRoom -> {
             gameRoom.touch();
 
             boolean ready = gameRoom.readyPlayer(memberId);
 
-            return new ReadyResult(ready, gameRoom.isAllReady(),
-                    RoomStateInfo.from(gameRoom));
+            return new ReadyResult(ready, gameRoom.isAllReady(), RoomStateInfo.from(gameRoom));
         });
     }
 
     public void touch(Long roomId) {
-        getRoom(roomId).touch();
+        Instant staleBefore = Instant.now().minus(TOUCH_INTERVAL);
+
+        if (getRoom(roomId).isIdle(staleBefore)) {
+            roomStore.update(roomId, gameRoom -> {
+                gameRoom.touch();
+                return null;
+            });
+        }
     }
 
     public GameType getGameType(Long roomId) {

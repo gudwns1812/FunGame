@@ -19,12 +19,13 @@ public class GameRoom {
     private Instant lastActivityTime;
 
     private GameRoom(Long roomId, RoomSettings settings, GamePlayers players, GameRoomStatus status,
-                     Instant lastActivityTime) {
+                     Instant lastActivityTime, long version) {
         this.roomId = roomId;
         this.settings = settings;
         this.players = players;
         this.status = status;
         this.lastActivityTime = lastActivityTime;
+        this.version.set(version);
     }
 
     public static GameRoom create(Long roomId, RoomSettings settings, GamePlayer host) {
@@ -33,17 +34,23 @@ public class GameRoom {
                 settings,
                 new GamePlayers(List.of(host), settings.maxPlayers(), host.memberId()),
                 GameRoomStatus.WAITING,
-                Instant.now());
+                Instant.now(),
+                0);
     }
 
-    public static GameRoom restore(Long roomId, RoomSettings settings, List<GamePlayer> players, Long hostId,
-                                   GameRoomStatus status, Instant lastActivityTime) {
+    public static GameRoom restore(RoomSnapshot snapshot) {
         return new GameRoom(
-                roomId,
-                settings,
-                new GamePlayers(players, settings.maxPlayers(), hostId),
-                status,
-                lastActivityTime);
+                snapshot.roomId(),
+                snapshot.settings(),
+                new GamePlayers(snapshot.players(), snapshot.settings().maxPlayers(), snapshot.hostId()),
+                snapshot.status(),
+                snapshot.lastActivityTime(),
+                snapshot.version());
+    }
+
+    public RoomSnapshot snapshot() {
+        return new RoomSnapshot(roomId, settings, players.snapshot(), players.getHost(), status, lastActivityTime,
+                version.get());
     }
 
     public long getVersion() {

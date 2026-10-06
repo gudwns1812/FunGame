@@ -14,7 +14,14 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fungame.songquiz.storage.redis.GameRoomDao;
+import com.fungame.songquiz.storage.redis.RedisTestContainer;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.data.redis.DataRedisTest;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.context.annotation.Import;
+import org.springframework.data.redis.core.StringRedisTemplate;
 
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -24,6 +31,8 @@ import static org.mockito.BDDMockito.given;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 
+@DataRedisTest
+@Import({RedisTestContainer.class, GameRoomDao.class})
 @ExtendWith(MockitoExtension.class)
 class GameRoomSettingsTest {
 
@@ -48,6 +57,12 @@ class GameRoomSettingsTest {
     /** 실제로는 DB 카운터가 발급한다. 여기서는 1 부터 순서대로 준다. */
     private final AtomicLong issuedRoomIds = new AtomicLong();
 
+    @Autowired
+    StringRedisTemplate redisTemplate;
+
+    @Autowired
+    GameRoomDao gameRoomDao;
+
     GameRoomManager gameRoomManager;
 
     Long roomId;
@@ -57,9 +72,10 @@ class GameRoomSettingsTest {
         // 방을 만들지 않는 테스트도 있으므로 lenient 로 둔다
         lenient().when(roomNumberWriter.issueNext()).thenAnswer(invocation -> issuedRoomIds.incrementAndGet());
 
+        redisTemplate.delete(redisTemplate.keys(GameRoomDao.KEY_PREFIX + "*"));
         gameRoomManager = new GameRoomManager(
                 roomNumberWriter,
-                new LocalRoomLock(),
+                new RoomStore(gameRoomDao, new ObjectMapper().findAndRegisterModules()),
                 applicationEventPublisher,
                 gameTimer,
                 gameSessionManager
