@@ -1,17 +1,16 @@
 package com.fungame.songquiz.support;
 
 import com.fungame.songquiz.api.websocket.LobbyNotifier;
-import com.fungame.songquiz.api.websocket.RoomLeaveGrace;
 import com.fungame.songquiz.api.websocket.StompSessionRegistry;
 import com.fungame.songquiz.domain.member.DailyActiveMemberTracker;
 import com.fungame.songquiz.domain.member.MemberConnectionTracker;
 import com.fungame.songquiz.domain.quiz.QuizFactoryRegistry;
 import com.fungame.songquiz.domain.session.GameServiceRouter;
-import com.fungame.songquiz.domain.session.GameSessionManager;
-import com.fungame.songquiz.domain.session.GameTimer;
+import com.fungame.songquiz.domain.session.GameTimerPoller;
 import io.github.resilience4j.circuitbreaker.CircuitBreaker;
 import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
 import com.fungame.songquiz.storage.redis.GameRoomDao;
+import com.fungame.songquiz.storage.redis.GameTimerDao;
 import com.fungame.songquiz.storage.redis.MemberPresenceDao;
 import com.fungame.songquiz.storage.redis.RoomInviteDao;
 import java.lang.reflect.Modifier;
@@ -42,9 +41,6 @@ import org.springframework.util.ReflectionUtils;
 public class SharedStateCleaner {
 
     private static final List<Class<?>> STATEFUL_BEANS = List.of(
-            GameSessionManager.class,
-            GameTimer.class,
-            RoomLeaveGrace.class,
             StompSessionRegistry.class,
             DailyActiveMemberTracker.class,
             LobbyNotifier.class);
@@ -54,12 +50,14 @@ public class SharedStateCleaner {
      */
     private static final List<Class<?>> IMMUTABLE_REGISTRIES = List.of(
             QuizFactoryRegistry.class,
-            GameServiceRouter.class);
+            GameServiceRouter.class,
+            GameTimerPoller.class);
 
     private static final List<String> REDIS_SHARED_STATE_PREFIXES = List.of(
             MemberPresenceDao.KEY_PREFIX,
             RoomInviteDao.KEY_PREFIX,
-            GameRoomDao.KEY_PREFIX);
+            GameRoomDao.KEY_PREFIX,
+            GameTimerDao.KEY_PREFIX);
 
     private final ApplicationContext context;
 

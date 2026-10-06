@@ -79,22 +79,23 @@ public class MemberPresenceDao {
         redisTemplate.delete(aliveKeyOf(instanceId));
     }
 
-    public long forgetDeadInstances() {
+    public Set<Long> forgetDeadInstances() {
         return membersOf(INSTANCES_KEY).stream()
                 .filter(instanceId -> !isAlive(instanceId))
-                .mapToLong(this::forget)
-                .sum();
+                .flatMap(instanceId -> forget(instanceId).stream())
+                .collect(Collectors.toUnmodifiableSet());
     }
 
-    private long forget(String instanceId) {
+    private Set<Long> forget(String instanceId) {
         if (!isOne(sets.remove(INSTANCES_KEY, instanceId))) {
-            return 0;
+            return Set.of();
         }
 
         String instanceConnectionsKey = instanceConnectionsKeyOf(instanceId);
-        long wentOffline = membersOf(instanceConnectionsKey).stream()
+        Set<Long> wentOffline = membersOf(instanceConnectionsKey).stream()
                 .filter(entry -> removeConnection(memberOf(entry), instanceId, sessionOf(entry)))
-                .count();
+                .map(MemberPresenceDao::memberOf)
+                .collect(Collectors.toUnmodifiableSet());
         redisTemplate.delete(instanceConnectionsKey);
 
         return wentOffline;

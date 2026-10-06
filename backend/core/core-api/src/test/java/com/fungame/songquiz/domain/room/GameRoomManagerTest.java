@@ -1,8 +1,9 @@
 package com.fungame.songquiz.domain.room;
 
 import com.fungame.songquiz.domain.session.GameSession;
-import com.fungame.songquiz.domain.session.GameSessionManager;
 import com.fungame.songquiz.domain.session.GameTimer;
+import com.fungame.songquiz.domain.quiz.Song;
+import com.fungame.songquiz.domain.quiz.SongQuiz;
 import com.fungame.songquiz.enums.CSQuizDifficulty;
 import com.fungame.songquiz.enums.Category;
 import com.fungame.songquiz.enums.GameType;
@@ -24,9 +25,11 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.util.Map;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
 
 import java.time.Instant;
+import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -58,9 +61,6 @@ class GameRoomManagerTest {
     GameTimer gameTimer;
 
     @Mock
-    GameSessionManager gameSessionManager;
-
-    @Mock
     RoomNumberWriter roomNumberWriter;
 
     /** 실제로는 DB 카운터가 발급한다. 여기서는 1 부터 순서대로 준다. */
@@ -90,8 +90,7 @@ class GameRoomManagerTest {
                 roomNumberWriter,
                 new RoomStore(gameRoomDao, new ObjectMapper().findAndRegisterModules()),
                 applicationEventPublisher,
-                gameTimer,
-                gameSessionManager
+                gameTimer
         );
     }
 
@@ -116,7 +115,7 @@ class GameRoomManagerTest {
     void 마지막_플레이어가_나가면_방과_함께_타이머와_게임세션도_정리한다() {
         // given
         openRoom(8);
-        gameRoomManager.startGame(roomId, HOST.memberId());
+        gameRoomManager.startGame(roomId, HOST.memberId(), room -> songQuiz());
 
         // when
         LeaveResult result = gameRoomManager.leaveRoom(roomId, HOST.memberId());
@@ -125,7 +124,6 @@ class GameRoomManagerTest {
         assertThat(result.destroyed()).isTrue();
         assertThat(result.wasPlaying()).isTrue();
         verify(gameTimer).stop(roomId);
-        verify(gameSessionManager).endGameSession(roomId);
         assertThatThrownBy(() -> gameRoomManager.findRoom(roomId))
                 .isInstanceOf(CoreException.class);
     }
@@ -143,7 +141,6 @@ class GameRoomManagerTest {
         assertThat(result.destroyed()).isFalse();
         assertThat(result.wasPlaying()).isFalse();
         verify(gameTimer, never()).stop(roomId);
-        verify(gameSessionManager, never()).endGameSession(roomId);
     }
 
     @Test
@@ -157,7 +154,6 @@ class GameRoomManagerTest {
 
         // then
         verify(gameTimer).stop(roomId);
-        verify(gameSessionManager).endGameSession(roomId);
         assertThatThrownBy(() -> gameRoomManager.findRoom(roomId))
                 .isInstanceOf(CoreException.class);
     }
@@ -176,7 +172,6 @@ class GameRoomManagerTest {
         assertThat(redisTemplate.hasKey(GameRoomDao.KEY_PREFIX + MISSING_ROOM_ID)).isFalse();
         assertThat(gameRoomManager.findAllRooms()).extracting(GameRoom::getRoomId).containsExactly(roomId);
         verify(gameTimer).stop(MISSING_ROOM_ID);
-        verify(gameSessionManager).endGameSession(MISSING_ROOM_ID);
         verify(applicationEventPublisher).publishEvent(any(RoomChangedEvent.class));
     }
 
@@ -191,7 +186,6 @@ class GameRoomManagerTest {
 
         // then
         verify(gameTimer, times(1)).stop(roomId);
-        verify(gameSessionManager, times(1)).endGameSession(roomId);
     }
 
     @Test
@@ -200,20 +194,17 @@ class GameRoomManagerTest {
         openRoom(8);
         gameRoomManager.joinRoom(roomId, GUEST);
         gameRoomManager.readyPlayer(roomId, GUEST.memberId());
-        gameRoomManager.startGame(roomId, HOST.memberId());
+        gameRoomManager.startGame(roomId, HOST.memberId(), room -> songQuiz());
         gameRoomManager.leaveRoom(roomId, HOST.memberId());
-
-        GameSession session = mock(GameSession.class);
-        given(gameSessionManager.getGameSession(roomId)).willReturn(session);
-        given(session.canRejoin(HOST.memberId())).willReturn(true);
+        assertThat(gameOf(roomId).hasPlayer(HOST.memberId())).isFalse();
 
         // when
-        JoinResult result = gameRoomManager.joinRoom(roomId, HOST);
+        JoinResult result = managerOnAnotherInstance().joinRoom(roomId, HOST);
 
         // then
         assertThat(result.playerNumber()).isEqualTo(2);
         assertThat(result.newlyJoined()).isTrue();
-        verify(session).restorePlayer(HOST);
+        assertThat(gameOf(roomId).hasPlayer(HOST.memberId())).isTrue();
         assertThat(gameRoomManager.findRoom(roomId).getRoomPlayers())
                 .extracting(GamePlayer::memberId)
                 .contains(HOST.memberId());
@@ -223,11 +214,7 @@ class GameRoomManagerTest {
     void 참가자가_아니었던_사람은_진행_중인_방에_들어올_수_없다() {
         // given
         openRoom(8);
-        gameRoomManager.startGame(roomId, HOST.memberId());
-
-        GameSession session = mock(GameSession.class);
-        given(gameSessionManager.getGameSession(roomId)).willReturn(session);
-        given(session.canRejoin(INTRUDER.memberId())).willReturn(false);
+        gameRoomManager.startGame(roomId, HOST.memberId(), room -> songQuiz());
 
         // when & then
         assertThatThrownBy(() -> gameRoomManager.joinRoom(roomId, INTRUDER))
@@ -238,7 +225,7 @@ class GameRoomManagerTest {
     void 아직_이탈_처리되지_않은_플레이어의_재입장은_그대로_통과한다() {
         // given: 새로고침이 이탈 유예보다 빨랐던 경우
         openRoom(8);
-        gameRoomManager.startGame(roomId, HOST.memberId());
+        gameRoomManager.startGame(roomId, HOST.memberId(), room -> songQuiz());
 
         // when
         JoinResult result = gameRoomManager.joinRoom(roomId, HOST);
@@ -246,7 +233,6 @@ class GameRoomManagerTest {
         // then
         assertThat(result.playerNumber()).isEqualTo(1);
         assertThat(result.newlyJoined()).isFalse();
-        verify(gameSessionManager, never()).getGameSession(roomId);
     }
 
     @Test
@@ -351,7 +337,7 @@ class GameRoomManagerTest {
         openRoom(8);
         gameRoomManager.joinRoom(roomId, GUEST);
         gameRoomManager.readyPlayer(roomId, GUEST.memberId());
-        gameRoomManager.startGame(roomId, HOST.memberId());
+        gameRoomManager.startGame(roomId, HOST.memberId(), room -> songQuiz());
 
         MemberLocations locations = gameRoomManager.locationsOfEveryPlayer();
 
@@ -406,9 +392,42 @@ class GameRoomManagerTest {
         gameRoomManager.joinRoom(roomId, GUEST);
         managerOnAnotherInstance().readyPlayer(roomId, GUEST.memberId());
 
-        GameRoom started = gameRoomManager.startGame(roomId, HOST.memberId());
+        gameRoomManager.startGame(roomId, HOST.memberId(), room -> songQuiz());
 
-        assertThat(started.isPlaying()).isTrue();
+        assertThat(gameRoomManager.findRoom(roomId).isPlaying()).isTrue();
+    }
+
+    @Test
+    void 판_도중에_나간_사람은_방과_판에서_한_번에_빠진다() {
+        openRoom(8);
+        gameRoomManager.joinRoom(roomId, GUEST);
+        gameRoomManager.readyPlayer(roomId, GUEST.memberId());
+        gameRoomManager.startGame(roomId, HOST.memberId(), room -> songQuiz());
+
+        managerOnAnotherInstance().leaveRoom(roomId, GUEST.memberId());
+
+        assertThat(gameRoomManager.findRoom(roomId).hasPlayer(GUEST.memberId())).isFalse();
+        assertThat(gameOf(roomId).hasPlayer(GUEST.memberId())).isFalse();
+        assertThat(gameOf(roomId).canRejoin(GUEST.memberId())).isTrue();
+    }
+
+    @Test
+    void 판이_끝나면_방은_대기로_돌아가고_판은_지워진다() {
+        openRoom(8);
+        gameRoomManager.startGame(roomId, HOST.memberId(), room -> songQuiz());
+
+        managerOnAnotherInstance().endGame(roomId);
+
+        assertThat(gameRoomManager.findRoom(roomId).isPlaying()).isFalse();
+        assertThat(storeOnAnotherInstance().findTable(roomId).orElseThrow().game()).isEmpty();
+    }
+
+    private GameSession gameOf(Long roomId) {
+        return storeOnAnotherInstance().findTable(roomId).orElseThrow().game().orElseThrow();
+    }
+
+    private RoomStore storeOnAnotherInstance() {
+        return new RoomStore(gameRoomDao, new ObjectMapper().findAndRegisterModules());
     }
 
     private void makeIdle(Long roomId) {
@@ -416,5 +435,10 @@ class GameRoomManagerTest {
             ReflectionTestUtils.setField(room, "lastActivityTime", Instant.now().minus(31, ChronoUnit.MINUTES));
             return null;
         });
+    }
+
+    private static SongQuiz songQuiz() {
+        return new SongQuiz(List.of(Song.stored(10L, "정답", "가수", List.of(Category.KPOP),
+                LocalDate.of(2020, 1, 1), "youtube.com/10", 30, List.of(), "힌트")), Category.KPOP);
     }
 }

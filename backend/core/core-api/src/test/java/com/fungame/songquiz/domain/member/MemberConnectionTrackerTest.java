@@ -226,6 +226,42 @@ class MemberConnectionTrackerTest {
     }
 
     @Test
+    @DisplayName("죽은 서버를 치우면 그 서버에만 붙어 있던 회원을 오프라인이 된 회원으로 알린다. 끊김 이벤트가 없어도 방에서 내보낼 수 있다.")
+    void announceMembersOfDeadInstanceWentOffline() {
+        otherInstance.connect(MEMBER_ID, FIRST_TAB);
+        otherInstance.connect(OTHER_MEMBER_ID, FIRST_TAB);
+        tracker.connect(OTHER_MEMBER_ID, SECOND_TAB);
+        kill(INSTANCE_B);
+        clearPublishedEvents();
+
+        tracker.heartbeat();
+
+        assertThat(wentOfflineMemberIds()).containsExactly(MEMBER_ID);
+    }
+
+    @Test
+    @DisplayName("같은 서버 id 로 다시 뜨며 이전 연결을 치울 때도 오프라인이 된 회원을 알린다.")
+    void announceMembersWentOfflineOnRestart() {
+        tracker.connect(MEMBER_ID, FIRST_TAB);
+        clearPublishedEvents();
+
+        startedTrackerOn(INSTANCE_A);
+
+        assertThat(wentOfflineMemberIds()).containsExactly(MEMBER_ID);
+    }
+
+    @Test
+    @DisplayName("치울 죽은 서버가 없으면 오프라인 알림을 내지 않는다.")
+    void noWentOfflineEventWithoutDeadInstance() {
+        tracker.connect(MEMBER_ID, FIRST_TAB);
+        clearPublishedEvents();
+
+        tracker.heartbeat();
+
+        assertThat(publishedEvents).noneMatch(MembersWentOfflineEvent.class::isInstance);
+    }
+
+    @Test
     @DisplayName("죽은 서버를 치워도 다른 서버에 연결이 남은 회원은 접속 중이고 알리지 않는다.")
     void sweepKeepsMemberConnectedElsewhere() {
         otherInstance.connect(MEMBER_ID, FIRST_TAB);
@@ -287,6 +323,14 @@ class MemberConnectionTrackerTest {
             return;
         }
         instance.disconnect(MEMBER_ID, sessionId);
+    }
+
+    private List<Long> wentOfflineMemberIds() {
+        return publishedEvents.stream()
+                .filter(MembersWentOfflineEvent.class::isInstance)
+                .map(MembersWentOfflineEvent.class::cast)
+                .flatMap(event -> event.memberIds().stream())
+                .toList();
     }
 
     private long presenceChangeCount() {

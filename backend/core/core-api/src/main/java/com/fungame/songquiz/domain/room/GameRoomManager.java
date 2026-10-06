@@ -1,7 +1,7 @@
 package com.fungame.songquiz.domain.room;
 
+import com.fungame.songquiz.domain.quiz.Quiz;
 import com.fungame.songquiz.domain.session.GameSession;
-import com.fungame.songquiz.domain.session.GameSessionManager;
 import com.fungame.songquiz.domain.session.GameTimer;
 import com.fungame.songquiz.enums.GameType;
 import com.fungame.songquiz.support.error.CoreException;
@@ -17,6 +17,7 @@ import java.time.Instant;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 
 @Slf4j
 @Component
@@ -30,7 +31,6 @@ public class GameRoomManager {
     private final RoomStore roomStore;
     private final ApplicationEventPublisher applicationEventPublisher;
     private final GameTimer gameTimer;
-    private final GameSessionManager gameSessionManager;
 
     private GameRoom getRoom(Long roomId) {
         return roomStore.find(roomId)
@@ -49,46 +49,45 @@ public class GameRoomManager {
     }
 
     public JoinResult joinRoom(Long roomId, GamePlayer player) {
-        Admission admission = roomStore.update(roomId, gameRoom -> {
+        JoinResult result = roomStore.updateTable(roomId, table -> {
+            GameRoom gameRoom = table.room();
             gameRoom.touch();
 
             return gameRoom.isPlaying()
-                    ? rejoinPlayingRoom(roomId, gameRoom, player)
-                    : new Admission(gameRoom.join(player), null);
+                    ? rejoinPlayingRoom(roomId, table, player)
+                    : gameRoom.join(player);
         });
 
-        if (admission.restoredInto() != null) {
-            admission.restoredInto().restorePlayer(player);
-            log.info("게임 재입장: room {}, member {}", roomId, player.memberId());
-        }
-
         applicationEventPublisher.publishEvent(new RoomChangedEvent());
-        return admission.result();
+        return result;
     }
 
-    private Admission rejoinPlayingRoom(Long roomId, GameRoom gameRoom, GamePlayer player) {
+    private JoinResult rejoinPlayingRoom(Long roomId, RoomTable table, GamePlayer player) {
+        GameRoom gameRoom = table.room();
         if (gameRoom.hasPlayer(player.memberId())) {
-            return new Admission(new JoinResult(gameRoom.getPlayerCount(), false, RoomStateInfo.from(gameRoom)), null);
+            return new JoinResult(gameRoom.getPlayerCount(), false, RoomStateInfo.from(gameRoom));
         }
 
-        GameSession gameSession = gameSessionManager.getGameSession(roomId);
-        if (gameSession == null || !gameSession.canRejoin(player.memberId())) {
-            throw new CoreException(ErrorType.GAME_ALREADY_PLAYING);
-        }
+        GameSession gameSession = table.game()
+                .filter(game -> game.canRejoin(player.memberId()))
+                .orElseThrow(() -> new CoreException(ErrorType.GAME_ALREADY_PLAYING));
 
-        return new Admission(gameRoom.rejoin(player), gameSession);
-    }
+        JoinResult result = gameRoom.rejoin(player);
+        gameSession.restorePlayer(player);
+        log.info("게임 재입장: room {}, member {}", roomId, player.memberId());
 
-    private record Admission(JoinResult result, GameSession restoredInto) {
+        return result;
     }
 
     public LeaveResult leaveRoom(Long roomId, Long memberId) {
-        LeaveResult result = roomStore.update(roomId, gameRoom -> {
+        LeaveResult result = roomStore.updateTable(roomId, table -> {
+            GameRoom gameRoom = table.room();
             boolean wasPlaying = gameRoom.isPlaying();
             boolean wasInRoom = gameRoom.hasPlayer(memberId);
 
             gameRoom.leave(memberId);
             gameRoom.touch();
+            table.game().ifPresent(game -> game.removePlayer(memberId));
 
             if (gameRoom.isEmpty()) {
                 return new LeaveResult(true, wasPlaying, wasInRoom, null);
@@ -123,7 +122,6 @@ public class GameRoomManager {
 
     private void clearGameOf(Long roomId) {
         gameTimer.stop(roomId);
-        gameSessionManager.endGameSession(roomId);
     }
 
     public GameRoom findStartableRoom(Long roomId, Long memberId) {
@@ -132,10 +130,14 @@ public class GameRoomManager {
         return gameRoom;
     }
 
-    public GameRoom startGame(Long roomId, Long memberId) {
-        GameRoom started = roomStore.update(roomId, gameRoom -> {
+    public GameSession startGame(Long roomId, Long memberId, Function<GameRoom, Quiz> quizFor) {
+        GameSession started = roomStore.updateTable(roomId, table -> {
+            GameRoom gameRoom = table.room();
             gameRoom.start(memberId);
-            return gameRoom;
+
+            GameSession gameSession = new GameSession(quizFor.apply(gameRoom), gameRoom.getRoomPlayers());
+            table.startGame(gameSession);
+            return gameSession;
         });
 
         applicationEventPublisher.publishEvent(new RoomChangedEvent());
@@ -144,8 +146,9 @@ public class GameRoomManager {
 
     public void endGame(Long roomId) {
         try {
-            roomStore.update(roomId, gameRoom -> {
-                gameRoom.finishGame();
+            roomStore.updateTable(roomId, table -> {
+                table.room().finishGame();
+                table.endGame();
                 return null;
             });
         } catch (CoreException e) {

@@ -18,6 +18,27 @@ public class CsQuiz extends AbstractQuiz {
         this.quizs = quizs;
     }
 
+    private CsQuiz(List<CsQuestion> quizs, int currentIdx, boolean roundProcessing) {
+        super(roundProcessing);
+        this.quizs = quizs;
+        this.currentIdx.set(currentIdx);
+    }
+
+    static CsQuiz restore(CsQuizSnapshot snapshot) {
+        return new CsQuiz(
+                snapshot.questions().stream().map(CsQuestionSnapshot::toQuestion).toList(),
+                snapshot.currentIdx(),
+                snapshot.roundProcessing());
+    }
+
+    @Override
+    public QuizSnapshot snapshot() {
+        return new CsQuizSnapshot(
+                quizs.stream().map(CsQuestionSnapshot::from).toList(),
+                currentIdx.get(),
+                roundProcessing());
+    }
+
     @Override
     public QuizContent getStatus() {
         var quiz = quizs.get(currentIdx.get());

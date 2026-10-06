@@ -24,6 +24,30 @@ public class SongQuiz extends AbstractQuiz {
         this.gameCategory = gameCategory;
     }
 
+    private SongQuiz(List<Song> songs, Category gameCategory, int currentIdx, boolean roundProcessing) {
+        super(roundProcessing);
+        this.songs = songs;
+        this.gameCategory = gameCategory;
+        this.currentIdx.set(currentIdx);
+    }
+
+    static SongQuiz restore(SongQuizSnapshot snapshot) {
+        return new SongQuiz(
+                snapshot.songs().stream().map(SongSnapshot::toSong).toList(),
+                snapshot.category(),
+                snapshot.currentIdx(),
+                snapshot.roundProcessing());
+    }
+
+    @Override
+    public QuizSnapshot snapshot() {
+        return new SongQuizSnapshot(
+                songs.stream().map(SongSnapshot::from).toList(),
+                gameCategory,
+                currentIdx.get(),
+                roundProcessing());
+    }
+
     @Override
     public QuizContent getStatus() {
         int current = currentIdx.get();

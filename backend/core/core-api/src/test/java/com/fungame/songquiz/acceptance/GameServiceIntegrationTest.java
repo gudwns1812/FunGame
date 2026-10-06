@@ -18,6 +18,8 @@ import com.fungame.songquiz.domain.room.GamePlayer;
 import com.fungame.songquiz.domain.room.GameRoomService;
 import com.fungame.songquiz.domain.session.GameResultEvent;
 import com.fungame.songquiz.domain.session.GameService;
+import com.fungame.songquiz.domain.session.GameTimerTask;
+import com.fungame.songquiz.domain.session.QuizGameService;
 import com.fungame.songquiz.domain.session.GameStartEvent;
 import com.fungame.songquiz.domain.session.RoundEndEvent;
 import com.fungame.songquiz.domain.session.RoundStartEvent;
@@ -44,6 +46,9 @@ public class GameServiceIntegrationTest extends ApiIntegrationTest {
 
     @Autowired
     private GameService gameService;
+
+    @Autowired
+    private QuizGameService quizGameService;
 
     @Autowired
     private GameRoomService gameRoomService;
@@ -98,18 +103,18 @@ public class GameServiceIntegrationTest extends ApiIntegrationTest {
         gameRoomService.readyPlayer(roomId, guest.memberId()); // player1도 준비 완료!
 
         doAnswer(invocation -> {
-            if (isGameFlowTransition(invocation.getArgument(1))) {
-                runShortlyAfter(invocation.getArgument(2));
+            if (isGameFlowTransition(invocation.getArgument(0))) {
+                runShortlyAfter(invocation.getArgument(1));
             }
             return null;
-        }).when(gameTimer).startAfter(any(), any(Duration.class), any());
+        }).when(gameTimer).startAfter(any(Duration.class), any(GameTimerTask.class));
     }
 
     private static boolean isGameFlowTransition(Duration delay) {
         return delay.compareTo(LONGEST_GAME_FLOW_TRANSITION) <= 0;
     }
 
-    private static void runShortlyAfter(Runnable callback) {
+    private void runShortlyAfter(GameTimerTask task) {
         new Thread(() -> {
             try {
                 Thread.sleep(SETTLE_MILLIS);
@@ -117,7 +122,7 @@ public class GameServiceIntegrationTest extends ApiIntegrationTest {
                 Thread.currentThread().interrupt();
                 return;
             }
-            callback.run();
+            quizGameService.onTimer(task);
         }).start();
     }
 

@@ -7,6 +7,16 @@ public class SkipVotes {
 
     private final Set<Long> voters = ConcurrentHashMap.newKeySet();
 
+    static SkipVotes restore(Set<Long> voters) {
+        SkipVotes skipVotes = new SkipVotes();
+        skipVotes.voters.addAll(voters);
+        return skipVotes;
+    }
+
+    Set<Long> snapshot() {
+        return Set.copyOf(voters);
+    }
+
     public void add(Long memberId) {
         voters.add(memberId);
     }

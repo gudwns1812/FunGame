@@ -1,8 +1,9 @@
 package com.fungame.songquiz.domain.session;
 
 import com.fungame.songquiz.domain.quiz.HangmanQuiz;
+import com.fungame.songquiz.domain.quiz.Quiz;
+import com.fungame.songquiz.domain.quiz.QuizContent;
 import com.fungame.songquiz.domain.room.GamePlayer;
-import com.fungame.songquiz.domain.room.GameRoom;
 import com.fungame.songquiz.domain.room.GameRoomManager;
 import com.fungame.songquiz.enums.ActionResult;
 import com.fungame.songquiz.enums.GameType;
@@ -35,12 +36,16 @@ public class HangmanGameService implements GameService {
 
     @Override
     public void startGame(Long roomId, Long memberId) {
-        GameRoom gameRoom = gameRoomManager.startGame(roomId, memberId);
-        GameSession gameSession =
-                gameSessionManager.startGame(roomId, gameRoom.getSettings(), gameRoom.getRoomPlayers());
+        Quiz quiz = gameSessionManager.createQuiz(gameRoomManager.findStartableRoom(roomId, memberId).getSettings());
+        if (!(quiz instanceof HangmanQuiz preparedQuiz)) {
+            throw new CoreException(ErrorType.GAME_NOT_FOUND);
+        }
 
+        GameSession gameSession = gameRoomManager.startGame(roomId, memberId, startedRoom -> {
+            preparedQuiz.initPlayers(startedRoom.getRoomPlayers());
+            return preparedQuiz;
+        });
         HangmanQuiz hangmanQuiz = hangmanQuizOf(gameSession);
-        hangmanQuiz.initPlayers(gameRoom.getRoomPlayers());
 
         eventPublisher.publishEvent(new GameStartEvent(roomId, gameSession.getQuizInfo()));
         eventPublisher.publishEvent(
@@ -60,31 +65,40 @@ public class HangmanGameService implements GameService {
 
     @Override
     public void handleAction(Long roomId, GameAction action) {
-        HangmanQuiz hangmanQuiz = hangmanQuizOf(gameSessionManager.getGameSession(roomId));
-
         String payload = action.value();
         if (payload == null || payload.length() != 1) {
             throw new CoreException(ErrorType.INVALID_INPUT_VALUE);
         }
-
-        GamePlayer actor = hangmanQuiz.getCurrentTurnPlayer();
         char letter = payload.charAt(0);
-        ActionResult result = hangmanQuiz.guess(action.memberId(), letter);
 
-        eventPublisher.publishEvent(new HangmanActionEvent(roomId, actor.memberId(), letter, result,
-                hangmanQuiz.getStatus()));
+        Guess guess = gameSessionManager.update(roomId, gameSession -> {
+                    HangmanQuiz hangmanQuiz = hangmanQuizOf(gameSession);
+                    GamePlayer actor = hangmanQuiz.getCurrentTurnPlayer();
+                    ActionResult result = hangmanQuiz.guess(action.memberId(), letter);
 
-        if (result == ActionResult.CORRECT || result == ActionResult.WRONG) {
-            submitResult(roomId, hangmanQuiz);
+                    return new Guess(actor, result, hangmanQuiz.getStatus(), hangmanQuiz.getRemainingTries(),
+                            hangmanQuiz.getAnswer().answer());
+                })
+                .orElseThrow(() -> new CoreException(ErrorType.GAME_NOT_FOUND));
+
+        eventPublisher.publishEvent(new HangmanActionEvent(roomId, guess.actor().memberId(), letter, guess.result(),
+                guess.status()));
+
+        if (guess.result() == ActionResult.CORRECT || guess.result() == ActionResult.WRONG) {
+            submitResult(roomId, guess.remainingTries(), guess.answer());
         }
     }
 
-    private void submitResult(Long roomId, HangmanQuiz hangmanQuiz) {
-        String result = hangmanQuiz.getRemainingTries() == 0 ? "실패" : "성공";
+    private record Guess(GamePlayer actor, ActionResult result, QuizContent status, int remainingTries,
+                         String answer) {
+    }
+
+    private void submitResult(Long roomId, int remainingTries, String answer) {
+        String result = remainingTries == 0 ? "실패" : "성공";
 
         List<ResultRow> resultRows = List.of(
-                ResultRow.labelled(result, hangmanQuiz.getRemainingTries()),
-                ResultRow.labelled(hangmanQuiz.getAnswer().answer(), NO_SCORE));
+                ResultRow.labelled(result, remainingTries),
+                ResultRow.labelled(answer, NO_SCORE));
         // 브로드캐스트가 터져도 방이 PLAYING 으로 굳지 않게 한다.
         try {
             eventPublisher.publishEvent(new GameResultEvent(roomId, resultRows));
@@ -112,7 +126,7 @@ public class HangmanGameService implements GameService {
 
     @Override
     public GameStateDto getPlayState(Long roomId) {
-        HangmanQuiz hangmanQuiz = hangmanQuizOf(gameSessionManager.getGameSession(roomId));
+        HangmanQuiz hangmanQuiz = hangmanQuizOf(gameSessionManager.find(roomId).orElse(null));
 
         return new GameStateDto(
                 hangmanQuiz.getQuizInfo(),
@@ -126,23 +140,12 @@ public class HangmanGameService implements GameService {
 
     @Override
     public void handlePlayerLeave(Long roomId, Long memberId) {
-        GameSession session = gameSessionManager.getGameSession(roomId);
-        if (session == null) {
-            return;
-        }
-
-        boolean wasParticipant = session.hasParticipant(memberId);
-        session.removePlayer(memberId);
-
-        if (!wasParticipant) {
-            return;
-        }
-
-        if (!(session.getQuiz() instanceof HangmanQuiz hangmanQuiz)) {
-            return;
-        }
-
-        eventPublisher.publishEvent(new HangmanActionEvent(
-                roomId, memberId, NO_LETTER, ActionResult.ACTION_SUCCESS, hangmanQuiz.getStatus()));
+        gameSessionManager.find(roomId)
+                .filter(gameSession -> gameSession.hasParticipant(memberId))
+                .map(GameSession::getQuiz)
+                .filter(HangmanQuiz.class::isInstance)
+                .map(HangmanQuiz.class::cast)
+                .ifPresent(hangmanQuiz -> eventPublisher.publishEvent(new HangmanActionEvent(
+                        roomId, memberId, NO_LETTER, ActionResult.ACTION_SUCCESS, hangmanQuiz.getStatus())));
     }
 }

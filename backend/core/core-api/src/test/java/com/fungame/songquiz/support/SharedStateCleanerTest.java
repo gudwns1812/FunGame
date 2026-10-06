@@ -10,6 +10,7 @@ import io.github.resilience4j.circuitbreaker.CircuitBreaker;
 import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
 import com.fungame.songquiz.domain.member.MemberConnectionTracker;
 import com.fungame.songquiz.storage.redis.GameRoomDao;
+import com.fungame.songquiz.storage.redis.GameTimerDao;
 import com.fungame.songquiz.storage.redis.MemberPresenceDao;
 import com.fungame.songquiz.storage.redis.RoomInviteDao;
 import java.util.Set;
@@ -45,9 +46,11 @@ class SharedStateCleanerTest {
         Set<String> presenceKeys = Set.of(MemberPresenceDao.KEY_PREFIX + "online");
         Set<String> inviteKeys = Set.of(RoomInviteDao.KEY_PREFIX + "2:invite-id");
         Set<String> roomKeys = Set.of(GameRoomDao.KEY_PREFIX + "7");
+        Set<String> timerKeys = Set.of(GameTimerDao.KEY_PREFIX + "due");
         given(redisTemplate.keys(MemberPresenceDao.KEY_PREFIX + "*")).willReturn(presenceKeys);
         given(redisTemplate.keys(RoomInviteDao.KEY_PREFIX + "*")).willReturn(inviteKeys);
         given(redisTemplate.keys(GameRoomDao.KEY_PREFIX + "*")).willReturn(roomKeys);
+        given(redisTemplate.keys(GameTimerDao.KEY_PREFIX + "*")).willReturn(timerKeys);
 
         try (GenericApplicationContext context = new GenericApplicationContext()) {
             context.registerBean(StringRedisTemplate.class, () -> redisTemplate);
@@ -59,6 +62,7 @@ class SharedStateCleanerTest {
         verify(redisTemplate).delete(presenceKeys);
         verify(redisTemplate).delete(inviteKeys);
         verify(redisTemplate).delete(roomKeys);
+        verify(redisTemplate).delete(timerKeys);
     }
 
     @Test

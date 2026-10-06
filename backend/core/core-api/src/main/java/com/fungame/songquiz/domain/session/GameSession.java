@@ -14,12 +14,30 @@ import java.util.List;
 public class GameSession {
     private final Quiz quiz;
     private final GameRank rank;
-    private final SkipVotes skipVotes = new SkipVotes();
-    private final RoundClock roundClock = new RoundClock();
+    private final SkipVotes skipVotes;
+    private final RoundClock roundClock;
 
     public GameSession(Quiz quiz, List<GamePlayer> players) {
+        this(quiz, new GameRank(players), new SkipVotes(), new RoundClock());
+    }
+
+    private GameSession(Quiz quiz, GameRank rank, SkipVotes skipVotes, RoundClock roundClock) {
         this.quiz = quiz;
-        this.rank = new GameRank(players);
+        this.rank = rank;
+        this.skipVotes = skipVotes;
+        this.roundClock = roundClock;
+    }
+
+    public static GameSession restore(GameSnapshot snapshot) {
+        return new GameSession(
+                snapshot.quiz().restore(),
+                GameRank.restore(snapshot.participants()),
+                SkipVotes.restore(snapshot.skipVoters()),
+                RoundClock.restore(snapshot.roundStartedAt()));
+    }
+
+    public GameSnapshot snapshot() {
+        return new GameSnapshot(quiz.snapshot(), rank.snapshot(), skipVotes.snapshot(), roundClock.snapshot());
     }
 
     public Quiz getQuiz() {
