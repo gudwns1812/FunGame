@@ -13,6 +13,7 @@ import com.fungame.songquiz.domain.room.MemberLocation;
 import com.fungame.songquiz.enums.PlayerStatus;
 import java.time.Instant;
 import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -49,7 +50,6 @@ class RoomLeaveGraceTest {
     @DisplayName("연결이 끊겨도 유예 시간 안에는 방에서 내보내지 않는다.")
     void doNotEvictWithinGrace() {
         allowScheduling();
-        placeIn(ROOM_ID);
 
         roomLeaveGrace.beginFor(MEMBER_ID);
 
@@ -101,7 +101,6 @@ class RoomLeaveGraceTest {
     @DisplayName("유예가 만료될 때 어느 서버로든 다시 접속해 있으면 방에 그대로 남긴다.")
     void skipEvictionWhenReconnected() {
         allowScheduling();
-        placeIn(ROOM_ID);
         roomLeaveGrace.beginFor(MEMBER_ID);
         Runnable eviction = captureScheduledEviction();
 
@@ -116,7 +115,6 @@ class RoomLeaveGraceTest {
     void cancelPendingEvictionOnReconnect() {
         ScheduledFuture<?> scheduled = mock(ScheduledFuture.class);
         doReturn(scheduled).when(taskScheduler).schedule(any(Runnable.class), any(Instant.class));
-        placeIn(ROOM_ID);
         roomLeaveGrace.beginFor(MEMBER_ID);
 
         roomLeaveGrace.cancelFor(MEMBER_ID);
@@ -125,13 +123,17 @@ class RoomLeaveGraceTest {
     }
 
     @Test
-    @DisplayName("로비에 있던 사람이 끊기면 유예를 걸지 않는다.")
-    void doNotScheduleForMemberInLobby() {
-        placeInLobby();
+    @DisplayName("끊긴 순간 로비에 있었어도 유예를 걸고, 만료 때 방에 들어가 있으면 그 방에서 내보낸다.")
+    void evictFromRoomJoinedAfterDisconnectingInLobby() {
+        allowScheduling();
+        AtomicReference<MemberLocation> location = new AtomicReference<>(MemberLocation.lobby());
+        given(gameRoomService.findLocationOf(MEMBER_ID)).willAnswer(call -> location.get());
 
         roomLeaveGrace.beginFor(MEMBER_ID);
+        location.set(new MemberLocation(PlayerStatus.WAITING, OTHER_ROOM_ID));
+        captureScheduledEviction().run();
 
-        verify(taskScheduler, never()).schedule(any(Runnable.class), any(Instant.class));
+        verify(gameRoomService).leaveRoom(OTHER_ROOM_ID, MEMBER_ID);
     }
 
     @Test
@@ -140,7 +142,6 @@ class RoomLeaveGraceTest {
         ScheduledFuture<?> first = mock(ScheduledFuture.class);
         ScheduledFuture<?> second = mock(ScheduledFuture.class);
         doReturn(first, second).when(taskScheduler).schedule(any(Runnable.class), any(Instant.class));
-        placeIn(ROOM_ID);
 
         roomLeaveGrace.beginFor(MEMBER_ID);
         roomLeaveGrace.beginFor(MEMBER_ID);

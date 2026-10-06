@@ -36,10 +36,6 @@ public class RoomLeaveGrace {
     }
 
     public void beginFor(Long memberId) {
-        if (gameRoomService.findLocationOf(memberId).isInLobby()) {
-            return;
-        }
-
         log.debug("회원 {} 의 연결이 모두 끊겼다. {}초 안에 돌아오지 않으면 방에서 내보낸다", memberId, graceSeconds);
 
         pendingByMember.compute(memberId, (id, alreadyScheduled) -> {
