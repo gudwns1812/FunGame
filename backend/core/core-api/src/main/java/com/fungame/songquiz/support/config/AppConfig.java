@@ -18,7 +18,7 @@ public class AppConfig {
 
     @Bean
     @GameTaskScheduler
-    public TaskScheduler gameTaskScheduler(@Value("${app.scheduler.game.pool-size:8}") int poolSize) {
+    public ThreadPoolTaskScheduler gameTaskScheduler(@Value("${app.scheduler.game.pool-size:8}") int poolSize) {
         return scheduler(poolSize, "game-timer-");
     }
 
@@ -30,7 +30,7 @@ public class AppConfig {
         return scheduler(poolSize, "app-sched-");
     }
 
-    private static TaskScheduler scheduler(int poolSize, String threadNamePrefix) {
+    private static ThreadPoolTaskScheduler scheduler(int poolSize, String threadNamePrefix) {
         ThreadPoolTaskScheduler scheduler = new ThreadPoolTaskScheduler();
         scheduler.setPoolSize(poolSize);
         scheduler.setThreadNamePrefix(threadNamePrefix);

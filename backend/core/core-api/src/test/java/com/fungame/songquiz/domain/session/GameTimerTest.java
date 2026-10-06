@@ -4,149 +4,236 @@ import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.read.ListAppender;
+import com.fungame.songquiz.storage.redis.GameTimerDao;
+import com.fungame.songquiz.storage.redis.RedisTestContainer;
+import com.fungame.songquiz.support.MutableClock;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.slf4j.LoggerFactory;
-import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
-import org.springframework.test.util.ReflectionTestUtils;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.data.redis.DataRedisTest;
+import org.springframework.context.annotation.Import;
+import org.springframework.data.redis.core.StringRedisTemplate;
 
 import java.time.Duration;
-import java.util.Collection;
+import java.time.Instant;
+import java.time.ZoneId;
+import java.util.Arrays;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.awaitility.Awaitility.await;
 
+@DataRedisTest
+@Import({RedisTestContainer.class, GameTimerDao.class})
 class GameTimerTest {
 
     private static final Long ROOM_ID = 1L;
     private static final Long OTHER_ROOM_ID = 2L;
-    private static final Duration SOON = Duration.ofMillis(50);
-    private static final Duration LATER = Duration.ofMillis(150);
-    private static final Duration NEVER_WITHIN_TEST = Duration.ofSeconds(30);
+    private static final Duration SOON = Duration.ofSeconds(3);
+    private static final Duration LATER = Duration.ofSeconds(20);
 
+    @Autowired
+    private StringRedisTemplate redisTemplate;
+
+    @Autowired
+    private GameTimerDao gameTimerDao;
+
+    private final MutableClock clock = new MutableClock(Instant.parse("2026-10-06T00:00:00Z"), ZoneId.of("UTC"));
     private final SimpleMeterRegistry meterRegistry = new SimpleMeterRegistry();
-    private final GameTimer gameTimer = new GameTimer(taskScheduler(), meterRegistry);
-    private final List<String> fired = new CopyOnWriteArrayList<>();
+    private final List<GameTimerTask> fired = new CopyOnWriteArrayList<>();
     private final ListAppender<ILoggingEvent> logs = new ListAppender<>();
 
+    private GameTimer timer;
+    private GameTimerPoller poller;
+    private GameTimerPoller otherInstancePoller;
+
     @BeforeEach
-    void listenToLogs() {
+    void setUp() {
+        redisTemplate.delete(redisTemplate.keys(GameTimerDao.KEY_PREFIX + "*"));
+        timer = new GameTimer(gameTimerDao, clock);
+        poller = pollerOn(timer, recording());
+        otherInstancePoller = pollerOn(new GameTimer(gameTimerDao, clock), recording());
+
         logs.start();
-        timerLogger().addAppender(logs);
+        pollerLogger().addAppender(logs);
     }
 
     @AfterEach
     void stopListeningToLogs() {
-        timerLogger().detachAppender(logs);
+        pollerLogger().detachAppender(logs);
         logs.stop();
     }
 
-    private static Logger timerLogger() {
-        return (Logger) LoggerFactory.getLogger(GameTimer.class);
+    private GameTimerPoller pollerOn(GameTimer gameTimer, GameTimerHandler handler) {
+        return new GameTimerPoller(gameTimer, List.of(handler), Runnable::run, meterRegistry);
     }
 
-    private static ThreadPoolTaskScheduler taskScheduler() {
-        ThreadPoolTaskScheduler scheduler = new ThreadPoolTaskScheduler();
-        scheduler.setPoolSize(4);
-        scheduler.initialize();
-        return scheduler;
+    private GameTimerHandler recording() {
+        return new GameTimerHandler() {
+            @Override
+            public List<GameTimerTask.Kind> timerKinds() {
+                return Arrays.asList(GameTimerTask.Kind.values());
+            }
+
+            @Override
+            public void onTimer(GameTimerTask task) {
+                fired.add(task);
+            }
+        };
     }
 
-    @Test
-    @DisplayName("한 방에 예약을 둘 걸면 둘 다 살아서 각자의 시점에 터진다.")
-    void keeps_every_reservation_of_a_room() {
-        gameTimer.startAfter(ROOM_ID, SOON, () -> fired.add("힌트"));
-        gameTimer.startAfter(ROOM_ID, LATER, () -> fired.add("타임아웃"));
-
-        await().atMost(2, TimeUnit.SECONDS).untilAsserted(() ->
-                assertThat(fired).containsExactly("힌트", "타임아웃"));
-    }
-
-    @Test
-    @DisplayName("stop 은 그 방의 예약을 전부 취소한다.")
-    void stop_cancels_every_reservation_of_a_room() {
-        gameTimer.startAfter(ROOM_ID, SOON, () -> fired.add("힌트"));
-        gameTimer.startAfter(ROOM_ID, LATER, () -> fired.add("타임아웃"));
-
-        gameTimer.stop(ROOM_ID);
-
-        await().pollDelay(LATER.multipliedBy(3)).atMost(2, TimeUnit.SECONDS)
-                .untilAsserted(() -> assertThat(fired).isEmpty());
+    private static Logger pollerLogger() {
+        return (Logger) LoggerFactory.getLogger(GameTimerPoller.class);
     }
 
     @Test
-    @DisplayName("한 방을 멈춰도 다른 방의 예약은 그대로 터진다.")
-    void stop_leaves_other_rooms_alone() {
-        gameTimer.startAfter(ROOM_ID, SOON, () -> fired.add("멈춘 방"));
-        gameTimer.startAfter(OTHER_ROOM_ID, SOON, () -> fired.add("남은 방"));
+    @DisplayName("예약한 작업은 시각이 되기 전에는 돌지 않고, 시각이 되면 돈다.")
+    void runs_a_task_when_it_is_due() {
+        GameTimerTask hint = GameTimerTask.openHint(ROOM_ID, 1);
+        timer.startAfter(SOON, hint);
 
-        gameTimer.stop(ROOM_ID);
+        poller.poll();
+        assertThat(fired).isEmpty();
 
-        await().atMost(2, TimeUnit.SECONDS).untilAsserted(() ->
-                assertThat(fired).containsExactly("남은 방"));
+        clock.plus(SOON);
+        poller.poll();
+        assertThat(fired).containsExactly(hint);
     }
 
     @Test
-    @DisplayName("이미 터진 예약은 다음 예약을 걸 때 걷어내 방마다 쌓이지 않는다.")
-    void done_reservations_are_swept_away() {
-        gameTimer.startAfter(ROOM_ID, SOON, () -> fired.add("지난 라운드"));
-        await().atMost(2, TimeUnit.SECONDS).untilAsserted(() -> assertThat(fired).hasSize(1));
+    @DisplayName("여러 서버가 함께 가져가도 작업은 한 번만 돈다.")
+    void runs_a_task_once_across_instances() {
+        timer.startAfter(SOON, GameTimerTask.endRound(ROOM_ID, 1));
+        clock.plus(SOON);
 
-        gameTimer.startAfter(ROOM_ID, NEVER_WITHIN_TEST, () -> fired.add("다음 라운드"));
+        poller.poll();
+        otherInstancePoller.poll();
 
-        assertThat(reservationsOf(ROOM_ID)).hasSize(1);
+        assertThat(fired).hasSize(1);
     }
 
     @Test
-    @DisplayName("예약 작업이 터지면 어느 방인지와 함께 로그를 남긴다. 조용히 사라지지 않는다.")
-    void a_blown_reservation_is_logged_with_its_room() {
-        gameTimer.startAfter(ROOM_ID, SOON, () -> {
-            throw new IllegalStateException("라운드를 닫지 못했다");
+    @DisplayName("끝낸 작업은 다시 돌지 않는다.")
+    void a_finished_task_does_not_run_again() {
+        timer.startAfter(SOON, GameTimerTask.endRound(ROOM_ID, 1));
+        clock.plus(SOON);
+        poller.poll();
+
+        clock.plus(Duration.ofMinutes(5));
+        poller.poll();
+        otherInstancePoller.poll();
+
+        assertThat(fired).hasSize(1);
+    }
+
+    @Test
+    @DisplayName("가져간 서버가 끝내지 못하고 죽으면, 리스가 지난 뒤 다른 서버가 다시 가져가 돌린다.")
+    void another_instance_takes_over_a_task_its_runner_never_finished() {
+        GameTimerTask timeout = GameTimerTask.endRound(ROOM_ID, 1);
+        timer.startAfter(SOON, timeout);
+        clock.plus(SOON);
+        timer.claimDue();
+
+        otherInstancePoller.poll();
+        assertThat(fired).isEmpty();
+
+        clock.plus(GameTimer.LEASE);
+        otherInstancePoller.poll();
+        assertThat(fired).containsExactly(timeout);
+    }
+
+    @Test
+    @DisplayName("stop 은 그 방의 예약을 전부 지운다. 다른 방의 예약은 그대로 돈다.")
+    void stop_cancels_only_the_room() {
+        timer.startAfter(SOON, GameTimerTask.openHint(ROOM_ID, 1));
+        timer.startAfter(LATER, GameTimerTask.endRound(ROOM_ID, 1));
+        GameTimerTask otherRoom = GameTimerTask.endRound(OTHER_ROOM_ID, 1);
+        timer.startAfter(SOON, otherRoom);
+
+        timer.stop(ROOM_ID);
+        clock.plus(LATER);
+        poller.poll();
+
+        assertThat(fired).containsExactly(otherRoom);
+    }
+
+    @Test
+    @DisplayName("cancel 은 그 작업 하나만 지운다.")
+    void cancel_removes_only_the_task() {
+        GameTimerTask leave = GameTimerTask.leaveRoom(7L);
+        timer.startAfter(SOON, leave);
+        GameTimerTask hint = GameTimerTask.openHint(ROOM_ID, 1);
+        timer.startAfter(SOON, hint);
+
+        timer.cancel(leave);
+        clock.plus(SOON);
+        poller.poll();
+
+        assertThat(fired).containsExactly(hint);
+    }
+
+    @Test
+    @DisplayName("같은 작업을 다시 예약하면 하나만 남고 나중 시각을 따른다.")
+    void rescheduling_keeps_one_task_at_the_new_time() {
+        GameTimerTask leave = GameTimerTask.leaveRoom(7L);
+        timer.startAfter(SOON, leave);
+        timer.startAfter(LATER, leave);
+
+        clock.plus(SOON);
+        poller.poll();
+        assertThat(fired).isEmpty();
+
+        clock.plus(LATER);
+        poller.poll();
+        assertThat(fired).containsExactly(leave);
+    }
+
+    @Test
+    @DisplayName("처리기가 터지면 어느 작업인지 로그를 남기고, 다시 돌리지 않는다.")
+    void a_blown_task_is_logged_and_not_retried() {
+        GameTimerPoller failing = pollerOn(timer, new GameTimerHandler() {
+            @Override
+            public List<GameTimerTask.Kind> timerKinds() {
+                return List.of(GameTimerTask.Kind.END_ROUND);
+            }
+
+            @Override
+            public void onTimer(GameTimerTask task) {
+                fired.add(task);
+                throw new IllegalStateException("라운드를 닫지 못했다");
+            }
         });
+        timer.startAfter(SOON, GameTimerTask.endRound(ROOM_ID, 1));
+        clock.plus(SOON);
 
-        await().atMost(2, TimeUnit.SECONDS).untilAsserted(() ->
-                assertThat(logs.list).anySatisfy(logged -> {
-                    assertThat(logged.getLevel()).isEqualTo(Level.ERROR);
-                    assertThat(logged.getFormattedMessage()).contains(String.valueOf(ROOM_ID));
-                    assertThat(logged.getThrowableProxy().getMessage()).isEqualTo("라운드를 닫지 못했다");
-                }));
-    }
+        failing.poll();
+        clock.plus(GameTimer.LEASE.multipliedBy(2));
+        failing.poll();
 
-    @Test
-    @DisplayName("예약이 터진 시점과 걸린 시간을 지표로 남긴다.")
-    void records_lateness_and_duration_of_each_reservation() {
-        gameTimer.startAfter(ROOM_ID, SOON, () -> fired.add("라운드 종료"));
-
-        await().atMost(2, TimeUnit.SECONDS).untilAsserted(() -> {
-            assertThat(meterRegistry.timer("fungame.game.timer.lateness").count()).isEqualTo(1);
-            assertThat(meterRegistry.timer("fungame.game.timer.task").count()).isEqualTo(1);
+        assertThat(fired).hasSize(1);
+        assertThat(logs.list).anySatisfy(logged -> {
+            assertThat(logged.getLevel()).isEqualTo(Level.ERROR);
+            assertThat(logged.getFormattedMessage()).contains(String.valueOf(ROOM_ID));
+            assertThat(logged.getThrowableProxy().getMessage()).isEqualTo("라운드를 닫지 못했다");
         });
     }
 
     @Test
-    @DisplayName("예약이 터져도 걸린 시간은 남는다.")
-    void records_duration_even_when_the_reservation_blows_up() {
-        gameTimer.startAfter(ROOM_ID, SOON, () -> {
-            throw new IllegalStateException("라운드를 닫지 못했다");
-        });
+    @DisplayName("작업이 늦게 시작한 정도와 걸린 시간을 지표로 남긴다.")
+    void records_lateness_and_duration() {
+        timer.startAfter(SOON, GameTimerTask.endRound(ROOM_ID, 1));
+        clock.plus(SOON.plusSeconds(1));
 
-        await().atMost(2, TimeUnit.SECONDS).untilAsserted(() ->
-                assertThat(meterRegistry.timer("fungame.game.timer.task").count()).isEqualTo(1));
-    }
+        poller.poll();
 
-    @SuppressWarnings("unchecked")
-    private Collection<ScheduledFuture<?>> reservationsOf(Long roomId) {
-        Map<Long, Collection<ScheduledFuture<?>>> roomTasks =
-                (Map<Long, Collection<ScheduledFuture<?>>>) ReflectionTestUtils.getField(gameTimer, "roomTasks");
-
-        return roomTasks.get(roomId);
+        assertThat(meterRegistry.timer("fungame.game.timer.lateness").count()).isEqualTo(1);
+        assertThat(meterRegistry.timer("fungame.game.timer.lateness").max(TimeUnit.MILLISECONDS))
+                .isEqualTo(1000);
+        assertThat(meterRegistry.timer("fungame.game.timer.task").count()).isEqualTo(1);
     }
 }

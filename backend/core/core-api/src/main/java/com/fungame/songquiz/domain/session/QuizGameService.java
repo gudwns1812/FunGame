@@ -20,12 +20,13 @@ import java.util.Optional;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class QuizGameService implements GameService {
+public class QuizGameService implements GameService, GameTimerHandler {
 
     private static final Duration BEFORE_FIRST_ROUND = Duration.ofSeconds(5);
     private static final Duration BETWEEN_ROUNDS = Duration.ofSeconds(3);
     private static final Duration BEFORE_GAME_RESULT = Duration.ofSeconds(3);
     private static final Long NO_WINNER = null;
+    private static final int FIRST_ROUND = 1;
 
     private final ApplicationEventPublisher publisher;
     private final GameRoomManager gameRoomManager;
@@ -38,6 +39,23 @@ public class QuizGameService implements GameService {
     }
 
     @Override
+    public List<GameTimerTask.Kind> timerKinds() {
+        return List.of(GameTimerTask.Kind.START_ROUND, GameTimerTask.Kind.OPEN_HINT, GameTimerTask.Kind.END_ROUND,
+                GameTimerTask.Kind.SHOW_RESULT);
+    }
+
+    @Override
+    public void onTimer(GameTimerTask task) {
+        switch (task.kind()) {
+            case START_ROUND -> startRound(task.targetId(), task.round());
+            case OPEN_HINT -> openHint(task.targetId(), task.round());
+            case END_ROUND -> endRound(task.targetId(), NO_WINNER, task.round());
+            case SHOW_RESULT -> showResult(task.targetId());
+            default -> log.warn("다루지 않는 예약 작업이다: {}", task);
+        }
+    }
+
+    @Override
     public void startGame(Long roomId, Long memberId) {
         Quiz quiz = sessionManager.createQuiz(gameRoomManager.findStartableRoom(roomId, memberId).getSettings());
         validateQuizHasRound(quiz);
@@ -45,7 +63,7 @@ public class QuizGameService implements GameService {
         GameSession gameSession = gameRoomManager.startGame(roomId, memberId, startedRoom -> quiz);
         publisher.publishEvent(new GameStartEvent(roomId, gameSession.getQuizInfo()));
 
-        timer.startAfter(roomId, BEFORE_FIRST_ROUND, () -> startRound(roomId));
+        timer.startAfter(BEFORE_FIRST_ROUND, GameTimerTask.startRound(roomId, FIRST_ROUND));
     }
 
     private static void validateQuizHasRound(Quiz quiz) {
@@ -56,7 +74,16 @@ public class QuizGameService implements GameService {
 
     @Override
     public void startRound(Long roomId) {
+        sessionManager.find(roomId)
+                .ifPresent(gameSession -> startRound(roomId, gameSession.getCurrentRound() + 1));
+    }
+
+    private void startRound(Long roomId, int round) {
         Optional<RoundStart> started = sessionManager.update(roomId, gameSession -> {
+            if (gameSession.getCurrentRound() + 1 != round) {
+                return null;
+            }
+
             gameSession.startRound();
             return new RoundStart(gameSession.getContent(), gameSession.getCurrentRound(), gameSession.getTotalRound(),
                     gameSession.getRoundLength(), gameSession.getUntilHintOpens());
@@ -67,13 +94,13 @@ public class QuizGameService implements GameService {
 
         gameRoomManager.touch(roomId);
 
-        RoundStart round = started.get();
+        RoundStart opened = started.get();
         try {
-            publisher.publishEvent(new RoundStartEvent(roomId, round.content(), round.number(), round.total(),
-                    round.length().toMillis()));
+            publisher.publishEvent(new RoundStartEvent(roomId, opened.content(), opened.number(), opened.total(),
+                    opened.length().toMillis()));
         } finally {
-            timer.startAfter(roomId, round.untilHintOpens(), () -> openHint(roomId, round.number()));
-            timer.startAfter(roomId, round.length(), () -> endRound(roomId, NO_WINNER, round.number()));
+            timer.startAfter(opened.untilHintOpens(), GameTimerTask.openHint(roomId, opened.number()));
+            timer.startAfter(opened.length(), GameTimerTask.endRound(roomId, opened.number()));
         }
     }
 
@@ -107,36 +134,35 @@ public class QuizGameService implements GameService {
         try {
             publisher.publishEvent(new RoundEndEvent(roomId, winnerId, ended.get().answer()));
         } finally {
-            scheduleNextStep(roomId, ended.get().last());
+            scheduleNextStep(roomId, round, ended.get().last());
         }
     }
 
     private record RoundEnd(QuizAnswer answer, boolean last) {
     }
 
-    private void scheduleNextStep(Long roomId, boolean lastRound) {
+    private void scheduleNextStep(Long roomId, int endedRound, boolean lastRound) {
         if (lastRound) {
             log.info("게임 종료");
-            endGame(roomId);
+            timer.startAfter(BEFORE_GAME_RESULT, GameTimerTask.showResult(roomId));
             return;
         }
 
         log.info("라운드 종료");
-        timer.startAfter(roomId, BETWEEN_ROUNDS, () -> startRound(roomId));
+        timer.startAfter(BETWEEN_ROUNDS, GameTimerTask.startRound(roomId, endedRound + 1));
     }
 
-    private void endGame(Long roomId) {
-        timer.startAfter(roomId, BEFORE_GAME_RESULT, () -> {
-            // 브로드캐스트가 터져도 방이 PLAYING 으로 굳지 않게 한다.
-            try {
-                List<PlayerScore> ranks = sessionManager.find(roomId)
-                        .map(GameSession::getPlayerRanks)
-                        .orElse(List.of());
-                publisher.publishEvent(new GameResultEvent(roomId, ResultRow.listOf(ranks)));
-            } finally {
-                gameRoomManager.endGame(roomId);
-            }
-        });
+    private void showResult(Long roomId) {
+        Optional<List<PlayerScore>> ranks = sessionManager.find(roomId).map(GameSession::getPlayerRanks);
+        if (ranks.isEmpty()) {
+            return;
+        }
+
+        try {
+            publisher.publishEvent(new GameResultEvent(roomId, ResultRow.listOf(ranks.get())));
+        } finally {
+            gameRoomManager.endGame(roomId);
+        }
     }
 
     @Override

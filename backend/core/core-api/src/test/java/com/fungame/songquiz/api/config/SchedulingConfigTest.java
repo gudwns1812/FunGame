@@ -2,7 +2,7 @@ package com.fungame.songquiz.api.config;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.fungame.songquiz.domain.session.GameTimer;
+import com.fungame.songquiz.domain.session.GameTimerPoller;
 import com.fungame.songquiz.support.ApiIntegrationTest;
 import com.fungame.songquiz.support.config.AppTaskScheduler;
 import com.fungame.songquiz.support.config.GameTaskScheduler;
@@ -29,7 +29,7 @@ class SchedulingConfigTest extends ApiIntegrationTest {
     private TaskScheduler gameTaskScheduler;
 
     @Autowired
-    private GameTimer gameTimer;
+    private GameTimerPoller gameTimerPoller;
 
     @Test
     @DisplayName("@Scheduled 는 애플리케이션의 taskScheduler 빈을 사용한다.")
@@ -51,9 +51,9 @@ class SchedulingConfigTest extends ApiIntegrationTest {
     }
 
     @Test
-    @DisplayName("게임 타이머는 전용 스케줄러를 쓴다. @Scheduled 나 하트비트와 풀을 나눠 쓰지 않는다.")
+    @DisplayName("게임 타이머 작업은 전용 스케줄러 풀에서 돈다. @Scheduled 나 하트비트와 풀을 나눠 쓰지 않는다.")
     void gameTimerDoesNotShareThePoolWithPeriodicTasks() {
-        TaskScheduler used = (TaskScheduler) ReflectionTestUtils.getField(gameTimer, "taskScheduler");
+        Object used = ReflectionTestUtils.getField(gameTimerPoller, "executor");
 
         assertThat(used)
                 .isSameAs(gameTaskScheduler)

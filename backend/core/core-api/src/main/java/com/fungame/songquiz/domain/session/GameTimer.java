@@ -1,80 +1,58 @@
 package com.fungame.songquiz.domain.session;
 
-import com.fungame.songquiz.support.config.GameTaskScheduler;
-import io.micrometer.core.instrument.MeterRegistry;
-import io.micrometer.core.instrument.Timer;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.scheduling.TaskScheduler;
-import org.springframework.stereotype.Component;
-
+import com.fungame.songquiz.storage.redis.ClaimedTimer;
+import com.fungame.songquiz.storage.redis.GameTimerDao;
+import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.Collection;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.Future;
-import java.util.concurrent.ScheduledFuture;
+import java.util.List;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Component;
 
-@Slf4j
 @Component
+@RequiredArgsConstructor
 public class GameTimer {
 
-    private final TaskScheduler taskScheduler;
-    private final Timer lateness;
-    private final Timer taskDuration;
-    private final Map<Long, Collection<ScheduledFuture<?>>> roomTasks = new ConcurrentHashMap<>();
+    static final Duration LEASE = Duration.ofSeconds(10);
 
-    public GameTimer(@GameTaskScheduler TaskScheduler taskScheduler, MeterRegistry meterRegistry) {
-        this.taskScheduler = taskScheduler;
-        this.lateness = Timer.builder("fungame.game.timer.lateness")
-                .description("예약 시각보다 늦게 시작한 정도. 게임 스케줄러 풀이 밀리면 늘어난다")
-                .publishPercentileHistogram()
-                .minimumExpectedValue(Duration.ofMillis(5))
-                .maximumExpectedValue(Duration.ofSeconds(2))
-                .register(meterRegistry);
-        this.taskDuration = Timer.builder("fungame.game.timer.task")
-                .description("예약 작업이 도는 데 걸린 시간")
-                .register(meterRegistry);
+    private static final int CLAIM_LIMIT = 50;
+
+    private final GameTimerDao gameTimerDao;
+    private final Clock clock;
+
+    public void startAfter(Duration delay, GameTimerTask task) {
+        gameTimerDao.schedule(task.key(), now().plus(delay).toEpochMilli());
     }
 
-    public void startAfter(Long roomId, Duration delay, Runnable event) {
-        Instant dueAt = Instant.now().plus(delay);
-
-        Collection<ScheduledFuture<?>> tasks = tasksOf(roomId);
-        tasks.removeIf(Future::isDone);
-        tasks.add(taskScheduler.schedule(measured(roomId, dueAt, event), dueAt));
-    }
-
-    private Runnable measured(Long roomId, Instant dueAt, Runnable event) {
-        return () -> {
-            lateness.record(notBefore(Duration.between(dueAt, Instant.now())));
-            taskDuration.record(() -> reporting(roomId, event));
-        };
-    }
-
-    private static Duration notBefore(Duration elapsed) {
-        return elapsed.isNegative() ? Duration.ZERO : elapsed;
-    }
-
-    private void reporting(Long roomId, Runnable event) {
-        try {
-            event.run();
-        } catch (Exception e) {
-            log.error("방 {} 의 예약 작업이 실패했다. 이 방의 진행이 여기서 멈춘다", roomId, e);
-        }
+    public void cancel(GameTimerTask task) {
+        gameTimerDao.cancel(task.key());
     }
 
     public void stop(Long roomId) {
-        Collection<ScheduledFuture<?>> tasks = roomTasks.remove(roomId);
-        if (tasks == null) {
-            return;
-        }
-
-        tasks.forEach(task -> task.cancel(false));
+        gameTimerDao.cancelStartingWith(GameTimerTask.roomKeyPrefix(roomId));
     }
 
-    private Collection<ScheduledFuture<?>> tasksOf(Long roomId) {
-        return roomTasks.computeIfAbsent(roomId, id -> new ConcurrentLinkedQueue<>());
+    public List<DueTimer> claimDue() {
+        Instant now = now();
+
+        return gameTimerDao.claim(now.toEpochMilli(), now.plus(LEASE).toEpochMilli(), CLAIM_LIMIT).stream()
+                .map(claimed -> new DueTimer(
+                        GameTimerTask.fromKey(claimed.taskKey()),
+                        latenessOf(claimed, now),
+                        claimed))
+                .toList();
+    }
+
+    public void complete(DueTimer due) {
+        gameTimerDao.complete(due.claimed());
+    }
+
+    private static Duration latenessOf(ClaimedTimer claimed, Instant now) {
+        Duration lateness = Duration.ofMillis(now.toEpochMilli() - claimed.dueAtMillis());
+        return lateness.isNegative() ? Duration.ZERO : lateness;
+    }
+
+    private Instant now() {
+        return clock.instant();
     }
 }

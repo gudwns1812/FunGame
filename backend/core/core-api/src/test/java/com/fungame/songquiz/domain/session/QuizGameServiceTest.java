@@ -91,8 +91,8 @@ class QuizGameServiceTest {
         quizGameService.startRound(ROOM_ID);
 
         // then
-        verify(timer).startAfter(eq(ROOM_ID), eq(UNTIL_HINT_OPENS), any());
-        verify(timer).startAfter(eq(ROOM_ID), eq(ROUND_LENGTH), any());
+        verify(timer).startAfter(eq(UNTIL_HINT_OPENS), any());
+        verify(timer).startAfter(eq(ROUND_LENGTH), any());
     }
 
     @Test
@@ -236,7 +236,7 @@ class QuizGameServiceTest {
 
         // then
         verify(gameRoomManager, never()).touch(ROOM_ID);
-        verify(timer, never()).startAfter(eq(ROOM_ID), any(Duration.class), any());
+        verify(timer, never()).startAfter(any(Duration.class), any());
     }
 
     @Test
@@ -252,7 +252,7 @@ class QuizGameServiceTest {
                 .isEqualTo(ErrorType.QUIZ_EMPTY);
 
         verify(gameRoomManager, never()).startGame(any(), any(), any());
-        verify(timer, never()).startAfter(any(), any(Duration.class), any());
+        verify(timer, never()).startAfter(any(), any());
     }
 
     @Test
@@ -268,7 +268,7 @@ class QuizGameServiceTest {
 
         // then
         verify(publisher).publishEvent(any(GameStartEvent.class));
-        verify(timer).startAfter(eq(ROOM_ID), any(Duration.class), any());
+        verify(timer).startAfter(any(Duration.class), eq(GameTimerTask.startRound(ROOM_ID, 1)));
     }
 
     @Test
@@ -278,14 +278,13 @@ class QuizGameServiceTest {
         lastRoundSessionOf(P1);
         quizGameService.increaseSkipVote(ROOM_ID, P1.memberId());
 
-        ArgumentCaptor<Runnable> resultStep = ArgumentCaptor.forClass(Runnable.class);
-        verify(timer).startAfter(eq(ROOM_ID), eq(BEFORE_GAME_RESULT), resultStep.capture());
+        verify(timer).startAfter(BEFORE_GAME_RESULT, GameTimerTask.showResult(ROOM_ID));
 
         willThrow(new IllegalStateException("브로드캐스트 실패"))
                 .given(publisher).publishEvent(any(GameResultEvent.class));
 
         // when
-        assertThatThrownBy(() -> resultStep.getValue().run())
+        assertThatThrownBy(() -> quizGameService.onTimer(GameTimerTask.showResult(ROOM_ID)))
                 .isInstanceOf(IllegalStateException.class);
 
         // then
@@ -305,7 +304,7 @@ class QuizGameServiceTest {
                 .isInstanceOf(IllegalStateException.class);
 
         // then: 라운드를 연 이상 닫을 사람도 있어야 한다
-        verify(timer).startAfter(eq(ROOM_ID), eq(ROUND_LENGTH), any());
+        verify(timer).startAfter(eq(ROUND_LENGTH), any());
     }
 
     @Test
@@ -321,7 +320,7 @@ class QuizGameServiceTest {
                 .isInstanceOf(IllegalStateException.class);
 
         // then: startProcessing 은 되돌릴 수 없다. 여기서 예약을 놓치면 그 방은 영영 멈춘다
-        verify(timer).startAfter(eq(ROOM_ID), eq(BETWEEN_ROUNDS), any());
+        verify(timer).startAfter(eq(BETWEEN_ROUNDS), any());
     }
 
     @Test
@@ -337,7 +336,61 @@ class QuizGameServiceTest {
                 .isInstanceOf(IllegalStateException.class);
 
         // then: 이 예약이 방 정리까지 이어진다
-        verify(timer).startAfter(eq(ROOM_ID), eq(BEFORE_GAME_RESULT), any());
+        verify(timer).startAfter(eq(BEFORE_GAME_RESULT), any());
+    }
+
+    @Test
+    @DisplayName("같은 라운드 시작 예약이 두 번 돌아도 라운드는 한 번만 넘어간다. 리스가 끝나 다른 서버가 다시 돌려도 안전하다.")
+    void startRound_task_running_twice_advances_once() {
+        GameSession session = startedSessionOf(P1);
+
+        quizGameService.onTimer(GameTimerTask.startRound(ROOM_ID, 2));
+        quizGameService.onTimer(GameTimerTask.startRound(ROOM_ID, 2));
+
+        assertThat(session.getCurrentRound()).isEqualTo(2);
+        verify(publisher).publishEvent(any(RoundStartEvent.class));
+    }
+
+    @Test
+    @DisplayName("지난 라운드의 시간 초과 예약은 지금 라운드를 끝내지 않는다.")
+    void stale_timeout_does_not_end_the_current_round() {
+        startedSessionOf(P1);
+
+        quizGameService.onTimer(GameTimerTask.endRound(ROOM_ID, 0));
+
+        verify(publisher, never()).publishEvent(any(RoundEndEvent.class));
+    }
+
+    @Test
+    @DisplayName("시간 초과 예약이 두 번 돌아도 라운드는 한 번만 끝난다.")
+    void timeout_task_running_twice_ends_once() {
+        startedSessionOf(P1);
+
+        quizGameService.onTimer(GameTimerTask.endRound(ROOM_ID, 1));
+        quizGameService.onTimer(GameTimerTask.endRound(ROOM_ID, 1));
+
+        verify(publisher).publishEvent(any(RoundEndEvent.class));
+    }
+
+    @Test
+    @DisplayName("판이 이미 끝난 방의 결과 예약은 아무것도 하지 않는다. 결과가 두 번 나가지 않는다.")
+    void show_result_without_game_does_nothing() {
+        noSession();
+
+        quizGameService.onTimer(GameTimerTask.showResult(ROOM_ID));
+
+        verify(publisher, never()).publishEvent(any(GameResultEvent.class));
+        verify(gameRoomManager, never()).endGame(ROOM_ID);
+    }
+
+    @Test
+    @DisplayName("지난 라운드의 힌트 예약은 힌트를 내지 않는다.")
+    void stale_hint_is_not_opened() {
+        startedSessionOf(P1);
+
+        quizGameService.onTimer(GameTimerTask.openHint(ROOM_ID, 0));
+
+        verify(publisher, never()).publishEvent(any(QuizGameHintEvent.class));
     }
 
     private void useSession(GameSession session) {
