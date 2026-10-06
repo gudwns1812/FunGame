@@ -262,7 +262,7 @@ jobs:
               retire_local_redis
               reload_caddy
               pin_running_image_in_env "$TARGET_IMAGE"
-              docker image prune -f
+              docker image prune -af
               exit 0
             fi
 
