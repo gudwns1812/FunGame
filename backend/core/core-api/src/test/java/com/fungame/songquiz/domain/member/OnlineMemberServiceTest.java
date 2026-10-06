@@ -5,7 +5,6 @@ import com.fungame.songquiz.domain.room.MemberLocation;
 import com.fungame.songquiz.domain.room.MemberLocations;
 import com.fungame.songquiz.enums.PlayerStatus;
 import com.fungame.songquiz.support.MemberFixture;
-import com.fungame.songquiz.support.MutableClock;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -13,10 +12,9 @@ import org.junit.jupiter.api.Test;
 import org.springframework.cache.CacheManager;
 import org.springframework.cache.concurrent.ConcurrentMapCacheManager;
 
-import java.time.Instant;
-import java.time.ZoneId;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.tuple;
@@ -32,10 +30,7 @@ class OnlineMemberServiceTest {
     private static final Long OTHER_ID = 2L;
     private static final Long ROOM_ID = 7L;
 
-    private final MemberConnectionTracker memberConnectionTracker = new MemberConnectionTracker(
-            event -> {
-            },
-            new MutableClock(Instant.parse("2026-08-14T00:00:00Z"), ZoneId.of("UTC")));
+    private final MemberConnectionTracker memberConnectionTracker = mock(MemberConnectionTracker.class);
     private final MemberReader memberReader = mock(MemberReader.class);
     private final CacheManager cacheManager = new ConcurrentMapCacheManager(MemberProfiles.CACHE_NAME);
     private final MemberProfiles memberProfiles = new MemberProfiles(memberReader, cacheManager);
@@ -126,9 +121,7 @@ class OnlineMemberServiceTest {
     }
 
     private void connect(Long... memberIds) {
-        for (Long memberId : memberIds) {
-            memberConnectionTracker.connect(memberId, "connection-" + memberId);
-        }
+        given(memberConnectionTracker.onlineMemberIds()).willReturn(Set.of(memberIds));
     }
 
     private static Member member(Long memberId) {

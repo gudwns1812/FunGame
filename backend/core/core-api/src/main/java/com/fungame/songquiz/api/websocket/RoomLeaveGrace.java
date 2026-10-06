@@ -1,5 +1,6 @@
 package com.fungame.songquiz.api.websocket;
 
+import com.fungame.songquiz.domain.member.MemberConnectionTracker;
 import com.fungame.songquiz.domain.room.GameRoomService;
 import com.fungame.songquiz.domain.room.MemberLocation;
 import com.fungame.songquiz.support.config.AppTaskScheduler;
@@ -19,18 +20,18 @@ public class RoomLeaveGrace {
 
     private final GameRoomService gameRoomService;
     private final TaskScheduler taskScheduler;
-    private final StompSessions stompSessions;
+    private final MemberConnectionTracker memberConnectionTracker;
     private final long graceSeconds;
 
     private final Map<Long, ScheduledFuture<?>> pendingByMember = new ConcurrentHashMap<>();
 
     public RoomLeaveGrace(GameRoomService gameRoomService,
                           @AppTaskScheduler TaskScheduler taskScheduler,
-                          StompSessions stompSessions,
+                          MemberConnectionTracker memberConnectionTracker,
                           @Value("${app.room.leave-grace-seconds:15}") long graceSeconds) {
         this.gameRoomService = gameRoomService;
         this.taskScheduler = taskScheduler;
-        this.stompSessions = stompSessions;
+        this.memberConnectionTracker = memberConnectionTracker;
         this.graceSeconds = graceSeconds;
     }
 
@@ -60,7 +61,7 @@ public class RoomLeaveGrace {
     private void evictIfStillGone(Long memberId) {
         pendingByMember.remove(memberId);
 
-        if (stompSessions.isConnected(memberId)) {
+        if (memberConnectionTracker.hasLiveConnection(memberId)) {
             return;
         }
 

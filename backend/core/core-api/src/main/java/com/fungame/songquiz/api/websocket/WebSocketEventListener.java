@@ -48,7 +48,7 @@ public class WebSocketEventListener {
 
         memberConnectionTracker.disconnect(memberId, sessionId);
 
-        if (stompSessions.isConnected(memberId)) {
+        if (memberConnectionTracker.hasLiveConnection(memberId)) {
             log.debug("세션 {} 종료, 회원 {} 의 다른 세션이 살아 있어 유예를 걸지 않는다", sessionId, memberId);
             return;
         }

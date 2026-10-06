@@ -13,10 +13,12 @@ import com.fungame.songquiz.domain.session.GameSessionManager;
 import com.fungame.songquiz.domain.session.GameTimer;
 import io.github.resilience4j.circuitbreaker.CircuitBreaker;
 import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
+import com.fungame.songquiz.storage.redis.MemberPresenceDao;
 import java.lang.reflect.Modifier;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -25,6 +27,7 @@ import java.util.stream.Stream;
 import org.springframework.cache.Cache;
 import org.springframework.cache.CacheManager;
 import org.springframework.context.ApplicationContext;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.util.ReflectionUtils;
 
 /**
@@ -66,6 +69,7 @@ public class SharedStateCleaner {
         STATEFUL_BEANS.forEach(this::resetBean);
         clearCaches();
         closeCircuitBreakers();
+        clearRedisPresence();
     }
 
     /**
@@ -128,6 +132,18 @@ public class SharedStateCleaner {
     private static void cancelIfScheduled(Object value) {
         if (value instanceof Future<?> future) {
             future.cancel(false);
+        }
+    }
+
+    private void clearRedisPresence() {
+        StringRedisTemplate redisTemplate = context.getBeanProvider(StringRedisTemplate.class).getIfAvailable();
+        if (redisTemplate == null) {
+            return;
+        }
+
+        Set<String> presenceKeys = redisTemplate.keys(MemberPresenceDao.KEY_PREFIX + "*");
+        if (presenceKeys != null && !presenceKeys.isEmpty()) {
+            redisTemplate.delete(presenceKeys);
         }
     }
 

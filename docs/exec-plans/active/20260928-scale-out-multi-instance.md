@@ -182,7 +182,6 @@ exclusive·auto-delete 큐는 끊긴 동안 유실되고, durable per-instance �
 
 | | 작업 | 2대에서 생기는 증상 |
 |---|---|---|
-| P1 | `RedisPresenceStore` | `StompSessions` 가 자기 인스턴스만 봐서 B 에 붙은 사람을 A 는 오프라인으로 본다. 접속자 목록이 절반만 보인다. A 에서 끊긴 사람이 B 로 재접속하면 유예가 취소되지 않아 **15초 뒤 강제 퇴장** |
 | P2 | `RedisInviteStore` (TTL 30초) | A 에서 만든 초대를 B 가 받으면 `INVITE_NOT_FOUND`. 성공하면 `purgeExpiredInvites` 스케줄이 통째로 없어진다 |
 | P3 | HTTP 세션 JDBC → Redis | 모듈 분리 선행. 그대로면 모듈이 인증 때문에 MySQL 세션 테이블을 읽어야 한다 |
 | P4 | ShedLock 또는 리더 선출 | `fillPendingSongs` 가 클레임 없이 `findOldest(10)` 을 긁어 **유튜브 호출이 인스턴스 수만큼 늘고 차단 위험**이 있다(우선순위 높음). `expireReconnectGrace`, `deleteExpiredTokens` 도 전역 |
@@ -272,6 +271,7 @@ SSE + REST 안은 프런트를 다시 짜야 해서 기각했다.
 | N4 · N4a | 전달을 전부 스트림 경유로 바꿨다. 보낸 인스턴스도 자기가 실은 것을 되받아 전달하므로 스큐가 없고 스트림이 유일한 순서다. Redis 헬스 지표를 다시 켰다 |
 | N3 | 채팅도 `ChatMessageEvent` → `ChatNotifier` 를 타게 해 `StompBroadcaster` 를 부르는 곳을 `*Notifier` 로 모았다. ArchUnit 이 지킨다 |
 | P0 | 접속자 목록을 뷰어 1명당 1건이 아니라 `/topic/presence` 로 **전체 1건**만 보낸다. 자기 자신은 프런트가 뺀다. 접속자 N 명일 때 변경 한 번에 스트림에 들어가던 N 건이 1 건이 된다 |
+| P1 | 접속 상태를 Redis 로 옮겼다. `fungame:presence:online`(회원 → 접속 중으로 볼 마지막 시각)과 회원별 연결 ZSET(`서버id:세션id` → 리스 만료). 서버가 10초마다 자기 연결의 리스를 30초로 늘려 죽은 서버의 연결은 저절로 빠진다. 유예 만료는 실제로 지운 서버만 알린다. "다른 연결이 살아 있나" 는 모든 서버 기준이라 A→B 재접속이 강제 퇴장당하지 않는다 |
 | N1 · N2 · N5 | 전파가 멈춘 Redis 에 전달 스레드를 묶지 않게 했다. `XADD` 는 동기로 두고 Resilience4j 서킷 브레이커가 실패나 0.5초 넘는 느린 호출이 쌓이면 막는다(§1.4). `StompBroadcaster` 는 Redis 를 모른다. Grafana 에 `브로드캐스트 전파` 대시보드를 붙였다 |
 
 검증한 것: Redis 를 내려도 로컬 전달이 유지된다(실제 구독자로 확인). 복구는 자동이지만 Lettuce

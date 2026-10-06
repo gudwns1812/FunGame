@@ -1,6 +1,7 @@
 package com.fungame.songquiz.api.websocket;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
@@ -46,7 +47,7 @@ class WebSocketEventListenerTest {
     void registerSessionAndCancelPendingLeaveOnConnect() {
         connect("session-1");
 
-        assertThat(stompSessions.isConnected(MEMBER_ID)).isTrue();
+        assertThat(stompSessions.countSessionsOf(MEMBER_ID)).isEqualTo(1);
         verify(memberConnectionTracker).connect(MEMBER_ID, "session-1");
         verify(roomLeaveGrace).cancelFor(MEMBER_ID);
         verify(dailyActiveMembers).record(MEMBER_ID);
@@ -57,7 +58,7 @@ class WebSocketEventListenerTest {
     void ignoreSessionWithoutMember() {
         listener.handleConnected(new SessionConnectedEvent(this, StompMessages.session("session-1"), null));
 
-        assertThat(stompSessions.connectedMemberIds()).isEmpty();
+        assertThat(stompSessions.count()).isZero();
         verify(roomLeaveGrace, never()).cancelFor(MEMBER_ID);
         verify(dailyActiveMembers, never()).record(MEMBER_ID);
     }
@@ -69,16 +70,16 @@ class WebSocketEventListenerTest {
 
         disconnect("session-1");
 
-        assertThat(stompSessions.isConnected(MEMBER_ID)).isFalse();
+        assertThat(stompSessions.count()).isZero();
         verify(memberConnectionTracker).disconnect(MEMBER_ID, "session-1");
         verify(roomLeaveGrace).beginFor(MEMBER_ID);
     }
 
     @Test
-    @DisplayName("다른 탭이 살아 있으면 이탈 유예를 걸지 않는다.")
-    void doNotBeginGraceWhileAnotherTabIsOpen() {
+    @DisplayName("다른 탭이나 다른 서버의 연결이 살아 있으면 이탈 유예를 걸지 않는다.")
+    void doNotBeginGraceWhileAnotherConnectionIsAlive() {
         connect("session-1");
-        connect("session-2");
+        given(memberConnectionTracker.hasLiveConnection(MEMBER_ID)).willReturn(true);
 
         disconnect("session-1");
 

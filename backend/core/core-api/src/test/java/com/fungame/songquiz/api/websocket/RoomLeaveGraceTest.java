@@ -7,6 +7,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
+import com.fungame.songquiz.domain.member.MemberConnectionTracker;
 import com.fungame.songquiz.domain.room.GameRoomService;
 import com.fungame.songquiz.domain.room.MemberLocation;
 import com.fungame.songquiz.enums.PlayerStatus;
@@ -34,13 +35,14 @@ class RoomLeaveGraceTest {
     @Mock
     TaskScheduler taskScheduler;
 
-    StompSessions stompSessions;
+    @Mock
+    MemberConnectionTracker memberConnectionTracker;
+
     RoomLeaveGrace roomLeaveGrace;
 
     @BeforeEach
     void setUp() {
-        stompSessions = new StompSessions();
-        roomLeaveGrace = new RoomLeaveGrace(gameRoomService, taskScheduler, stompSessions, 15);
+        roomLeaveGrace = new RoomLeaveGrace(gameRoomService, taskScheduler, memberConnectionTracker, 15);
     }
 
     @Test
@@ -96,14 +98,14 @@ class RoomLeaveGraceTest {
     }
 
     @Test
-    @DisplayName("유예가 만료될 때 다시 접속해 있으면 방에 그대로 남긴다.")
+    @DisplayName("유예가 만료될 때 어느 서버로든 다시 접속해 있으면 방에 그대로 남긴다.")
     void skipEvictionWhenReconnected() {
         allowScheduling();
         placeIn(ROOM_ID);
         roomLeaveGrace.beginFor(MEMBER_ID);
         Runnable eviction = captureScheduledEviction();
 
-        stompSessions.add("새-세션", MEMBER_ID);
+        given(memberConnectionTracker.hasLiveConnection(MEMBER_ID)).willReturn(true);
         eviction.run();
 
         verify(gameRoomService, never()).leaveRoom(any(), any());

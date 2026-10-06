@@ -13,9 +13,8 @@ class StompSessionsTest {
     private final StompSessions stompSessions = new StompSessions();
 
     @Test
-    @DisplayName("세션이 없는 회원은 접속 중이 아니다.")
-    void memberWithoutSessionIsNotConnected() {
-        assertThat(stompSessions.isConnected(MEMBER_ID)).isFalse();
+    @DisplayName("이 서버에 세션이 없는 회원은 센 세션이 없다.")
+    void memberWithoutSessionHasNone() {
         assertThat(stompSessions.countSessionsOf(MEMBER_ID)).isZero();
     }
 
@@ -27,7 +26,7 @@ class StompSessionsTest {
         stompSessions.add("session-3", OTHER_MEMBER_ID);
 
         assertThat(stompSessions.countSessionsOf(MEMBER_ID)).isEqualTo(2);
-        assertThat(stompSessions.connectedMemberIds()).containsExactlyInAnyOrder(MEMBER_ID, OTHER_MEMBER_ID);
+        assertThat(stompSessions.count()).isEqualTo(3);
     }
 
     @Test
@@ -36,7 +35,7 @@ class StompSessionsTest {
         stompSessions.add("session-1", MEMBER_ID);
 
         assertThat(stompSessions.remove("session-1")).isEqualTo(MEMBER_ID);
-        assertThat(stompSessions.isConnected(MEMBER_ID)).isFalse();
+        assertThat(stompSessions.countSessionsOf(MEMBER_ID)).isZero();
     }
 
     @Test
@@ -46,13 +45,13 @@ class StompSessionsTest {
     }
 
     @Test
-    @DisplayName("탭 하나가 닫혀도 남은 탭이 있으면 접속 중이다.")
-    void stillConnectedWhileAnotherTabIsOpen() {
+    @DisplayName("탭 하나가 닫혀도 남은 탭의 세션은 남는다.")
+    void remainingTabKeepsItsSession() {
         stompSessions.add("session-1", MEMBER_ID);
         stompSessions.add("session-2", MEMBER_ID);
 
         stompSessions.remove("session-1");
 
-        assertThat(stompSessions.isConnected(MEMBER_ID)).isTrue();
+        assertThat(stompSessions.countSessionsOf(MEMBER_ID)).isEqualTo(1);
     }
 }
