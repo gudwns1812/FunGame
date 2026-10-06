@@ -253,6 +253,29 @@ class RoomStoreTest {
     }
 
     @Test
+    @DisplayName("다른 서버가 쓴 JSON 의 표기가 달라도 내용이 같으면 쓰지 않는다. 집합 순서처럼 서버마다 달라지는 표기로 쓰기가 늘지 않는다.")
+    void sameContentWrittenDifferentlyIsNotWritten() throws Exception {
+        openRoom(8);
+        startGame();
+        rewriteStoredJsonDifferently("body");
+        rewriteStoredJsonDifferently("game");
+        String revisionBefore = revisionOfRoom();
+
+        store.updateTable(ROOM_ID, table -> table.game().orElseThrow()
+                .handleAction(GameAction.submitAnswer(HOST.memberId(), "오답")));
+
+        assertThat(revisionOfRoom()).isEqualTo(revisionBefore);
+    }
+
+    private void rewriteStoredJsonDifferently(String field) throws Exception {
+        String roomKey = GameRoomDao.KEY_PREFIX + ROOM_ID;
+        String stored = (String) redisTemplate.opsForHash().get(roomKey, field);
+        ObjectMapper mapper = new ObjectMapper();
+        String sameContent = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(mapper.readTree(stored));
+        redisTemplate.opsForHash().put(roomKey, field, sameContent);
+    }
+
+    @Test
     @DisplayName("판을 끝내면 판이 지워지고 방은 남는다.")
     void endingTheGameKeepsTheRoom() {
         openRoom(8);

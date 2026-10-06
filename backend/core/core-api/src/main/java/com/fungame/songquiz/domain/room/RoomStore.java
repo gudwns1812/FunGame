@@ -10,7 +10,6 @@ import com.fungame.songquiz.support.error.CoreException;
 import com.fungame.songquiz.support.error.ErrorType;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.Callable;
@@ -67,10 +66,11 @@ public class RoomStore {
             RoomTable table = readableTableOf(stored)
                     .orElseThrow(() -> new CoreException(ErrorType.GAME_ROOM_NOT_FOUND));
             Set<Long> membersBefore = memberIdsOf(table.room());
+            TableSnapshot before = TableSnapshot.of(table);
 
             T result = change.apply(table);
 
-            if (isUnchanged(stored, table) || write(stored, table, membersBefore)) {
+            if (before.equals(TableSnapshot.of(table)) || write(stored, table, membersBefore)) {
                 return result;
             }
         }
@@ -104,10 +104,6 @@ public class RoomStore {
                 .filter(stored -> gameRoomDao.delete(stored.roomId(), stored.revision(), Set.of()))
                 .map(StoredRoom::roomId)
                 .toList();
-    }
-
-    private boolean isUnchanged(StoredRoom stored, RoomTable table) {
-        return stored.body().equals(bodyOf(table.room())) && Objects.equals(stored.game(), gameOf(table));
     }
 
     private boolean write(StoredRoom stored, RoomTable table, Set<Long> membersBefore) {
@@ -169,6 +165,13 @@ public class RoomStore {
 
     private GameRoom roomOf(StoredRoom stored) throws JsonProcessingException {
         return GameRoom.restore(objectMapper.readValue(stored.body(), RoomSnapshot.class));
+    }
+
+    private record TableSnapshot(RoomSnapshot room, GameSnapshot game) {
+
+        static TableSnapshot of(RoomTable table) {
+            return new TableSnapshot(table.room().snapshot(), table.game().map(GameSession::snapshot).orElse(null));
+        }
     }
 
     private String json(Object snapshot, Long roomId) {
