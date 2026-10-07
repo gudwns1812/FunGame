@@ -37,6 +37,14 @@ class ManagementEndpointTest extends ApiIntegrationTest {
     }
 
     @Test
+    @DisplayName("메트릭에 인스턴스 라벨이 붙는다.")
+    void metricsCarryInstanceLabel() {
+        ResponseEntity<String> response = get(managementPort, "/actuator/prometheus");
+
+        assertThat(response.getBody()).contains("instance=\"itest\"");
+    }
+
+    @Test
     @DisplayName("헬스 응답에 상세 정보를 담지 않는다.")
     void healthHidesDetails() {
         assertThat(get(managementPort, "/actuator/health").getBody()).doesNotContain("components");

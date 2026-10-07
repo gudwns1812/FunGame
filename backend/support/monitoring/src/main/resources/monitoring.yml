@@ -14,6 +14,13 @@ management:
     tags:
       application: ${spring.application.name}
       namespace: ${METRICS_NAMESPACE:prod}
+      # 한 호스트에 인스턴스가 둘이라 이 라벨이 없으면 대시보드가 둘을 합쳐 버립니다.
+      instance: ${app.instance-id:local}
+
+logging:
+  pattern:
+    # 로그도 어느 인스턴스에서 난 것인지 보여야 합니다. compose 가 APP_INSTANCE_ID 를 넣습니다.
+    level: "%5p [${app.instance-id:local}]"
 
 ---
 spring:

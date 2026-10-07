@@ -49,4 +49,6 @@ ENV SPRING_PROFILES_ACTIVE=prod
 EXPOSE 8080
 
 # 애플리케이션 실행
-ENTRYPOINT ["java", "-jar", "app.jar"]
+# 한 호스트에 인스턴스가 둘입니다. 기본값(컨테이너 메모리의 25%)에 맡기면 힙이
+# 들쭉날쭉해 두 대가 함께 들어가는지 계산할 수 없습니다. 메타스페이스도 묶습니다.
+ENTRYPOINT ["java", "-XX:MaxRAMPercentage=50", "-XX:MaxMetaspaceSize=128m", "-jar", "app.jar"]

@@ -17,7 +17,11 @@
 
 - **Destination**: `/app/room/{roomId}/chat`
 - **Header**: `playerName: 닉네임` (필수)
-- **Payload (String)**: 유저가 입력한 메시지 내용.
+- **Content-Type**: `application/json`
+- **Payload (ChatRequest)**: `{ "message": "유저가 입력한 메시지 내용" }`
+
+`text/plain` 으로 문자열만 보내면 `ChatController` 가 `ChatRequest` 로 변환하지 못해
+`MessageConversionException` 으로 조용히 버려집니다. 보낸 쪽에는 아무 응답도 가지 않습니다.
 
 ## 접속자 목록 (`/topic/presence`)
 

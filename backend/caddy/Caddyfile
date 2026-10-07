@@ -1,8 +1,33 @@
 # 앱 서버의 Caddy 설정입니다. compose.yml 이 ./caddy 를 /etc/caddy 로 마운트합니다.
 # API 만 넘깁니다. 프런트엔드는 Vercel 이 서빙하므로 여기에 www 호스트가 없습니다.
-# backend 는 같은 compose 네트워크의 서비스 이름입니다.
 # 인증서는 Caddy 가 알아서 발급·갱신하고 caddy-data 볼륨에 보관합니다.
+#
+# SITE_ADDRESS 는 로컬에서 블루-그린을 돌려 볼 때 ":80" 같은 평문 주소로 바꾸기 위한 것입니다.
+# 운영에서는 비워 두고 기본값을 씁니다.
+#
+# **배포 중에 이 파일을 고쳐 쓰지 않습니다.** 트래픽 전환은 각 인스턴스의 /actuator/traffic 을
+# 호출해 readiness 를 내리고, 아래 액티브 헬스체크가 그것을 보고 업스트림을 넣고 뺍니다.
+# 설정을 다시 쓰면 파일이 깨졌을 때 전환도 롤백도 못 하고, reload 는 업스트림 풀을 새로 만들어
+# 헬스체크 상태를 초기화하므로 거부 중인 쪽도 한동안 살아 있는 것으로 취급됩니다.
 
-api.fun-game.club {
-	reverse_proxy backend:8080
+{$SITE_ADDRESS:api.fun-game.club} {
+	reverse_proxy backend-blue:8080 backend-green:8080 {
+		# SockJS XHR 폴백은 한 연결의 여러 요청이 같은 인스턴스로 가야 합니다.
+		lb_policy cookie
+
+		# 관리 포트의 readiness 를 직접 봅니다. 503 이면 그 인스턴스를 뺍니다.
+		health_uri /actuator/health/readiness
+		health_port 8081
+		health_interval 2s
+		health_timeout 1s
+
+		# 헬스체크가 알아차리기 전에 한쪽이 죽을 수 있습니다. 그 사이 그쪽으로 간 요청을
+		# 502 로 돌려보내지 않고 **남은 쪽으로 다시 보냅니다.** 배포 직후처럼 한쪽이 아직
+		# 없는 구간도 이 재시도가 덮습니다.
+		lb_try_duration 5s
+		lb_try_interval 250ms
+
+		# fail_duration 은 패시브 헬스체크 옵션이라 넣지 않습니다. 섞어 두면 업스트림이
+		# 빠진 이유가 둘이 되어 전환이 왜 안 됐는지 가릴 수 없습니다.
+	}
 }
