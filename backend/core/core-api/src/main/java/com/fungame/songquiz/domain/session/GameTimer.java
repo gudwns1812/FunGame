@@ -2,6 +2,7 @@ package com.fungame.songquiz.domain.session;
 
 import com.fungame.songquiz.storage.redis.ClaimedTimer;
 import com.fungame.songquiz.storage.redis.GameTimerDao;
+import com.fungame.songquiz.support.availability.TrafficGate;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
@@ -22,6 +23,7 @@ public class GameTimer {
 
     private final GameTimerDao gameTimerDao;
     private final Clock clock;
+    private final TrafficGate trafficGate;
 
     public void startAfter(Duration delay, GameTimerTask task) {
         gameTimerDao.schedule(task.key(), now().plus(delay).toEpochMilli());
@@ -36,6 +38,10 @@ public class GameTimer {
     }
 
     public List<DueTimer> claimDue() {
+        if (!trafficGate.isAccepting()) {
+            return List.of();
+        }
+
         Instant now = now();
 
         return gameTimerDao.claim(now.toEpochMilli(), now.plus(LEASE).toEpochMilli(), CLAIM_LIMIT).stream()

@@ -7,6 +7,7 @@ import ch.qos.logback.core.read.ListAppender;
 import com.fungame.songquiz.storage.redis.GameTimerDao;
 import com.fungame.songquiz.storage.redis.RedisTestContainer;
 import com.fungame.songquiz.support.MutableClock;
+import com.fungame.songquiz.support.availability.TrafficGate;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -48,6 +49,8 @@ class GameTimerTest {
     private final List<GameTimerTask> fired = new CopyOnWriteArrayList<>();
     private final ListAppender<ILoggingEvent> logs = new ListAppender<>();
 
+    private final TrafficGate openGate = new TrafficGate(true, event -> { });
+
     private GameTimer timer;
     private GameTimerPoller poller;
     private GameTimerPoller otherInstancePoller;
@@ -55,9 +58,9 @@ class GameTimerTest {
     @BeforeEach
     void setUp() {
         redisTemplate.delete(redisTemplate.keys(GameTimerDao.KEY_PREFIX + "*"));
-        timer = new GameTimer(gameTimerDao, clock);
+        timer = new GameTimer(gameTimerDao, clock, openGate);
         poller = pollerOn(timer, recording());
-        otherInstancePoller = pollerOn(new GameTimer(gameTimerDao, clock), recording());
+        otherInstancePoller = pollerOn(new GameTimer(gameTimerDao, clock, openGate), recording());
 
         logs.start();
         pollerLogger().addAppender(logs);
@@ -292,6 +295,22 @@ class GameTimerTest {
                 fired.add(task);
             }
         };
+    }
+
+    @Test
+    @DisplayName("트래픽을 받지 않는 서버는 예약 작업을 가져가지 않는다. 다른 버전이 제 규칙으로 돌릴 일을 뺏지 않는다.")
+    void a_server_not_taking_traffic_claims_nothing() {
+        TrafficGate closedGate = new TrafficGate(false, event -> { });
+        GameTimer idleInstance = new GameTimer(gameTimerDao, clock, closedGate);
+        GameTimerTask endRound = GameTimerTask.endRound(ROOM_ID, 1);
+        timer.startAfter(SOON, endRound);
+        clock.plus(SOON);
+
+        assertThat(idleInstance.claimDue()).isEmpty();
+
+        assertThat(isQueued(endRound.key())).isTrue();
+        poller.poll();
+        assertThat(fired).containsExactly(endRound);
     }
 
     private void plantTask(String taskKey) {

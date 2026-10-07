@@ -1,5 +1,6 @@
 package com.fungame.songquiz.domain.quiz;
 
+import com.fungame.songquiz.support.availability.TrafficGate;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -11,9 +12,14 @@ import org.springframework.stereotype.Component;
 public class SongScrapeScheduler {
 
     private final SongScrapeService songScrapeService;
+    private final TrafficGate trafficGate;
 
     @Scheduled(fixedDelayString = "${app.song-scrape.interval-millis:60000}")
     public void fillPendingSongs() {
+        if (!trafficGate.isAccepting()) {
+            return;
+        }
+
         songScrapeService.fillPendingSongs();
     }
 }
