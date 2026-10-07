@@ -30,6 +30,8 @@ dependencies {
     implementation 'org.springframework.security:spring-security-messaging'
     implementation 'org.springframework.session:spring-session-jdbc'
     implementation 'io.github.resilience4j:resilience4j-spring-boot3:2.2.0'
+    implementation 'net.javacrumbs.shedlock:shedlock-spring:5.16.0'
+    implementation 'net.javacrumbs.shedlock:shedlock-provider-redis-spring:5.16.0'
 
     testImplementation testFixtures(project(':backend:storage:db-core'))
     testImplementation 'org.springframework.restdocs:spring-restdocs-mockmvc'

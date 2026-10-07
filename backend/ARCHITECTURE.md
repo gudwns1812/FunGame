@@ -274,6 +274,11 @@ support/
     └── src/main/resources/          monitoring.yml
 ```
 
+`monitoring` 은 actuator 를 `implementation` 으로만 들어 엔드포인트·시큐리티 설정이 밖으로 새지 않는다.
+그래서 **actuator 엔드포인트를 만드는 쪽이 자기 모듈에 직접 선언한다.** `core:core-api` 가
+`spring-boot-starter-actuator` 를 선언하는 이유다 — 관리 포트에 `/actuator/traffic` 을 띄워
+블루-그린 배포가 트래픽을 전환한다(`support.availability`).
+
 ## API 문서
 
 RestDocs 스니펫은 `core:core-api` 의 테스트가 만든다. 별도 모듈로 빼지 않는다.
