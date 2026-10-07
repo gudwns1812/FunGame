@@ -7,26 +7,16 @@ export const GAME_TYPES = [
 export const SONG_CATEGORIES = [
   { value: 'KPOP', label: 'K-POP' },
   { value: 'POP', label: 'POP' },
+  { value: 'JPOP', label: 'J-POP' },
   { value: 'BALLAD', label: '발라드' },
+  { value: 'DANCE', label: '댄스' },
   { value: 'RAP', label: '랩/힙합' },
+  { value: 'RNB', label: 'R&B' },
+  { value: 'ROCK', label: '록/인디' },
   { value: 'OST', label: 'OST' },
-  { value: 'SM', label: 'SM' },
-  { value: 'YG', label: 'YG' },
-  { value: 'JYP', label: 'JYP' },
-  { value: 'HYBE', label: 'HYBE' },
-  { value: 'STARSHIP', label: '스타쉽' },
-  { value: 'GEN1', label: '1세대' },
-  { value: 'GEN2', label: '2세대' },
-  { value: 'GEN3', label: '3세대' },
-  { value: 'GEN4', label: '4세대' },
 ];
 
-const ROOM_EXCLUDED_CATEGORIES = ['GEN1'];
-
-export const CATEGORIES = [
-  { value: 'TOTAL', label: '전체' },
-  ...SONG_CATEGORIES.filter((category) => !ROOM_EXCLUDED_CATEGORIES.includes(category.value)),
-];
+export const CATEGORIES = [{ value: 'TOTAL', label: '전체' }, ...SONG_CATEGORIES];
 
 export const CS_DIFFICULTIES = [
   { value: 'EASY', label: '쉬움' },
