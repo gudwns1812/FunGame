@@ -44,6 +44,16 @@ class FlywayMigrationTest extends ApiIntegrationTest {
     }
 
     @Test
+    @DisplayName("세션 테이블도 마이그레이션이 만든다.")
+    void sessionTablesComeFromMigrations() {
+        List<String> tables = jdbcTemplate.queryForList(
+                "select lower(table_name) from information_schema.tables where table_schema = database()",
+                String.class);
+
+        assertThat(tables).contains("spring_session", "spring_session_attributes");
+    }
+
+    @Test
     @DisplayName("member.email 은 NOT NULL 이고 유일하다.")
     void memberEmailIsNotNullAndUnique() {
         String nullable = jdbcTemplate.queryForObject(

@@ -95,7 +95,6 @@ class TwoInstanceAcceptanceTest {
         properties.put("spring.datasource.password", MYSQL.getPassword());
         properties.put("spring.data.redis.host", REDIS.getHost());
         properties.put("spring.data.redis.port", REDIS.getMappedPort(REDIS_PORT));
-        properties.put("spring.session.jdbc.initialize-schema", "always");
         properties.put("app.song-scrape.enabled", false);
         properties.put("app.room.leave-grace-seconds", 1);
 
