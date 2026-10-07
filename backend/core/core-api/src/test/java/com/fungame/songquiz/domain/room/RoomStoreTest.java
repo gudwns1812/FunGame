@@ -388,21 +388,35 @@ class RoomStoreTest {
     }
 
     @Test
-    @DisplayName("방을 쓸 때마다 쓰인 시각이 본문 밖에 남는다. 본문을 읽지 못해도 이 시각은 읽힌다.")
-    void everyWriteLeavesTheWrittenTimeOutsideTheBody() {
+    @DisplayName("방을 만들면 쓰인 시각이 본문 밖에 남는다. 본문을 읽지 못해도 이 시각은 읽힌다.")
+    void creatingARoomLeavesTheWrittenTimeOutsideTheBody() {
         Instant beforeCreate = Instant.now().minusSeconds(1);
-        openRoom(8);
-        assertThat(writtenTimeOf(ROOM_ID)).isAfter(beforeCreate);
 
-        Instant beforeJoin = Instant.now().minusSeconds(1);
+        openRoom(8);
+
+        assertThat(writtenTimeOf(ROOM_ID)).isAfter(beforeCreate);
+    }
+
+    @Test
+    @DisplayName("방을 바꿀 때마다 쓰인 시각이 그 시점으로 밀린다. 갱신하지 않으면 멀쩡한 방이 유휴로 보여 지워진다.")
+    void everyChangePushesTheWrittenTimeForward() {
+        openRoom(8);
+        Instant longAgo = Instant.now().minus(20, ChronoUnit.MINUTES);
+        backdateWrittenTime(ROOM_ID, longAgo);
+
         store.update(ROOM_ID, room -> room.join(GUEST));
 
-        assertThat(writtenTimeOf(ROOM_ID)).isAfter(beforeJoin);
+        assertThat(writtenTimeOf(ROOM_ID)).isAfter(longAgo.plus(10, ChronoUnit.MINUTES));
     }
 
     private Instant writtenTimeOf(Long roomId) {
         Object millis = redisTemplate.opsForHash().get(GameRoomDao.KEY_PREFIX + roomId, "updatedAt");
         return Instant.ofEpochMilli(Long.parseLong((String) millis));
+    }
+
+    private void backdateWrittenTime(Long roomId, Instant writtenAt) {
+        redisTemplate.opsForHash()
+                .put(GameRoomDao.KEY_PREFIX + roomId, "updatedAt", Long.toString(writtenAt.toEpochMilli()));
     }
 
     private void plantUnreadableRoom(Long roomId, Instant writtenAt) {

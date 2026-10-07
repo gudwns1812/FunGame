@@ -2,18 +2,26 @@ package com.fungame.songquiz.compat;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fungame.songquiz.api.websocket.BroadcastMessage;
-import com.fungame.songquiz.domain.room.GameRoom;
+import com.fungame.songquiz.domain.quiz.Song;
 import com.fungame.songquiz.domain.quiz.SongQuiz;
+import com.fungame.songquiz.domain.room.GamePlayer;
+import com.fungame.songquiz.domain.room.GameRoom;
+import com.fungame.songquiz.domain.room.RoomSettings;
 import com.fungame.songquiz.domain.room.RoomSnapshot;
 import com.fungame.songquiz.domain.session.GameSession;
 import com.fungame.songquiz.domain.session.GameSnapshot;
+import com.fungame.songquiz.enums.CSQuizDifficulty;
+import com.fungame.songquiz.enums.Category;
 import com.fungame.songquiz.enums.GameRoomStatus;
 import com.fungame.songquiz.enums.GameType;
 import java.io.IOException;
-import java.time.Instant;
 import java.nio.charset.StandardCharsets;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -84,6 +92,68 @@ class StoredShapeCompatibilityTest {
         GameSession game = GameSession.restore(objectMapper.readValue(withNewerField, GameSnapshot.class));
 
         assertThat(game.getPlayerRanks()).hasSize(2);
+    }
+
+    @Test
+    @DisplayName("지금 코드가 쓴 방에도 지난 버전이 읽던 필드가 전부 남아 있다.")
+    void writesARoomTheVersionBeforeCanStillRead() throws Exception {
+        JsonNode written = objectMapper.valueToTree(sampleShapedRoom().snapshot());
+
+        assertEveryFieldSurvives(objectMapper.readTree(sample("room.json")), written, "방");
+    }
+
+    @Test
+    @DisplayName("지금 코드가 쓴 판에도 지난 버전이 읽던 필드가 전부 남아 있다.")
+    void writesAGameTheVersionBeforeCanStillRead() throws Exception {
+        GameRoom room = sampleShapedRoom();
+        GameSession game = new GameSession(sampleShapedQuiz(), room.getRoomPlayers());
+
+        JsonNode written = objectMapper.valueToTree(game.snapshot());
+
+        assertEveryFieldSurvives(objectMapper.readTree(sample("game.json")), written, "판");
+    }
+
+    /**
+     * 읽기만 검사하면 모자란다. 필드를 더하면서 옛 필드를 <b>쓰지 않게</b> 바꾸면 읽기는 그대로 통과하고
+     * 옛 서버만 깨진다. 그래서 지금 코드의 출력에 표본의 필드 이름과 구조가 남아 있는지 따로 본다.
+     * 값은 보지 않는다 — 시각이나 식별자는 돌릴 때마다 달라진다.
+     */
+    private static void assertEveryFieldSurvives(JsonNode sample, JsonNode written, String where) {
+        if (sample.isArray()) {
+            if (!sample.isEmpty()) {
+                assertThat(written.isArray() && !written.isEmpty())
+                        .as("%s 의 %s 이 비었다. 옛 버전은 여기에 원소가 있다고 본다", where, sample)
+                        .isTrue();
+                assertEveryFieldSurvives(sample.get(0), written.get(0), where + "[0]");
+            }
+            return;
+        }
+
+        sample.fieldNames().forEachRemaining(name -> {
+            JsonNode child = written.get(name);
+            assertThat(child)
+                    .as("%s 의 '%s' 를 더 이상 쓰지 않는다. 옛 버전은 이 이름으로 읽는다 — "
+                            + "지우는 것은 다음 배포에서 한다", where, name)
+                    .isNotNull();
+
+            if (sample.get(name).isContainerNode()) {
+                assertEveryFieldSurvives(sample.get(name), child, where + "." + name);
+            }
+        });
+    }
+
+    private static GameRoom sampleShapedRoom() {
+        GameRoom room = GameRoom.create(7L,
+                new RoomSettings(GameType.SONG, "방", 8, Category.KPOP, 10, 0, CSQuizDifficulty.HARD),
+                GamePlayer.createNewPlayer(1L));
+        room.join(GamePlayer.createNewPlayer(2L));
+
+        return room;
+    }
+
+    private static SongQuiz sampleShapedQuiz() {
+        return new SongQuiz(List.of(Song.stored(10L, "정답", "가수", List.of(Category.KPOP),
+                LocalDate.of(2020, 1, 1), "youtube.com/10", 30, List.of(), "힌트")), Category.KPOP);
     }
 
     @Test
