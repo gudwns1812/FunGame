@@ -19,14 +19,11 @@ import org.springframework.data.redis.connection.RedisConnectionFactory;
 import org.springframework.data.redis.core.StringRedisTemplate;
 
 @DataRedisTest
-@Import({RedisTestContainer.class, SchedulerLockConfig.class})
+@Import(RedisTestContainer.class)
 class SchedulerLockProviderTest {
 
     @Autowired
     private RedisConnectionFactory redisConnectionFactory;
-
-    @Autowired
-    private LockProvider lockProvider;
 
     @Autowired
     private StringRedisTemplate redisTemplate;
@@ -40,9 +37,10 @@ class SchedulerLockProviderTest {
     @Test
     @DisplayName("한 인스턴스가 쥔 작업은 다른 인스턴스가 가져가지 못한다. 유튜브를 두 번 긁지 않는다.")
     void aSecondInstanceCannotTakeTheSameWork() {
-        LockProvider otherInstance = new SchedulerLockConfig().lockProvider(redisConnectionFactory);
+        LockProvider otherInstance = lockProviderOn(new TrafficGate(true, event -> { }));
 
-        Optional<SimpleLock> mine = lockProvider.lock(lockOn("fillPendingSongs"));
+        Optional<SimpleLock> mine = lockProviderOn(new TrafficGate(true, event -> { }))
+                .lock(lockOn("fillPendingSongs"));
         Optional<SimpleLock> theirs = otherInstance.lock(lockOn("fillPendingSongs"));
 
         assertThat(mine).isPresent();
@@ -50,13 +48,30 @@ class SchedulerLockProviderTest {
     }
 
     @Test
+    @DisplayName("트래픽을 받지 않는 서버는 락을 잡지 않는다. 깔고 앉으면 트래픽을 받는 쪽이 그 주기를 통째로 건너뛴다.")
+    void aServerNotTakingTrafficNeverHoldsTheLock() {
+        LockProvider standby = lockProviderOn(new TrafficGate(false, event -> { }));
+        LockProvider serving = lockProviderOn(new TrafficGate(true, event -> { }));
+
+        assertThat(standby.lock(lockOn("fillPendingSongs"))).isEmpty();
+
+        assertThat(serving.lock(lockOn("fillPendingSongs"))).isPresent();
+    }
+
+    @Test
     @DisplayName("이름이 다른 작업은 서로 막지 않는다.")
     void differentWorkDoesNotBlockEachOther() {
-        Optional<SimpleLock> songs = lockProvider.lock(lockOn("fillPendingSongs"));
-        Optional<SimpleLock> tokens = lockProvider.lock(lockOn("deleteExpiredTokens"));
+        LockProvider provider = lockProviderOn(new TrafficGate(true, event -> { }));
+
+        Optional<SimpleLock> songs = provider.lock(lockOn("fillPendingSongs"));
+        Optional<SimpleLock> tokens = provider.lock(lockOn("deleteExpiredTokens"));
 
         assertThat(songs).isPresent();
         assertThat(tokens).isPresent();
+    }
+
+    private LockProvider lockProviderOn(TrafficGate trafficGate) {
+        return new SchedulerLockConfig().lockProvider(redisConnectionFactory, trafficGate);
     }
 
     private static LockConfiguration lockOn(String name) {

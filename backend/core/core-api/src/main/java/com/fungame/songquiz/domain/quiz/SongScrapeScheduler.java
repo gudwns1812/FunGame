@@ -1,6 +1,5 @@
 package com.fungame.songquiz.domain.quiz;
 
-import com.fungame.songquiz.support.availability.TrafficGate;
 import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -13,15 +12,10 @@ import org.springframework.stereotype.Component;
 public class SongScrapeScheduler {
 
     private final SongScrapeService songScrapeService;
-    private final TrafficGate trafficGate;
 
     @Scheduled(fixedDelayString = "${app.song-scrape.interval-millis:60000}")
     @SchedulerLock(name = "fillPendingSongs", lockAtMostFor = "PT5M", lockAtLeastFor = "PT30S")
     public void fillPendingSongs() {
-        if (!trafficGate.isAccepting()) {
-            return;
-        }
-
         songScrapeService.fillPendingSongs();
     }
 }
