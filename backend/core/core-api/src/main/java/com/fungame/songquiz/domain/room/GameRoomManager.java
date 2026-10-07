@@ -9,7 +9,6 @@ import com.fungame.songquiz.support.error.ErrorType;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 import java.time.Duration;
@@ -176,7 +175,6 @@ public class GameRoomManager {
         return changed;
     }
 
-    @Scheduled(fixedDelay = 60000)
     public void cleanupIdleRooms() {
         roomStore.removeIdle(Instant.now().minus(MAX_IDLE)).forEach(roomId -> {
             log.info("유휴 방 정리: {}", roomId);

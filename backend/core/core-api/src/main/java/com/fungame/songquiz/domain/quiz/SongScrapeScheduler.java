@@ -1,5 +1,6 @@
 package com.fungame.songquiz.domain.quiz;
 
+import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -13,6 +14,7 @@ public class SongScrapeScheduler {
     private final SongScrapeService songScrapeService;
 
     @Scheduled(fixedDelayString = "${app.song-scrape.interval-millis:60000}")
+    @SchedulerLock(name = "fillPendingSongs", lockAtMostFor = "PT5M", lockAtLeastFor = "PT30S")
     public void fillPendingSongs() {
         songScrapeService.fillPendingSongs();
     }

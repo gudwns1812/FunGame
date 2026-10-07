@@ -13,6 +13,7 @@ import com.fungame.songquiz.storage.redis.GameRoomDao;
 import com.fungame.songquiz.storage.redis.GameTimerDao;
 import com.fungame.songquiz.storage.redis.MemberPresenceDao;
 import com.fungame.songquiz.storage.redis.RoomInviteDao;
+import com.fungame.songquiz.support.availability.TrafficGate;
 import java.lang.reflect.Modifier;
 import java.util.Collection;
 import java.util.List;
@@ -43,7 +44,8 @@ public class SharedStateCleaner {
     private static final List<Class<?>> STATEFUL_BEANS = List.of(
             StompSessionRegistry.class,
             DailyActiveMemberTracker.class,
-            LobbyNotifier.class);
+            LobbyNotifier.class,
+            TrafficGate.class);
 
     /**
      * 기동 때 한 번 채우고 그 뒤로 바뀌지 않는 레지스트리. 테스트 사이에 비우면 앱이 죽는다. 상태를 든 것처럼 보이지만 치우면 안 되는 것들이라 여기 적어 구분한다.
@@ -70,6 +72,15 @@ public class SharedStateCleaner {
         clearCaches();
         closeCircuitBreakers();
         clearRedisSharedState();
+        reopenTrafficGate();
+    }
+
+    /**
+     * 게이트는 비우는 것이 아니라 여는 것이 기본값이다. 닫힌 채로 다음 테스트에 넘어가면
+     * 타이머 · 방 정리 같은 전역 작업이 전부 멈춰 엉뚱한 곳에서 깨진다.
+     */
+    private void reopenTrafficGate() {
+        context.getBeanProvider(TrafficGate.class).ifAvailable(TrafficGate::accept);
     }
 
     /**

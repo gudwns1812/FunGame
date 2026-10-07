@@ -14,6 +14,8 @@ app:
 spring:
   application:
     name: fungame-backend
+  lifecycle:
+    timeout-per-shutdown-phase: 20s
   cache:
     type: caffeine
     caffeine:
@@ -29,6 +31,7 @@ spring:
       - classpath:client-discord.yml
       - classpath:monitoring.yml
 server:
+  shutdown: graceful
   servlet:
     session:
       cookie:

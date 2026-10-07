@@ -5,7 +5,6 @@ import com.fungame.songquiz.support.error.ErrorType;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.session.FindByIndexNameSessionRepository;
 import org.springframework.session.Session;
@@ -22,7 +21,6 @@ import java.util.Optional;
 public class PasswordResetService {
 
     private static final int EXPIRED_TOKEN_RETENTION_DAYS = 1;
-    private static final String DAILY_CLEANUP_CRON = "0 0 4 * * *";
 
     private final MemberReader memberReader;
     private final MemberWriter memberWriter;
@@ -81,7 +79,6 @@ public class PasswordResetService {
         expireEverySessionOf(member);
     }
 
-    @Scheduled(cron = DAILY_CLEANUP_CRON)
     public void deleteExpiredTokens() {
         passwordResetTokenWriter.removeExpiredBefore(now().minusDays(EXPIRED_TOKEN_RETENTION_DAYS));
     }
