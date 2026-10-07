@@ -41,6 +41,18 @@ class SongCategoryPersistenceTest extends ApiIntegrationTest {
     }
 
     @Test
+    @DisplayName("지역(JPOP)과 멜론 장르(DANCE, RNB, ROCK) 카테고리도 저장하고 다시 읽는다.")
+    void restoresRegionAndGenreCategories() {
+        Long jpop = songRepository.save(song("Lemon", "Kenshi Yonezu", Category.JPOP)).getId();
+        Long kpop = songRepository.save(song("Hype Boy", "NewJeans",
+                Category.KPOP, Category.DANCE, Category.RNB, Category.ROCK)).getId();
+
+        assertThat(songReader.findById(jpop).getCategories()).containsExactly(Category.JPOP);
+        assertThat(songReader.findById(kpop).getCategories())
+                .containsExactlyInAnyOrder(Category.KPOP, Category.DANCE, Category.RNB, Category.ROCK);
+    }
+
+    @Test
     @DisplayName("카테고리로 조회하면 그 카테고리를 가진 곡만 나온다.")
     void findsOnlySongsTaggedWithCategory() {
         songRepository.save(song("밤편지", "아이유", Category.KPOP, Category.BALLAD));
