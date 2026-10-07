@@ -129,12 +129,19 @@ jobs:
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.EC2_SSH_KEY }}
           port: ${{ secrets.EC2_PORT || 22 }}
-          envs: IMAGE_NAME,IMAGE_TAG,SERVICE,CONTAINER_NAME,REGISTRY_USER,REGISTRY_TOKEN,PROJECT_DIR,MAIL_USERNAME,MAIL_PASSWORD,REDIS_HOST,REDIS_PORT,REDIS_USERNAME,REDIS_PASSWORD,MYSQL_HOST,MYSQL_PORT,MYSQL_USER,MYSQL_PASSWORD
+          envs: IMAGE_NAME,IMAGE_TAG,REGISTRY_USER,REGISTRY_TOKEN,PROJECT_DIR,PUBLIC_BASE_URL,PUBLIC_RESOLVE,LEGACY_CONTAINER,MAIL_USERNAME,MAIL_PASSWORD,REDIS_HOST,REDIS_PORT,REDIS_USERNAME,REDIS_PASSWORD,MYSQL_HOST,MYSQL_PORT,MYSQL_USER,MYSQL_PASSWORD
+          command_timeout: 20m
           script_stop: true
           script: |
             set -euo pipefail
 
             cd "$PROJECT_DIR"
+
+            TARGET_IMAGE="${IMAGE_NAME}:${IMAGE_TAG}"
+
+            # ---------------------------------------------------------------
+            # 준비 — 앱을 건드리기 전에 끝낸다
+            # ---------------------------------------------------------------
 
             # Caddyfile 이 깨졌으면 백엔드를 건드리기 전에 멈춘다.
             docker run --rm -v "$PWD/caddy:/etc/caddy:ro" caddy:2 \
@@ -159,13 +166,11 @@ jobs:
 
             if ! verify_redis | grep -qx PONG; then
               echo "Redis($REDIS_HOST:$REDIS_PORT) 에 닿지 못했다. 배포하지 않는다"
-              echo "REDIS_HOST · REDIS_PORT · REDIS_USERNAME · REDIS_PASSWORD Secret 과"
-              echo "Redis 호스트의 보안 그룹을 확인한다"
               exit 1
             fi
             echo "Redis($REDIS_HOST:$REDIS_PORT) 응답 확인"
 
-            # MySQL 도 전용 호스트로 나갔다. 같은 이유로 먼저 본다.
+            # MySQL 도 전용 호스트에 있다. 같은 이유로 먼저 본다.
             # mysqladmin ping 은 자격 증명이 틀려도 서버가 답하면 성공이라 질의로 확인한다.
             verify_mysql() {
               docker run --rm -e MYSQL_PWD="$MYSQL_PASSWORD" mysql:8.0 \
@@ -175,8 +180,6 @@ jobs:
 
             if ! verify_mysql | grep -qx 1; then
               echo "MySQL($MYSQL_HOST:$MYSQL_PORT) 에 닿지 못했다. 배포하지 않는다"
-              echo "MYSQL_HOST · MYSQL_PORT · MYSQL_USER · MYSQL_PASSWORD Secret 과"
-              echo "MySQL 호스트의 보안 그룹을 확인한다"
               exit 1
             fi
             echo "MySQL($MYSQL_HOST:$MYSQL_PORT) 응답 확인"
@@ -184,36 +187,16 @@ jobs:
             echo "$REGISTRY_TOKEN" | docker login ghcr.io -u "$REGISTRY_USER" --password-stdin
             trap 'docker logout ghcr.io >/dev/null 2>&1 || true' EXIT
 
-            TARGET_IMAGE="${IMAGE_NAME}:${IMAGE_TAG}"
+            for SERVICE in backend-blue backend-green; do
+              if ! BACKEND_IMAGE="$TARGET_IMAGE" docker compose config --images "$SERVICE" \
+                  | grep -qx "$TARGET_IMAGE"; then
+                echo "compose.yml 의 $SERVICE 가 BACKEND_IMAGE 를 반영하지 않는다"
+                echo "이 상태로 배포하면 새 이미지가 아닌 compose.yml 에 적힌 이미지가 뜬다"
+                exit 1
+              fi
+            done
 
-            if ! BACKEND_IMAGE="$TARGET_IMAGE" docker compose config --images "$SERVICE" \
-                | grep -qx "$TARGET_IMAGE"; then
-              echo "compose.yml 의 $SERVICE 가 BACKEND_IMAGE 를 반영하지 않는다"
-              echo "이 상태로 배포하면 새 이미지가 아닌 compose.yml 에 적힌 이미지가 뜬다"
-              echo "image: \${BACKEND_IMAGE:-${IMAGE_NAME}:latest} 로 바꿔야 한다"
-              exit 1
-            fi
-
-            PREVIOUS_IMAGE=$(docker inspect --format '{{.Config.Image}}' "$CONTAINER_NAME" 2>/dev/null || echo '')
-            echo "현재 이미지: ${PREVIOUS_IMAGE:-없음}"
-
-            deploy_tag() {
-              BACKEND_IMAGE="$1" docker compose pull "$SERVICE"
-              BACKEND_IMAGE="$1" docker compose up -d --no-deps "$SERVICE"
-            }
-
-            wait_until_healthy() {
-              for _ in $(seq 1 30); do
-                if docker exec "$CONTAINER_NAME" \
-                    wget -qO- 'http://localhost:8081/actuator/health' 2>/dev/null \
-                    | grep -q '"status":"UP"'; then
-                  return 0
-                fi
-                sleep 3
-              done
-              return 1
-            }
-
+            # 비밀값은 서버에만 둔다. 컨테이너가 뜨기 전에 .env 를 Secret 과 맞춘다.
             set_env() {
               install -m 600 /dev/null .env.next
               if [ -f .env ]; then
@@ -224,49 +207,6 @@ jobs:
               mv .env.next .env
             }
 
-            pin_running_image_in_env() {
-              if [ "$1" = "${1%:latest}" ]; then
-                set_env BACKEND_IMAGE "$1"
-                echo ".env 에 고정했다: BACKEND_IMAGE=$1"
-                echo "이제 서버에서 맨손으로 docker compose up -d 를 쳐도 이 버전이 뜬다"
-              else
-                echo "$1 은 움직이는 태그라 .env 에 고정하지 않는다"
-                echo "서버의 로컬 latest 는 pull 하지 않는 한 옛 이미지에 머물러 있다"
-              fi
-            }
-
-            # 바인드 마운트라 파일만 바뀌어서는 컨테이너가 눈치채지 못한다.
-            reload_caddy() {
-              if docker compose exec -T caddy caddy reload --config /etc/caddy/Caddyfile; then
-                echo "Caddy 가 설정을 다시 읽었다"
-              else
-                echo "reload 에 실패해 caddy 를 다시 띄운다"
-                docker compose up -d caddy
-              fi
-            }
-
-            # Redis 는 전용 호스트로 옮겼다. 앱 호스트에 남아 있던 컨테이너를 내린다.
-            # compose.yml 에서 서비스를 지우는 것만으로는 떠 있는 컨테이너가 사라지지 않는다.
-            retire_local_redis() {
-              if [ -z "$(docker ps -aq -f name='^fungame-redis$')" ]; then
-                return
-              fi
-
-              echo "앱 호스트에 남은 fungame-redis 를 내린다"
-              docker rm -f fungame-redis
-            }
-
-            # MySQL 도 같다. 볼륨은 남으므로 옮긴 데이터가 어긋나면 손으로 되살릴 수 있다.
-            retire_local_mysql() {
-              if [ -z "$(docker ps -aq -f name='^fungame-mysql$')" ]; then
-                return
-              fi
-
-              echo "앱 호스트에 남은 fungame-mysql 을 내린다. mysql-data 볼륨은 남긴다"
-              docker rm -f fungame-mysql
-            }
-
-            # 비밀값은 서버에만 둔다. 컨테이너가 뜨기 전에 .env 를 Secret 과 맞춘다.
             set_env MAIL_USERNAME "$MAIL_USERNAME"
             set_env MAIL_PASSWORD "$MAIL_PASSWORD"
             set_env REDIS_HOST "$REDIS_HOST"
@@ -278,53 +218,231 @@ jobs:
             set_env MYSQL_USER "$MYSQL_USER"
             set_env MYSQL_PASSWORD "$MYSQL_PASSWORD"
 
-            # 새 이미지가 전용 호스트에 붙는 것을 확인한 뒤에 내린다.
-            # 먼저 내리면 롤백한 이전 이미지가 붙을 Redis 가 사라진다.
+            BACKEND_IMAGE="$TARGET_IMAGE" docker compose pull backend-blue backend-green
 
-            # set -e 가 여기서 스크립트를 죽이면 아래 롤백 블록에 도달하지 못한다.
-            # 기동 명령이 실패해도 일단 넘기고 헬스체크가 판정하게 둔다.
-            if ! deploy_tag "$TARGET_IMAGE"; then
-              echo "새 이미지 기동 명령이 실패했다. 헬스체크로 판정한다"
-            fi
+            # ---------------------------------------------------------------
+            # 손잡이
+            # ---------------------------------------------------------------
 
-            if wait_until_healthy; then
-              echo "배포 성공: $TARGET_IMAGE"
-              retire_local_redis
-              retire_local_mysql
-              reload_caddy
+            # 관리 포트는 compose 가 MANAGEMENT_BIND_IP 에 묶는다. 같은 값을 써야 닿는다.
+            MGMT_IP=$(grep -E '^MANAGEMENT_BIND_IP=' .env | cut -d= -f2- || true)
+            MGMT_IP=${MGMT_IP:-127.0.0.1}
+
+            mgmt_port() {
+              if [ "$1" = blue ]; then echo 8081; else echo 8082; fi
+            }
+
+            traffic() {
+              curl -sS --max-time 10 -X POST -H 'Content-Type: application/json' \
+                -d "{\"accepting\": $2}" \
+                "http://${MGMT_IP}:$(mgmt_port "$1")/actuator/traffic"
+              echo
+            }
+
+            wait_liveness() {
+              for _ in $(seq 1 40); do
+                if curl -s --max-time 5 "http://${MGMT_IP}:$(mgmt_port "$1")/actuator/health/liveness" \
+                    | grep -q '"status":"UP"'; then
+                  return 0
+                fi
+                sleep 3
+              done
+              return 1
+            }
+
+            # 공개 주소로 실제로 응답이 오는지 본다. 뜨는 시간은 매번 달라 sleep 으로 때우지 않는다.
+            public_ok() {
+              set -- -s -o /dev/null -w '%{http_code}' --max-time 5
+
+              if [ -n "$PUBLIC_RESOLVE" ]; then
+                set -- "$@" --resolve "$PUBLIC_RESOLVE"
+              fi
+
+              code=$(curl "$@" "${PUBLIC_BASE_URL}/game/rooms" 2>/dev/null || echo 000)
+              [ "$code" != 000 ] && [ "$code" -lt 500 ]
+            }
+
+            wait_public() {
+              for _ in $(seq 1 60); do
+                if public_ok; then
+                  return 0
+                fi
+                sleep 1
+              done
+              return 1
+            }
+
+            start_refusing() {
+              if [ "$1" = blue ]; then flag=BLUE_ACCEPT_ON_STARTUP; else flag=GREEN_ACCEPT_ON_STARTUP; fi
+
+              BACKEND_IMAGE="$TARGET_IMAGE" env "$flag=false" \
+                docker compose up -d --force-recreate --no-deps "backend-$1"
+
+              if ! wait_liveness "$1"; then
+                echo "$1 이 기동하지 않았다"
+                docker compose logs --tail 120 "backend-$1" || true
+                return 1
+              fi
+              echo "$1 기동 확인 (아직 트래픽을 받지 않는다)"
+            }
+
+            # 바인드 마운트라 파일만 바뀌어서는 Caddy 가 눈치채지 못한다.
+            # reload 는 업스트림 풀을 새로 만들어 헬스체크 상태를 초기화하므로
+            # **전환 흐름 밖에서만** 부른다. 바뀌지 않았으면 아예 부르지 않는다.
+            reload_caddy_if_changed() {
+              now=$(md5sum caddy/Caddyfile | cut -d' ' -f1)
+              before=$(cat .caddy-loaded.md5 2>/dev/null || echo '')
+
+              if [ "$now" = "$before" ]; then
+                echo "Caddyfile 그대로다. reload 하지 않는다"
+                return 0
+              fi
+
+              if docker compose exec -T caddy caddy reload --config /etc/caddy/Caddyfile; then
+                echo "Caddy 가 설정을 다시 읽었다"
+              else
+                echo "reload 에 실패해 caddy 를 다시 띄운다"
+                docker compose up -d caddy
+              fi
+              echo "$now" > .caddy-loaded.md5
+            }
+
+            pin_running_image_in_env() {
+              if [ "$1" = "${1%:latest}" ]; then
+                set_env BACKEND_IMAGE "$1"
+                echo ".env 에 고정했다: BACKEND_IMAGE=$1"
+              fi
+            }
+
+            report_memory() {
+              echo "--- 메모리 ---"
+              free -h || true
+              docker stats --no-stream --format 'table {{.Name}}\t{{.MemUsage}}\t{{.MemPerc}}' || true
+            }
+
+            exists() {
+              docker ps -a --format '{{.Names}}' | grep -qx "$1"
+            }
+
+            # ---------------------------------------------------------------
+            # 첫 배포 — 옛 단일 컨테이너에서 blue · green 두 대로 넘어간다
+            #
+            # **green 부터 올린다.** 옛 컨테이너가 관리 포트 8081 을 잡고 있어 blue(8081)를
+            # 먼저 올리면 "port is already allocated" 로 기동 자체가 실패한다. green 은 8082 라
+            # 부딪히지 않는다.
+            #
+            # 1GB 호스트에 JVM 을 셋 둘 수 없다. 그래서 옛 컨테이너는 green 이 트래픽을
+            # 넘겨받은 뒤에 내리고, blue 는 그다음에 올린다. 어느 시점에도 JVM 은 둘이다.
+            # ---------------------------------------------------------------
+
+            if ! exists fungame-backend-blue && ! exists fungame-backend-green; then
+              echo "=== 첫 배포: blue · green 구성으로 넘어간다 ==="
+
+              if exists "$LEGACY_CONTAINER"; then
+                echo "옛 컨테이너 $LEGACY_CONTAINER 가 아직 트래픽을 받고 있다 (관리 포트 8081 점유)"
+              fi
+
+              start_refusing green
+              traffic green true
+
+              # 여기서야 Caddy 가 backend-green 을 알게 된다. 그 전까지는 옛 컨테이너로 간다.
+              # blue 는 아직 없어 헬스체크에 걸리므로 Caddy 가 알아서 뺀다.
+              reload_caddy_if_changed
+
+              if ! wait_public; then
+                echo "green 으로 넘어간 뒤 공개 주소가 응답하지 않는다. 옛 컨테이너를 내리지 않는다"
+                docker compose logs --tail 120 backend-green || true
+                exit 1
+              fi
+              echo "green 이 공개 주소로 트래픽을 받는다"
+
+              if exists "$LEGACY_CONTAINER"; then
+                echo "옛 컨테이너 $LEGACY_CONTAINER 를 내린다 (8081 이 비워진다)"
+                docker rm -f "$LEGACY_CONTAINER"
+              fi
+
+              if ! start_refusing blue; then
+                echo "blue 가 올라오지 않았다. green 한 대로 돈다"
+                docker compose stop backend-blue || true
+                report_memory
+                exit 1
+              fi
+              traffic blue true
+
+              if ! wait_public; then
+                echo "blue 를 넣은 뒤 공개 주소가 응답하지 않는다"
+                exit 1
+              fi
+
+              echo "첫 배포 완료: blue · green 두 대가 받는다"
               pin_running_image_in_env "$TARGET_IMAGE"
               docker image prune -af
+              report_memory
               exit 0
             fi
 
-            echo "새 이미지가 90초 안에 응답하지 않는다"
-            docker compose logs --tail 100 "$SERVICE" || true
+            # ---------------------------------------------------------------
+            # 평시 배포 — 올린 쪽을 거부인 채로 두었다가 전환 때 한 번에 뒤집는다
+            # ---------------------------------------------------------------
 
-            if [ -z "$PREVIOUS_IMAGE" ]; then
-              echo "되돌릴 이전 이미지가 없다"
+            reload_caddy_if_changed
+
+            echo "=== ① green 을 뺀다 ==="
+            traffic green false
+            sleep 3
+
+            echo "=== ② green 을 새 이미지로 올린다 ==="
+            if ! start_refusing green; then
+              echo "green 이 올라오지 않았다. 내리고 끝낸다. blue(옛 버전)가 계속 받는다"
+              docker compose stop backend-green || true
               exit 1
             fi
 
-            echo "이전 이미지로 되돌린다: $PREVIOUS_IMAGE"
-            if ! deploy_tag "$PREVIOUS_IMAGE"; then
-              echo "이전 이미지 기동 명령도 실패했다"
+            echo "=== ③ green 점검 통과 (아직 거부 중) ==="
+
+            echo "=== ④ 전환 ==="
+            traffic green true
+            sleep 3
+            traffic blue false
+
+            if ! wait_public; then
+              echo "전환 뒤 공개 주소가 응답하지 않는다. blue 를 되돌린다"
+              traffic blue true
+              traffic green false
+              exit 1
+            fi
+            echo "green(새 버전)이 받는다"
+
+            echo "=== ⑤ blue 를 새 이미지로 올린다 ==="
+            if ! start_refusing blue; then
+              echo "blue 가 올라오지 않았다. 내린 채로 둔다. green(새 버전) 한 대로 돈다"
+              docker compose stop backend-blue || true
+              report_memory
+              exit 1
             fi
 
-            if wait_until_healthy; then
-              echo "롤백 완료. 서비스는 이전 버전으로 살아 있다"
-              pin_running_image_in_env "$PREVIOUS_IMAGE"
-            else
-              echo "롤백도 실패했다. 수동 확인이 필요하다"
+            echo "=== ⑥ blue 를 넣는다 ==="
+            traffic blue true
+
+            if ! wait_public; then
+              echo "blue 를 넣은 뒤 공개 주소가 응답하지 않는다"
+              exit 1
             fi
-            exit 1
+
+            echo "배포 성공: $TARGET_IMAGE — 두 대가 새 버전으로 받는다"
+            pin_running_image_in_env "$TARGET_IMAGE"
+            docker image prune -af
+            report_memory
         env:
           IMAGE_NAME: ${{ env.IMAGE_NAME }}
           IMAGE_TAG: ${{ github.sha }}
-          SERVICE: backend
-          CONTAINER_NAME: fungame-backend
           REGISTRY_USER: ${{ github.actor }}
           REGISTRY_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PROJECT_DIR: ${{ secrets.BACKEND_PROJECT_DIR || '/home/ubuntu/fungame' }}
+          PUBLIC_BASE_URL: https://api.fun-game.club
+          # 이 호스트의 Caddy 로 직접 들어간다. 바깥 DNS 를 거치지 않는다.
+          PUBLIC_RESOLVE: api.fun-game.club:443:127.0.0.1
+          LEGACY_CONTAINER: fungame-backend
           MAIL_USERNAME: ${{ secrets.BREVO_SMTP_LOGIN }}
           MAIL_PASSWORD: ${{ secrets.BREVO_SMTP_KEY }}
           REDIS_HOST: ${{ secrets.REDIS_HOST }}
@@ -336,7 +454,11 @@ jobs:
           MYSQL_USER: ${{ secrets.MYSQL_USER }}
           MYSQL_PASSWORD: ${{ secrets.MYSQL_PASSWORD }}
 
-      - name: 실패하면 설정을 직전 백업으로 되돌린다
+      # 설정을 되돌리지 않습니다. 블루-그린에서는 그것이 더 위험합니다 —
+      # 백업의 Caddyfile 은 사라진 업스트림을 가리키고, 되돌린 compose.yml 은
+      # 단일 컨테이너 구성이라 떠 있는 blue · green 과 어긋납니다.
+      # 실패해도 **받고 있는 쪽은 그대로 두고** 무엇이 어떤 상태인지만 남깁니다.
+      - name: 실패하면 무엇이 서비스 중인지 남긴다
         if: failure()
         uses: appleboy/ssh-action@v1.2.0
         with:
@@ -344,26 +466,40 @@ jobs:
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.EC2_SSH_KEY }}
           port: ${{ secrets.EC2_PORT || 22 }}
-          envs: PROJECT_DIR
+          envs: PROJECT_DIR,PUBLIC_BASE_URL,PUBLIC_RESOLVE
           script_stop: false
           script: |
             set -uo pipefail
 
             cd "$PROJECT_DIR"
 
-            LATEST=$(ls -1t .backup/config-*.tgz 2>/dev/null | head -1)
-            if [ -z "$LATEST" ]; then
-              echo "되돌릴 백업이 없다. 서버 설정을 손으로 확인해야 한다"
-              exit 0
-            fi
-
-            echo "설정을 되돌린다: $LATEST"
-            tar xzf "$LATEST"
-
-            docker compose up -d --no-deps backend || true
+            echo "--- 컨테이너 ---"
             docker compose ps
+
+            MGMT_IP=$(grep -E '^MANAGEMENT_BIND_IP=' .env | cut -d= -f2- || true)
+            MGMT_IP=${MGMT_IP:-127.0.0.1}
+
+            for PAIR in blue:8081 green:8082; do
+              SIDE=${PAIR%%:*}
+              PORT=${PAIR##*:}
+              echo "--- $SIDE ---"
+              curl -s --max-time 5 "http://${MGMT_IP}:${PORT}/actuator/traffic" || echo "응답 없음"
+              echo
+              curl -s --max-time 5 "http://${MGMT_IP}:${PORT}/actuator/health/readiness" || echo "응답 없음"
+              echo
+            done
+
+            echo "--- 공개 주소 ---"
+            curl -s -o /dev/null -w '%{http_code}\n' --max-time 5 \
+              --resolve "$PUBLIC_RESOLVE" "${PUBLIC_BASE_URL}/game/rooms" \
+              || echo "응답 없음"
+
+            echo "--- 메모리 ---"
+            free -h
         env:
           PROJECT_DIR: ${{ secrets.BACKEND_PROJECT_DIR || '/home/ubuntu/fungame' }}
+          PUBLIC_BASE_URL: https://api.fun-game.club
+          PUBLIC_RESOLVE: api.fun-game.club:443:127.0.0.1
 
       - uses: docker/login-action@v3
         with:

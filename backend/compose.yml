@@ -1,3 +1,30 @@
+# 백엔드는 blue · green 두 대가 평시에 함께 트래픽을 받습니다.
+# 배포는 한쪽씩 빼고(/actuator/traffic) 새 이미지로 올린 뒤 다시 넣습니다.
+# Caddy 가 readiness 를 직접 보고 넣고 빼므로 배포 중 이 파일을 고쳐 쓰지 않습니다.
+
+x-backend-env: &backend-env
+  SPRING_PROFILES_ACTIVE: prod
+  CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS}
+  # http 로 로컬에서 띄워 볼 때만 false 로 내립니다. 운영은 기본값 true 그대로입니다.
+  SESSION_COOKIE_SECURE: ${SESSION_COOKIE_SECURE:-true}
+  # MySQL 은 전용 호스트에 있습니다. 값은 배포 워크플로가 Secret 에서 .env 로 채웁니다.
+  SPRING_DATASOURCE_URL: jdbc:mysql://${MYSQL_HOST}:${MYSQL_PORT:-3306}/fungame
+  SPRING_DATASOURCE_USERNAME: ${MYSQL_USER}
+  SPRING_DATASOURCE_PASSWORD: ${MYSQL_PASSWORD}
+  # MAIL_FROM · MAIL_HOST · PASSWORD_RESET_LINK_BASE_URL 은 넘기지 않습니다.
+  # yml 기본값이 이미 운영값이고, .env 에 없으면 빈 문자열이 그 기본값을 덮습니다.
+  # Brevo SMTP 계정. 배포 워크플로가 GitHub Secret 에서 서버 .env 로 채웁니다.
+  MAIL_USERNAME: ${MAIL_USERNAME}
+  MAIL_PASSWORD: ${MAIL_PASSWORD}
+  # 신고 알림을 받을 디스코드 웹훅. 정답과 힌트까지 실리므로 비공개 채널이어야 합니다.
+  # 주소를 아는 사람은 누구나 그 채널에 메시지를 쏠 수 있으므로 .env 에만 둡니다.
+  DISCORD_REPORT_WEBHOOK_URL: ${DISCORD_REPORT_WEBHOOK_URL}
+  # Redis 도 전용 호스트에 있습니다.
+  REDIS_HOST: ${REDIS_HOST}
+  REDIS_PORT: ${REDIS_PORT}
+  REDIS_USERNAME: ${REDIS_USERNAME}
+  REDIS_PASSWORD: ${REDIS_PASSWORD}
+
 services:
   caddy:
     image: caddy:2
@@ -7,20 +34,25 @@ services:
       - "80:80"
       - "443:443"
       - "443:443/udp"
+    environment:
+      # 로컬에서 블루-그린을 돌려 볼 때만 ":80" 같은 평문 주소로 바꿉니다.
+      SITE_ADDRESS: ${SITE_ADDRESS:-api.fun-game.club}
     volumes:
       - ./caddy:/etc/caddy
       - caddy-data:/data
       - caddy-config:/config
     depends_on:
-      - backend
+      - backend-blue
+      - backend-green
 
-  backend:
-    image: ${BACKEND_IMAGE:-ghcr.io/gudwns1812/fungame-backend:latest}
-    container_name: fungame-backend
+  backend-blue:
+    image: ${BACKEND_BLUE_IMAGE:-${BACKEND_IMAGE:-ghcr.io/gudwns1812/fungame-backend:latest}}
+    container_name: fungame-backend-blue
     restart: unless-stopped
     # server.shutdown=graceful 의 timeout-per-shutdown-phase 가 20s 입니다.
     # 도커 기본 유예 10s 로는 그 페이즈가 끝나기 전에 SIGKILL 이 들어옵니다.
     stop_grace_period: 30s
+    mem_limit: ${BACKEND_MEM_LIMIT:-768m}
     expose:
       - "8080"
     ports:
@@ -28,25 +60,26 @@ services:
       # 넣을 값은 긁어가는 쪽이 아니라 **이 호스트 자신의 사설 IP** 입니다.
       - "${MANAGEMENT_BIND_IP:-127.0.0.1}:8081:8081"
     environment:
-      SPRING_PROFILES_ACTIVE: prod
-      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS}
-      # MySQL 은 전용 호스트에 있습니다. 값은 배포 워크플로가 Secret 에서 .env 로 채웁니다.
-      SPRING_DATASOURCE_URL: jdbc:mysql://${MYSQL_HOST}:${MYSQL_PORT:-3306}/fungame
-      SPRING_DATASOURCE_USERNAME: ${MYSQL_USER}
-      SPRING_DATASOURCE_PASSWORD: ${MYSQL_PASSWORD}
-      # MAIL_FROM · MAIL_HOST · PASSWORD_RESET_LINK_BASE_URL 은 넘기지 않습니다.
-      # yml 기본값이 이미 운영값이고, .env 에 없으면 빈 문자열이 그 기본값을 덮습니다.
-      # Brevo SMTP 계정. 배포 워크플로가 GitHub Secret 에서 서버 .env 로 채웁니다.
-      MAIL_USERNAME: ${MAIL_USERNAME}
-      MAIL_PASSWORD: ${MAIL_PASSWORD}
-      # 신고 알림을 받을 디스코드 웹훅. 정답과 힌트까지 실리므로 비공개 채널이어야 합니다.
-      # 주소를 아는 사람은 누구나 그 채널에 메시지를 쏠 수 있으므로 .env 에만 둡니다.
-      DISCORD_REPORT_WEBHOOK_URL: ${DISCORD_REPORT_WEBHOOK_URL}
-      # Redis 도 전용 호스트에 있습니다.
-      REDIS_HOST: ${REDIS_HOST}
-      REDIS_PORT: ${REDIS_PORT}
-      REDIS_USERNAME: ${REDIS_USERNAME}
-      REDIS_PASSWORD: ${REDIS_PASSWORD}
+      <<: *backend-env
+      APP_INSTANCE_ID: blue
+      # 배포가 올릴 때는 false 로 띄워 점검을 마친 뒤에 트래픽을 받습니다.
+      APP_TRAFFIC_ACCEPT_ON_STARTUP: ${BLUE_ACCEPT_ON_STARTUP:-true}
+
+  backend-green:
+    image: ${BACKEND_GREEN_IMAGE:-${BACKEND_IMAGE:-ghcr.io/gudwns1812/fungame-backend:latest}}
+    container_name: fungame-backend-green
+    restart: unless-stopped
+    stop_grace_period: 30s
+    mem_limit: ${BACKEND_MEM_LIMIT:-768m}
+    expose:
+      - "8080"
+    ports:
+      # 컨테이너 안은 양쪽 다 8081 입니다. 호스트에서만 갈라집니다.
+      - "${MANAGEMENT_BIND_IP:-127.0.0.1}:8082:8081"
+    environment:
+      <<: *backend-env
+      APP_INSTANCE_ID: green
+      APP_TRAFFIC_ACCEPT_ON_STARTUP: ${GREEN_ACCEPT_ON_STARTUP:-true}
 
 volumes:
   caddy-data:
