@@ -219,6 +219,7 @@ jobs:
             set_env MYSQL_PASSWORD "$MYSQL_PASSWORD"
 
             BACKEND_IMAGE="$TARGET_IMAGE" docker compose pull backend-blue backend-green
+            echo "준비 끝: $TARGET_IMAGE"
 
             # ---------------------------------------------------------------
             # 손잡이
@@ -324,6 +325,10 @@ jobs:
               docker ps -a --format '{{.Names}}' | grep -qx "$1"
             }
 
+            echo "관리 주소 $MGMT_IP"
+            echo "떠 있는 컨테이너:"
+            docker ps -a --format '  {{.Names}} ({{.Status}})'
+
             # ---------------------------------------------------------------
             # 첫 배포 — 옛 단일 컨테이너에서 blue · green 두 대로 넘어간다
             #
@@ -331,8 +336,7 @@ jobs:
             # 먼저 올리면 "port is already allocated" 로 기동 자체가 실패한다. green 은 8082 라
             # 부딪히지 않는다.
             #
-            # 1GB 호스트에 JVM 을 셋 둘 수 없다. 그래서 옛 컨테이너는 green 이 트래픽을
-            # 넘겨받은 뒤에 내리고, blue 는 그다음에 올린다. 어느 시점에도 JVM 은 둘이다.
+            # 옛 컨테이너는 green 이 트래픽을 넘겨받은 뒤에 내린다. 어느 시점에도 JVM 은 둘이다.
             # ---------------------------------------------------------------
 
             if ! exists fungame-backend-blue && ! exists fungame-backend-green; then
