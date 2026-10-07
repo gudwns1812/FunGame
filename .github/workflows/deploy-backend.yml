@@ -321,8 +321,10 @@ jobs:
               docker stats --no-stream --format 'table {{.Name}}\t{{.MemUsage}}\t{{.MemPerc}}' || true
             }
 
+            # 파이프와 grep -q 를 쓰면 pipefail · set -e 와 맞물려 조건절에서 스크립트가
+            # 조용히 죽는다. #105 에서 이미 돌아간 형태를 그대로 쓴다.
             exists() {
-              docker ps -a --format '{{.Names}}' | grep -qx "$1"
+              [ -n "$(docker ps -aq -f name="^$1\$")" ]
             }
 
             echo "관리 주소 $MGMT_IP"
@@ -339,7 +341,10 @@ jobs:
             # 옛 컨테이너는 green 이 트래픽을 넘겨받은 뒤에 내린다. 어느 시점에도 JVM 은 둘이다.
             # ---------------------------------------------------------------
 
-            if ! exists fungame-backend-blue && ! exists fungame-backend-green; then
+            BLUE_ID=$(docker ps -aq -f name='^fungame-backend-blue$')
+            GREEN_ID=$(docker ps -aq -f name='^fungame-backend-green$')
+
+            if [ -z "$BLUE_ID" ] && [ -z "$GREEN_ID" ]; then
               echo "=== 첫 배포: blue · green 구성으로 넘어간다 ==="
 
               if exists "$LEGACY_CONTAINER"; then
