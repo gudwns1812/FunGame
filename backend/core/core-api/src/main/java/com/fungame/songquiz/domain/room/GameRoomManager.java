@@ -178,19 +178,8 @@ public class GameRoomManager {
 
     @Scheduled(fixedDelay = 60000)
     public void cleanupIdleRooms() {
-        Instant threshold = Instant.now().minus(MAX_IDLE);
-
-        roomStore.findAll().stream()
-                .filter(room -> room.isIdle(threshold))
-                .map(GameRoom::getRoomId)
-                .filter(roomId -> roomStore.removeIf(roomId, room -> room.isIdle(threshold)))
-                .forEach(roomId -> {
-                    log.info("유휴 방 정리: {}", roomId);
-                    afterRemoved(roomId);
-                });
-
-        roomStore.removeUnreadable().forEach(roomId -> {
-            log.warn("읽을 수 없는 방 정리: {}", roomId);
+        roomStore.removeIdle(Instant.now().minus(MAX_IDLE)).forEach(roomId -> {
+            log.info("유휴 방 정리: {}", roomId);
             afterRemoved(roomId);
         });
     }

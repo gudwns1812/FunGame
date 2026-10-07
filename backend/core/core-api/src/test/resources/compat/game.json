@@ -1,0 +1,36 @@
+{
+  "quiz" : {
+    "kind" : "SONG",
+    "songs" : [ {
+      "id" : 10,
+      "title" : "정답",
+      "singer" : "가수",
+      "categories" : [ "KPOP" ],
+      "releaseDate" : [ 2020, 1, 1 ],
+      "link" : "youtube.com/10",
+      "playSeconds" : 30,
+      "answers" : [ "정답" ],
+      "hint" : "힌트"
+    } ],
+    "category" : "KPOP",
+    "currentIdx" : -1,
+    "roundProcessing" : false
+  },
+  "participants" : [ {
+    "player" : {
+      "memberId" : 1,
+      "isReady" : true
+    },
+    "score" : 0,
+    "playing" : true
+  }, {
+    "player" : {
+      "memberId" : 2,
+      "isReady" : false
+    },
+    "score" : 0,
+    "playing" : true
+  } ],
+  "skipVoters" : [ ],
+  "roundStartedAt" : null
+}
