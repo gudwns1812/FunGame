@@ -159,11 +159,24 @@ class GameRoomManagerTest {
     }
 
     @Test
-    void 저장_형태를_읽을_수_없는_방은_정리할_때_지우고_알린다() {
+    void 저장_형태를_읽을_수_없어도_방금_쓰인_방은_정리하지_않는다() {
+        // given 다음 버전이 방금 쓴 방일 수 있다. 진행 중인 판이 여기서 사라지면 복구할 길이 없다
+        openRoom(8);
+        plantUnreadableRoom(MISSING_ROOM_ID, Instant.now());
+
+        // when
+        gameRoomManager.cleanupIdleRooms();
+
+        // then
+        assertThat(redisTemplate.hasKey(GameRoomDao.KEY_PREFIX + MISSING_ROOM_ID)).isTrue();
+        verify(gameTimer, never()).stop(MISSING_ROOM_ID);
+    }
+
+    @Test
+    void 저장_형태를_읽을_수_없는_방은_마지막으로_쓰인_지_오래됐을_때_지우고_알린다() {
         // given
         openRoom(8);
-        redisTemplate.opsForHash().putAll(GameRoomDao.KEY_PREFIX + MISSING_ROOM_ID, Map.of("body", "{", "revision", "1"));
-        redisTemplate.opsForSet().add(GameRoomDao.KEY_PREFIX + "ids", MISSING_ROOM_ID.toString());
+        plantUnreadableRoom(MISSING_ROOM_ID, Instant.now().minus(31, ChronoUnit.MINUTES));
 
         // when
         gameRoomManager.cleanupIdleRooms();
@@ -173,6 +186,14 @@ class GameRoomManagerTest {
         assertThat(gameRoomManager.findAllRooms()).extracting(GameRoom::getRoomId).containsExactly(roomId);
         verify(gameTimer).stop(MISSING_ROOM_ID);
         verify(applicationEventPublisher).publishEvent(any(RoomChangedEvent.class));
+    }
+
+    private void plantUnreadableRoom(Long roomId, Instant writtenAt) {
+        redisTemplate.opsForHash().putAll(GameRoomDao.KEY_PREFIX + roomId, Map.of(
+                "body", "{",
+                "revision", "1",
+                "updatedAt", Long.toString(writtenAt.toEpochMilli())));
+        redisTemplate.opsForSet().add(GameRoomDao.KEY_PREFIX + "ids", roomId.toString());
     }
 
     @Test

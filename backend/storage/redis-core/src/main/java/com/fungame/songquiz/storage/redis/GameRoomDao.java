@@ -21,6 +21,7 @@ public class GameRoomDao {
     private static final String BODY = "body";
     private static final String REVISION = "revision";
     private static final String GAME = "game";
+    private static final String UPDATED_AT = "updatedAt";
     private static final String NO_GAME = "";
     private static final long WRITTEN = 1;
 
@@ -33,15 +34,16 @@ public class GameRoomDao {
         this.redisTemplate = redisTemplate;
     }
 
-    public boolean create(Long roomId, String body, Collection<Long> memberIds) {
-        List<String> args = new ArrayList<>(List.of(roomId.toString(), body, MEMBER_KEY_PREFIX));
+    public boolean create(Long roomId, String body, Collection<Long> memberIds, long updatedAtMillis) {
+        List<String> args = new ArrayList<>(
+                List.of(roomId.toString(), body, MEMBER_KEY_PREFIX, Long.toString(updatedAtMillis)));
         memberIds.forEach(memberId -> args.add(memberId.toString()));
 
         return written(redisTemplate.execute(createScript, List.of(roomKeyOf(roomId), ROOM_IDS_KEY), args.toArray()));
     }
 
     public Optional<StoredRoom> find(Long roomId) {
-        List<Object> fields = hashOperations().multiGet(roomKeyOf(roomId), List.of(BODY, REVISION, GAME));
+        List<Object> fields = hashOperations().multiGet(roomKeyOf(roomId), List.of(BODY, REVISION, GAME, UPDATED_AT));
 
         return storedRoomOf(roomId, fields);
     }
@@ -65,10 +67,10 @@ public class GameRoomDao {
     }
 
     public boolean replace(Long roomId, long expectedRevision, String body, String game,
-                           Collection<Long> joinedMemberIds, Collection<Long> leftMemberIds) {
+                           Collection<Long> joinedMemberIds, Collection<Long> leftMemberIds, long updatedAtMillis) {
         List<String> args = new ArrayList<>(List.of(
                 roomId.toString(), Long.toString(expectedRevision), body, game == null ? NO_GAME : game,
-                MEMBER_KEY_PREFIX, Integer.toString(joinedMemberIds.size())));
+                MEMBER_KEY_PREFIX, Integer.toString(joinedMemberIds.size()), Long.toString(updatedAtMillis)));
         joinedMemberIds.forEach(memberId -> args.add(memberId.toString()));
         leftMemberIds.forEach(memberId -> args.add(memberId.toString()));
 
@@ -88,7 +90,11 @@ public class GameRoomDao {
         }
 
         return Optional.of(new StoredRoom(roomId, (String) fields.get(0), (String) fields.get(2),
-                Long.parseLong((String) fields.get(1))));
+                Long.parseLong((String) fields.get(1)), millisOrNull(fields.get(3))));
+    }
+
+    private static Long millisOrNull(Object field) {
+        return field == null ? null : Long.parseLong((String) field);
     }
 
     private HashOperations<String, String, Object> hashOperations() {

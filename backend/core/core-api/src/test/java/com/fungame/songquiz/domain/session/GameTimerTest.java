@@ -236,4 +236,73 @@ class GameTimerTest {
                 .isEqualTo(1000);
         assertThat(meterRegistry.timer("fungame.game.timer.task").count()).isEqualTo(1);
     }
+
+    @Test
+    @DisplayName("모르는 종류의 작업을 같이 가져와도 나머지 작업은 그대로 돈다.")
+    void an_unknown_kind_does_not_hold_up_the_tasks_claimed_with_it() {
+        GameTimerTask hint = GameTimerTask.openHint(ROOM_ID, 1);
+        plantTask("room:" + OTHER_ROOM_ID + ":SOMETHING_NEWER:1");
+        timer.startAfter(SOON, hint);
+        clock.plus(SOON);
+
+        poller.poll();
+
+        assertThat(fired).containsExactly(hint);
+    }
+
+    @Test
+    @DisplayName("모르는 종류의 작업은 지우지 않는다. 리스가 지나면 그 종류를 아는 서버가 가져간다.")
+    void an_unknown_kind_is_left_for_a_server_that_knows_it() {
+        String newerKind = "room:" + ROOM_ID + ":SOMETHING_NEWER:1";
+        plantTask(newerKind);
+
+        poller.poll();
+
+        assertThat(isQueued(newerKind)).isTrue();
+    }
+
+    @Test
+    @DisplayName("처리기가 없는 작업은 지우지 않는다. 리스가 지나면 처리기를 가진 서버가 가져가 돌린다.")
+    void a_task_without_a_handler_is_left_for_a_server_that_has_one() {
+        GameTimerPoller withoutEndRound = pollerOn(timer, handlerFor(GameTimerTask.Kind.START_ROUND));
+        GameTimerTask endRound = GameTimerTask.endRound(ROOM_ID, 1);
+        timer.startAfter(SOON, endRound);
+        clock.plus(SOON);
+
+        withoutEndRound.poll();
+
+        assertThat(fired).isEmpty();
+        assertThat(isQueued(endRound.key())).isTrue();
+
+        clock.plus(GameTimer.LEASE.multipliedBy(2));
+        poller.poll();
+
+        assertThat(fired).containsExactly(endRound);
+    }
+
+    private GameTimerHandler handlerFor(GameTimerTask.Kind... kinds) {
+        return new GameTimerHandler() {
+            @Override
+            public List<GameTimerTask.Kind> timerKinds() {
+                return List.of(kinds);
+            }
+
+            @Override
+            public void onTimer(GameTimerTask task) {
+                fired.add(task);
+            }
+        };
+    }
+
+    private void plantTask(String taskKey) {
+        redisTemplate.opsForZSet().add(dueKey(), taskKey, clock.instant().toEpochMilli());
+    }
+
+    private boolean isQueued(String taskKey) {
+        return redisTemplate.opsForZSet().score(dueKey(), taskKey) != null;
+    }
+
+    private static String dueKey() {
+        return GameTimerDao.KEY_PREFIX + "due";
+    }
 }

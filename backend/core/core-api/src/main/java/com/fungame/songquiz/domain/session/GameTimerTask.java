@@ -1,11 +1,14 @@
 package com.fungame.songquiz.domain.session;
 
+import java.util.Optional;
+
 public record GameTimerTask(Kind kind, Long targetId, int round) {
 
     private static final String ROOM_SCOPE = "room:";
     private static final String MEMBER_SCOPE = "member:";
     private static final String SEPARATOR = ":";
     private static final int NO_ROUND = 0;
+    private static final int KEY_PARTS = 4;
 
     public enum Kind {
         START_ROUND, OPEN_HINT, END_ROUND, SHOW_RESULT, LEAVE_ROOM
@@ -40,8 +43,17 @@ public record GameTimerTask(Kind kind, Long targetId, int round) {
         return scope + targetId + SEPARATOR + kind + SEPARATOR + round;
     }
 
-    public static GameTimerTask fromKey(String key) {
+    public static Optional<GameTimerTask> fromKey(String key) {
         String[] parts = key.split(SEPARATOR);
-        return new GameTimerTask(Kind.valueOf(parts[2]), Long.valueOf(parts[1]), Integer.parseInt(parts[3]));
+        if (parts.length != KEY_PARTS) {
+            return Optional.empty();
+        }
+
+        try {
+            return Optional.of(new GameTimerTask(
+                    Kind.valueOf(parts[2]), Long.valueOf(parts[1]), Integer.parseInt(parts[3])));
+        } catch (IllegalArgumentException e) {
+            return Optional.empty();
+        }
     }
 }

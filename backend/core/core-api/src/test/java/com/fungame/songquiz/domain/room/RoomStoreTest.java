@@ -180,29 +180,29 @@ class RoomStoreTest {
     }
 
     @Test
-    @DisplayName("조건이 맞는 방만 지운다. 여러 서버가 함께 지우려 해도 한 곳만 성공한다.")
-    void removeIfSucceedsOnce() {
+    @DisplayName("유휴한 방만 지운다. 여러 서버가 함께 지우려 해도 한 곳만 성공한다.")
+    void removeIdleSucceedsOnce() {
         store.create(GameRoom.restore(new RoomSnapshot(ROOM_ID, SETTINGS, List.of(HOST), HOST.memberId(),
                 GameRoomStatus.WAITING,
                 Instant.now().minus(31, ChronoUnit.MINUTES), 0)));
         Instant threshold = Instant.now().minus(30, ChronoUnit.MINUTES);
 
-        boolean first = store.removeIf(ROOM_ID, room -> room.isIdle(threshold));
-        boolean second = otherInstance.removeIf(ROOM_ID, room -> room.isIdle(threshold));
+        List<Long> first = store.removeIdle(threshold);
+        List<Long> second = otherInstance.removeIdle(threshold);
 
-        assertThat(first).isTrue();
-        assertThat(second).isFalse();
+        assertThat(first).containsExactly(ROOM_ID);
+        assertThat(second).isEmpty();
         assertThat(store.find(ROOM_ID)).isEmpty();
     }
 
     @Test
-    @DisplayName("조건이 맞지 않는 방은 지우지 않는다.")
-    void removeIfKeepsRoomThatDoesNotMatch() {
+    @DisplayName("활동이 있었던 방은 지우지 않는다.")
+    void removeIdleKeepsActiveRoom() {
         openRoom(8);
 
-        boolean removed = store.removeIf(ROOM_ID, room -> room.isIdle(Instant.now().minus(30, ChronoUnit.MINUTES)));
+        List<Long> removed = store.removeIdle(Instant.now().minus(30, ChronoUnit.MINUTES));
 
-        assertThat(removed).isFalse();
+        assertThat(removed).isEmpty();
         assertThat(store.find(ROOM_ID)).isPresent();
     }
 
@@ -333,7 +333,7 @@ class RoomStoreTest {
     @DisplayName("저장 형태를 읽을 수 없는 방은 목록에서 빠지고 나머지 방은 그대로 보인다.")
     void unreadableRoomIsLeftOutOfTheList() {
         openRoom(8);
-        plantUnreadableRoom(UNREADABLE_ROOM_ID);
+        plantUnreadableRoom(UNREADABLE_ROOM_ID, Instant.now());
 
         assertThat(store.findAll()).extracting(GameRoom::getRoomId).containsExactly(ROOM_ID);
     }
@@ -341,7 +341,7 @@ class RoomStoreTest {
     @Test
     @DisplayName("저장 형태를 읽을 수 없는 방은 없는 방으로 본다.")
     void unreadableRoomIsTreatedAsMissing() {
-        plantUnreadableRoom(UNREADABLE_ROOM_ID);
+        plantUnreadableRoom(UNREADABLE_ROOM_ID, Instant.now());
 
         assertThat(store.find(UNREADABLE_ROOM_ID)).isEmpty();
         assertThatThrownBy(() -> store.update(UNREADABLE_ROOM_ID, room -> room.join(GUEST)))
@@ -351,20 +351,79 @@ class RoomStoreTest {
     }
 
     @Test
-    @DisplayName("읽을 수 없는 방을 치우면 그 방만 지우고 지운 방 번호를 돌려준다.")
-    void removeUnreadableRooms() {
-        openRoom(8);
-        plantUnreadableRoom(UNREADABLE_ROOM_ID);
+    @DisplayName("방금 쓰인 방은 읽지 못해도 지우지 않는다. 다음 버전이 쓴 멀쩡한 방일 수 있다.")
+    void unreadableRoomWrittenRecentlyIsKept() {
+        plantUnreadableRoom(UNREADABLE_ROOM_ID, Instant.now());
 
-        List<Long> removed = store.removeUnreadable();
+        List<Long> removed = store.removeIdle(Instant.now().minus(30, ChronoUnit.MINUTES));
+
+        assertThat(removed).isEmpty();
+        assertThat(redisTemplate.hasKey(GameRoomDao.KEY_PREFIX + UNREADABLE_ROOM_ID)).isTrue();
+    }
+
+    @Test
+    @DisplayName("읽지 못하는 방은 마지막으로 쓰인 지 오래됐을 때 지운다.")
+    void unreadableRoomIsRemovedOnlyAfterItsLastWriteIsOld() {
+        openRoom(8);
+        plantUnreadableRoom(UNREADABLE_ROOM_ID, Instant.now().minus(31, ChronoUnit.MINUTES));
+
+        List<Long> removed = store.removeIdle(Instant.now().minus(30, ChronoUnit.MINUTES));
 
         assertThat(removed).containsExactly(UNREADABLE_ROOM_ID);
         assertThat(redisTemplate.hasKey(GameRoomDao.KEY_PREFIX + UNREADABLE_ROOM_ID)).isFalse();
         assertThat(store.findAll()).extracting(GameRoom::getRoomId).containsExactly(ROOM_ID);
     }
 
-    private void plantUnreadableRoom(Long roomId) {
-        redisTemplate.opsForHash().putAll(GameRoomDao.KEY_PREFIX + roomId, Map.of("body", "{\"roomId\":", "revision", "1"));
+    @Test
+    @DisplayName("쓰인 시각이 없는 방은 읽지 못해도 지우지 않는다. 이 필드를 모르는 옛 버전이 쓴 방이다.")
+    void unreadableRoomWithoutWrittenTimeIsKept() {
+        redisTemplate.opsForHash()
+                .putAll(GameRoomDao.KEY_PREFIX + UNREADABLE_ROOM_ID, Map.of("body", "{\"roomId\":", "revision", "1"));
+        redisTemplate.opsForSet().add(GameRoomDao.KEY_PREFIX + "ids", UNREADABLE_ROOM_ID.toString());
+
+        List<Long> removed = store.removeIdle(Instant.now().minus(30, ChronoUnit.MINUTES));
+
+        assertThat(removed).isEmpty();
+        assertThat(redisTemplate.hasKey(GameRoomDao.KEY_PREFIX + UNREADABLE_ROOM_ID)).isTrue();
+    }
+
+    @Test
+    @DisplayName("방을 만들면 쓰인 시각이 본문 밖에 남는다. 본문을 읽지 못해도 이 시각은 읽힌다.")
+    void creatingARoomLeavesTheWrittenTimeOutsideTheBody() {
+        Instant beforeCreate = Instant.now().minusSeconds(1);
+
+        openRoom(8);
+
+        assertThat(writtenTimeOf(ROOM_ID)).isAfter(beforeCreate);
+    }
+
+    @Test
+    @DisplayName("방을 바꿀 때마다 쓰인 시각이 그 시점으로 밀린다. 갱신하지 않으면 멀쩡한 방이 유휴로 보여 지워진다.")
+    void everyChangePushesTheWrittenTimeForward() {
+        openRoom(8);
+        Instant longAgo = Instant.now().minus(20, ChronoUnit.MINUTES);
+        backdateWrittenTime(ROOM_ID, longAgo);
+
+        store.update(ROOM_ID, room -> room.join(GUEST));
+
+        assertThat(writtenTimeOf(ROOM_ID)).isAfter(longAgo.plus(10, ChronoUnit.MINUTES));
+    }
+
+    private Instant writtenTimeOf(Long roomId) {
+        Object millis = redisTemplate.opsForHash().get(GameRoomDao.KEY_PREFIX + roomId, "updatedAt");
+        return Instant.ofEpochMilli(Long.parseLong((String) millis));
+    }
+
+    private void backdateWrittenTime(Long roomId, Instant writtenAt) {
+        redisTemplate.opsForHash()
+                .put(GameRoomDao.KEY_PREFIX + roomId, "updatedAt", Long.toString(writtenAt.toEpochMilli()));
+    }
+
+    private void plantUnreadableRoom(Long roomId, Instant writtenAt) {
+        redisTemplate.opsForHash().putAll(GameRoomDao.KEY_PREFIX + roomId, Map.of(
+                "body", "{\"roomId\":",
+                "revision", "1",
+                "updatedAt", Long.toString(writtenAt.toEpochMilli())));
         redisTemplate.opsForSet().add(GameRoomDao.KEY_PREFIX + "ids", roomId.toString());
     }
 }

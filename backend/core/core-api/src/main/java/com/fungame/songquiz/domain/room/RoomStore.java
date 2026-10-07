@@ -8,13 +8,13 @@ import com.fungame.songquiz.storage.redis.GameRoomDao;
 import com.fungame.songquiz.storage.redis.StoredRoom;
 import com.fungame.songquiz.support.error.CoreException;
 import com.fungame.songquiz.support.error.ErrorType;
+import java.time.Instant;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.function.Function;
-import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -31,7 +31,7 @@ public class RoomStore {
     private final ObjectMapper objectMapper;
 
     public void create(GameRoom room) {
-        if (!gameRoomDao.create(room.getRoomId(), bodyOf(room), memberIdsOf(room))) {
+        if (!gameRoomDao.create(room.getRoomId(), bodyOf(room), memberIdsOf(room), nowMillis())) {
             throw new IllegalStateException("이미 쓰고 있는 방 번호다: " + room.getRoomId());
         }
     }
@@ -78,32 +78,31 @@ public class RoomStore {
         throw new IllegalStateException("방 " + roomId + " 을 " + MAX_ATTEMPTS + "번 연달아 다른 쓰기에 빼앗겼다");
     }
 
-    public boolean removeIf(Long roomId, Predicate<GameRoom> condition) {
-        for (int attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
-            Optional<StoredRoom> stored = gameRoomDao.find(roomId);
-            if (stored.isEmpty()) {
-                return false;
-            }
-
-            Optional<GameRoom> room = readableRoomOf(stored.get());
-            if (room.isEmpty() || !condition.test(room.get())) {
-                return false;
-            }
-
-            if (gameRoomDao.delete(roomId, stored.get().revision(), memberIdsOf(room.get()))) {
-                return true;
-            }
-        }
-
-        return false;
+    public List<Long> removeIdle(Instant threshold) {
+        return gameRoomDao.findAll().stream()
+                .map(stored -> new IdleCandidate(stored, readableRoomOf(stored)))
+                .filter(candidate -> candidate.isIdle(threshold))
+                .filter(candidate -> gameRoomDao.delete(
+                        candidate.stored().roomId(), candidate.stored().revision(), candidate.memberIdsToClear()))
+                .map(candidate -> candidate.stored().roomId())
+                .toList();
     }
 
-    public List<Long> removeUnreadable() {
-        return gameRoomDao.findAll().stream()
-                .filter(stored -> readableTableOf(stored).isEmpty())
-                .filter(stored -> gameRoomDao.delete(stored.roomId(), stored.revision(), Set.of()))
-                .map(StoredRoom::roomId)
-                .toList();
+    private record IdleCandidate(StoredRoom stored, Optional<GameRoom> room) {
+
+        boolean isIdle(Instant threshold) {
+            return room.map(readable -> readable.isIdle(threshold))
+                    .orElseGet(() -> wasWrittenBefore(threshold));
+        }
+
+        private boolean wasWrittenBefore(Instant threshold) {
+            return stored.updatedAtMillis() != null
+                    && Instant.ofEpochMilli(stored.updatedAtMillis()).isBefore(threshold);
+        }
+
+        Set<Long> memberIdsToClear() {
+            return room.map(RoomStore::memberIdsOf).orElseGet(Set::of);
+        }
     }
 
     private boolean write(StoredRoom stored, RoomTable table, Set<Long> membersBefore) {
@@ -115,7 +114,11 @@ public class RoomStore {
         Set<Long> membersAfter = memberIdsOf(room);
 
         return gameRoomDao.replace(stored.roomId(), stored.revision(), bodyOf(room), gameOf(table),
-                difference(membersAfter, membersBefore), difference(membersBefore, membersAfter));
+                difference(membersAfter, membersBefore), difference(membersBefore, membersAfter), nowMillis());
+    }
+
+    private static long nowMillis() {
+        return Instant.now().toEpochMilli();
     }
 
     private static Set<Long> difference(Set<Long> from, Set<Long> removing) {

@@ -4,16 +4,19 @@ set -uo pipefail
 payload=$(cat)
 
 case "$payload" in
-  *'git commit'*) ;;
+  *commit*) ;;
   *) exit 0 ;;
 esac
 
 cmd=$(printf '%s' "$payload" | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{try{process.stdout.write(JSON.parse(s).tool_input?.command??"")}catch{}})' 2>/dev/null)
 
-case "$cmd" in
-  *'git commit'*) ;;
-  *) exit 0 ;;
-esac
+env_prefix='([A-Za-z_][A-Za-z0-9_]*=[^[:space:]]*[[:space:]]+)*'
+git_options='([[:space:]]+(-[a-zA-Z]([[:space:]]+[^[:space:]]+)?|--[a-zA-Z-]+(=[^[:space:]]+)?))*'
+git_subcommand="(^|[;&|(]|&&|\\|\\|)[[:space:]]*${env_prefix}git${git_options}[[:space:]]+commit([[:space:]]|$)"
+
+if ! printf '%s' "$cmd" | grep -Eq "$git_subcommand"; then
+  exit 0
+fi
 
 
 range=HEAD

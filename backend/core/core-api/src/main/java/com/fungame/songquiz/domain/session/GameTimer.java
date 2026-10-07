@@ -6,9 +6,12 @@ import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
+import java.util.Optional;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
+@Slf4j
 @Component
 @RequiredArgsConstructor
 public class GameTimer {
@@ -36,11 +39,18 @@ public class GameTimer {
         Instant now = now();
 
         return gameTimerDao.claim(now.toEpochMilli(), now.plus(LEASE).toEpochMilli(), CLAIM_LIMIT).stream()
-                .map(claimed -> new DueTimer(
-                        GameTimerTask.fromKey(claimed.taskKey()),
-                        latenessOf(claimed, now),
-                        claimed))
+                .map(claimed -> dueOf(claimed, now))
+                .flatMap(Optional::stream)
                 .toList();
+    }
+
+    private Optional<DueTimer> dueOf(ClaimedTimer claimed, Instant now) {
+        Optional<GameTimerTask> task = GameTimerTask.fromKey(claimed.taskKey());
+        if (task.isEmpty()) {
+            log.warn("예약 작업 {} 은 이 버전이 모르는 종류다. 지우지 않고 둔다", claimed.taskKey());
+        }
+
+        return task.map(known -> new DueTimer(known, latenessOf(claimed, now), claimed));
     }
 
     public void complete(DueTimer due) {

@@ -1,0 +1,23 @@
+{
+  "roomId" : 7,
+  "settings" : {
+    "gameType" : "SONG",
+    "title" : "방",
+    "maxPlayers" : 8,
+    "category" : "KPOP",
+    "totalRound" : 10,
+    "difficulty" : 0,
+    "csDifficulty" : "HARD"
+  },
+  "players" : [ {
+    "memberId" : 1,
+    "isReady" : true
+  }, {
+    "memberId" : 2,
+    "isReady" : false
+  } ],
+  "hostId" : 1,
+  "status" : "WAITING",
+  "lastActivityTime" : 1791340700.799173500,
+  "version" : 1
+}

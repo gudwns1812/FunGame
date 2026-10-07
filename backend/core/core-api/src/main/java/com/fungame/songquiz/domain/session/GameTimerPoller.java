@@ -50,21 +50,21 @@ public class GameTimerPoller {
     }
 
     private void run(DueTimer due) {
+        GameTimerHandler handler = handlerByKind.get(due.task().kind());
+        if (handler == null) {
+            log.warn("{} 를 처리할 곳이 이 서버에 없다. 지우지 않고 둔다", due.task());
+            return;
+        }
+
         lateness.record(due.lateness());
         try {
-            taskDuration.record(() -> handle(due.task()));
+            taskDuration.record(() -> handle(handler, due.task()));
         } finally {
             gameTimer.complete(due);
         }
     }
 
-    private void handle(GameTimerTask task) {
-        GameTimerHandler handler = handlerByKind.get(task.kind());
-        if (handler == null) {
-            log.error("{} 를 처리할 곳이 없다", task);
-            return;
-        }
-
+    private void handle(GameTimerHandler handler, GameTimerTask task) {
         try {
             handler.onTimer(task);
         } catch (Exception e) {
