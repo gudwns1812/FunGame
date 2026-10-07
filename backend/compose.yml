@@ -18,6 +18,9 @@ services:
     image: ${BACKEND_IMAGE:-ghcr.io/gudwns1812/fungame-backend:latest}
     container_name: fungame-backend
     restart: unless-stopped
+    # server.shutdown=graceful 의 timeout-per-shutdown-phase 가 20s 입니다.
+    # 도커 기본 유예 10s 로는 그 페이즈가 끝나기 전에 SIGKILL 이 들어옵니다.
+    stop_grace_period: 30s
     expose:
       - "8080"
     ports:
@@ -27,7 +30,8 @@ services:
     environment:
       SPRING_PROFILES_ACTIVE: prod
       CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS}
-      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/fungame
+      # MySQL 은 전용 호스트에 있습니다. 값은 배포 워크플로가 Secret 에서 .env 로 채웁니다.
+      SPRING_DATASOURCE_URL: jdbc:mysql://${MYSQL_HOST}:${MYSQL_PORT:-3306}/fungame
       SPRING_DATASOURCE_USERNAME: ${MYSQL_USER}
       SPRING_DATASOURCE_PASSWORD: ${MYSQL_PASSWORD}
       # MAIL_FROM · MAIL_HOST · PASSWORD_RESET_LINK_BASE_URL 은 넘기지 않습니다.
@@ -38,45 +42,12 @@ services:
       # 신고 알림을 받을 디스코드 웹훅. 정답과 힌트까지 실리므로 비공개 채널이어야 합니다.
       # 주소를 아는 사람은 누구나 그 채널에 메시지를 쏠 수 있으므로 .env 에만 둡니다.
       DISCORD_REPORT_WEBHOOK_URL: ${DISCORD_REPORT_WEBHOOK_URL}
-      # Redis 는 전용 호스트에 있습니다. 값은 배포 워크플로가 Secret 에서 .env 로 채웁니다.
+      # Redis 도 전용 호스트에 있습니다.
       REDIS_HOST: ${REDIS_HOST}
       REDIS_PORT: ${REDIS_PORT}
       REDIS_USERNAME: ${REDIS_USERNAME}
       REDIS_PASSWORD: ${REDIS_PASSWORD}
-    depends_on:
-      mysql:
-        condition: service_healthy
-
-  mysql:
-    image: mysql:8.0
-    container_name: fungame-mysql
-    restart: unless-stopped
-    environment:
-      MYSQL_DATABASE: fungame
-      MYSQL_USER: ${MYSQL_USER}
-      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
-    ports:
-      - 3306:3306
-    volumes:
-      - mysql-data:/var/lib/mysql
-    healthcheck:
-      test:
-        [
-          "CMD",
-          "mysqladmin",
-          "ping",
-          "-h",
-          "localhost",
-          "-u",
-          "root",
-          "-p${MYSQL_ROOT_PASSWORD}"
-        ]
-      interval: 10s
-      timeout: 5s
-      retries: 10
 
 volumes:
   caddy-data:
   caddy-config:
-  mysql-data:

@@ -328,6 +328,8 @@ Lombok은 `compileOnly`라 `core-enum`의 런타임 의존은 비어 있다(`run
 
 문서에 있던 "spring-session-jdbc 세션 테이블 DDL이 flyway와 같은 모듈에 있어야 한다"는 **틀린 걱정이었다.** 마이그레이션에 `SPRING_SESSION`이 없다. 세션 테이블은 spring-session-jdbc 자체 스키마 스크립트가 `initialize-schema`로 만든다.
 
+> **2026-10-08 정정.** 이 단락이 틀렸다. `initialize-schema` 기본값은 `embedded` 라 MySQL 에서는 아무것도 만들지 않는다. 운영 DB 에 `SPRING_SESSION` 이 있는 것은 과거에 손으로 만들어졌기 때문이고, 새 DB 를 올리면 로그인이 500 으로 죽는다. `V22__spring_session.sql` 로 마이그레이션이 소유하게 했다.
+
 #### 의존성 분리와 JPA
 
 `core-api`의 Reader/Writer가 리포지토리를 직접 쓴다. `findById`, `save` 같은 **Spring Data 상속 메서드**를 부르려면 javac가 타입 계층을 해석해야 하므로 spring-data-jpa가 컴파일 클래스패스에 있어야 한다. 그래서 `db-core`가 이것만 `api`로 공개한다.
