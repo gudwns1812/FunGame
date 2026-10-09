@@ -59,11 +59,15 @@ services:
       # 관리 포트. prometheus 가 사설망으로 긁어갑니다.
       # 넣을 값은 긁어가는 쪽이 아니라 **이 호스트 자신의 사설 IP** 입니다.
       - "${MANAGEMENT_BIND_IP:-127.0.0.1}:8081:8081"
+    volumes:
+      # 트래픽을 받는지를 여기에 남겨 컨테이너가 재시작해도 마지막 상태로 뜹니다.
+      # 배포는 올리기 전에 이 파일에 false 를 써 두어 점검을 마친 뒤에 트래픽을 받게 합니다.
+      # 환경 변수로 넘기면 컨테이너 설정에 박혀 재시작 때마다 거부 상태로 뜹니다.
+      - ./traffic/blue:/app/traffic
     environment:
       <<: *backend-env
       APP_INSTANCE_ID: blue
-      # 배포가 올릴 때는 false 로 띄워 점검을 마친 뒤에 트래픽을 받습니다.
-      APP_TRAFFIC_ACCEPT_ON_STARTUP: ${BLUE_ACCEPT_ON_STARTUP:-true}
+      APP_TRAFFIC_STATE_FILE: /app/traffic/accepting
 
   backend-green:
     image: ${BACKEND_GREEN_IMAGE:-${BACKEND_IMAGE:-ghcr.io/gudwns1812/fungame-backend:latest}}
@@ -76,10 +80,12 @@ services:
     ports:
       # 컨테이너 안은 양쪽 다 8081 입니다. 호스트에서만 갈라집니다.
       - "${MANAGEMENT_BIND_IP:-127.0.0.1}:8082:8081"
+    volumes:
+      - ./traffic/green:/app/traffic
     environment:
       <<: *backend-env
       APP_INSTANCE_ID: green
-      APP_TRAFFIC_ACCEPT_ON_STARTUP: ${GREEN_ACCEPT_ON_STARTUP:-true}
+      APP_TRAFFIC_STATE_FILE: /app/traffic/accepting
 
 volumes:
   caddy-data:

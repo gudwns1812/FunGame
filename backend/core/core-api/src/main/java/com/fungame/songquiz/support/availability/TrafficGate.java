@@ -2,6 +2,7 @@ package com.fungame.songquiz.support.availability;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.availability.AvailabilityChangeEvent;
 import org.springframework.boot.availability.ReadinessState;
@@ -13,13 +14,23 @@ import org.springframework.stereotype.Component;
 @Component
 public class TrafficGate {
 
+    private static final String NO_STATE_FILE = "";
+
     private final AtomicBoolean accepting;
+    private final TrafficStateFile stateFile;
     private final ApplicationEventPublisher applicationEventPublisher;
 
+    @Autowired
     public TrafficGate(@Value("${app.traffic.accept-on-startup:true}") boolean acceptOnStartup,
+                       @Value("${app.traffic.state-file:}") String stateFile,
                        ApplicationEventPublisher applicationEventPublisher) {
-        this.accepting = new AtomicBoolean(acceptOnStartup);
+        this.stateFile = TrafficStateFile.at(stateFile);
+        this.accepting = new AtomicBoolean(this.stateFile.read().orElse(acceptOnStartup));
         this.applicationEventPublisher = applicationEventPublisher;
+    }
+
+    public TrafficGate(boolean acceptOnStartup, ApplicationEventPublisher applicationEventPublisher) {
+        this(acceptOnStartup, NO_STATE_FILE, applicationEventPublisher);
     }
 
     @EventListener
@@ -45,6 +56,7 @@ public class TrafficGate {
         if (!accepting.compareAndSet(!nowAccepting, nowAccepting)) {
             return;
         }
+        stateFile.write(nowAccepting);
 
         log.info("트래픽을 {} 한다. 전역 작업도 함께 {}", nowAccepting ? "받기 시작" : "받지 않기로",
                 nowAccepting ? "돈다" : "멈춘다");

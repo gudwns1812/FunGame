@@ -106,7 +106,8 @@ graceful shutdown 이 실제로는 안 돈다.
         blue · green 이 둘 다 없으면 첫 배포 경로로 간다        (아래)
 
 ①      green refuse  → Caddy 가 뺀다. blue(옛) 혼자 받는다
-②      green 을 새 이미지로 기동 (accept-on-startup=false)
+        지난 배포 실패로 green 이 꺼져 있으면 건너뛴다
+②      green 의 트래픽 상태 파일에 false 를 쓰고 새 이미지로 기동
         올라와도 **계속 거부 상태**다. 트래픽을 받지 않으니 전역 작업도 멈춰 있다
 ③      green 자체 점검 — 관리 포트 liveness
         실패하면 green 만 내리고 끝낸다. blue(옛) 가 계속 받는다
@@ -114,11 +115,19 @@ graceful shutdown 이 실제로는 안 돈다.
 ④      전환 — green accept, 공개 주소로 확인되면 **곧바로** blue refuse
         여기가 두 버전이 함께 받는 유일한 구간이다
 
-⑤      blue 를 새 이미지로 기동 (accept-on-startup=false)
+⑤      blue 의 트래픽 상태 파일에 false 를 쓰고 새 이미지로 기동
 ⑥      blue 자체 점검 → accept. 이제 둘 다 새 버전으로 받는다
         실패하면 내린 채로 두고 알린다. green(새) 한 대로 돈다
 마무리  .env 에 이미지 고정, 쓰지 않는 이미지 정리
 ```
+
+**트래픽 상태는 파일로 남긴다. 환경 변수로 넘기지 않는다** ★ 2026-10-09 뒤집음
+
+처음에는 `APP_TRAFFIC_ACCEPT_ON_STARTUP=false` 로 띄우고 전환 때 `/actuator/traffic` 으로 켰다. 켠 상태는 JVM
+메모리에만 있고 환경 변수는 컨테이너 설정에 남아, **docker 가 재시작시키면 거부 상태로 떴다.** 2026-10-09 에
+blue · green 이 차례로 혼자 재시작해 받는 쪽이 0대가 되어 공개 API 가 503 이 됐다. 이제 인스턴스마다
+`./traffic/<색>/accepting` 을 마운트하고, 앱이 기동할 때 읽고 트래픽을 켜고 끌 때마다 고쳐 쓴다.
+배포는 올리기 전에 그 파일에 false 를 써 둔다.
 
 **②~③ 동안 용량이 1대로 준다.** 같은 EC2 에 JVM 을 셋 둘 수 없으니 피할 수 없다.
 그 대신 그 구간에서 도는 것은 **옛 버전 하나뿐**이라 섞이지 않는다.
