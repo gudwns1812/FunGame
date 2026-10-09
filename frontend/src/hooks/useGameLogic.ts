@@ -241,7 +241,7 @@ export const useGameLogic = () => {
     renderedRoomVersion.current = room.version;
 
     setPlayers((prev) => {
-      const scoreBefore = new Map(prev.map((player) => [player.memberId, player.score]));
+      const before = new Map(prev.map((player) => [player.memberId, player]));
 
       return withColors(
         room.players.map((player) => ({
@@ -249,7 +249,8 @@ export const useGameLogic = () => {
           name: player.nickname,
           isHost: player.memberId === room.hostMemberId,
           isReady: player.isReady,
-          score: scoreBefore.get(player.memberId) ?? 0,
+          score: before.get(player.memberId)?.score ?? 0,
+          rank: before.get(player.memberId)?.rank,
         })),
         prev,
       );
@@ -354,7 +355,7 @@ export const useGameLogic = () => {
           setHint('');
           setRoundIndex(0);
           setCurrentRound(0);
-          setPlayers((prev) => prev.map((player) => ({ ...player, score: 0 })));
+          setPlayers((prev) => prev.map((player) => ({ ...player, score: 0, rank: undefined, winner: undefined })));
           const normalizedGameType =
             event.gameType === 'CS' ? 'CS' : event.gameType === 'HANGMAN' ? 'HANGMAN' : 'SONG';
           setGameType(normalizedGameType);
@@ -486,6 +487,8 @@ export const useGameLogic = () => {
               memberId: entry.memberId ?? 0,
               name: entry.nickname,
               score: entry.score,
+              rank: entry.rank ?? undefined,
+              winner: entry.winner ?? false,
               isHost: false,
               isReady: false,
             }));
@@ -607,12 +610,13 @@ export const useGameLogic = () => {
     if (rankData.length > 0) {
       setPlayers((prev) =>
         withColors(
-          rankData.map(({ memberId, nickname: name, score }) => ({
+          rankData.map(({ memberId, nickname: name, score, rank }) => ({
             memberId: memberId ?? 0,
             name,
             isHost: false,
             isReady: false,
             score,
+            rank: rank ?? undefined,
           })),
           prev,
         ),
@@ -950,13 +954,14 @@ export const useGameLogic = () => {
         const rankData: RankingEntry[] = response.data.data;
         setPlayers((prev) => {
           const prevMap = new Map(prev.map((p) => [p.memberId, p]));
-          return rankData.map(({ memberId, nickname: name, score }) => ({
+          return rankData.map(({ memberId, nickname: name, score, rank }) => ({
             memberId: memberId ?? 0,
             name,
             isHost: prevMap.get(memberId ?? 0)?.isHost ?? false,
             isReady: prevMap.get(memberId ?? 0)?.isReady ?? false,
             colorIndex: prevMap.get(memberId ?? 0)?.colorIndex,
             score,
+            rank: rank ?? undefined,
           }));
         });
       }

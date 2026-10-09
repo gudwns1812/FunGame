@@ -9,7 +9,7 @@ import thirdBadge from '../images/medal-third.svg';
 
 interface RankingItemProps {
   player: Player;
-  rank: number;
+  rank?: number;
   isWinner: boolean;
   color: string;
 }
@@ -27,6 +27,8 @@ const RankingItem: React.FC<RankingItemProps> = ({ player, rank, isWinner, color
         return <BadgeTile src={secondBadge} alt="2nd Badge" />;
       case 3:
         return <BadgeTile src={thirdBadge} alt="3rd Badge" />;
+      case undefined:
+        return null;
       default:
         return <span className="px-label text-[10px] num shrink-0">#{rank}</span>;
     }

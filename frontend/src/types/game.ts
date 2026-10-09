@@ -4,6 +4,8 @@ export interface Player {
   isHost: boolean;
   isReady: boolean;
   score: number;
+  rank?: number;
+  winner?: boolean;
   colorIndex?: number; // 플레이어 슬롯 번호 (0~7), 색상 매핑용
 }
 
@@ -71,6 +73,8 @@ export interface RankingEntry {
   memberId: number | null;
   nickname: string;
   score: number;
+  rank: number | null;
+  winner?: boolean;
 }
 
 export type GameStatus = 'LOBBY' | 'ROOM_LIST' | 'WAITING' | 'PLAYING' | 'RESULT';
