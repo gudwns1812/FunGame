@@ -38,12 +38,12 @@ Claude Code 작업 규칙. 모듈별 지침은 아래 문서를 따른다.
 
 ## 트러블슈팅 회고를 Obsidian 에 기록한다
 
-**문제를 하나 해결하거나 조사를 한 건 끝낼 때마다** 아래 노트에 회고를 남긴다.
+**문제를 하나 해결하거나 조사를 한 건 끝낼 때마다** 아래 노트에 회고를 남긴다. 작업하는 PC 에 맞는 노트를 쓴다.
 
-- 볼트: `Obsidian Vault`
-- 노트: `Fungame 정리`
-- 실제 경로: `C:\Users\SSAFY\Documents\Obsidian Vault\Fungame 정리.md`
-- 열기: `obsidian://open?vault=Obsidian%20Vault&file=Fungame%20%EC%A0%95%EB%A6%AC`
+| PC | 볼트 | 노트 | 실제 경로 | 열기 |
+|---|---|---|---|---|
+| Windows | `Obsidian Vault` | `Fungame 정리` | `C:\Users\SSAFY\Documents\Obsidian Vault\Fungame 정리.md` | `obsidian://open?vault=Obsidian%20Vault&file=Fungame%20%EC%A0%95%EB%A6%AC` |
+| Mac | `memo` | `FunGame/FunGame 개발일지` | `/Users/hj.park/Documents/obsidian/memo/FunGame/FunGame 개발일지.md` | `obsidian://open?vault=memo&file=FunGame%2FFunGame%20%EA%B0%9C%EB%B0%9C%EC%9D%BC%EC%A7%80` |
 
 파일을 직접 읽고 써서 갱신한다. 날짜 소제목 아래에 **최신 항목을 맨 위로** 추가하고, 프런트매터의 `updated` 를 그날 날짜로 고친다.
 
