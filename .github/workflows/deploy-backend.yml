@@ -273,10 +273,18 @@ jobs:
               return 1
             }
 
-            start_refusing() {
-              if [ "$1" = blue ]; then flag=BLUE_ACCEPT_ON_STARTUP; else flag=GREEN_ACCEPT_ON_STARTUP; fi
+            # 앱이 기동할 때 이 파일을 읽고, 트래픽을 켜고 끌 때마다 고쳐 쓴다.
+            # 앱은 root 로 써서 파일 주인이 root 다. 디렉터리는 배포 계정 것이라 지우고 새로 쓸 수 있다.
+            remember_refusing() {
+              mkdir -p "traffic/$1"
+              rm -f "traffic/$1/accepting"
+              printf 'false' > "traffic/$1/accepting"
+            }
 
-              BACKEND_IMAGE="$TARGET_IMAGE" env "$flag=false" \
+            start_refusing() {
+              remember_refusing "$1"
+
+              BACKEND_IMAGE="$TARGET_IMAGE" \
                 docker compose up -d --force-recreate --no-deps "backend-$1"
 
               if ! wait_liveness "$1"; then
@@ -325,6 +333,10 @@ jobs:
             # 조용히 죽는다. #105 에서 이미 돌아간 형태를 그대로 쓴다.
             exists() {
               [ -n "$(docker ps -aq -f name="^$1\$")" ]
+            }
+
+            running() {
+              [ -n "$(docker ps -q -f name="^$1\$")" ]
             }
 
             echo "관리 주소 $MGMT_IP"
@@ -397,8 +409,14 @@ jobs:
             reload_caddy_if_changed
 
             echo "=== ① green 을 뺀다 ==="
-            traffic green false
-            sleep 3
+            # 지난 배포가 green 을 올리다 실패하면 green 은 내려간 채로 남는다.
+            # 꺼진 쪽에 요청하면 curl 이 실패해 스크립트가 여기서 죽으니 건너뛴다.
+            if running fungame-backend-green; then
+              traffic green false
+              sleep 3
+            else
+              echo "green 이 꺼져 있다. 뺄 것 없이 바로 올린다"
+            fi
 
             echo "=== ② green 을 새 이미지로 올린다 ==="
             if ! start_refusing green; then
