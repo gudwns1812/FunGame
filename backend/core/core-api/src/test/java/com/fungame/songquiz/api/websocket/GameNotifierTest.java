@@ -85,17 +85,31 @@ class GameNotifierTest {
     }
 
     @Test
-    @DisplayName("게임 결과의 순위표에 각자의 순위가 실린다. 동점자는 같은 순위다.")
-    @SuppressWarnings("unchecked")
-    void gameResultCarriesRank() {
+    @DisplayName("게임 결과의 순위표에 각자의 순위와 우승 여부가 실린다. 동점자는 같은 순위다.")
+    void gameResultCarriesRankAndWinner() {
         gameNotifier.handleGameResult(new GameResultEvent(ROOM_ID, ResultRow.listOf(List.of(
                 new PlayerScore(HOST, 3, 1),
                 new PlayerScore(GUEST, 3, 1)))));
 
-        List<Map<String, Object>> rankings = (List<Map<String, Object>>) capturedPayload().get("rankings");
-        assertThat(rankings)
-                .extracting(row -> row.get("nickname"), row -> row.get("score"), row -> row.get("rank"))
-                .containsExactly(tuple("방장", 3, 1), tuple("참가자", 3, 1));
+        assertThat(capturedRankings())
+                .extracting(row -> row.get("nickname"), row -> row.get("score"), row -> row.get("rank"),
+                        row -> row.get("winner"))
+                .containsExactly(tuple("방장", 3, 1, true), tuple("참가자", 3, 1, true));
+    }
+
+    @Test
+    @DisplayName("행맨 결과 행에는 순위가 없고 우승자도 아니다.")
+    void hangmanResultHasNoRank() {
+        gameNotifier.handleGameResult(new GameResultEvent(ROOM_ID, List.of(ResultRow.labelled("성공", 4))));
+
+        assertThat(capturedRankings())
+                .extracting(row -> row.get("nickname"), row -> row.get("rank"), row -> row.get("winner"))
+                .containsExactly(tuple("성공", null, false));
+    }
+
+    @SuppressWarnings("unchecked")
+    private List<Map<String, Object>> capturedRankings() {
+        return (List<Map<String, Object>>) capturedPayload().get("rankings");
     }
 
     @SuppressWarnings("unchecked")

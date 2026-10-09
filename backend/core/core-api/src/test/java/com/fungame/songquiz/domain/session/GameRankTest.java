@@ -81,4 +81,27 @@ class GameRankTest {
                         tuple(SECOND.memberId(), 1),
                         tuple(THIRD.memberId(), 2));
     }
+
+    @Test
+    void 점수를_얻은_1위는_공동이어도_모두_우승이다() {
+        var gameRank = new GameRank(List.of(FIRST, SECOND, THIRD));
+        gameRank.updatePoint(FIRST.memberId());
+        gameRank.updatePoint(SECOND.memberId());
+
+        assertThat(gameRank.getPlayerScores())
+                .extracting(PlayerScore::memberId, PlayerScore::isWinner)
+                .containsExactly(
+                        tuple(FIRST.memberId(), true),
+                        tuple(SECOND.memberId(), true),
+                        tuple(THIRD.memberId(), false));
+    }
+
+    @Test
+    void 아무도_점수를_얻지_못하면_1위여도_우승자가_없다() {
+        var gameRank = new GameRank(List.of(FIRST, SECOND));
+
+        assertThat(gameRank.getPlayerScores())
+                .extracting(PlayerScore::isWinner)
+                .containsOnly(false);
+    }
 }
