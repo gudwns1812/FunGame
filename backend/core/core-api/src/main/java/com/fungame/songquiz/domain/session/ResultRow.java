@@ -5,15 +5,19 @@ import java.util.List;
 public record ResultRow(
         Long memberId,
         String label,
-        int score
+        int score,
+        Integer rank,
+        boolean winner
 ) {
 
+    private static final Integer NO_RANK = null;
+
     public static ResultRow of(PlayerScore score) {
-        return new ResultRow(score.memberId(), null, score.score());
+        return new ResultRow(score.memberId(), null, score.score(), score.rank(), score.isWinner());
     }
 
     public static ResultRow labelled(String label, int score) {
-        return new ResultRow(null, label, score);
+        return new ResultRow(null, label, score, NO_RANK, false);
     }
 
     public static List<ResultRow> listOf(List<PlayerScore> scores) {

@@ -28,12 +28,22 @@ public class GameRank {
     }
 
     public List<PlayerScore> getPlayerScores() {
-        return participants.values().stream()
+        List<Participant> playing = participants.values().stream()
                 .filter(Participant::playing)
-                .map(Participant::toPlayerScore)
-                .sorted(Comparator.comparingInt(PlayerScore::score).reversed()
+                .toList();
+
+        return playing.stream()
+                .map(participant -> participant.toPlayerScore(rankAmong(playing, participant)))
+                .sorted(Comparator.comparingInt(PlayerScore::rank)
                         .thenComparing(PlayerScore::memberId))
                 .toList();
+    }
+
+    private static int rankAmong(List<Participant> playing, Participant participant) {
+        long higherScorers = playing.stream()
+                .filter(other -> other.score() > participant.score())
+                .count();
+        return (int) higherScorers + 1;
     }
 
     public void addPlayer(GamePlayer player) {
