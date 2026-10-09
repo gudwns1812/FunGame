@@ -66,9 +66,9 @@
 | **`ROUND_SKIP`** | 스킵 투표 현황 | `{ "skipCount": 2, "totalCount": 5 }` |
 | **`ROUND_HINT`** | 퀴즈 힌트 제공 | `{ "hint": "가수 - 초성힌트" }` |
 | **`ROUND_END`** | 라운드 종료/정답 | `{ "answer": "정답문구", "winner": "승자닉네임" }` |
-| **`GAME_RESULT`** | 최종 게임 결과 | `{ "rankings": "유저1:150\n유저2:100\n", "message": "종료 알림" }` |
+| **`GAME_RESULT`** | 최종 게임 결과 | `{ "rankings": [{ "memberId": 1, "nickname": "유저1", "score": 5, "rank": 1 }], "message": "종료 알림" }` |
 | **`GAME_END`** | 세션 종료 | `{ "type": "GAME_END" }` |
 
 ---
-- **주의**: `GAME_RESULT`의 `rankings` 필드는 줄바꿈(`\n`)으로 구분된 문자열 형식이므로 프론트엔드에서 파싱이 필요합니다.
+- **주의**: `GAME_RESULT`의 `rankings` 는 순위 순 배열입니다. 점수가 같으면 `rank` 가 같고, 다음 순위는 동점 인원만큼 건너뜁니다(5 · 5 · 3 점 → 1 · 1 · 3). 행맨 결과의 행은 `memberId` 와 `rank` 가 `null` 이고 `nickname` 에 성공 여부와 정답이 담깁니다.
 - **주의**: 모든 닉네임 관련 필드명(`player`, `playerName`, `newHost`, `winner`)이 이벤트 타입마다 다를 수 있으니 위 표를 정확히 참고하세요.

@@ -215,6 +215,7 @@ public class GameNotifier {
         ranking.put("memberId", row.memberId());
         ranking.put("nickname", row.label() != null ? row.label() : nicknameOrNull(row.memberId()));
         ranking.put("score", row.score());
+        ranking.put("rank", row.rank());
         return ranking;
     }
 }

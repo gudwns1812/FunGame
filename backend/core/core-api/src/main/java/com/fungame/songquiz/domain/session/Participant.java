@@ -20,7 +20,7 @@ public record Participant(GamePlayer player, int score, boolean playing) {
         return new Participant(player, score, true);
     }
 
-    PlayerScore toPlayerScore() {
-        return new PlayerScore(player, score);
+    PlayerScore toPlayerScore(int rank) {
+        return new PlayerScore(player, score, rank);
     }
 }

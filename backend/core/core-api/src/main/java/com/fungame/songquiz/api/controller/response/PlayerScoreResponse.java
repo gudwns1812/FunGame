@@ -10,7 +10,8 @@ import java.util.Map;
 public record PlayerScoreResponse(
         Long memberId,
         String nickname,
-        int score
+        int score,
+        int rank
 ) {
 
     public static List<PlayerScoreResponse> listFrom(List<PlayerScore> scores, MemberProfileCache profiles) {
@@ -18,7 +19,7 @@ public record PlayerScoreResponse(
 
         return scores.stream()
                 .map(score -> new PlayerScoreResponse(
-                        score.memberId(), nicknameOf(found, score.memberId()), score.score()))
+                        score.memberId(), nicknameOf(found, score.memberId()), score.score(), score.rank()))
                 .toList();
     }
 

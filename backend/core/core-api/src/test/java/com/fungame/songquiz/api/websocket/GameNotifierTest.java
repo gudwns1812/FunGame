@@ -1,6 +1,7 @@
 package com.fungame.songquiz.api.websocket;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.tuple;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -15,6 +16,9 @@ import com.fungame.songquiz.domain.room.PlayerLeaveEvent;
 import com.fungame.songquiz.domain.room.RoomSettings;
 import com.fungame.songquiz.domain.room.RoomSettingsChangedEvent;
 import com.fungame.songquiz.domain.room.RoomStateInfo;
+import com.fungame.songquiz.domain.session.GameResultEvent;
+import com.fungame.songquiz.domain.session.PlayerScore;
+import com.fungame.songquiz.domain.session.ResultRow;
 import com.fungame.songquiz.enums.CSQuizDifficulty;
 import com.fungame.songquiz.enums.Category;
 import com.fungame.songquiz.enums.GameRoomStatus;
@@ -78,6 +82,20 @@ class GameNotifierTest {
         Map<String, Object> payload = capturedPayload();
         assertThat(payload).containsEntry("type", "ROOM_SETTINGS_CHANGED").containsKey("settings");
         assertThat(payload.get("room")).isEqualTo(RoomStateResponse.from(state(5), memberProfileCache));
+    }
+
+    @Test
+    @DisplayName("게임 결과의 순위표에 각자의 순위가 실린다. 동점자는 같은 순위다.")
+    @SuppressWarnings("unchecked")
+    void gameResultCarriesRank() {
+        gameNotifier.handleGameResult(new GameResultEvent(ROOM_ID, ResultRow.listOf(List.of(
+                new PlayerScore(HOST, 3, 1),
+                new PlayerScore(GUEST, 3, 1)))));
+
+        List<Map<String, Object>> rankings = (List<Map<String, Object>>) capturedPayload().get("rankings");
+        assertThat(rankings)
+                .extracting(row -> row.get("nickname"), row -> row.get("score"), row -> row.get("rank"))
+                .containsExactly(tuple("방장", 3, 1), tuple("참가자", 3, 1));
     }
 
     @SuppressWarnings("unchecked")

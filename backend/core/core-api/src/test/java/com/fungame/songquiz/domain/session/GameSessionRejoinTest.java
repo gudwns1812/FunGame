@@ -45,8 +45,8 @@ class GameSessionRejoinTest {
 
         // then: 점수가 보존된 채 복귀한다
         assertThat(session.getPlayerRanks()).containsExactly(
-                new PlayerScore(P1, 2),
-                new PlayerScore(P2, 0));
+                new PlayerScore(P1, 2, 1),
+                new PlayerScore(P2, 0, 2));
         assertThat(session.canRejoin(P1.memberId())).isFalse();
     }
 

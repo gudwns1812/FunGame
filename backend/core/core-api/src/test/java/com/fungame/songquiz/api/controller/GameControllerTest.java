@@ -33,6 +33,7 @@ import com.fungame.songquiz.domain.room.RoomInfo;
 import com.fungame.songquiz.domain.room.RoomSettings;
 import com.fungame.songquiz.domain.room.RoomStateInfo;
 import com.fungame.songquiz.domain.session.GameService;
+import com.fungame.songquiz.domain.session.PlayerScore;
 import com.fungame.songquiz.enums.CSQuizDifficulty;
 import com.fungame.songquiz.enums.Category;
 import com.fungame.songquiz.enums.GameRoomStatus;
@@ -141,6 +142,27 @@ class GameControllerTest {
                 .andExpect(jsonPath("$.data.players[0].isReady").value(true))
                 .andExpect(jsonPath("$.data.players[1].isReady").value(false))
                 .andDo(document("room-users",
+                        preprocessResponse(prettyPrint())
+                ));
+    }
+
+    @Test
+    @DisplayName("진행 중 순위의 각 참가자는 memberId, nickname, score, rank 로 내려간다. 동점자는 같은 순위다.")
+    void findPlayingUsers() throws Exception {
+        given(gameService.getPlayerRanks(1L)).willReturn(List.of(
+                new PlayerScore(new GamePlayer(2L, true), 3, 1),
+                new PlayerScore(new GamePlayer(3L, true), 3, 1),
+                new PlayerScore(new GamePlayer(4L, true), 1, 3)));
+
+        mockMvc.perform(get("/game/rooms/1/play/rank"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data[0].memberId").value(2))
+                .andExpect(jsonPath("$.data[0].nickname").value("회원2"))
+                .andExpect(jsonPath("$.data[0].score").value(3))
+                .andExpect(jsonPath("$.data[0].rank").value(1))
+                .andExpect(jsonPath("$.data[1].rank").value(1))
+                .andExpect(jsonPath("$.data[2].rank").value(3))
+                .andDo(document("room-play-rank",
                         preprocessResponse(prettyPrint())
                 ));
     }
