@@ -16,18 +16,23 @@ interface ResultProps {
 const BADGES = [firstBadge, secondBadge, thirdBadge];
 
 const Result: React.FC<ResultProps> = ({ rankings, onBackToLobby, onBackToRoom }) => {
-  const sortedRankings = [...rankings].sort((a, b) => b.score - a.score);
-  const winner = sortedRankings[0];
+  const winners = rankings.filter((p) => p.winner);
 
   return (
     <div className="w-full max-w-md flex flex-col gap-4 animate-pop">
       {/* 우승자 */}
-      {winner && (
+      {winners.length > 0 ? (
         <div className="px-card p-5 flex flex-col items-center gap-2 text-center">
           <img src={BADGES[0]} alt="1st Badge" className="w-24 h-24 object-contain" />
-          <p className="px-label">우승</p>
-          <p className="px-title text-3xl truncate max-w-full">{stripTag(winner.name)}</p>
-          <p className="px-chip px-chip-cherry num">{winner.score}점</p>
+          <p className="px-label">{winners.length > 1 ? '공동 우승' : '우승'}</p>
+          <p className="px-title text-3xl break-words max-w-full">
+            {winners.map((p) => stripTag(p.name)).join(', ')}
+          </p>
+          <p className="px-chip px-chip-cherry num">{winners[0].score}점</p>
+        </div>
+      ) : (
+        <div className="px-card p-5 flex flex-col items-center gap-2 text-center">
+          <p className="px-title text-3xl">우승자 없음</p>
         </div>
       )}
 
@@ -35,25 +40,25 @@ const Result: React.FC<ResultProps> = ({ rankings, onBackToLobby, onBackToRoom }
       <div className="px-card flex flex-col overflow-hidden">
         <div className="px-head shrink-0">
           <span>최종 순위</span>
-          <span className="num text-ink-soft">{sortedRankings.length}명</span>
+          <span className="num text-ink-soft">{rankings.length}명</span>
         </div>
 
         <div className="max-h-[38vh] scroll-y custom-scrollbar p-2 space-y-1.5">
-          {sortedRankings.map((p, idx) => {
+          {rankings.map((p) => {
             const color = getPlayerColor(p.colorIndex ?? null) || '#0c6780';
-            const isFirst = idx === 0 && p.score > 0;
 
             return (
               <div
                 key={p.memberId}
+                data-testid="result-row"
                 className={`flex items-center gap-2.5 border-2 border-ink px-2.5 py-2 ${
-                  isFirst ? 'bg-gold' : 'bg-white'
+                  p.winner ? 'bg-gold' : 'bg-white'
                 }`}>
                 <div className="w-9 flex justify-center shrink-0">
-                  {idx < 3 ? (
-                    <img src={BADGES[idx]} alt={`${idx + 1}위`} className="w-9 h-9 object-contain" />
+                  {p.rank !== undefined && p.rank <= BADGES.length ? (
+                    <img src={BADGES[p.rank - 1]} alt={`${p.rank}위`} className="w-9 h-9 object-contain" />
                   ) : (
-                    <span className="px-label text-[10px] num">#{idx + 1}</span>
+                    <span className="px-label text-[10px] num">#{p.rank}</span>
                   )}
                 </div>
 

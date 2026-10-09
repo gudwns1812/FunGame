@@ -13,24 +13,55 @@ describe('RankingList', () => {
   });
 
   const mockPlayers: Player[] = [
-    { memberId: 1, name: 'Alice', score: 100, isHost: false, isReady: true, colorIndex: 0 },
-    { memberId: 2, name: 'Bob', score: 200, isHost: false, isReady: true, colorIndex: 1 },
-    { memberId: 3, name: 'Charlie', score: 150, isHost: false, isReady: true, colorIndex: 2 },
+    { memberId: 1, name: 'Alice', score: 100, rank: 3, isHost: false, isReady: true, colorIndex: 0 },
+    { memberId: 2, name: 'Bob', score: 200, rank: 1, isHost: false, isReady: true, colorIndex: 1 },
+    { memberId: 3, name: 'Charlie', score: 150, rank: 2, isHost: false, isReady: true, colorIndex: 2 },
   ];
 
-  it('플레이어를 점수 내림차순으로 정렬하여 렌더링한다', () => {
+  const player = (memberId: number, name: string, score: number, rank?: number): Player => ({
+    memberId,
+    name,
+    score,
+    rank,
+    isHost: false,
+    isReady: true,
+  });
+
+  it('서버가 매긴 순위대로 정렬하여 렌더링한다', () => {
     const { container } = render(<RankingList players={mockPlayers} roundEndInfo={null} />);
 
-    // 1~3위는 순위 숫자 대신 메달 이미지로 표시되므로 렌더 순서로 정렬을 검증한다
     expect(container.textContent).toMatch(/Bob[\s\S]*Charlie[\s\S]*Alice/);
 
-    expect(screen.getByAltText('1st Badge')).toBeInTheDocument(); // Bob (200)
-    expect(screen.getByAltText('2nd Badge')).toBeInTheDocument(); // Charlie (150)
-    expect(screen.getByAltText('3rd Badge')).toBeInTheDocument(); // Alice (100)
+    expect(screen.getByAltText('1st Badge')).toBeInTheDocument();
+    expect(screen.getByAltText('2nd Badge')).toBeInTheDocument();
+    expect(screen.getByAltText('3rd Badge')).toBeInTheDocument();
+  });
 
-    expect(screen.getByText('Bob')).toBeInTheDocument();
-    expect(screen.getByText('Charlie')).toBeInTheDocument();
-    expect(screen.getByText('Alice')).toBeInTheDocument();
+  it('같은 순위 안에서는 회원 번호 순이고 같은 배지를 받는다', () => {
+    const { container } = render(
+      <RankingList
+        players={[player(3, 'Charlie', 1, 3), player(2, 'Bob', 4, 1), player(1, 'Alice', 4, 1)]}
+        roundEndInfo={null}
+      />,
+    );
+
+    expect(container.textContent).toMatch(/Alice[\s\S]*Bob[\s\S]*Charlie/);
+    expect(screen.getAllByAltText('1st Badge')).toHaveLength(2);
+    expect(screen.getByAltText('3rd Badge')).toBeInTheDocument();
+  });
+
+  it('아직 점수가 없는 사람에게는 1위여도 배지를 붙이지 않는다', () => {
+    render(<RankingList players={[player(1, 'Alice', 0, 1), player(2, 'Bob', 0, 1)]} roundEndInfo={null} />);
+
+    expect(screen.queryByAltText('1st Badge')).not.toBeInTheDocument();
+  });
+
+  it('순위를 아직 받지 못한 사람은 맨 뒤에 둔다', () => {
+    const { container } = render(
+      <RankingList players={[player(4, 'Dave', 0), player(2, 'Bob', 2, 1)]} roundEndInfo={null} />,
+    );
+
+    expect(container.textContent).toMatch(/Bob[\s\S]*Dave/);
   });
 
   it('roundEndInfo.winner에 해당하는 플레이어를 승자로 식별한다', () => {

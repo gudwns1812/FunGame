@@ -10,9 +10,13 @@ interface RankingListProps {
 }
 
 const RankingList: React.FC<RankingListProps> = ({ players, roundEndInfo }) => {
-  const sortedPlayers = useMemo(() => {
-    return [...players].sort((a, b) => b.score - a.score);
-  }, [players]);
+  const sortedPlayers = useMemo(
+    () =>
+      [...players].sort(
+        (a, b) => (a.rank ?? Number.MAX_SAFE_INTEGER) - (b.rank ?? Number.MAX_SAFE_INTEGER) || a.memberId - b.memberId,
+      ),
+    [players],
+  );
 
   const winnerNames = useMemo(() => {
     if (!roundEndInfo?.winner || roundEndInfo.winner === '없음') return new Set<string>();
@@ -28,7 +32,7 @@ const RankingList: React.FC<RankingListProps> = ({ players, roundEndInfo }) => {
 
   return (
     <div className="flex-1 min-h-0 scroll-y custom-scrollbar p-2 space-y-1.5">
-      {sortedPlayers.map((p, idx) => {
+      {sortedPlayers.map((p) => {
         const color = getPlayerColor(p.colorIndex ?? null) || '#0c6780';
         const isWinner = winnerNames.has(stripTag(p.name));
 
@@ -36,7 +40,7 @@ const RankingList: React.FC<RankingListProps> = ({ players, roundEndInfo }) => {
           <RankingItem
             key={p.memberId}
             player={p}
-            rank={idx + 1}
+            rank={p.score > 0 ? p.rank : undefined}
             isWinner={isWinner}
             color={color}
           />
