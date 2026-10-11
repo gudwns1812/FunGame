@@ -69,13 +69,21 @@ jobs:
           username: ${{ secrets.INFRA_USER }}
           key: ${{ secrets.INFRA_SSH_KEY }}
           port: ${{ secrets.INFRA_PORT || 22 }}
-          envs: PROJECT_DIR
+          envs: PROJECT_DIR,DISCORD_ALERT_WEBHOOK_URL
           # script_stop 은 줄마다 실패 시 exit 를 끼워 넣는다(#114). set -euo pipefail 에 맡긴다.
           script_stop: false
           script: |
             set -euo pipefail
 
             cd "$PROJECT_DIR"
+
+            # 비밀값은 서버에만 둔다. 그라파나가 뜨기 전에 .env 를 Secret 과 맞춘다.
+            install -m 600 /dev/null .env.next
+            if [ -f .env ]; then
+              { grep -v '^DISCORD_ALERT_WEBHOOK_URL=' .env || true; } >> .env.next
+            fi
+            printf 'DISCORD_ALERT_WEBHOOK_URL=%s\n' "$DISCORD_ALERT_WEBHOOK_URL" >> .env.next
+            mv .env.next .env
 
             # 깨진 설정을 올리기 전에 멈춘다.
             docker compose config --quiet
@@ -88,3 +96,4 @@ jobs:
             docker compose ps
         env:
           PROJECT_DIR: ${{ secrets.INFRA_PROJECT_DIR || '/opt/monitoring' }}
+          DISCORD_ALERT_WEBHOOK_URL: ${{ secrets.DISCORD_ALERT_WEBHOOK_URL }}
