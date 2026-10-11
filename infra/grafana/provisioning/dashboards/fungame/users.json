@@ -1,22 +1,37 @@
 {
-  "title": "FunGame — 로그인과 DAU",
-  "uid": "fungame-login-dau",
+  "uid": "fungame-users",
+  "title": "FunGame — 사용자",
+  "description": "로그인과 활성 회원을 본다.",
   "tags": [
     "fungame",
-    "backend"
+    "users"
   ],
   "timezone": "browser",
   "editable": true,
   "schemaVersion": 39,
   "version": 1,
-  "refresh": "1m",
+  "refresh": "30s",
   "time": {
-    "from": "now-7d",
+    "from": "now-6h",
     "to": "now"
   },
   "annotations": {
     "list": []
   },
+  "links": [
+    {
+      "title": "FunGame",
+      "type": "dashboards",
+      "tags": [
+        "fungame"
+      ],
+      "asDropdown": false,
+      "includeVars": false,
+      "keepTime": true,
+      "targetBlank": false,
+      "icon": "external link"
+    }
+  ],
   "templating": {
     "list": [
       {
@@ -35,11 +50,30 @@
           "type": "prometheus",
           "uid": "${datasource}"
         },
-        "query": "label_values(fungame_logins_total, namespace)",
+        "query": "label_values(jvm_info, namespace)",
         "refresh": 1,
         "includeAll": false,
         "multi": false,
         "current": {},
+        "hide": 0
+      },
+      {
+        "name": "instance",
+        "label": "인스턴스",
+        "type": "query",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+        },
+        "query": "label_values(jvm_info{namespace=\"$namespace\"}, instance)",
+        "refresh": 1,
+        "includeAll": true,
+        "multi": true,
+        "allValue": ".+",
+        "current": {
+          "text": "All",
+          "value": "$__all"
+        },
         "hide": 0
       }
     ]
@@ -49,25 +83,34 @@
       "id": 1,
       "type": "stat",
       "title": "DAU (최근 24시간)",
-      "description": "그날 처음 접속한 회원 수. 카운터의 24시간 증가분이라 배포로 프로세스가 재시작돼도 값이 살아남는다. 정확한 정산은 member_daily_active 테이블을 센다.",
+      "description": "처음 본 회원 수의 24시간 합.",
       "datasource": {
         "type": "prometheus",
         "uid": "${datasource}"
       },
       "gridPos": {
-        "h": 6,
-        "w": 6,
         "x": 0,
-        "y": 0
+        "y": 0,
+        "w": 8,
+        "h": 4
       },
       "fieldConfig": {
         "defaults": {
           "unit": "short",
-          "decimals": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
           "color": {
-            "mode": "fixed",
-            "fixedColor": "blue"
-          }
+            "mode": "thresholds"
+          },
+          "noValue": "0",
+          "decimals": 0
         },
         "overrides": []
       },
@@ -79,10 +122,11 @@
           "fields": "",
           "values": false
         },
-        "graphMode": "area",
         "colorMode": "value",
-        "textMode": "auto",
-        "justifyMode": "auto"
+        "graphMode": "area",
+        "textMode": "value_and_name",
+        "justifyMode": "auto",
+        "orientation": "auto"
       },
       "targets": [
         {
@@ -92,7 +136,7 @@
             "uid": "${datasource}"
           },
           "expr": "sum(increase(fungame_member_first_seen_total{namespace=\"$namespace\"}[24h]))",
-          "legendFormat": "DAU"
+          "legendFormat": ""
         }
       ]
     },
@@ -100,23 +144,20 @@
       "id": 2,
       "type": "stat",
       "title": "로그인 실패율 (5분)",
-      "description": "실패 비율이 튀면 인증 장애이거나 크리덴셜 스터핑이다.",
+      "description": "",
       "datasource": {
         "type": "prometheus",
         "uid": "${datasource}"
       },
       "gridPos": {
-        "h": 6,
-        "w": 6,
-        "x": 6,
-        "y": 0
+        "x": 8,
+        "y": 0,
+        "w": 8,
+        "h": 4
       },
       "fieldConfig": {
         "defaults": {
           "unit": "percentunit",
-          "decimals": 1,
-          "min": 0,
-          "max": 1,
           "thresholds": {
             "mode": "absolute",
             "steps": [
@@ -133,7 +174,12 @@
                 "value": 0.5
               }
             ]
-          }
+          },
+          "color": {
+            "mode": "thresholds"
+          },
+          "noValue": "0",
+          "decimals": 1
         },
         "overrides": []
       },
@@ -145,10 +191,11 @@
           "fields": "",
           "values": false
         },
-        "graphMode": "area",
         "colorMode": "value",
-        "textMode": "auto",
-        "justifyMode": "auto"
+        "graphMode": "area",
+        "textMode": "value_and_name",
+        "justifyMode": "auto",
+        "orientation": "auto"
       },
       "targets": [
         {
@@ -157,62 +204,45 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "sum(rate(fungame_logins_total{namespace=\"$namespace\", result=\"fail\"}[5m])) / clamp_min(sum(rate(fungame_logins_total{namespace=\"$namespace\"}[5m])), 0.0000001)",
-          "legendFormat": "실패율"
+          "expr": "sum(rate(fungame_logins_total{namespace=\"$namespace\", result=\"fail\"}[5m])) / clamp_min(sum(rate(fungame_logins_total{namespace=\"$namespace\"}[5m])), 1e-9)",
+          "legendFormat": ""
         }
       ]
     },
     {
       "id": 3,
       "type": "stat",
-      "title": "선택 구간 로그인 성공 / 실패",
+      "title": "선택 구간 로그인",
+      "description": "결과별 합.",
       "datasource": {
         "type": "prometheus",
         "uid": "${datasource}"
       },
       "gridPos": {
-        "h": 6,
-        "w": 12,
-        "x": 12,
-        "y": 0
+        "x": 16,
+        "y": 0,
+        "w": 8,
+        "h": 4
       },
       "fieldConfig": {
         "defaults": {
           "unit": "short",
-          "decimals": 0
-        },
-        "overrides": [
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "fail"
-            },
-            "properties": [
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
               {
-                "id": "color",
-                "value": {
-                  "mode": "fixed",
-                  "fixedColor": "red"
-                }
+                "color": "green",
+                "value": null
               }
             ]
           },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "success"
-            },
-            "properties": [
-              {
-                "id": "color",
-                "value": {
-                  "mode": "fixed",
-                  "fixedColor": "green"
-                }
-              }
-            ]
-          }
-        ]
+          "color": {
+            "mode": "thresholds"
+          },
+          "noValue": "0",
+          "decimals": 0
+        },
+        "overrides": []
       },
       "options": {
         "reduceOptions": {
@@ -222,20 +252,20 @@
           "fields": "",
           "values": false
         },
-        "graphMode": "none",
         "colorMode": "value",
+        "graphMode": "area",
         "textMode": "value_and_name",
-        "justifyMode": "auto"
+        "justifyMode": "auto",
+        "orientation": "auto"
       },
       "targets": [
         {
           "refId": "A",
-          "instant": true,
           "datasource": {
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "sum(increase(fungame_logins_total{namespace=\"$namespace\"}[$__range])) by (result)",
+          "expr": "sum by (result) (increase(fungame_logins_total{namespace=\"$namespace\"}[$__range]))",
           "legendFormat": "{{result}}"
         }
       ]
@@ -244,113 +274,33 @@
       "id": 4,
       "type": "timeseries",
       "title": "신규 활성 회원 유입 (1시간 단위)",
-      "description": "하루 안에서 사람이 언제 들어오는지 본다. 막대 하나가 그 시간에 처음 접속한 회원 수다.",
+      "description": "",
       "datasource": {
         "type": "prometheus",
         "uid": "${datasource}"
       },
       "gridPos": {
-        "h": 9,
-        "w": 12,
         "x": 0,
-        "y": 6
-      },
-      "fieldConfig": {
-        "defaults": {
-          "unit": "short",
-          "decimals": 0,
-          "custom": {
-            "drawStyle": "bars",
-            "fillOpacity": 70,
-            "lineWidth": 1,
-            "barAlignment": 0,
-            "axisSoftMin": 0
-          }
-        },
-        "overrides": []
-      },
-      "options": {
-        "legend": {
-          "displayMode": "list",
-          "placement": "bottom",
-          "showLegend": false
-        },
-        "tooltip": {
-          "mode": "single",
-          "sort": "none"
-        }
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "interval": "1h",
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${datasource}"
-          },
-          "expr": "sum(increase(fungame_member_first_seen_total{namespace=\"$namespace\"}[1h]))",
-          "legendFormat": "신규 활성 회원"
-        }
-      ]
-    },
-    {
-      "id": 5,
-      "type": "timeseries",
-      "title": "로그인 시도 (분당)",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "${datasource}"
-      },
-      "gridPos": {
-        "h": 9,
+        "y": 4,
         "w": 12,
-        "x": 12,
-        "y": 6
+        "h": 8
       },
       "fieldConfig": {
         "defaults": {
           "unit": "short",
-          "decimals": 2,
           "custom": {
             "drawStyle": "line",
             "lineWidth": 2,
             "fillOpacity": 10,
             "showPoints": "never",
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            },
             "axisSoftMin": 0
           }
         },
-        "overrides": [
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "fail"
-            },
-            "properties": [
-              {
-                "id": "color",
-                "value": {
-                  "mode": "fixed",
-                  "fixedColor": "red"
-                }
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "success"
-            },
-            "properties": [
-              {
-                "id": "color",
-                "value": {
-                  "mode": "fixed",
-                  "fixedColor": "green"
-                }
-              }
-            ]
-          }
-        ]
+        "overrides": []
       },
       "options": {
         "legend": {
@@ -360,7 +310,7 @@
         },
         "tooltip": {
           "mode": "multi",
-          "sort": "none"
+          "sort": "desc"
         }
       },
       "targets": [
@@ -370,7 +320,62 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "sum(rate(fungame_logins_total{namespace=\"$namespace\"}[5m])) by (result) * 60",
+          "expr": "sum(increase(fungame_member_first_seen_total{namespace=\"$namespace\"}[1h]))",
+          "legendFormat": "유입"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "type": "timeseries",
+      "title": "로그인 시도 (분당)",
+      "description": "",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 4,
+        "w": 12,
+        "h": 8
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 10,
+            "showPoints": "never",
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            },
+            "axisSoftMin": 0
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum by (result) (rate(fungame_logins_total{namespace=\"$namespace\"}[5m])) * 60",
           "legendFormat": "{{result}}"
         }
       ]

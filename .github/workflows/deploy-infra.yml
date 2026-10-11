@@ -70,7 +70,8 @@ jobs:
           key: ${{ secrets.INFRA_SSH_KEY }}
           port: ${{ secrets.INFRA_PORT || 22 }}
           envs: PROJECT_DIR
-          script_stop: true
+          # script_stop 은 줄마다 실패 시 exit 를 끼워 넣는다(#114). set -euo pipefail 에 맡긴다.
+          script_stop: false
           script: |
             set -euo pipefail
 
@@ -80,6 +81,10 @@ jobs:
             docker compose config --quiet
 
             docker compose up -d
+
+            # 그라파나는 대시보드 프로바이더 목록(dashboards.yml)을 기동할 때만 읽는다.
+            # 다시 띄워야 바뀐 폴더 구성이 반영되고, 목록에서 빠진 프로바이더의 대시보드도 지워진다.
+            docker compose restart grafana
             docker compose ps
         env:
           PROJECT_DIR: ${{ secrets.INFRA_PROJECT_DIR || '/opt/monitoring' }}
