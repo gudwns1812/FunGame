@@ -1,0 +1,65 @@
+// 백엔드 컨테이너 로그를 fungame-infra 의 Loki 로 보낸다.
+// compose.yml 이 이 파일을 alloy 에 마운트하고, 배포 워크플로가 저장소의 것으로 덮어쓴다.
+// 서버에만 두면 컨테이너 이름이 바뀔 때 함께 고칠 수 없다(2026-10-07 블루그린 전환 뒤 로그가 끊겼다).
+
+discovery.docker "containers" {
+  host = "unix:///var/run/docker.sock"
+}
+
+// 고른 컨테이너만 넘긴다. loki.source.docker 의 relabel_rules 로 keep 하면 라벨만 비고
+// 나머지 컨테이너 로그도 그대로 읽어 라벨 없는 스트림으로 보낸다.
+discovery.relabel "backend" {
+  targets = discovery.docker.containers.targets
+
+  // blue · green 과 블루그린 이전의 단일 컨테이너를 모두 고른다.
+  rule {
+    source_labels = ["__meta_docker_container_name"]
+    regex         = "/fungame-backend(-(blue|green))?"
+    action        = "keep"
+  }
+
+  rule {
+    source_labels = ["__meta_docker_container_name"]
+    regex         = "/(.*)"
+    target_label  = "container"
+  }
+
+  rule {
+    source_labels = ["__meta_docker_container_name"]
+    regex         = "/fungame-backend-(blue|green)"
+    target_label  = "instance"
+  }
+}
+
+loki.source.docker "backend" {
+  host       = "unix:///var/run/docker.sock"
+  targets    = discovery.relabel.backend.output
+  forward_to = [loki.process.backend.receiver]
+}
+
+loki.process "backend" {
+  // 스택 트레이스는 시각으로 시작하지 않는 줄이다. 앞 줄에 붙여 한 항목으로 보낸다.
+  stage.multiline {
+    firstline     = "^\\d{4}-\\d{2}-\\d{2}T"
+    max_wait_time = "3s"
+  }
+
+  // 로그 패턴이 "%5p [blue]" 라 시각 다음 단어가 레벨이다.
+  stage.regex {
+    expression = "^\\S+\\s+(?P<level>TRACE|DEBUG|INFO|WARN|ERROR)\\s"
+  }
+
+  stage.labels {
+    values = {
+      level = "",
+    }
+  }
+
+  forward_to = [loki.write.infra.receiver]
+}
+
+loki.write "infra" {
+  endpoint {
+    url = sys.env("LOKI_PUSH_URL")
+  }
+}
