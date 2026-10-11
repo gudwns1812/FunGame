@@ -9,23 +9,32 @@ import com.fungame.songquiz.enums.ActionResult;
 import com.fungame.songquiz.enums.GameType;
 
 import java.time.Duration;
+import java.time.Instant;
 import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
 
 public class GameSession {
     private final Quiz quiz;
     private final GameRank rank;
     private final SkipVotes skipVotes;
     private final RoundClock roundClock;
+    private final String gameId;
+    private final Instant startedAt;
 
     public GameSession(Quiz quiz, List<GamePlayer> players) {
-        this(quiz, new GameRank(players), new SkipVotes(), new RoundClock());
+        this(quiz, new GameRank(players), new SkipVotes(), new RoundClock(), UUID.randomUUID().toString(),
+                Instant.now());
     }
 
-    private GameSession(Quiz quiz, GameRank rank, SkipVotes skipVotes, RoundClock roundClock) {
+    private GameSession(Quiz quiz, GameRank rank, SkipVotes skipVotes, RoundClock roundClock, String gameId,
+                        Instant startedAt) {
         this.quiz = quiz;
         this.rank = rank;
         this.skipVotes = skipVotes;
         this.roundClock = roundClock;
+        this.gameId = gameId;
+        this.startedAt = startedAt;
     }
 
     public static GameSession restore(GameSnapshot snapshot) {
@@ -33,11 +42,37 @@ public class GameSession {
                 snapshot.quiz().restore(),
                 GameRank.restore(snapshot.participants()),
                 SkipVotes.restore(snapshot.skipVoters()),
-                RoundClock.restore(snapshot.roundStartedAt()));
+                RoundClock.restore(snapshot.roundStartedAt()),
+                snapshot.gameId(),
+                snapshot.startedAt());
     }
 
     public GameSnapshot snapshot() {
-        return new GameSnapshot(quiz.snapshot(), rank.snapshot(), skipVotes.snapshot(), roundClock.snapshot());
+        return new GameSnapshot(quiz.snapshot(), rank.snapshot(), skipVotes.snapshot(), roundClock.snapshot(), gameId,
+                startedAt);
+    }
+
+    public Optional<String> getGameId() {
+        return Optional.ofNullable(gameId);
+    }
+
+    public Instant getStartedAt() {
+        return startedAt;
+    }
+
+    public Optional<FinishedGame> scoredRecord() {
+        return recordOf(rank.scoredOutcome());
+    }
+
+    public Optional<FinishedGame> cooperativeRecord(boolean succeeded) {
+        return recordOf(rank.cooperativeOutcome(succeeded));
+    }
+
+    private Optional<FinishedGame> recordOf(GameOutcome outcome) {
+        if (gameId == null || !outcome.isRecordable()) {
+            return Optional.empty();
+        }
+        return Optional.of(new FinishedGame(gameId, getGameType(), startedAt, outcome));
     }
 
     public Quiz getQuiz() {

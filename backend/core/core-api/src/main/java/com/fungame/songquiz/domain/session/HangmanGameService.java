@@ -3,6 +3,7 @@ package com.fungame.songquiz.domain.session;
 import com.fungame.songquiz.domain.quiz.HangmanQuiz;
 import com.fungame.songquiz.domain.quiz.Quiz;
 import com.fungame.songquiz.domain.quiz.QuizContent;
+import com.fungame.songquiz.domain.record.GameRecordWriter;
 import com.fungame.songquiz.domain.room.GamePlayer;
 import com.fungame.songquiz.domain.room.GameRoomManager;
 import com.fungame.songquiz.enums.ActionResult;
@@ -10,11 +11,15 @@ import com.fungame.songquiz.enums.GameType;
 import com.fungame.songquiz.support.error.CoreException;
 import com.fungame.songquiz.support.error.ErrorType;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.dao.DataAccessException;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Optional;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class HangmanGameService implements GameService {
@@ -28,6 +33,7 @@ public class HangmanGameService implements GameService {
     private final GameRoomManager gameRoomManager;
     private final GameSessionManager gameSessionManager;
     private final ApplicationEventPublisher eventPublisher;
+    private final GameRecordWriter gameRecordWriter;
 
     @Override
     public List<GameType> getSupportTypes() {
@@ -94,7 +100,10 @@ public class HangmanGameService implements GameService {
     }
 
     private void submitResult(Long roomId, int remainingTries, String answer) {
-        String result = remainingTries == 0 ? "실패" : "성공";
+        boolean solved = remainingTries > 0;
+        String result = solved ? "성공" : "실패";
+        Optional<FinishedGame> finished = gameSessionManager.find(roomId)
+                .flatMap(gameSession -> gameSession.cooperativeRecord(solved));
 
         List<ResultRow> resultRows = List.of(
                 ResultRow.labelled(result, remainingTries),
@@ -104,6 +113,15 @@ public class HangmanGameService implements GameService {
             eventPublisher.publishEvent(new GameResultEvent(roomId, resultRows));
         } finally {
             gameRoomManager.endGame(roomId);
+            finished.ifPresent(this::keepRecord);
+        }
+    }
+
+    private void keepRecord(FinishedGame finished) {
+        try {
+            gameRecordWriter.write(finished);
+        } catch (DataAccessException e) {
+            log.error("전적을 남기지 못했다: {}", finished.gameId(), e);
         }
     }
 

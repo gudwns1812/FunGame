@@ -75,6 +75,14 @@ class StoredShapeCompatibilityTest {
     }
 
     @Test
+    @DisplayName("판 id 가 생기기 전 버전이 시작한 판은 읽히되 판 id 가 없다.")
+    void readsAGameStartedBeforeGamesHadIds() throws Exception {
+        GameSession game = GameSession.restore(objectMapper.readValue(sample("game.json"), GameSnapshot.class));
+
+        assertThat(game.getGameId()).isEmpty();
+    }
+
+    @Test
     @DisplayName("다음 버전이 더한 필드가 섞여 있어도 방을 읽는다. 필드를 더하는 것은 배포 한 번으로 해도 된다.")
     void readsARoomCarryingAFieldFromTheVersionAfter() throws Exception {
         String withNewerField = withAFieldFromTheVersionAfter(sample("room.json"));

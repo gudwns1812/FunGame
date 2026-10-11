@@ -15,6 +15,7 @@ import com.fungame.songquiz.enums.ActionResult;
 import com.fungame.songquiz.enums.CSQuizDifficulty;
 import com.fungame.songquiz.enums.Category;
 import com.fungame.songquiz.support.error.CoreException;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
 import org.junit.jupiter.api.DisplayName;
@@ -54,6 +55,29 @@ class GameSessionSnapshotTest {
         assertThat(restored.isSkipThresholdReached()).isFalse();
         assertThat(restored.handleAction(GameAction.skipVote(THIRD.memberId()))).isEqualTo(ActionResult.SKIP_VOTE_SUCCESS);
         assertThat(restored.handleAction(GameAction.submitAnswer(FIRST.memberId(), "첫곡"))).isEqualTo(ActionResult.CORRECT);
+    }
+
+    @Test
+    @DisplayName("새로 시작한 판은 판 id 와 시작 시각을 받고, 저장했다 되살려도 그대로다.")
+    void gameIdentitySurvivesStorage() throws Exception {
+        Instant beforeStart = Instant.now();
+        GameSession session = new GameSession(new SongQuiz(List.of(song(10, "첫곡")), Category.KPOP), List.of(FIRST));
+
+        GameSession restored = throughStorage(session);
+
+        assertThat(session.getGameId()).isPresent();
+        assertThat(session.getStartedAt()).isBetween(beforeStart, Instant.now());
+        assertThat(restored.getGameId()).isEqualTo(session.getGameId());
+        assertThat(restored.getStartedAt()).isEqualTo(session.getStartedAt());
+    }
+
+    @Test
+    @DisplayName("같은 방에서 다시 시작해도 판마다 다른 id 를 받는다.")
+    void everyGameGetsItsOwnId() {
+        GameSession first = new GameSession(new SongQuiz(List.of(song(10, "첫곡")), Category.KPOP), List.of(FIRST));
+        GameSession second = new GameSession(new SongQuiz(List.of(song(10, "첫곡")), Category.KPOP), List.of(FIRST));
+
+        assertThat(first.getGameId()).isNotEqualTo(second.getGameId());
     }
 
     @Test

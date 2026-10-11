@@ -2,6 +2,7 @@ package com.fungame.songquiz.domain.session;
 
 import com.fungame.songquiz.domain.quiz.Quiz;
 import com.fungame.songquiz.domain.quiz.Song;
+import com.fungame.songquiz.domain.record.GameRecordWriter;
 import com.fungame.songquiz.domain.quiz.SongQuiz;
 import com.fungame.songquiz.domain.room.GamePlayer;
 import com.fungame.songquiz.domain.room.GameRoom;
@@ -21,6 +22,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.dao.DataAccessResourceFailureException;
 
 import java.time.Duration;
 import java.util.List;
@@ -63,6 +65,8 @@ class QuizGameServiceTest {
     private GameSessionManager sessionManager;
     @Mock
     private GameTimer timer;
+    @Mock
+    private GameRecordWriter gameRecordWriter;
 
     @InjectMocks
     private QuizGameService quizGameService;
@@ -370,6 +374,58 @@ class QuizGameServiceTest {
         quizGameService.onTimer(GameTimerTask.endRound(ROOM_ID, 1));
 
         verify(publisher).publishEvent(any(RoundEndEvent.class));
+    }
+
+    @Test
+    @DisplayName("결과를 내면 그 판을 전적으로 남긴다.")
+    void show_result_records_the_game() {
+        lastRoundSessionOf(P1, P2);
+
+        quizGameService.onTimer(GameTimerTask.showResult(ROOM_ID));
+
+        ArgumentCaptor<FinishedGame> recorded = ArgumentCaptor.forClass(FinishedGame.class);
+        verify(gameRecordWriter).write(recorded.capture());
+        assertThat(recorded.getValue().gameType()).isEqualTo(GameType.SONG);
+        assertThat(recorded.getValue().outcome().players())
+                .extracting(PlayerOutcome::memberId)
+                .containsExactlyInAnyOrder(P1.memberId(), P2.memberId());
+    }
+
+    @Test
+    @DisplayName("혼자 한 판은 결과를 내도 전적으로 남기지 않는다.")
+    void show_result_skips_a_solo_game() {
+        lastRoundSessionOf(P1);
+
+        quizGameService.onTimer(GameTimerTask.showResult(ROOM_ID));
+
+        verify(gameRecordWriter, never()).write(any());
+    }
+
+    @Test
+    @DisplayName("결과 브로드캐스트가 터져도 전적은 남기고 방은 정리된다.")
+    void show_result_records_the_game_even_if_the_broadcast_blows_up() {
+        lastRoundSessionOf(P1, P2);
+        willThrow(new IllegalStateException("브로드캐스트 실패"))
+                .given(publisher).publishEvent(any(GameResultEvent.class));
+
+        assertThatThrownBy(() -> quizGameService.onTimer(GameTimerTask.showResult(ROOM_ID)))
+                .isInstanceOf(IllegalStateException.class);
+
+        verify(gameRecordWriter).write(any(FinishedGame.class));
+        verify(gameRoomManager).endGame(ROOM_ID);
+    }
+
+    @Test
+    @DisplayName("전적 저장이 터져도 결과 예약은 조용히 끝나고 방은 정리된다.")
+    void show_result_survives_a_failed_record() {
+        lastRoundSessionOf(P1, P2);
+        willThrow(new DataAccessResourceFailureException("DB 끊김"))
+                .given(gameRecordWriter).write(any(FinishedGame.class));
+
+        quizGameService.onTimer(GameTimerTask.showResult(ROOM_ID));
+
+        verify(publisher).publishEvent(any(GameResultEvent.class));
+        verify(gameRoomManager).endGame(ROOM_ID);
     }
 
     @Test
