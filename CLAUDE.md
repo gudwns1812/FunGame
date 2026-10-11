@@ -91,7 +91,5 @@ R: 어떻게 됐고 무엇이 남았나.
 
 ## 알려진 환경 제약
 
-- **이 PC 에서 testcontainers 통합 테스트가 안 돈다.** Docker Engine 29 와 맞지 않는다.
-  스프링 컨텍스트 로딩 실패가 뜨면 **내 변경 탓으로 오진하지 말고** CI 에서 확인한다.
 - 작업은 git worktree(`orca/workspaces/FunGame/<이름>`)에서 이뤄질 수 있다. 원본 체크아웃으로 `cd` 하지 않는다.
 - git stash 스택은 모든 worktree 가 공유한다. 맨손 `git stash` / `git stash pop` 을 쓰지 않는다.
