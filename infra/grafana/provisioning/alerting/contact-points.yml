@@ -1,0 +1,15 @@
+apiVersion: 1
+
+# 알림은 디스코드 알림 채널 하나로 보낸다. 신고 웹훅과는 다른 채널이다(신고에는 정답이 실린다).
+# 주소는 GitHub Secret DISCORD_ALERT_WEBHOOK_URL 을 deploy-infra 가 서버 .env 에 넣고,
+# compose 가 그라파나 환경 변수로 넘긴다.
+contactPoints:
+  - orgId: 1
+    name: discord-alerts
+    receivers:
+      - uid: discord-alerts
+        type: discord
+        settings:
+          url: $DISCORD_ALERT_WEBHOOK_URL
+          use_discord_username: false
+        disableResolveMessage: false

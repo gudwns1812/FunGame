@@ -1,0 +1,415 @@
+# 알림 규칙. 폴더는 대시보드와 같은 FunGame 이다.
+# 값에 $ 를 쓰려면 $$ 로 적는다. 그라파나가 프로비저닝 파일의 $NAME 을 환경 변수로 치환한다.
+apiVersion: 1
+groups:
+- orgId: 1
+  name: 서비스
+  folder: FunGame
+  interval: 1m
+  rules:
+  - uid: fungame-service-down
+    title: 서비스 중단 — 트래픽을 받는 인스턴스 0대
+    condition: C
+    data:
+    - refId: A
+      relativeTimeRange:
+        from: 600
+        to: 0
+      datasourceUid: afvghsyndws8we
+      model:
+        refId: A
+        expr: sum(fungame_traffic_accepting{namespace="prod"}) or vector(0)
+        instant: true
+        range: false
+        intervalMs: 1000
+        maxDataPoints: 43200
+    - refId: B
+      datasourceUid: __expr__
+      model:
+        refId: B
+        type: reduce
+        expression: A
+        reducer: last
+        settings:
+          mode: dropNN
+    - refId: C
+      datasourceUid: __expr__
+      model:
+        refId: C
+        type: threshold
+        expression: B
+        conditions:
+        - evaluator:
+            type: lt
+            params:
+            - 1
+    for: 1m
+    noDataState: Alerting
+    execErrState: Error
+    labels:
+      severity: critical
+    annotations:
+      summary: blue · green 모두 트래픽을 받지 않아 모든 요청이 503 이다. readiness 와 /actuator/traffic 을 확인한다.
+    isPaused: false
+  - uid: fungame-db-pending
+    title: DB 커넥션 대기
+    condition: C
+    data:
+    - refId: A
+      relativeTimeRange:
+        from: 600
+        to: 0
+      datasourceUid: afvghsyndws8we
+      model:
+        refId: A
+        expr: max(hikaricp_connections_pending{namespace="prod"})
+        instant: true
+        range: false
+        intervalMs: 1000
+        maxDataPoints: 43200
+    - refId: B
+      datasourceUid: __expr__
+      model:
+        refId: B
+        type: reduce
+        expression: A
+        reducer: last
+        settings:
+          mode: dropNN
+    - refId: C
+      datasourceUid: __expr__
+      model:
+        refId: C
+        type: threshold
+        expression: B
+        conditions:
+        - evaluator:
+            type: gt
+            params:
+            - 0
+    for: 2m
+    noDataState: OK
+    execErrState: Error
+    labels:
+      severity: critical
+    annotations:
+      summary: MySQL 커넥션을 기다리는 요청이 2분째 있다. 풀이 가득 찼거나 MySQL 이 응답하지 않는다.
+    isPaused: false
+  - uid: fungame-5xx
+    title: 5xx 급증
+    condition: C
+    data:
+    - refId: A
+      relativeTimeRange:
+        from: 600
+        to: 0
+      datasourceUid: afvghsyndws8we
+      model:
+        refId: A
+        expr: ((sum(rate(http_server_requests_seconds_count{namespace="prod", uri!~"/actuator.*", status=~"5.."}[5m])) or vector(0)) / clamp_min(sum(rate(http_server_requests_seconds_count{namespace="prod", uri!~"/actuator.*"}[5m])), 1e-9)) and on() (sum(rate(http_server_requests_seconds_count{namespace="prod", uri!~"/actuator.*"}[5m])) > 0.1)
+        instant: true
+        range: false
+        intervalMs: 1000
+        maxDataPoints: 43200
+    - refId: B
+      datasourceUid: __expr__
+      model:
+        refId: B
+        type: reduce
+        expression: A
+        reducer: last
+        settings:
+          mode: dropNN
+    - refId: C
+      datasourceUid: __expr__
+      model:
+        refId: C
+        type: threshold
+        expression: B
+        conditions:
+        - evaluator:
+            type: gt
+            params:
+            - 0.05
+    for: 5m
+    noDataState: OK
+    execErrState: Error
+    labels:
+      severity: critical
+    annotations:
+      summary: 최근 5분 응답의 5% 넘게 5xx 다. API 대시보드의 5xx 를 낸 엔드포인트를 본다.
+    isPaused: false
+  - uid: fungame-single-instance
+    title: 한 대로만 운영 중
+    condition: C
+    data:
+    - refId: A
+      relativeTimeRange:
+        from: 600
+        to: 0
+      datasourceUid: afvghsyndws8we
+      model:
+        refId: A
+        expr: sum(fungame_traffic_accepting{namespace="prod"}) == 1
+        instant: true
+        range: false
+        intervalMs: 1000
+        maxDataPoints: 43200
+    - refId: B
+      datasourceUid: __expr__
+      model:
+        refId: B
+        type: reduce
+        expression: A
+        reducer: last
+        settings:
+          mode: dropNN
+    - refId: C
+      datasourceUid: __expr__
+      model:
+        refId: C
+        type: threshold
+        expression: B
+        conditions:
+        - evaluator:
+            type: gt
+            params:
+            - 0
+    for: 10m
+    noDataState: OK
+    execErrState: Error
+    labels:
+      severity: warning
+    annotations:
+      summary: 트래픽을 받는 인스턴스가 10분째 한 대다. 배포가 중간에 멈췄거나 한쪽이 거부 상태로 떠 있다.
+    isPaused: false
+  - uid: fungame-latency
+    title: 응답 지연
+    condition: C
+    data:
+    - refId: A
+      relativeTimeRange:
+        from: 600
+        to: 0
+      datasourceUid: afvghsyndws8we
+      model:
+        refId: A
+        expr: histogram_quantile(0.95, sum by (le) (rate(http_server_requests_seconds_bucket{namespace="prod", uri!~"/actuator.*"}[5m])))
+        instant: true
+        range: false
+        intervalMs: 1000
+        maxDataPoints: 43200
+    - refId: B
+      datasourceUid: __expr__
+      model:
+        refId: B
+        type: reduce
+        expression: A
+        reducer: last
+        settings:
+          mode: dropNN
+    - refId: C
+      datasourceUid: __expr__
+      model:
+        refId: C
+        type: threshold
+        expression: B
+        conditions:
+        - evaluator:
+            type: gt
+            params:
+            - 1
+    for: 10m
+    noDataState: OK
+    execErrState: Error
+    labels:
+      severity: warning
+    annotations:
+      summary: p95 응답시간이 10분째 1초를 넘는다. 의존성 대시보드의 DB · Redis 지연을 본다.
+    isPaused: false
+  - uid: fungame-error-logs
+    title: ERROR 로그 급증
+    condition: C
+    data:
+    - refId: A
+      relativeTimeRange:
+        from: 600
+        to: 0
+      datasourceUid: afvghsyndws8we
+      model:
+        refId: A
+        expr: sum(increase(logback_events_total{namespace="prod", level="error"}[5m]))
+        instant: true
+        range: false
+        intervalMs: 1000
+        maxDataPoints: 43200
+    - refId: B
+      datasourceUid: __expr__
+      model:
+        refId: B
+        type: reduce
+        expression: A
+        reducer: last
+        settings:
+          mode: dropNN
+    - refId: C
+      datasourceUid: __expr__
+      model:
+        refId: C
+        type: threshold
+        expression: B
+        conditions:
+        - evaluator:
+            type: gt
+            params:
+            - 20
+    for: 1m
+    noDataState: OK
+    execErrState: Error
+    labels:
+      severity: warning
+    annotations:
+      summary: 5분 동안 ERROR 로그가 20건을 넘었다. 로그 대시보드에서 레벨을 ERROR 로 본다.
+    isPaused: false
+- orgId: 1
+  name: 수집
+  folder: FunGame
+  interval: 1m
+  rules:
+  - uid: fungame-log-ingestion
+    title: 로그 수집 끊김
+    condition: C
+    data:
+    - refId: A
+      relativeTimeRange:
+        from: 600
+        to: 0
+      datasourceUid: loki
+      model:
+        refId: A
+        expr: sum(count_over_time({container=~"fungame-backend.*"}[10m]))
+        instant: true
+        range: false
+        intervalMs: 1000
+        maxDataPoints: 43200
+    - refId: B
+      datasourceUid: __expr__
+      model:
+        refId: B
+        type: reduce
+        expression: A
+        reducer: last
+        settings:
+          mode: dropNN
+    - refId: C
+      datasourceUid: __expr__
+      model:
+        refId: C
+        type: threshold
+        expression: B
+        conditions:
+        - evaluator:
+            type: lt
+            params:
+            - 1
+    for: 5m
+    noDataState: Alerting
+    execErrState: Error
+    labels:
+      severity: warning
+    annotations:
+      summary: 10분 동안 백엔드 로그가 Loki 에 하나도 없다. 앱 서버의 fungame-alloy 를 확인한다.
+    isPaused: false
+- orgId: 1
+  name: 호스트
+  folder: FunGame
+  interval: 1m
+  rules:
+  - uid: fungame-host-disk
+    title: 앱 서버 디스크 부족
+    condition: C
+    data:
+    - refId: A
+      relativeTimeRange:
+        from: 600
+        to: 0
+      datasourceUid: afvghsyndws8we
+      model:
+        refId: A
+        expr: 1 - node_filesystem_avail_bytes{job="node", mountpoint="/"} / node_filesystem_size_bytes{job="node", mountpoint="/"}
+        instant: true
+        range: false
+        intervalMs: 1000
+        maxDataPoints: 43200
+    - refId: B
+      datasourceUid: __expr__
+      model:
+        refId: B
+        type: reduce
+        expression: A
+        reducer: last
+        settings:
+          mode: dropNN
+    - refId: C
+      datasourceUid: __expr__
+      model:
+        refId: C
+        type: threshold
+        expression: B
+        conditions:
+        - evaluator:
+            type: gt
+            params:
+            - 0.85
+    for: 10m
+    noDataState: OK
+    execErrState: Error
+    labels:
+      severity: warning
+    annotations:
+      summary: 앱 서버 루트 디스크가 85% 넘게 찼다. 쓰지 않는 이미지를 지운다.
+    isPaused: false
+  - uid: fungame-host-memory
+    title: 앱 서버 메모리 부족
+    condition: C
+    data:
+    - refId: A
+      relativeTimeRange:
+        from: 600
+        to: 0
+      datasourceUid: afvghsyndws8we
+      model:
+        refId: A
+        expr: node_memory_MemAvailable_bytes{job="node"} / node_memory_MemTotal_bytes{job="node"}
+        instant: true
+        range: false
+        intervalMs: 1000
+        maxDataPoints: 43200
+    - refId: B
+      datasourceUid: __expr__
+      model:
+        refId: B
+        type: reduce
+        expression: A
+        reducer: last
+        settings:
+          mode: dropNN
+    - refId: C
+      datasourceUid: __expr__
+      model:
+        refId: C
+        type: threshold
+        expression: B
+        conditions:
+        - evaluator:
+            type: lt
+            params:
+            - 0.1
+    for: 5m
+    noDataState: OK
+    execErrState: Error
+    labels:
+      severity: warning
+    annotations:
+      summary: 앱 서버의 사용 가능 메모리가 10% 아래다. JVM 이 죽을 수 있다.
+    isPaused: false
