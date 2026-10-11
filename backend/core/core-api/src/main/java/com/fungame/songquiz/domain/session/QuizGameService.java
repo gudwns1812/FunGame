@@ -3,6 +3,7 @@ package com.fungame.songquiz.domain.session;
 import com.fungame.songquiz.domain.quiz.Quiz;
 import com.fungame.songquiz.domain.quiz.QuizAnswer;
 import com.fungame.songquiz.domain.quiz.QuizContent;
+import com.fungame.songquiz.domain.record.GameRecordWriter;
 import com.fungame.songquiz.domain.room.GameRoomManager;
 import com.fungame.songquiz.enums.ActionResult;
 import com.fungame.songquiz.enums.GameType;
@@ -11,6 +12,7 @@ import com.fungame.songquiz.support.error.ErrorType;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.dao.DataAccessException;
 import org.springframework.stereotype.Service;
 
 import java.time.Duration;
@@ -32,6 +34,7 @@ public class QuizGameService implements GameService, GameTimerHandler {
     private final GameRoomManager gameRoomManager;
     private final GameSessionManager sessionManager;
     private final GameTimer timer;
+    private final GameRecordWriter gameRecordWriter;
 
     @Override
     public List<GameType> getSupportTypes() {
@@ -153,15 +156,25 @@ public class QuizGameService implements GameService, GameTimerHandler {
     }
 
     private void showResult(Long roomId) {
-        Optional<List<PlayerScore>> ranks = sessionManager.find(roomId).map(GameSession::getPlayerRanks);
-        if (ranks.isEmpty()) {
+        Optional<GameSession> finished = sessionManager.find(roomId);
+        if (finished.isEmpty()) {
             return;
         }
 
+        GameSession gameSession = finished.get();
         try {
-            publisher.publishEvent(new GameResultEvent(roomId, ResultRow.listOf(ranks.get())));
+            publisher.publishEvent(new GameResultEvent(roomId, ResultRow.listOf(gameSession.getPlayerRanks())));
         } finally {
             gameRoomManager.endGame(roomId);
+            gameSession.scoredRecord().ifPresent(this::keepRecord);
+        }
+    }
+
+    private void keepRecord(FinishedGame finished) {
+        try {
+            gameRecordWriter.write(finished);
+        } catch (DataAccessException e) {
+            log.error("전적을 남기지 못했다: {}", finished.gameId(), e);
         }
     }
 

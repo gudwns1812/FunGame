@@ -5,6 +5,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Stream;
 
 public class GameRank {
     private final Map<Long, Participant> participants = new ConcurrentHashMap<>();
@@ -37,6 +38,33 @@ public class GameRank {
                 .sorted(Comparator.comparingInt(PlayerScore::rank)
                         .thenComparing(PlayerScore::memberId))
                 .toList();
+    }
+
+    public GameOutcome scoredOutcome() {
+        List<PlayerScore> finisherScores = getPlayerScores();
+        int leaverRank = finisherScores.size() + 1;
+
+        Stream<PlayerOutcome> finished = finisherScores.stream().map(PlayerOutcome::finished);
+        Stream<PlayerOutcome> left = leavers().map(leaver -> PlayerOutcome.leftScored(leaver, leaverRank));
+        return new GameOutcome(Stream.concat(finished, left).toList());
+    }
+
+    public GameOutcome cooperativeOutcome(boolean succeeded) {
+        Stream<PlayerOutcome> finished = finishers().map(finisher -> PlayerOutcome.cooperated(finisher, succeeded));
+        Stream<PlayerOutcome> left = leavers().map(PlayerOutcome::leftCooperation);
+        return new GameOutcome(Stream.concat(finished, left).toList());
+    }
+
+    private Stream<Participant> finishers() {
+        return participants.values().stream()
+                .filter(Participant::playing)
+                .sorted(Comparator.comparing(Participant::memberId));
+    }
+
+    private Stream<Participant> leavers() {
+        return participants.values().stream()
+                .filter(participant -> !participant.playing())
+                .sorted(Comparator.comparing(Participant::memberId));
     }
 
     private static int rankAmong(List<Participant> playing, Participant participant) {

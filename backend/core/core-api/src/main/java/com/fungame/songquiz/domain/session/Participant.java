@@ -4,6 +4,10 @@ import com.fungame.songquiz.domain.room.GamePlayer;
 
 public record Participant(GamePlayer player, int score, boolean playing) {
 
+    Long memberId() {
+        return player.memberId();
+    }
+
     static Participant joining(GamePlayer player) {
         return new Participant(player, 0, true);
     }

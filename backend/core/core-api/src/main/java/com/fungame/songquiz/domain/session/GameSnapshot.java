@@ -9,6 +9,8 @@ public record GameSnapshot(
         QuizSnapshot quiz,
         List<Participant> participants,
         Set<Long> skipVoters,
-        Instant roundStartedAt
+        Instant roundStartedAt,
+        String gameId,
+        Instant startedAt
 ) {
 }

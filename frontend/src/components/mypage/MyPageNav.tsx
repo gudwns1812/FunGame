@@ -7,6 +7,7 @@ interface MyPageNavProps {
 
 const ITEMS = [
   { to: '/mypage', label: '내 정보', end: true },
+  { to: '/mypage/records', label: '내 전적', end: false },
   { to: '/mypage/reports', label: '내 문의', end: false },
 ];
 

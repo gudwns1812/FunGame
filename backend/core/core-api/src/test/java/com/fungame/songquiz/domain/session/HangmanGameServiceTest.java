@@ -3,6 +3,7 @@ package com.fungame.songquiz.domain.session;
 import com.fungame.songquiz.domain.quiz.HangmanQuiz;
 import com.fungame.songquiz.domain.quiz.HangmanWord;
 import com.fungame.songquiz.domain.quiz.Quiz;
+import com.fungame.songquiz.domain.record.GameRecordWriter;
 import com.fungame.songquiz.domain.room.GamePlayer;
 import com.fungame.songquiz.domain.room.GameRoom;
 import com.fungame.songquiz.domain.room.GameRoomManager;
@@ -14,10 +15,12 @@ import com.fungame.songquiz.enums.GameType;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.dao.DataAccessResourceFailureException;
 
 import java.util.List;
 import java.util.Optional;
@@ -25,6 +28,7 @@ import java.util.function.Function;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.*;
@@ -44,6 +48,8 @@ class HangmanGameServiceTest {
     private GameSessionManager gameSessionManager;
     @Mock
     private ApplicationEventPublisher eventPublisher;
+    @Mock
+    private GameRecordWriter gameRecordWriter;
 
     @InjectMocks
     private HangmanGameService hangmanGameService;
@@ -133,6 +139,65 @@ class HangmanGameServiceTest {
 
         // Then
         verify(gameRoomManager).endGame(roomId);
+    }
+
+    @Test
+    @DisplayName("단어를 맞히면 끝까지 남은 전원이 이긴 판으로 전적을 남긴다.")
+    void records_a_solved_game_as_won_by_everyone() {
+        Long roomId = 1L;
+        List<GamePlayer> players = List.of(P1, P2);
+        HangmanQuiz hangmanQuiz = HangmanQuiz.create(new HangmanWord(2L, "A", 1));
+        hangmanQuiz.initPlayers(players);
+        useSession(roomId, new GameSession(hangmanQuiz, players));
+
+        hangmanGameService.handleAction(roomId, new GameAction(P1.memberId(), ActionType.SUBMIT_ANSWER, "A"));
+
+        assertThat(recordedGame().outcome().players())
+                .extracting(PlayerOutcome::won)
+                .containsExactly(true, true);
+    }
+
+    @Test
+    @DisplayName("기회를 다 쓰면 전원이 진 판으로 전적을 남긴다.")
+    void records_a_failed_game_as_lost_by_everyone() {
+        Long roomId = 1L;
+        List<GamePlayer> players = List.of(P1, P2);
+        HangmanQuiz hangmanQuiz = HangmanQuiz.create(new HangmanWord(2L, "A", 1));
+        hangmanQuiz.initPlayers(players);
+        useSession(roomId, new GameSession(hangmanQuiz, players));
+
+        List<String> wrongLetters = List.of("B", "C", "D", "E", "F", "G");
+        for (int turn = 0; turn < wrongLetters.size(); turn++) {
+            GamePlayer guesser = players.get(turn % players.size());
+            hangmanGameService.handleAction(roomId,
+                    new GameAction(guesser.memberId(), ActionType.SUBMIT_ANSWER, wrongLetters.get(turn)));
+        }
+
+        assertThat(recordedGame().outcome().players())
+                .extracting(PlayerOutcome::won)
+                .containsExactly(false, false);
+    }
+
+    @Test
+    @DisplayName("전적 저장이 터져도 마지막 글자를 고른 사람에게 오류가 가지 않고 방은 정리된다.")
+    void survives_a_failed_record() {
+        Long roomId = 1L;
+        List<GamePlayer> players = List.of(P1, P2);
+        HangmanQuiz hangmanQuiz = HangmanQuiz.create(new HangmanWord(2L, "A", 1));
+        hangmanQuiz.initPlayers(players);
+        useSession(roomId, new GameSession(hangmanQuiz, players));
+        doThrow(new DataAccessResourceFailureException("DB 끊김"))
+                .when(gameRecordWriter).write(any(FinishedGame.class));
+
+        hangmanGameService.handleAction(roomId, new GameAction(P1.memberId(), ActionType.SUBMIT_ANSWER, "A"));
+
+        verify(gameRoomManager).endGame(roomId);
+    }
+
+    private FinishedGame recordedGame() {
+        ArgumentCaptor<FinishedGame> recorded = ArgumentCaptor.forClass(FinishedGame.class);
+        verify(gameRecordWriter).write(recorded.capture());
+        return recorded.getValue();
     }
 
     private void useSession(Long roomId, GameSession session) {
