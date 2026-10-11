@@ -73,7 +73,7 @@ Hikari 획득 시간과 Lettuce 명령 시간은 히스토그램 없이 평균 �
 - 로그에 `instance`(blue · green) 라벨을 붙인다. 로그 패턴에 이미 `[blue]` 가 찍히므로 컨테이너 이름에서 뽑는다.
 - alloy 를 `backend/compose.yml` 에 넣어 배포가 설정과 함께 올리게 한다. 지금은 compose 밖에서 8주째 떠 있다.
   배포의 별도 단계가 compose 밖의 옛 `alloy` 를 내리고 새 것을 띄운다. 이 단계가 실패해도 앱 배포는 실패로 치지 않는다.
-- Loki 주소는 GitHub Secret `LOKI_PUSH_URL` 로 받아 서버 `.env` 에 넣는다.
+- Loki 주소는 fungame-infra 의 사설 IP 로 설정에 직접 적는다. 3100 은 밖에서 막혀 있고 같은 VPC 안에서만 닿는다.
 - 컨테이너는 `discovery.relabel` 에서 먼저 거른다. `loki.source.docker` 의 `relabel_rules` 로 거르면 라벨만 비고
   다른 컨테이너 로그도 라벨 없는 스트림으로 보낸다(로컬에서 재현).
 
@@ -101,10 +101,7 @@ PR 수를 늘리지 않으려고 앱 지표 · alloy · 대시보드를 한 PR �
    라벨(container · instance · level)과 스택 트레이스 묶음, 다른 컨테이너 제외를 확인한다.
 3. **대시보드** — 일곱 개 JSON, 프로비저닝 한 폴더, 옛 JSON 삭제, 인프라 배포의 그라파나 재시작.
    로컬 그라파나 · 프로메테우스 · Loki 로 쿼리 문법과 실제 지표에서 값이 나오는지 확인한다.
-4. **머지 전에 사용자에게 받을 것**
-   - GitHub Secret `LOKI_PUSH_URL`.
-   - 서버의 옛 alloy 설정. 백엔드 말고 다른 로그(Caddy 등)도 보내고 있었다면 새 설정에 옮겨야 한다.
-5. **머지 뒤 확인** — Loki 에 `fungame-backend-blue` · `-green` 이 들어오고, 프로메테우스에 새 지표가 보이고,
+4. **머지 뒤 확인** — Loki 에 `fungame-backend-blue` · `-green` 이 들어오고, 프로메테우스에 새 지표가 보이고,
    그라파나에 `FunGame` 폴더 하나만 남는다.
 
 ---

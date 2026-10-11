@@ -474,22 +474,12 @@ jobs:
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.EC2_SSH_KEY }}
           port: ${{ secrets.EC2_PORT || 22 }}
-          envs: PROJECT_DIR,LOKI_PUSH_URL
+          envs: PROJECT_DIR
           script_stop: false
           script: |
             set -euo pipefail
 
             cd "$PROJECT_DIR"
-
-            if [ -z "$LOKI_PUSH_URL" ]; then
-              echo "LOKI_PUSH_URL 시크릿이 없어 로그 수집기를 올리지 않는다"
-              exit 1
-            fi
-
-            install -m 600 /dev/null .env.next
-            { grep -v '^LOKI_PUSH_URL=' .env || true; } >> .env.next
-            printf 'LOKI_PUSH_URL=%s\n' "$LOKI_PUSH_URL" >> .env.next
-            mv .env.next .env
 
             # 블루그린 이전에 compose 밖에서 띄운 alloy 는 옛 컨테이너 이름만 읽는다. 내린다.
             LEGACY_ALLOY=$(docker ps -aq -f name='^alloy$')
@@ -505,7 +495,6 @@ jobs:
             docker compose logs --tail 20 alloy
         env:
           PROJECT_DIR: ${{ secrets.BACKEND_PROJECT_DIR || '/home/ubuntu/fungame' }}
-          LOKI_PUSH_URL: ${{ secrets.LOKI_PUSH_URL }}
 
       - name: 실패하면 무엇이 서비스 중인지 남긴다
         if: failure()

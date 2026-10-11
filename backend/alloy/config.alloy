@@ -58,8 +58,9 @@ loki.process "backend" {
   forward_to = [loki.write.infra.receiver]
 }
 
+// fungame-infra 의 사설 IP. 3100 은 밖에서 막혀 있고 같은 VPC 안에서만 닿는다.
 loki.write "infra" {
   endpoint {
-    url = sys.env("LOKI_PUSH_URL")
+    url = "http://172.31.47.168:3100/loki/api/v1/push"
   }
 }
