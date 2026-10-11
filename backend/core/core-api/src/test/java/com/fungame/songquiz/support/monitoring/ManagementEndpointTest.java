@@ -1,8 +1,10 @@
 package com.fungame.songquiz.support.monitoring;
 
 import com.fungame.songquiz.support.ApiIntegrationTest;
+import com.fungame.songquiz.support.availability.TrafficGate;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.boot.test.web.server.LocalManagementPort;
 import org.springframework.boot.test.web.server.LocalServerPort;
@@ -10,6 +12,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -20,6 +24,9 @@ class ManagementEndpointTest extends ApiIntegrationTest {
 
     @LocalServerPort
     private int servicePort;
+
+    @Autowired
+    private TrafficGate trafficGate;
 
     private final TestRestTemplate restTemplate = new TestRestTemplate();
 
@@ -81,6 +88,41 @@ class ManagementEndpointTest extends ApiIntegrationTest {
                 .as("시도 전에 시계열이 없으면 실패율 알람이 데이터 없음으로 뜬다")
                 .hasSize(2);
         assertThat(samplesOf(scrapeBody, "fungame_member_first_seen_total")).hasSize(1);
+    }
+
+    @Test
+    @DisplayName("트래픽을 받는지가 지표로 나온다. 받으면 1, 끊으면 0 이다.")
+    void trafficGateIsExposedAsMetric() {
+        assertThat(samplesOf(scrape(), "fungame_traffic_accepting")).singleElement()
+                .satisfies(sample -> assertThat(sample).endsWith(" 1.0"));
+
+        trafficGate.refuse();
+
+        assertThat(samplesOf(scrape(), "fungame_traffic_accepting")).singleElement()
+                .satisfies(sample -> assertThat(sample).endsWith(" 0.0"));
+    }
+
+    @Test
+    @DisplayName("HTTP 요청 지표가 응답시간 SLO 버킷으로 나온다. 버킷은 정한 다섯 개와 +Inf 뿐이다.")
+    void httpRequestsArePublishedWithSloBuckets() {
+        get(servicePort, "/game/rooms");
+
+        List<String> bucketBounds = samplesOf(scrape(), "http_server_requests_seconds_bucket").stream()
+                .filter(sample -> sample.contains("uri=\"/game/rooms\""))
+                .map(ManagementEndpointTest::bucketBoundOf)
+                .distinct()
+                .toList();
+
+        assertThat(bucketBounds).containsExactlyInAnyOrder("0.05", "0.1", "0.3", "1.0", "3.0", "+Inf");
+    }
+
+    private String scrape() {
+        return get(managementPort, "/actuator/prometheus").getBody();
+    }
+
+    private static String bucketBoundOf(String sample) {
+        Matcher matcher = Pattern.compile("le=\"([^\"]+)\"").matcher(sample);
+        return matcher.find() ? matcher.group(1) : "";
     }
 
     private List<String> samplesOf(String scrapeBody, String metricName) {

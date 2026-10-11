@@ -87,6 +87,22 @@ services:
       APP_INSTANCE_ID: green
       APP_TRAFFIC_STATE_FILE: /app/traffic/accepting
 
+  # 백엔드 컨테이너 로그를 fungame-infra 의 Loki 로 보냅니다. 설정은 ./alloy/config.alloy 입니다.
+  # 배포가 설정과 함께 매번 다시 띄우고, 어디까지 읽었는지는 alloy-data 에 남아 중복 없이 이어 읽습니다.
+  alloy:
+    image: grafana/alloy:v1.20.1
+    container_name: fungame-alloy
+    restart: unless-stopped
+    command:
+      - run
+      - --storage.path=/var/lib/alloy/data
+      - /etc/alloy/config.alloy
+    volumes:
+      - ./alloy/config.alloy:/etc/alloy/config.alloy:ro
+      - alloy-data:/var/lib/alloy/data
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+
 volumes:
   caddy-data:
   caddy-config:
+  alloy-data:

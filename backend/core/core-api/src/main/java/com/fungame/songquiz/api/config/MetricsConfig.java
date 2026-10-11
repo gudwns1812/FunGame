@@ -4,6 +4,7 @@ import com.fungame.songquiz.api.websocket.StompSessionRegistry;
 import com.fungame.songquiz.domain.member.MemberConnectionTracker;
 import com.fungame.songquiz.domain.room.GameRoomService;
 import com.fungame.songquiz.domain.session.GameSessionManager;
+import com.fungame.songquiz.support.availability.TrafficGate;
 import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.binder.MeterBinder;
 import org.springframework.context.annotation.Bean;
@@ -11,6 +12,9 @@ import org.springframework.context.annotation.Configuration;
 
 @Configuration
 public class MetricsConfig {
+
+    private static final double ACCEPTING = 1;
+    private static final double REFUSING = 0;
 
     @Bean
     public MeterBinder gameRoomMetrics(GameRoomService gameRoomService, GameSessionManager gameSessionManager) {
@@ -40,6 +44,17 @@ public class MetricsConfig {
                     .description("접속 중인 회원 수. 모든 서버가 같은 전체 수를 보고한다")
                     .register(registry);
         };
+    }
+
+    @Bean
+    public MeterBinder trafficMetrics(TrafficGate trafficGate) {
+        return registry -> Gauge.builder("fungame.traffic.accepting", trafficGate, MetricsConfig::acceptingAsGauge)
+                .description("이 인스턴스가 트래픽을 받으면 1, 아니면 0. 모든 인스턴스의 합이 0 이면 서비스가 멈춘 것이다")
+                .register(registry);
+    }
+
+    private static double acceptingAsGauge(TrafficGate trafficGate) {
+        return trafficGate.isAccepting() ? ACCEPTING : REFUSING;
     }
 
     private static double playersInRooms(GameRoomService gameRoomService) {
