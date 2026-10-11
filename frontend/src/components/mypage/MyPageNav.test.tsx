@@ -18,6 +18,12 @@ describe('MyPageNav', () => {
     expect(screen.getByRole('link', { name: '내 문의' })).toHaveAttribute('href', '/mypage/reports');
   });
 
+  it('내 전적으로 갈 수 있다', () => {
+    renderNav(false);
+
+    expect(screen.getByRole('link', { name: '내 전적' })).toHaveAttribute('href', '/mypage/records');
+  });
+
   it('일반 사용자에게는 문의 관리를 보여주지 않는다', () => {
     renderNav(false);
 

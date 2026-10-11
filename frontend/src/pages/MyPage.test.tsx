@@ -53,6 +53,16 @@ describe('MyPage', () => {
     expect(await screen.findByText(/접수한 문의가 없습니다/)).toBeInTheDocument();
   });
 
+  it('내 전적 경로에서는 게임별 전적을 보여준다', async () => {
+    mockedAxios.get = vi.fn().mockResolvedValue({
+      data: { result: 'SUCCESS', data: [{ gameType: 'CS', played: 1, won: 1, lost: 0, winRate: 100 }] },
+    });
+
+    renderMyPage('/mypage/records');
+
+    expect(await screen.findByRole('region', { name: 'CS 퀴즈 전적' })).toBeInTheDocument();
+  });
+
   it('일반 사용자가 문의 관리로 들어오면 내 정보로 되돌린다', () => {
     renderMyPage('/mypage/inquiries');
 

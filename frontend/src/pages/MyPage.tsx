@@ -2,6 +2,7 @@ import React from 'react';
 import { Navigate, Route, Routes, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import TopBar from '../components/layout/TopBar';
+import MyGameRecordsSection from '../components/mypage/MyGameRecordsSection';
 import MyPageNav from '../components/mypage/MyPageNav';
 import MyReportsSection from '../components/mypage/MyReportsSection';
 import ProfileSection from '../components/mypage/ProfileSection';
@@ -32,6 +33,7 @@ const MyPage: React.FC = () => {
           <div className="flex-1 min-w-0">
             <Routes>
               <Route index element={<ProfileSection />} />
+              <Route path="records" element={<MyGameRecordsSection />} />
               <Route path="reports" element={<MyReportsSection />} />
               <Route
                 path="inquiries"
