@@ -51,4 +51,11 @@ EXPOSE 8080
 # 애플리케이션 실행
 # 한 호스트에 인스턴스가 둘입니다. 기본값(컨테이너 메모리의 25%)에 맡기면 힙이
 # 들쭉날쭉해 두 대가 함께 들어가는지 계산할 수 없습니다. 메타스페이스도 묶습니다.
-ENTRYPOINT ["java", "-XX:MaxRAMPercentage=50", "-XX:MaxMetaspaceSize=128m", "-jar", "app.jar"]
+#
+# 메타스페이스 256m 은 실측값입니다. 기동 직후 트래픽 0 에 이미 115MB(클래스 23,024개)이고
+# 평범한 요청 몇 건으로 124MB 까지 오릅니다. 128m 으로는 웹소켓과 게임 루프가 돌기 전에
+# 한도에 닿습니다. 이 영역은 쓰는 만큼만 커밋되므로 한도를 올려도 RSS 는 따라 늘지 않습니다.
+#
+# ExitOnOutOfMemoryError 가 없으면 메타스페이스 OOM 에도 JVM 이 죽지 않습니다. 풀 GC 를
+# 반복하며 500 만 뱉는 채로 살아 있어 compose 재시작도 Caddy 의 업스트림 제외도 걸리지 않습니다.
+ENTRYPOINT ["java", "-XX:MaxRAMPercentage=50", "-XX:MaxMetaspaceSize=256m", "-XX:+ExitOnOutOfMemoryError", "-jar", "app.jar"]
