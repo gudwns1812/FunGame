@@ -9,7 +9,7 @@
   "timezone": "browser",
   "editable": true,
   "schemaVersion": 39,
-  "version": 1,
+  "version": 2,
   "refresh": "30s",
   "time": {
     "from": "now-6h",
@@ -293,6 +293,77 @@
       ]
     },
     {
+      "id": 17,
+      "type": "timeseries",
+      "title": "메타스페이스 사용률",
+      "description": "힙과 별개 영역이라 힙 패널에도 커밋 합계에도 따로 드러나지 않는다. 기동만으로 115MB 를 쓴다.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 10,
+        "w": 12,
+        "h": 8
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 10,
+            "showPoints": "never",
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            },
+            "axisSoftMin": 0,
+            "thresholdsStyle": {
+              "mode": "line+area"
+            }
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 0.9
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum by (instance) (jvm_memory_used_bytes{namespace=\"$namespace\", instance=~\"$instance\", area=\"nonheap\", id=\"Metaspace\"}) / sum by (instance) (jvm_memory_max_bytes{namespace=\"$namespace\", instance=~\"$instance\", area=\"nonheap\", id=\"Metaspace\"} > 0)",
+          "legendFormat": "{{instance}}"
+        }
+      ]
+    },
+    {
       "id": 6,
       "type": "timeseries",
       "title": "GC 직후 힙",
@@ -302,8 +373,8 @@
         "uid": "${datasource}"
       },
       "gridPos": {
-        "x": 12,
-        "y": 10,
+        "x": 0,
+        "y": 18,
         "w": 12,
         "h": 8
       },
@@ -357,7 +428,7 @@
         "uid": "${datasource}"
       },
       "gridPos": {
-        "x": 0,
+        "x": 12,
         "y": 18,
         "w": 12,
         "h": 8
@@ -430,8 +501,8 @@
         "uid": "${datasource}"
       },
       "gridPos": {
-        "x": 12,
-        "y": 18,
+        "x": 0,
+        "y": 26,
         "w": 12,
         "h": 8
       },
@@ -481,70 +552,6 @@
           },
           "expr": "max by (instance) (jvm_gc_pause_seconds_max{namespace=\"$namespace\", instance=~\"$instance\"})",
           "legendFormat": "최대 멈춤 {{instance}}"
-        }
-      ]
-    },
-    {
-      "id": 9,
-      "type": "timeseries",
-      "title": "CPU",
-      "description": "프로세스(JVM) 와 호스트 전체.",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "${datasource}"
-      },
-      "gridPos": {
-        "x": 0,
-        "y": 26,
-        "w": 12,
-        "h": 8
-      },
-      "fieldConfig": {
-        "defaults": {
-          "unit": "percentunit",
-          "custom": {
-            "drawStyle": "line",
-            "lineWidth": 2,
-            "fillOpacity": 10,
-            "showPoints": "never",
-            "stacking": {
-              "mode": "none",
-              "group": "A"
-            },
-            "axisSoftMin": 0
-          }
-        },
-        "overrides": []
-      },
-      "options": {
-        "legend": {
-          "displayMode": "list",
-          "placement": "bottom",
-          "showLegend": true
-        },
-        "tooltip": {
-          "mode": "multi",
-          "sort": "desc"
-        }
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${datasource}"
-          },
-          "expr": "max by (instance) (process_cpu_usage{namespace=\"$namespace\", instance=~\"$instance\"})",
-          "legendFormat": "JVM {{instance}}"
-        },
-        {
-          "refId": "B",
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${datasource}"
-          },
-          "expr": "max(system_cpu_usage{namespace=\"$namespace\", instance=~\"$instance\"})",
-          "legendFormat": "호스트"
         }
       ]
     },
@@ -613,13 +620,141 @@
       ]
     },
     {
+      "id": 9,
+      "type": "timeseries",
+      "title": "CPU",
+      "description": "프로세스(JVM) 와 호스트 전체.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 34,
+        "w": 12,
+        "h": 8
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 10,
+            "showPoints": "never",
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            },
+            "axisSoftMin": 0
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "max by (instance) (process_cpu_usage{namespace=\"$namespace\", instance=~\"$instance\"})",
+          "legendFormat": "JVM {{instance}}"
+        },
+        {
+          "refId": "B",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "max(system_cpu_usage{namespace=\"$namespace\", instance=~\"$instance\"})",
+          "legendFormat": "호스트"
+        }
+      ]
+    },
+    {
+      "id": 18,
+      "type": "timeseries",
+      "title": "로드된 클래스",
+      "description": "기동 뒤 평평해야 한다. 계속 오르면 메타스페이스가 모자란 것이 아니라 어딘가 클래스를 찍어내고 있다.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 34,
+        "w": 12,
+        "h": 8
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 10,
+            "showPoints": "never",
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            },
+            "axisSoftMin": 0
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum by (instance) (jvm_classes_loaded_classes{namespace=\"$namespace\", instance=~\"$instance\"})",
+          "legendFormat": "로드됨 {{instance}}"
+        },
+        {
+          "refId": "B",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum by (instance) (increase(jvm_classes_unloaded_classes_total{namespace=\"$namespace\", instance=~\"$instance\"}[$__rate_interval]))",
+          "legendFormat": "언로드 {{instance}}"
+        }
+      ]
+    },
+    {
       "id": 11,
       "type": "row",
       "title": "호스트 (node_exporter)",
       "collapsed": false,
       "gridPos": {
         "x": 0,
-        "y": 34,
+        "y": 42,
         "w": 24,
         "h": 1
       },
@@ -636,7 +771,7 @@
       },
       "gridPos": {
         "x": 0,
-        "y": 35,
+        "y": 43,
         "w": 8,
         "h": 8
       },
@@ -700,7 +835,7 @@
       },
       "gridPos": {
         "x": 8,
-        "y": 35,
+        "y": 43,
         "w": 8,
         "h": 8
       },
@@ -764,7 +899,7 @@
       },
       "gridPos": {
         "x": 16,
-        "y": 35,
+        "y": 43,
         "w": 8,
         "h": 8
       },
@@ -835,7 +970,7 @@
       },
       "gridPos": {
         "x": 0,
-        "y": 43,
+        "y": 51,
         "w": 12,
         "h": 8
       },
@@ -899,7 +1034,7 @@
       },
       "gridPos": {
         "x": 12,
-        "y": 43,
+        "y": 51,
         "w": 12,
         "h": 8
       },
