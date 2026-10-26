@@ -2,9 +2,12 @@ package com.fungame.songquiz.api.config;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.fungame.songquiz.support.logging.LogContext;
 import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.slf4j.MDC;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import org.springframework.scheduling.annotation.AsyncAnnotationBeanPostProcessor;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
@@ -42,6 +45,22 @@ class AsyncConfigTest {
             assertThat(executor.getThreadNamePrefix()).isEqualTo("app-async-");
             assertThat(executor.getThreadPoolExecutor().getRejectedExecutionHandler())
                     .isInstanceOf(ThreadPoolExecutor.CallerRunsPolicy.class);
+        });
+    }
+
+    @Test
+    @DisplayName("@Async 리스너의 로그에 이벤트를 발행한 요청의 문맥이 이어진다.")
+    void the_executor_carries_the_publisher_log_context() {
+        contextRunner.run(context -> {
+            ThreadPoolTaskExecutor executor = context.getBean(BEAN_NAME, ThreadPoolTaskExecutor.class);
+            MDC.put(LogContext.REQUEST_ID, "ab12cd34");
+            try {
+                String seen = executor.submit(() -> MDC.get(LogContext.REQUEST_ID)).get(1, TimeUnit.SECONDS);
+
+                assertThat(seen).isEqualTo("ab12cd34");
+            } finally {
+                MDC.clear();
+            }
         });
     }
 }

@@ -2,6 +2,7 @@ package com.fungame.songquiz.api.config;
 
 import com.fungame.songquiz.api.websocket.RoomSubscriptionAuthorization;
 import com.fungame.songquiz.api.websocket.StompDestination;
+import com.fungame.songquiz.api.websocket.StompLogContextInterceptor;
 import com.fungame.songquiz.support.config.AppTaskScheduler;
 import java.util.List;
 import org.springframework.beans.factory.annotation.Value;
@@ -58,6 +59,7 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     @Override
     public void configureClientInboundChannel(ChannelRegistration registration) {
-        registration.interceptors(new SecurityContextChannelInterceptor(), roomSubscriptionAuthorization);
+        registration.interceptors(new SecurityContextChannelInterceptor(), roomSubscriptionAuthorization,
+                new StompLogContextInterceptor());
     }
 }

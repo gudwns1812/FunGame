@@ -8,12 +8,14 @@ import com.fungame.songquiz.storage.redis.GameTimerDao;
 import com.fungame.songquiz.storage.redis.RedisTestContainer;
 import com.fungame.songquiz.support.MutableClock;
 import com.fungame.songquiz.support.availability.TrafficGate;
+import com.fungame.songquiz.support.logging.LogContext;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.slf4j.LoggerFactory;
+import org.slf4j.MDC;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.data.redis.DataRedisTest;
 import org.springframework.context.annotation.Import;
@@ -24,6 +26,7 @@ import java.time.Instant;
 import java.time.ZoneId;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeUnit;
 
@@ -224,6 +227,58 @@ class GameTimerTest {
             assertThat(logged.getFormattedMessage()).contains(String.valueOf(ROOM_ID));
             assertThat(logged.getThrowableProxy().getMessage()).isEqualTo("라운드를 닫지 못했다");
         });
+    }
+
+    @Test
+    @DisplayName("처리기가 터진 로그에 어느 작업 · 어느 방인지 문맥이 붙는다.")
+    void a_blown_task_is_logged_with_its_context() {
+        GameTimerTask timeout = GameTimerTask.endRound(ROOM_ID, 1);
+        GameTimerPoller failing = pollerOn(timer, new GameTimerHandler() {
+            @Override
+            public List<GameTimerTask.Kind> timerKinds() {
+                return List.of(GameTimerTask.Kind.END_ROUND);
+            }
+
+            @Override
+            public void onTimer(GameTimerTask task) {
+                throw new IllegalStateException("라운드를 닫지 못했다");
+            }
+        });
+        timer.startAfter(SOON, timeout);
+        clock.plus(SOON);
+
+        failing.poll();
+
+        assertThat(logs.list).anySatisfy(logged -> assertThat(logged.getMDCPropertyMap())
+                .containsEntry(LogContext.TIMER_TASK, timeout.key())
+                .containsEntry(LogContext.ROOM_ID, String.valueOf(ROOM_ID)));
+        assertThat(MDC.getCopyOfContextMap()).as("작업이 끝나면 문맥을 지운다").isNullOrEmpty();
+    }
+
+    @Test
+    @DisplayName("회원을 대상으로 하는 작업에는 방 대신 회원이 붙는다.")
+    void a_member_task_carries_the_member() {
+        Long memberId = 17L;
+        List<Map<String, String>> contexts = new CopyOnWriteArrayList<>();
+        GameTimerPoller capturing = pollerOn(timer, new GameTimerHandler() {
+            @Override
+            public List<GameTimerTask.Kind> timerKinds() {
+                return List.of(GameTimerTask.Kind.LEAVE_ROOM);
+            }
+
+            @Override
+            public void onTimer(GameTimerTask task) {
+                contexts.add(MDC.getCopyOfContextMap());
+            }
+        });
+        timer.startAfter(SOON, GameTimerTask.leaveRoom(memberId));
+        clock.plus(SOON);
+
+        capturing.poll();
+
+        assertThat(contexts).singleElement().satisfies(context -> assertThat(context)
+                .containsEntry(LogContext.MEMBER_ID, String.valueOf(memberId))
+                .doesNotContainKey(LogContext.ROOM_ID));
     }
 
     @Test

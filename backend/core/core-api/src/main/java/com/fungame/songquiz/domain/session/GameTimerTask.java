@@ -38,8 +38,12 @@ public record GameTimerTask(Kind kind, Long targetId, int round) {
         return ROOM_SCOPE + roomId + SEPARATOR;
     }
 
+    public boolean targetsMember() {
+        return kind == Kind.LEAVE_ROOM;
+    }
+
     public String key() {
-        String scope = kind == Kind.LEAVE_ROOM ? MEMBER_SCOPE : ROOM_SCOPE;
+        String scope = targetsMember() ? MEMBER_SCOPE : ROOM_SCOPE;
         return scope + targetId + SEPARATOR + kind + SEPARATOR + round;
     }
 

@@ -26,6 +26,7 @@ logging:
   pattern:
     # 로그도 어느 인스턴스에서 난 것인지 보여야 합니다. compose 가 APP_INSTANCE_ID 를 넣습니다.
     level: "%5p [${app.instance-id:local}]"
+    correlation: "[%X] "
 
 ---
 spring:

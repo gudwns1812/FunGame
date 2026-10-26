@@ -1,5 +1,7 @@
 package com.fungame.songquiz.api.websocket;
 
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -19,7 +21,19 @@ public final class StompDestination {
 
     private static final String ROOM_PREFIX = BROKER_PREFIX + "/room/";
 
+    private static final Pattern ROOM_SCOPED = Pattern.compile(
+            "^(" + APPLICATION_PREFIX + "|" + BROKER_PREFIX + ")/room/(?<roomId>\\d{1,18})(/.*)?$");
+
     private StompDestination() {
+    }
+
+    public static Long roomIdIn(String destination) {
+        if (destination == null) {
+            return null;
+        }
+
+        Matcher matcher = ROOM_SCOPED.matcher(destination);
+        return matcher.matches() ? Long.valueOf(matcher.group("roomId")) : null;
     }
 
     public static String room(Long roomId) {
