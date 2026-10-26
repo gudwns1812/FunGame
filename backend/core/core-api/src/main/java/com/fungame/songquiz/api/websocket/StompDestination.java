@@ -49,7 +49,7 @@ public final class StompDestination {
         try {
             return Long.parseLong(rawRoomId);
         } catch (NumberFormatException e) {
-            log.warn("Invalid room id in subscribe destination: {}", destination);
+            log.warn("구독 목적지의 방 id 를 알아볼 수 없다: {}", destination);
             return null;
         }
     }

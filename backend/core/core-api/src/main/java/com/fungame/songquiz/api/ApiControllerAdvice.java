@@ -47,7 +47,7 @@ public class ApiControllerAdvice {
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
     @ExceptionHandler(Exception.class)
     public ApiResponse<Void> handleDefaultException(Exception e) {
-        log.error("Exception : ", e);
+        log.error("처리하지 못한 예외가 났다", e);
         return ApiResponse.fail(ErrorType.DEFAULT_ERROR);
     }
 

@@ -34,7 +34,7 @@ public class WebSocketEventListener {
         roomLeaveGrace.cancelFor(memberId);
         // 활동일은 로그인이 아니라 여기서 남긴다. 세션이 유지되면 며칠씩 붙어 있어도 로그인은 한 번뿐이다.
         dailyActiveMemberTracker.record(memberId);
-        log.debug("접속: 회원 {} (session {}), 열린 세션 {} 개",
+        log.debug("접속: 회원 {} (세션 {}), 열린 세션 {} 개",
                 memberId, sessionId, stompSessionRegistry.countSessionsOf(memberId));
     }
 

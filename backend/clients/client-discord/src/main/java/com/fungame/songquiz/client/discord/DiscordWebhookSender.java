@@ -45,7 +45,7 @@ public class DiscordWebhookSender {
                     .retrieve()
                     .toBodilessEntity();
         } catch (RestClientException e) {
-            log.error("디스코드 웹훅 전송에 실패했습니다. 제목: {}", embed.title(), e);
+            log.error("디스코드 웹훅 전송에 실패했다. 제목: {}", embed.title(), e);
         }
     }
 

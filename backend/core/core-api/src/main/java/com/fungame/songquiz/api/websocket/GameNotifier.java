@@ -193,7 +193,7 @@ public class GameNotifier {
         try {
             return memberProfileCache.of(memberId).nickname();
         } catch (CoreException e) {
-            log.info("닉네임을 찾지 못했다: member {}", memberId);
+            log.info("닉네임을 찾지 못했다: 회원 {}", memberId);
             return null;
         }
     }
