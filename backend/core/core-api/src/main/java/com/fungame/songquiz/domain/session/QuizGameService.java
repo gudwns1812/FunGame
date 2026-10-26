@@ -146,12 +146,10 @@ public class QuizGameService implements GameService, GameTimerHandler {
 
     private void scheduleNextStep(Long roomId, int endedRound, boolean lastRound) {
         if (lastRound) {
-            log.info("게임 종료");
             timer.startAfter(BEFORE_GAME_RESULT, GameTimerTask.showResult(roomId));
             return;
         }
 
-        log.info("라운드 종료");
         timer.startAfter(BETWEEN_ROUNDS, GameTimerTask.startRound(roomId, endedRound + 1));
     }
 

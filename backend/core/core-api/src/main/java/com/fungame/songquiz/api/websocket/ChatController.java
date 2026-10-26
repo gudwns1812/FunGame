@@ -7,6 +7,7 @@ import com.fungame.songquiz.domain.room.ChatMessageEvent;
 import com.fungame.songquiz.domain.room.GameRoomManager;
 import com.fungame.songquiz.domain.session.GameService;
 import com.fungame.songquiz.support.error.CoreException;
+import com.fungame.songquiz.support.error.ErrorType;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
@@ -34,7 +35,7 @@ public class ChatController {
             gameRoomManager.touch(roomId);
             gameService.processAnswer(roomId, user.getId(), request.message());
         } catch (CoreException e) {
-            log.info("Chat for missing room {}: {}", roomId, e.getMessage());
+            logRejected("채팅", roomId, e);
         }
     }
 
@@ -45,7 +46,16 @@ public class ChatController {
             gameRoomManager.touch(roomId);
             gameService.handleAction(roomId, request.toAction(user.getId()));
         } catch (CoreException e) {
-            log.info("Action for missing room {}: {}", roomId, e.getMessage());
+            logRejected("행동", roomId, e);
+        }
+    }
+
+    private static void logRejected(String what, Long roomId, CoreException e) {
+        ErrorType type = e.getType();
+        switch (type.getLogLevel()) {
+            case WARN -> log.warn("방 {} 의 {} 을 처리하지 못했다. {} : {}", roomId, what, type.getCode(), e.getMessage());
+            case ERROR -> log.error("방 {} 의 {} 을 처리하지 못했다. {} : {}", roomId, what, type.getCode(), e.getMessage(), e);
+            default -> log.debug("방 {} 의 {} 을 처리하지 못했다. {} : {}", roomId, what, type.getCode(), e.getMessage());
         }
     }
 }

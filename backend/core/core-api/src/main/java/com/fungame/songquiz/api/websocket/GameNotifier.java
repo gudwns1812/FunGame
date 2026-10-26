@@ -54,7 +54,6 @@ public class GameNotifier {
 
     @EventListener
     public void handleRoomSettingsChanged(RoomSettingsChangedEvent event) {
-        log.info("Broadcasting room settings change in room {}", event.roomId());
         sendRoomState(event.roomId(), Map.of(
                 "type", "ROOM_SETTINGS_CHANGED",
                 "settings", RoomSettingsResponse.from(event.state(), memberProfileCache)
@@ -63,26 +62,21 @@ public class GameNotifier {
 
     @EventListener
     public void handlePlayerJoin(PlayerJoinEvent event) {
-        log.info("Broadcasting player join: {} in room {}", event.player().memberId(), event.roomId());
         sendRoomState(event.roomId(), whoDidIt("PLAYER_JOIN", event.player()), event.state());
     }
 
     @EventListener
     public void handlePlayerLeave(PlayerLeaveEvent event) {
-        log.info("Broadcasting player leave: {} in room {}", event.player().memberId(), event.roomId());
         sendRoomState(event.roomId(), whoDidIt("PLAYER_LEAVE", event.player()), event.state());
     }
 
     @EventListener
     public void handlePlayerKicked(PlayerKickedEvent event) {
-        log.info("Broadcasting player kicked: {} in room {}", event.player().memberId(), event.roomId());
         sendRoomState(event.roomId(), whoDidIt("PLAYER_KICKED", event.player()), event.state());
     }
 
     @EventListener
     public void handlePlayerReady(PlayerReadyEvent event) {
-        log.info("Broadcasting player ready: member {} is now {} in room {}",
-                event.player().memberId(), event.player().isReady(), event.roomId());
         Map<String, Object> payload = new HashMap<>(whoDidIt("PLAYER_READY", event.player()));
         payload.put("ready", event.player().isReady());
         payload.put("isAllReady", event.isAllReady());
@@ -92,7 +86,6 @@ public class GameNotifier {
 
     @EventListener
     public void handleGameStart(GameStartEvent event) {
-        log.info("Broadcasting game start in room {}", event.roomId());
         String destination = StompDestination.room(event.roomId());
         QuizInfo quizInfo = event.quizInfo();
 
@@ -114,7 +107,6 @@ public class GameNotifier {
     @Async
     @EventListener
     public void handleRoundStart(RoundStartEvent event) {
-        log.info("Broadcasting round start in room {}", event.roomId());
         String destination = StompDestination.room(event.roomId());
         Object payload = Map.of(
                 "type", "ROUND_START",
@@ -128,7 +120,6 @@ public class GameNotifier {
 
     @EventListener
     public void handleGameHint(QuizGameHintEvent event) {
-        log.info("Broadcasting round hint in room {}", event.roomId());
         String destination = StompDestination.room(event.roomId());
         Object payload = Map.of(
                 "type", "ROUND_HINT",
@@ -140,7 +131,6 @@ public class GameNotifier {
 
     @EventListener
     public void handleGameSkip(GameSkipEvent event) {
-        log.info("Broadcasting round skip in room {}", event.roomId());
         String destination = StompDestination.room(event.roomId());
         Object payload = Map.of(
                 "type", "ROUND_SKIP",
@@ -153,7 +143,6 @@ public class GameNotifier {
     @Async
     @EventListener
     public void handleRoundEnd(RoundEndEvent event) {
-        log.info("Broadcasting round end in room {}", event.roomId());
         String destination = StompDestination.room(event.roomId());
 
         Map<String, Object> payload = new HashMap<>();
@@ -167,7 +156,6 @@ public class GameNotifier {
 
     @EventListener
     public void handleGameResult(GameResultEvent event) {
-        log.info("Broadcasting game end in room {}", event.roomId());
         String destination = StompDestination.room(event.roomId());
 
         List<Map<String, Object>> rankings = event.rankings().stream()

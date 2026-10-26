@@ -72,7 +72,7 @@ public class RoomLeaveGrace implements GameTimerHandler {
             gameRoomService.leaveRoom(location.roomId(), memberId);
             log.info("{} 방 {} 에서 회원 {} 을 내보낸다", reason, location.roomId(), memberId);
         } catch (CoreException e) {
-            log.info("이탈 처리 시점에 방 {} 이 이미 없다: 회원 {}", location.roomId(), memberId);
+            log.debug("이탈 처리 시점에 방 {} 이 이미 없다: 회원 {}", location.roomId(), memberId);
         } catch (Exception e) {
             log.error("방 {} 에서 회원 {} 이탈 처리 실패", location.roomId(), memberId, e);
         }
