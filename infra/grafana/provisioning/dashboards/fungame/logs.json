@@ -1,7 +1,7 @@
 {
   "uid": "fungame-logs",
   "title": "FunGame — 로그",
-  "description": "인스턴스 · 레벨 · 검색어로 백엔드 로그를 본다.",
+  "description": "인스턴스 · 레벨 · 회원 · 방 · 검색어로 백엔드 로그를 본다.",
   "tags": [
     "fungame",
     "logs"
@@ -56,6 +56,36 @@
         "includeAll": true,
         "multi": true,
         "allValue": ".+",
+        "current": {
+          "text": "All",
+          "value": "$__all"
+        },
+        "hide": 0
+      },
+      {
+        "name": "memberId",
+        "label": "회원 id",
+        "type": "custom",
+        "query": "",
+        "includeAll": true,
+        "multi": false,
+        "allValue": ".*",
+        "allowCustomValue": true,
+        "current": {
+          "text": "All",
+          "value": "$__all"
+        },
+        "hide": 0
+      },
+      {
+        "name": "roomId",
+        "label": "방 id",
+        "type": "custom",
+        "query": "",
+        "includeAll": true,
+        "multi": false,
+        "allValue": ".*",
+        "allowCustomValue": true,
         "current": {
           "text": "All",
           "value": "$__all"
@@ -154,7 +184,7 @@
             "type": "loki",
             "uid": "loki"
           },
-          "expr": "sum by (level) (count_over_time({container=~\"fungame-backend.*\", instance=~\"$instance\", level=~\"$level\"} |= \"$search\" [$__interval]))",
+          "expr": "sum by (level) (count_over_time({container=~\"fungame-backend.*\", instance=~\"$instance\", level=~\"$level\"} |= \"$search\" | memberId=~\"$memberId\" | roomId=~\"$roomId\" [$__interval]))",
           "legendFormat": "{{level}}"
         }
       ]
@@ -189,7 +219,7 @@
             "type": "loki",
             "uid": "loki"
           },
-          "expr": "{container=~\"fungame-backend.*\", instance=~\"$instance\", level=~\"$level\"} |= \"$search\""
+          "expr": "{container=~\"fungame-backend.*\", instance=~\"$instance\", level=~\"$level\"} |= \"$search\" | memberId=~\"$memberId\" | roomId=~\"$roomId\""
         }
       ]
     }
