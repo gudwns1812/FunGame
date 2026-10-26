@@ -2,6 +2,7 @@ package com.fungame.songquiz.api.websocket;
 
 import com.fungame.songquiz.domain.member.DailyActiveMemberTracker;
 import com.fungame.songquiz.domain.member.MemberConnectionTracker;
+import com.fungame.songquiz.support.logging.LogContext;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.event.EventListener;
@@ -46,6 +47,14 @@ public class WebSocketEventListener {
             return;
         }
 
+        try (LogContext context = LogContext.open()
+                .put(LogContext.WS_SESSION, sessionId)
+                .put(LogContext.MEMBER_ID, memberId)) {
+            releaseConnection(memberId, sessionId);
+        }
+    }
+
+    private void releaseConnection(Long memberId, String sessionId) {
         memberConnectionTracker.disconnect(memberId, sessionId);
 
         if (memberConnectionTracker.hasLiveConnection(memberId)) {

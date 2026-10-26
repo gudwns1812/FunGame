@@ -2,18 +2,24 @@ package com.fungame.songquiz.api.websocket;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.BDDMockito.willAnswer;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
 import com.fungame.songquiz.domain.member.DailyActiveMemberTracker;
 import com.fungame.songquiz.domain.member.MemberConnectionTracker;
 import com.fungame.songquiz.support.StompMessages;
+import com.fungame.songquiz.support.logging.LogContext;
+import java.util.HashMap;
+import java.util.Map;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.slf4j.MDC;
 import org.springframework.web.socket.CloseStatus;
 import org.springframework.web.socket.messaging.SessionConnectedEvent;
 import org.springframework.web.socket.messaging.SessionDisconnectEvent;
@@ -40,6 +46,11 @@ class WebSocketEventListenerTest {
         stompSessionRegistry = new StompSessionRegistry();
         listener = new WebSocketEventListener(
                 stompSessionRegistry, roomLeaveGrace, memberConnectionTracker, dailyActiveMemberTracker);
+    }
+
+    @AfterEach
+    void clearMdc() {
+        MDC.clear();
     }
 
     @Test
@@ -84,6 +95,24 @@ class WebSocketEventListenerTest {
         disconnect("session-1");
 
         verify(roomLeaveGrace, never()).beginFor(MEMBER_ID);
+    }
+
+    @Test
+    @DisplayName("끊김을 처리하는 동안 남는 로그에 어느 세션 · 어느 회원인지 문맥이 붙고, 끝나면 지운다.")
+    void the_disconnect_is_handled_within_its_log_context() {
+        connect("session-1");
+        Map<String, String> seen = new HashMap<>();
+        willAnswer(invocation -> {
+            seen.putAll(MDC.getCopyOfContextMap());
+            return null;
+        }).given(roomLeaveGrace).beginFor(MEMBER_ID);
+
+        disconnect("session-1");
+
+        assertThat(seen)
+                .containsEntry(LogContext.WS_SESSION, "session-1")
+                .containsEntry(LogContext.MEMBER_ID, String.valueOf(MEMBER_ID));
+        assertThat(MDC.getCopyOfContextMap()).isNullOrEmpty();
     }
 
     @Test
