@@ -28,6 +28,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeUnit;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.awaitility.Awaitility.await;
 
 @DataRedisTest
 @Import({RedisTestContainer.class, GameTimerDao.class})
@@ -37,6 +38,7 @@ class GameTimerTest {
     private static final Long OTHER_ROOM_ID = 2L;
     private static final Duration SOON = Duration.ofSeconds(3);
     private static final Duration LATER = Duration.ofSeconds(20);
+    private static final Duration SEVERAL_POLLS_OF_ANOTHER_SERVER = Duration.ofSeconds(1);
 
     @Autowired
     private StringRedisTemplate redisTemplate;
@@ -92,6 +94,17 @@ class GameTimerTest {
 
     private static Logger pollerLogger() {
         return (Logger) LoggerFactory.getLogger(GameTimerPoller.class);
+    }
+
+    @Test
+    @DisplayName("이 테스트의 Redis 는 다른 서버가 폴링하지 않는다. 실제 시각으로는 지난 작업도 이 테스트가 가져갈 때까지 남아 있다.")
+    void no_other_server_polls_the_redis_of_this_test() {
+        GameTimerTask leave = GameTimerTask.leaveRoom(7L);
+        timer.startAfter(SOON, leave);
+
+        await().during(SEVERAL_POLLS_OF_ANOTHER_SERVER)
+                .atMost(SEVERAL_POLLS_OF_ANOTHER_SERVER.multipliedBy(2))
+                .until(() -> isQueued(leave.key()));
     }
 
     @Test
