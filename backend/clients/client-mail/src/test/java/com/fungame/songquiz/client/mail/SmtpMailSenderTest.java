@@ -1,9 +1,15 @@
 package com.fungame.songquiz.client.mail;
 
+import ch.qos.logback.classic.Level;
+import ch.qos.logback.classic.Logger;
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.read.ListAppender;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
+import org.slf4j.LoggerFactory;
 import org.springframework.mail.MailSendException;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
@@ -24,11 +30,24 @@ class SmtpMailSenderTest {
 
     private JavaMailSender javaMailSender;
     private SmtpMailSender smtpMailSender;
+    private final ListAppender<ILoggingEvent> logs = new ListAppender<>();
 
     @BeforeEach
     void setUp() {
         javaMailSender = mock(JavaMailSender.class);
         smtpMailSender = new SmtpMailSender(javaMailSender, FROM);
+        logs.start();
+        senderLogger().addAppender(logs);
+    }
+
+    @AfterEach
+    void stopListening() {
+        senderLogger().detachAppender(logs);
+        logs.stop();
+    }
+
+    private static Logger senderLogger() {
+        return (Logger) LoggerFactory.getLogger(SmtpMailSender.class);
     }
 
     @Test
@@ -53,5 +72,19 @@ class SmtpMailSenderTest {
 
         assertThatCode(() -> smtpMailSender.send(TO, SUBJECT, BODY))
                 .doesNotThrowAnyException();
+    }
+
+    @Test
+    @DisplayName("발송 실패는 어떤 메일인지 제목으로 남기되, 받는 사람의 주소는 남기지 않는다.")
+    void a_failure_is_logged_without_the_recipient() {
+        doThrow(new MailSendException("SMTP 서버가 응답하지 않습니다"))
+                .when(javaMailSender).send(any(SimpleMailMessage.class));
+
+        smtpMailSender.send(TO, SUBJECT, BODY);
+
+        assertThat(logs.list).singleElement().satisfies(logged -> {
+            assertThat(logged.getLevel()).isEqualTo(Level.ERROR);
+            assertThat(logged.getFormattedMessage()).contains(SUBJECT).doesNotContain(TO);
+        });
     }
 }
