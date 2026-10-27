@@ -6,8 +6,8 @@ import { AD_SLOTS } from '../utils/adsense';
 import { useDocumentMeta } from '../hooks/useDocumentMeta';
 import { SONG_CATEGORIES } from '../utils/gameOptions';
 
-const PAGE_TITLE = '노래 맞추기 게임';
-const PAGE_DESCRIPTION = `FUNGAME은 친구들과 함께 실시간으로 즐기는 무료 노래 맞추기 게임입니다. 유튜브로 나오는 노래를 듣고 제목을 먼저 맞히는 노래 퀴즈로, K-POP·발라드·랩·OST 등 ${SONG_CATEGORIES.length}개 카테고리에서 출제됩니다. CS 퀴즈와 행맨 모드도 있으며, 방을 만들어 최대 12명까지 함께 플레이할 수 있습니다.`;
+const PAGE_TITLE = '온라인 노래 맞추기 멀티 게임';
+const PAGE_DESCRIPTION = `친구들과 함께하는 온라인 노래 맞추기 멀티 게임 사이트 FUNGAME(펀게임). 설치 없이 브라우저에서 방을 만들고 최대 12명이 실시간으로 노래를 듣고 제목을 맞힙니다. K-POP·발라드·랩·OST 등 ${SONG_CATEGORIES.length}개 카테고리, CS 퀴즈와 행맨 모드까지 무료입니다.`;
 
 const GAME_MODES = [
   {
@@ -29,7 +29,7 @@ const GAME_MODES = [
 
 const HIGHLIGHTS = [
   { title: '설치 없이 바로', body: '브라우저만 있으면 됩니다. 앱을 따로 받을 필요가 없습니다.' },
-  { title: '실시간 대전', body: '같은 방에 있는 사람들이 동시에 문제를 듣고 채팅으로 겨룹니다.' },
+  { title: '실시간 멀티플레이', body: '최대 12명이 같은 방에서 동시에 노래를 듣고 채팅으로 겨룹니다.' },
   { title: '친구 초대', body: '접속 중인 유저 목록에서 원하는 사람을 방으로 바로 초대할 수 있습니다.' },
   { title: '완전 무료', body: '모든 게임 모드를 요금 없이 이용할 수 있습니다.' },
 ];
@@ -42,7 +42,7 @@ const LandingPage: React.FC = () => {
       <div className="w-full max-w-2xl mx-auto">
         <header className="text-center mb-8">
           <h1 className="px-title text-3xl">FUNGAME</h1>
-          <p className="px-title text-base mt-2">친구들과 함께하는 실시간 노래 맞추기</p>
+          <p className="px-title text-base mt-2">친구들과 함께하는 노래 맞추기 멀티 게임</p>
           <p className="text-xs leading-relaxed text-ink-soft mt-4">{PAGE_DESCRIPTION}</p>
         </header>
 
