@@ -29,7 +29,7 @@ public class PasswordResetMailListener {
         try {
             mailSender.send(event.email(), resetLink(event.rawToken()));
         } catch (RuntimeException e) {
-            log.error("비밀번호 재설정 메일 발송에 실패했습니다. 수신자: {}", event.email(), e);
+            log.error("비밀번호 재설정 메일 발송에 실패했다", e);
         }
     }
 

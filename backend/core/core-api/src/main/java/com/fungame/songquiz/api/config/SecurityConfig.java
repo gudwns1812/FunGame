@@ -1,5 +1,6 @@
 package com.fungame.songquiz.api.config;
 
+import com.fungame.songquiz.api.LogContextFilter;
 import com.fungame.songquiz.support.monitoring.ActuatorSecurityConfig;
 import java.util.Arrays;
 import lombok.RequiredArgsConstructor;
@@ -16,6 +17,7 @@ import org.springframework.security.config.annotation.web.configurers.AbstractHt
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.AnonymousAuthenticationFilter;
 import org.springframework.security.web.authentication.HttpStatusEntryPoint;
 import org.springframework.security.web.authentication.logout.HttpStatusReturningLogoutSuccessHandler;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
@@ -52,6 +54,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/master/**", "/master/**").hasRole("MASTER")
                         .anyRequest().authenticated()
                 )
+                .addFilterAfter(new LogContextFilter(), AnonymousAuthenticationFilter.class)
                 .exceptionHandling(handler -> handler
                         .authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED))
                 )

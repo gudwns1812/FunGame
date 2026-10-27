@@ -1,6 +1,7 @@
 package com.fungame.songquiz.domain.session;
 
 import com.fungame.songquiz.support.config.GameTaskScheduler;
+import com.fungame.songquiz.support.logging.LogContext;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
 import java.time.Duration;
@@ -50,6 +51,12 @@ public class GameTimerPoller {
     }
 
     private void run(DueTimer due) {
+        try (LogContext context = logContextOf(due.task())) {
+            runWithin(due);
+        }
+    }
+
+    private void runWithin(DueTimer due) {
         GameTimerHandler handler = handlerByKind.get(due.task().kind());
         if (handler == null) {
             log.warn("{} 를 처리할 곳이 이 서버에 없다. 지우지 않고 둔다", due.task());
@@ -62,6 +69,13 @@ public class GameTimerPoller {
         } finally {
             gameTimer.complete(due);
         }
+    }
+
+    private static LogContext logContextOf(GameTimerTask task) {
+        String targetKey = task.targetsMember() ? LogContext.MEMBER_ID : LogContext.ROOM_ID;
+        return LogContext.open()
+                .put(LogContext.TIMER_TASK, task.key())
+                .put(targetKey, task.targetId());
     }
 
     private void handle(GameTimerHandler handler, GameTimerTask task) {

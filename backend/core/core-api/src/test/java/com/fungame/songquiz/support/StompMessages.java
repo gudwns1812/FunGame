@@ -30,6 +30,15 @@ public final class StompMessages {
         return MessageBuilder.createMessage(EMPTY_BODY, accessor.getMessageHeaders());
     }
 
+    public static Message<byte[]> send(String sessionId, String destination, Principal user) {
+        StompHeaderAccessor accessor = StompHeaderAccessor.create(StompCommand.SEND);
+        accessor.setSessionId(sessionId);
+        accessor.setDestination(destination);
+        accessor.setUser(user);
+
+        return MessageBuilder.createMessage(EMPTY_BODY, accessor.getMessageHeaders());
+    }
+
     public static Message<byte[]> session(String sessionId) {
         StompHeaderAccessor accessor = StompHeaderAccessor.create(StompCommand.CONNECTED);
         accessor.setSessionId(sessionId);

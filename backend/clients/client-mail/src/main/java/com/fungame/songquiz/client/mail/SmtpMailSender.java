@@ -25,7 +25,7 @@ public class SmtpMailSender {
         try {
             javaMailSender.send(message(to, subject, body));
         } catch (MailException e) {
-            log.error("메일 발송에 실패했습니다. 수신자: {}, 제목: {}", to, subject, e);
+            log.error("메일 발송에 실패했다. 제목: {}", subject, e);
         }
     }
 

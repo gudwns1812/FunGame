@@ -11,6 +11,6 @@ public class LoggingPasswordResetMailSender implements PasswordResetMailSender {
 
     @Override
     public void send(String email, String resetLink) {
-        log.info("비밀번호 재설정 링크 - 수신자: {}, 링크: {}", email, resetLink);
+        log.info("비밀번호 재설정 링크: {}", resetLink);
     }
 }

@@ -1,5 +1,7 @@
 package com.fungame.songquiz.api.websocket;
 
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -19,7 +21,19 @@ public final class StompDestination {
 
     private static final String ROOM_PREFIX = BROKER_PREFIX + "/room/";
 
+    private static final Pattern ROOM_SCOPED = Pattern.compile(
+            "^(" + APPLICATION_PREFIX + "|" + BROKER_PREFIX + ")/room/(?<roomId>\\d{1,18})(/.*)?$");
+
     private StompDestination() {
+    }
+
+    public static Long roomIdIn(String destination) {
+        if (destination == null) {
+            return null;
+        }
+
+        Matcher matcher = ROOM_SCOPED.matcher(destination);
+        return matcher.matches() ? Long.valueOf(matcher.group("roomId")) : null;
     }
 
     public static String room(Long roomId) {
@@ -35,7 +49,7 @@ public final class StompDestination {
         try {
             return Long.parseLong(rawRoomId);
         } catch (NumberFormatException e) {
-            log.warn("Invalid room id in subscribe destination: {}", destination);
+            log.warn("구독 목적지의 방 id 를 알아볼 수 없다: {}", destination);
             return null;
         }
     }

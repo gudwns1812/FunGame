@@ -2,6 +2,7 @@ package com.fungame.songquiz.api.config;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.fungame.songquiz.api.websocket.StompLogContextInterceptor;
 import com.fungame.songquiz.support.ApiIntegrationTest;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -49,5 +50,12 @@ class WebSocketConfigTest extends ApiIntegrationTest {
     void securityContextIsPropagatedToMessageHandlingThread() {
         assertThat(clientInboundChannel.getInterceptors())
                 .hasAtLeastOneElementOfType(SecurityContextChannelInterceptor.class);
+    }
+
+    @Test
+    @DisplayName("STOMP 메시지를 처리하는 스레드의 로그에 세션 · 회원 · 방이 붙도록 인바운드 채널에 문맥 인터셉터가 있다.")
+    void logContextIsAttachedOnMessageHandlingThread() {
+        assertThat(clientInboundChannel.getInterceptors())
+                .hasAtLeastOneElementOfType(StompLogContextInterceptor.class);
     }
 }

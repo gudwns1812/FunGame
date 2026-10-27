@@ -2,6 +2,7 @@ package com.fungame.songquiz.api.websocket;
 
 import com.fungame.songquiz.domain.member.DailyActiveMemberTracker;
 import com.fungame.songquiz.domain.member.MemberConnectionTracker;
+import com.fungame.songquiz.support.logging.LogContext;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.event.EventListener;
@@ -34,7 +35,7 @@ public class WebSocketEventListener {
         roomLeaveGrace.cancelFor(memberId);
         // 활동일은 로그인이 아니라 여기서 남긴다. 세션이 유지되면 며칠씩 붙어 있어도 로그인은 한 번뿐이다.
         dailyActiveMemberTracker.record(memberId);
-        log.debug("접속: 회원 {} (session {}), 열린 세션 {} 개",
+        log.debug("접속: 회원 {} (세션 {}), 열린 세션 {} 개",
                 memberId, sessionId, stompSessionRegistry.countSessionsOf(memberId));
     }
 
@@ -46,6 +47,14 @@ public class WebSocketEventListener {
             return;
         }
 
+        try (LogContext context = LogContext.open()
+                .put(LogContext.WS_SESSION, sessionId)
+                .put(LogContext.MEMBER_ID, memberId)) {
+            releaseConnection(memberId, sessionId);
+        }
+    }
+
+    private void releaseConnection(Long memberId, String sessionId) {
         memberConnectionTracker.disconnect(memberId, sessionId);
 
         if (memberConnectionTracker.hasLiveConnection(memberId)) {

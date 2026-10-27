@@ -55,6 +55,45 @@ loki.process "backend" {
     }
   }
 
+  stage.regex {
+    expression = "\\[(?P<mdc>[^\\[\\]]*)\\] \\S+\\s+: "
+  }
+
+  stage.regex {
+    source     = "mdc"
+    expression = "(?:^|, )requestId=(?P<requestId>[^,]+)"
+  }
+
+  stage.regex {
+    source     = "mdc"
+    expression = "(?:^|, )wsSession=(?P<wsSession>[^,]+)"
+  }
+
+  stage.regex {
+    source     = "mdc"
+    expression = "(?:^|, )memberId=(?P<memberId>[^,]+)"
+  }
+
+  stage.regex {
+    source     = "mdc"
+    expression = "(?:^|, )roomId=(?P<roomId>[^,]+)"
+  }
+
+  stage.regex {
+    source     = "mdc"
+    expression = "(?:^|, )timerTask=(?P<timerTask>[^,]+)"
+  }
+
+  stage.structured_metadata {
+    values = {
+      requestId = "",
+      wsSession = "",
+      memberId  = "",
+      roomId    = "",
+      timerTask = "",
+    }
+  }
+
   forward_to = [loki.write.infra.receiver]
 }
 

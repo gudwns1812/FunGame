@@ -3,9 +3,14 @@ package com.fungame.songquiz.api.websocket;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.BDDMockito.willThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
+import ch.qos.logback.classic.Level;
+import ch.qos.logback.classic.Logger;
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.read.ListAppender;
 import com.fungame.songquiz.domain.member.MemberConnectionTracker;
 import com.fungame.songquiz.domain.member.MembersWentOfflineEvent;
 import com.fungame.songquiz.domain.room.GameRoomService;
@@ -13,14 +18,18 @@ import com.fungame.songquiz.domain.room.MemberLocation;
 import com.fungame.songquiz.domain.session.GameTimer;
 import com.fungame.songquiz.domain.session.GameTimerTask;
 import com.fungame.songquiz.enums.PlayerStatus;
+import com.fungame.songquiz.support.error.CoreException;
+import com.fungame.songquiz.support.error.ErrorType;
 import java.time.Duration;
 import java.util.Set;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.slf4j.LoggerFactory;
 
 @ExtendWith(MockitoExtension.class)
 class RoomLeaveGraceTest {
@@ -41,9 +50,27 @@ class RoomLeaveGraceTest {
 
     RoomLeaveGrace roomLeaveGrace;
 
+    private final ListAppender<ILoggingEvent> logs = new ListAppender<>();
+    private Level originalLevel;
+
     @BeforeEach
     void setUp() {
         roomLeaveGrace = new RoomLeaveGrace(gameRoomService, gameTimer, memberConnectionTracker, GRACE.toSeconds());
+        originalLevel = graceLogger().getLevel();
+        graceLogger().setLevel(Level.DEBUG);
+        logs.start();
+        graceLogger().addAppender(logs);
+    }
+
+    @AfterEach
+    void stopListening() {
+        graceLogger().detachAppender(logs);
+        graceLogger().setLevel(originalLevel);
+        logs.stop();
+    }
+
+    private static Logger graceLogger() {
+        return (Logger) LoggerFactory.getLogger(RoomLeaveGrace.class);
     }
 
     @Test
@@ -131,6 +158,19 @@ class RoomLeaveGraceTest {
         roomLeaveGrace.handleMembersWentOffline(new MembersWentOfflineEvent(Set.of(MEMBER_ID)));
 
         verify(gameRoomService, never()).leaveRoom(any(), any());
+    }
+
+    @Test
+    @DisplayName("내보내려는 순간 방이 이미 없으면 흔한 경합이라 DEBUG 로만 남긴다.")
+    void a_room_gone_before_eviction_is_logged_at_debug() {
+        placeIn(ROOM_ID);
+        willThrow(new CoreException(ErrorType.GAME_ROOM_NOT_FOUND))
+                .given(gameRoomService).leaveRoom(ROOM_ID, MEMBER_ID);
+
+        roomLeaveGrace.onTimer(GameTimerTask.leaveRoom(MEMBER_ID));
+
+        assertThat(logs.list).singleElement()
+                .extracting(ILoggingEvent::getLevel).isEqualTo(Level.DEBUG);
     }
 
     @Test

@@ -1,5 +1,6 @@
 package com.fungame.songquiz.api.config;
 
+import com.fungame.songquiz.support.logging.LogContextTaskDecorator;
 import java.util.concurrent.ThreadPoolExecutor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.task.TaskExecutionAutoConfiguration;
@@ -28,6 +29,7 @@ public class AsyncConfig {
         executor.setQueueCapacity(queueCapacity);
         executor.setThreadNamePrefix("app-async-");
         executor.setRejectedExecutionHandler(new ThreadPoolExecutor.CallerRunsPolicy());
+        executor.setTaskDecorator(new LogContextTaskDecorator());
 
         return executor;
     }

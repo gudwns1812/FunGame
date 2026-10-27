@@ -3,11 +3,14 @@ package com.fungame.songquiz.api;
 import com.fungame.songquiz.api.controller.response.ApiResponse;
 import com.fungame.songquiz.support.error.CoreException;
 import com.fungame.songquiz.support.error.ErrorType;
+import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.validation.BindException;
+import org.springframework.validation.FieldError;
+import org.springframework.validation.ObjectError;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -37,14 +40,25 @@ public class ApiControllerAdvice {
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     @ExceptionHandler(BindException.class)
     public ApiResponse<Void> handleBindException(BindException e) {
-        log.warn("BindException : {}", e.getMessage());
+        log.warn("입력값을 받지 못했다: {}", rejectedFields(e));
         return ApiResponse.fail(ErrorType.INVALID_INPUT_VALUE);
     }
 
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
     @ExceptionHandler(Exception.class)
     public ApiResponse<Void> handleDefaultException(Exception e) {
-        log.error("Exception : ", e);
+        log.error("처리하지 못한 예외가 났다", e);
         return ApiResponse.fail(ErrorType.DEFAULT_ERROR);
+    }
+
+    private static String rejectedFields(BindException e) {
+        return e.getAllErrors().stream()
+                .map(ApiControllerAdvice::nameAndReason)
+                .collect(Collectors.joining(", "));
+    }
+
+    private static String nameAndReason(ObjectError error) {
+        String name = error instanceof FieldError fieldError ? fieldError.getField() : error.getObjectName();
+        return name + "(" + error.getCode() + ")";
     }
 }

@@ -68,4 +68,17 @@ case "$cmd" in
     ;;
 esac
 
+case "$cmd" in
+  *LOG_MESSAGE=skip*) ;;
+  *)
+    if ! out=$(bash .claude/skills/log-message/scripts/find-bad-log-messages.sh "$range" 2>&1); then
+      printf '%s\n\n' "$out" >&2
+      echo "log-message: 로그 메시지에 한글이 없거나 개인정보로 보이는 값을 남긴다." >&2
+      echo "검사가 틀렸다면 사용자에게 이유를 말하고 확인받은 뒤" >&2
+      echo "LOG_MESSAGE=skip 을 앞에 붙여 커밋한다." >&2
+      fail=1
+    fi
+    ;;
+esac
+
 exit $((fail * 2))

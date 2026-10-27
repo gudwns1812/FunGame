@@ -73,7 +73,7 @@ public class GameRoomManager {
 
         JoinResult result = gameRoom.rejoin(player);
         gameSession.restorePlayer(player);
-        log.info("게임 재입장: room {}, member {}", roomId, player.memberId());
+        log.info("게임 재입장: 방 {}, 회원 {}", roomId, player.memberId());
 
         return result;
     }

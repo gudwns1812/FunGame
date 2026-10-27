@@ -146,12 +146,10 @@ public class QuizGameService implements GameService, GameTimerHandler {
 
     private void scheduleNextStep(Long roomId, int endedRound, boolean lastRound) {
         if (lastRound) {
-            log.info("게임 종료");
             timer.startAfter(BEFORE_GAME_RESULT, GameTimerTask.showResult(roomId));
             return;
         }
 
-        log.info("라운드 종료");
         timer.startAfter(BETWEEN_ROUNDS, GameTimerTask.startRound(roomId, endedRound + 1));
     }
 
@@ -217,7 +215,7 @@ public class QuizGameService implements GameService, GameTimerHandler {
         sessionManager.find(roomId)
                 .filter(GameSession::isSkipThresholdReached)
                 .ifPresent(gameSession -> endRound(roomId, NO_WINNER, gameSession.getCurrentRound()));
-        log.info("게임 중 이탈: room {}, member {}", roomId, memberId);
+        log.info("게임 중 이탈: 방 {}, 회원 {}", roomId, memberId);
     }
 
     @Override
