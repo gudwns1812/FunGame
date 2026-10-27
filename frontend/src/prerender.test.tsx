@@ -41,6 +41,13 @@ describe('공개 페이지 미리 그리기', () => {
     expect(new Set(heads.map((head) => head.description)).size).toBe(PRERENDERED_PAGES.length);
   });
 
+  it('첫 화면 제목은 온라인 노래 맞추기 멀티 게임이다', () => {
+    const html = pageAt('/');
+
+    expect(html).toContain('<title>온라인 노래 맞추기 멀티 게임 · FUNGAME</title>');
+    expect(html).toContain('<meta property="og:title" content="온라인 노래 맞추기 멀티 게임 · FUNGAME" />');
+  });
+
   it('게임 방법 페이지는 제목, 설명, og 태그를 그 페이지 것으로 채운다', () => {
     const html = pageAt('/how-to-play');
 
