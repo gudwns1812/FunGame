@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import StaticPageLayout, { StaticSection } from '../components/StaticPageLayout';
 import AdSlot from '../components/AdSlot';
 import { AD_SLOTS } from '../utils/adsense';
+import { SONG_CATEGORIES } from '../utils/gameOptions';
 
 const PAGE_TITLE = '게임 방법';
 const PAGE_DESCRIPTION =
@@ -105,8 +106,8 @@ const HowToPlayPage: React.FC = () => (
           <strong>게임 종류</strong> — 음악 퀴즈, CS 퀴즈, 행맨 중 선택합니다.
         </li>
         <li>
-          <strong>카테고리</strong> — 음악 퀴즈에서만 사용합니다. K-POP, POP, 발라드, 랩/힙합, OST 같은 장르나 소속사,
-          세대별로 고를 수 있습니다.
+          <strong>카테고리</strong> — 음악 퀴즈에서만 사용합니다. 전체 또는{' '}
+          {SONG_CATEGORIES.map((category) => category.label).join(', ')} 중에서 고를 수 있습니다.
         </li>
         <li>
           <strong>라운드 수</strong> — 음악 퀴즈는 10~100, CS 퀴즈는 10~50, 행맨은 1판 고정입니다.

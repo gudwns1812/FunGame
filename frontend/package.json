@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite --host",
     "dev:local": "vite --mode localdev --port 5199 --strictPort",
-    "build": "tsc -b && vite build",
+    "build": "tsc -b && vite build && vite build --ssr src/prerender.tsx --outDir dist-ssr && node scripts/prerender.mjs",
     "lint": "eslint .",
     "test": "vitest run",
     "test:watch": "vitest",
