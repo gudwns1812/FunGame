@@ -4,10 +4,10 @@ import SiteFooter from '../components/SiteFooter';
 import AdSlot from '../components/AdSlot';
 import { AD_SLOTS } from '../utils/adsense';
 import { useDocumentMeta } from '../hooks/useDocumentMeta';
+import { SONG_CATEGORIES } from '../utils/gameOptions';
 
 const PAGE_TITLE = '노래 맞추기 게임';
-const PAGE_DESCRIPTION =
-  'FUNGAME은 친구들과 함께 실시간으로 즐기는 무료 노래 맞추기 게임입니다. K-POP·발라드·랩·OST 등 14개 카테고리의 음악 퀴즈와 CS 퀴즈, 행맨 모드를 방을 만들어 최대 12명까지 함께 플레이할 수 있습니다.';
+const PAGE_DESCRIPTION = `FUNGAME은 친구들과 함께 실시간으로 즐기는 무료 노래 맞추기 게임입니다. 유튜브로 나오는 노래를 듣고 제목을 먼저 맞히는 노래 퀴즈로, K-POP·발라드·랩·OST 등 ${SONG_CATEGORIES.length}개 카테고리에서 출제됩니다. CS 퀴즈와 행맨 모드도 있으며, 방을 만들어 최대 12명까지 함께 플레이할 수 있습니다.`;
 
 const GAME_MODES = [
   {

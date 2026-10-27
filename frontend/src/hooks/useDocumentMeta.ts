@@ -1,7 +1,15 @@
-import { useEffect } from 'react';
+import { createContext, useContext, useEffect } from 'react';
 
 const SITE_NAME = 'FUNGAME';
 const SITE_ORIGIN = 'https://www.fun-game.club';
+
+export interface DocumentHead {
+  title: string;
+  description: string;
+  canonical: string;
+}
+
+export const DocumentHeadCollector = createContext<((head: DocumentHead) => void) | null>(null);
 
 const upsertHeadTag = <T extends HTMLElement>(selector: string, create: () => T): T => {
   const existing = document.head.querySelector<T>(selector);
@@ -15,21 +23,29 @@ const upsertHeadTag = <T extends HTMLElement>(selector: string, create: () => T)
 };
 
 export const useDocumentMeta = (title: string, description: string, path: string) => {
+  const head: DocumentHead = {
+    title: `${title} · ${SITE_NAME}`,
+    description,
+    canonical: `${SITE_ORIGIN}${path}`,
+  };
+
+  useContext(DocumentHeadCollector)?.(head);
+
   useEffect(() => {
-    document.title = `${title} · ${SITE_NAME}`;
+    document.title = head.title;
 
     const descriptionTag = upsertHeadTag<HTMLMetaElement>('meta[name="description"]', () => {
       const tag = document.createElement('meta');
       tag.name = 'description';
       return tag;
     });
-    descriptionTag.content = description;
+    descriptionTag.content = head.description;
 
     const canonicalTag = upsertHeadTag<HTMLLinkElement>('link[rel="canonical"]', () => {
       const tag = document.createElement('link');
       tag.rel = 'canonical';
       return tag;
     });
-    canonicalTag.href = `${SITE_ORIGIN}${path}`;
-  }, [title, description, path]);
+    canonicalTag.href = head.canonical;
+  }, [head.title, head.description, head.canonical]);
 };
