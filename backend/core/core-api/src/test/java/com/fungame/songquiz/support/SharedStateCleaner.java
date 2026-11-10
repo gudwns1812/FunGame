@@ -1,5 +1,6 @@
 package com.fungame.songquiz.support;
 
+import com.fungame.songquiz.api.config.MelonChartMetrics;
 import com.fungame.songquiz.api.websocket.LobbyNotifier;
 import com.fungame.songquiz.api.websocket.StompSessionRegistry;
 import com.fungame.songquiz.domain.member.DailyActiveMemberTracker;
@@ -53,7 +54,8 @@ public class SharedStateCleaner {
     private static final List<Class<?>> IMMUTABLE_REGISTRIES = List.of(
             QuizFactoryRegistry.class,
             GameServiceRouter.class,
-            GameTimerPoller.class);
+            GameTimerPoller.class,
+            MelonChartMetrics.class);
 
     private static final List<String> REDIS_SHARED_STATE_PREFIXES = List.of(
             MemberPresenceDao.KEY_PREFIX,

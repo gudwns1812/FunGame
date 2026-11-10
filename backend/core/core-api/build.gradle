@@ -15,6 +15,8 @@ dependencies {
     implementation project(':backend:storage:db-core')
     implementation project(':backend:storage:redis-core')
     implementation project(':backend:clients:client-youtube')
+    implementation project(':backend:clients:client-melon')
+    implementation project(':backend:clients:client-gemini')
     implementation project(':backend:clients:client-mail')
     implementation project(':backend:clients:client-discord')
     implementation project(':backend:support:monitoring')

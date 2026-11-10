@@ -81,6 +81,8 @@ backend/
 │
 ├── clients/
 │   ├── client-youtube/
+│   ├── client-melon/
+│   ├── client-gemini/
 │   ├── client-mail/
 │   └── client-discord/
 │
@@ -95,6 +97,8 @@ include 'backend:core:core-enum'
 include 'backend:storage:db-core'
 include 'backend:storage:redis-core'
 include 'backend:clients:client-youtube'
+include 'backend:clients:client-melon'
+include 'backend:clients:client-gemini'
 include 'backend:clients:client-mail'
 include 'backend:clients:client-discord'
 include 'backend:support:monitoring'
@@ -110,6 +114,8 @@ graph TD
     db-core["storage:db-core"]
     redis-core["storage:redis-core"]
     youtube["clients:client-youtube"]
+    melon["clients:client-melon"]
+    gemini["clients:client-gemini"]
     mail["clients:client-mail"]
     discord["clients:client-discord"]
     monitoring["support:monitoring"]
@@ -118,6 +124,8 @@ graph TD
     core-api --> db-core
     core-api --> redis-core
     core-api --> youtube
+    core-api --> melon
+    core-api --> gemini
     core-api --> mail
     core-api --> discord
     core-api --> monitoring
@@ -133,6 +141,8 @@ graph TD
 | `storage:db-core` | `core:core-enum` |
 | `core:core-enum` | 없음 |
 | `clients:client-youtube` | 없음 |
+| `clients:client-melon` | 없음 |
+| `clients:client-gemini` | 없음 |
 | `clients:client-mail` | 없음 |
 | `clients:client-discord` | 없음 |
 | `support:monitoring` | 없음 |
@@ -152,6 +162,8 @@ dependencies {
     implementation project(':backend:core:core-enum')
     implementation project(':backend:storage:db-core')
     implementation project(':backend:clients:client-youtube')
+    implementation project(':backend:clients:client-melon')
+    implementation project(':backend:clients:client-gemini')
     implementation project(':backend:clients:client-mail')
     implementation project(':backend:clients:client-discord')
     implementation project(':backend:support:monitoring')
@@ -173,6 +185,8 @@ dependencies {
 | `core:core-enum` | `com.fungame.songquiz.enums` |
 | `storage:db-core` | `com.fungame.songquiz.storage` |
 | `clients:client-youtube` | `com.fungame.songquiz.client.youtube` |
+| `clients:client-melon` | `com.fungame.songquiz.client.melon` |
+| `clients:client-gemini` | `com.fungame.songquiz.client.gemini` |
 | `clients:client-mail` | `com.fungame.songquiz.client.mail` |
 | `clients:client-discord` | `com.fungame.songquiz.client.discord` |
 | `support:monitoring` | `com.fungame.songquiz.support.monitoring` |
@@ -256,6 +270,14 @@ clients/
 ├── client-youtube/
 │   ├── src/main/java/com/fungame/songquiz/client/youtube/
 │   └── src/test/java/com/fungame/songquiz/client/youtube/
+├── client-melon/
+│   ├── src/main/java/com/fungame/songquiz/client/melon/
+│   ├── src/test/java/com/fungame/songquiz/client/melon/
+│   └── src/test/resources/melon/    실제 응답을 줄인 표본
+├── client-gemini/
+│   ├── src/main/java/com/fungame/songquiz/client/gemini/
+│   ├── src/main/resources/          client-gemini.yml
+│   └── src/test/java/com/fungame/songquiz/client/gemini/
 ├── client-mail/
 │   ├── src/main/java/com/fungame/songquiz/client/mail/
 │   └── src/main/resources/          client-mail.yml

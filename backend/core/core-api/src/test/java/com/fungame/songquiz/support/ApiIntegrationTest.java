@@ -1,5 +1,7 @@
 package com.fungame.songquiz.support;
 
+import com.fungame.songquiz.client.gemini.GeminiTitleReader;
+import com.fungame.songquiz.client.melon.MelonChartClient;
 import com.fungame.songquiz.client.youtube.YoutubeScraper;
 import com.fungame.songquiz.domain.session.GameTimer;
 import com.fungame.songquiz.domain.member.PasswordResetMailSender;
@@ -54,6 +56,12 @@ public abstract class ApiIntegrationTest {
 
     @MockitoBean
     protected YoutubeScraper youtubeScraper;
+
+    @MockitoBean
+    protected MelonChartClient melonChartClient;
+
+    @MockitoBean
+    protected GeminiTitleReader geminiTitleReader;
 
     @MockitoSpyBean
     protected GameTimer gameTimer;

@@ -23,6 +23,11 @@ public class SongScrapeRequestReader {
     }
 
     @Transactional(readOnly = true)
+    public boolean existsBySingerAndTitle(String singer, String title) {
+        return songScrapeRequestRepository.existsBySingerAndTitle(singer, title);
+    }
+
+    @Transactional(readOnly = true)
     public boolean existsSameSong(Song song) {
         return songScrapeRequestRepository.existsBySingerAndTitle(song.getSinger(), song.getTitle())
                 || songScrapeRequestRepository.existsByTitleAndReleaseDate(song.getTitle(), song.getReleaseDate());

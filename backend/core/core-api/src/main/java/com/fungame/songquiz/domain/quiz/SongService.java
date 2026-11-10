@@ -17,11 +17,23 @@ public class SongService {
     private final SongScrapeRequestWriter songScrapeRequestWriter;
 
     public void createSongQuiz(Song song) {
-        if (isDuplicate(song)) {
+        if (!enqueueIfNew(song)) {
             throw new CoreException(ErrorType.QUIZ_DUPLICATE_ERROR);
+        }
+    }
+
+    public boolean enqueueIfNew(Song song) {
+        if (isDuplicate(song)) {
+            return false;
         }
 
         songScrapeRequestWriter.append(SongScrapeRequest.of(song));
+        return true;
+    }
+
+    public boolean isKnown(String singer, String title) {
+        return songReader.existsBySingerAndTitle(singer, title)
+                || songScrapeRequestReader.existsBySingerAndTitle(singer, title);
     }
 
     public boolean existSongQuiz(String title, LocalDate releaseDate) {

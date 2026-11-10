@@ -48,6 +48,11 @@ public class SongReader {
     }
 
     @Transactional(readOnly = true)
+    public boolean existsBySingerAndTitle(String singer, String title) {
+        return songRepository.existsBySingerAndTitle(singer, title);
+    }
+
+    @Transactional(readOnly = true)
     public boolean existsByTitleLike(String title, LocalDate releaseDate) {
         if (releaseDate == null) {
             return songRepository.existsByTitleContaining(title);
