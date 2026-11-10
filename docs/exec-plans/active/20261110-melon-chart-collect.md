@@ -89,7 +89,7 @@
 | 출력 | `responseMimeType: application/json` + `responseSchema` 로 `[{id, pronunciation, aliases[]}]` 를 고정한다. `pronunciation` 은 힌트에 쓸 가장 흔한 독음, `aliases` 는 비슷한 다른 독음(`홈스위트홈` · `위플래쉬`) |
 | 검증 | 독음은 글자가 전부 한글이어야 한다. 별칭은 빈 값 · 중복을 빼고 8개까지. 통과 못 한 곡은 그날 넣지 않는다 |
 | 실패 · 한도 초과 · 키 없음 | 한글이 아닌 곡은 **그날 넣지 않고 다음 날 다시 시도**한다. 5만 넘은 곡은 차트에 며칠 남는다. 한글 제목 곡은 영향 없이 들어간다 |
-| 설정 | `client.gemini.model`, `client.gemini.api-key`. 키 기본값은 빈 문자열이라 키가 없어도 앱이 뜬다. 모델 이름과 무료 일일 한도는 작업 5 에서 AI Studio 를 보고 정한다 |
+| 설정 | `client.gemini.model`(기본 `gemini-3.5-flash-lite`), `client.gemini.api-key`. 키 기본값은 빈 문자열이라 키가 없어도 앱이 뜬다. 키는 GitHub Secret `GEMINI_API_KEY` |
 
 ### 1.6 실패해도 서비스에 영향이 없다
 
@@ -117,12 +117,9 @@
 
 ## 2. 남은 일
 
-수집 · 독음 · 초성 · 대기열 · 스케줄 · 지표 · 알림 · 키 배선까지 브랜치 `feat/melon-chart-collect` 에 있다.
-Gemini 실호출만 키가 없어 확인하지 못했다(요청 · 응답 모양은 `MockRestServiceServer` 로만 검증).
+구현은 PR #126. Secret `GEMINI_API_KEY` 등록과 Gemini 실호출(4곡 한 번, 2.8초, 비슷한 독음까지 1.5 형식)은 확인했다.
 
 | # | 할 일 |
 |---|---|
 | 1 | 관리자 화면에서 기존 곡 5개를 보고 힌트의 문장부호 처리와 가수 표기가 1.3 과 다르면 1.3 과 `Choseong` · `ChartSong` 을 맞춘다 |
-| 2 | AI Studio 에서 키를 발급하고 무료 한도가 있는 모델을 확인한다. 기본값 `gemini-3.5-flash-lite` 와 다르면 `client-gemini.yml` 을 고친다. 키를 GitHub Secret `GEMINI_API_KEY` 로 등록한다. 등록 전에 배포해도 앱은 뜨고 한글 제목 곡만 들어가며, "멜론 수집 실패(gemini_failed)" 알림이 매일 온다 |
-| 3 | 키로 실호출을 한 번 해 본다: 영어 제목 2~3개로 `GeminiTitleReader.read` 를 불러 독음 · 별칭이 1.5 형식으로 오는지 본다 |
-| 4 | 배포 후 다음 날 12:00: 결과 로그 한 줄(`멜론 차트 수집:`), `song_scrape_request` 증가, 1분 안에 `song_entity` 로 옮겨짐, 게임에서 새 곡 힌트 · 정답 확인. 첫 며칠은 하루 30곡씩 들어온다. 끝나면 이 문서를 지운다 |
+| 2 | 배포 후 다음 날 12:00: 결과 로그 한 줄(`멜론 차트 수집:`), `song_scrape_request` 증가, 1분 안에 `song_entity` 로 옮겨짐, 게임에서 새 곡 힌트 · 정답 확인. 첫 며칠은 하루 30곡씩 들어온다. 끝나면 이 문서를 지운다 |
