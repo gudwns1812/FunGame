@@ -5,11 +5,13 @@ import com.fungame.songquiz.enums.Category;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public record ChartSong(long melonId, SongTitle title, String singer, long likes) {
 
+    private static final String DECORATIVE_PUNCTUATION = ".,'’′‘\"“”!?~·…-–—()[]{}:;";
     private static final long POPULAR_LIKES = 50_000;
     private static final String SINGER_DELIMITER = ", ";
     private static final String STORED_ANSWER_DELIMITER = ",";
@@ -67,7 +69,12 @@ public record ChartSong(long melonId, SongTitle title, String singer, long likes
         int storedLength = title.name().length();
 
         for (String candidate : candidates) {
-            String answer = typedForm(candidate);
+            Optional<String> typed = typedForm(candidate);
+            if (typed.isEmpty()) {
+                continue;
+            }
+
+            String answer = typed.get();
             boolean redundant = answer.isEmpty() || answer.equals(title.name()) || answers.contains(answer);
             int lengthWithAnswer = storedLength + STORED_ANSWER_DELIMITER.length() + answer.length();
             if (redundant || lengthWithAnswer > MAX_STORED_ANSWERS_LENGTH) {
@@ -81,13 +88,24 @@ public record ChartSong(long melonId, SongTitle title, String singer, long likes
         return answers;
     }
 
-    private static String typedForm(String text) {
+    private static Optional<String> typedForm(String text) {
         StringBuilder typed = new StringBuilder();
-        text.codePoints()
-                .filter(Character::isLetterOrDigit)
-                .map(Character::toLowerCase)
-                .forEach(typed::appendCodePoint);
+        for (int codePoint : text.codePoints().toArray()) {
+            if (isDropped(codePoint)) {
+                continue;
+            }
+            if (!Character.isLetterOrDigit(codePoint)) {
+                return Optional.empty();
+            }
+            typed.appendCodePoint(Character.toLowerCase(codePoint));
+        }
 
-        return typed.toString();
+        return Optional.of(typed.toString());
+    }
+
+    private static boolean isDropped(int codePoint) {
+        return Character.isWhitespace(codePoint)
+                || Character.isSpaceChar(codePoint)
+                || DECORATIVE_PUNCTUATION.indexOf(codePoint) >= 0;
     }
 }

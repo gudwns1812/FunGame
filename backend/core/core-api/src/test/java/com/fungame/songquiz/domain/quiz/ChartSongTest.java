@@ -100,6 +100,26 @@ class ChartSongTest {
     }
 
     @Test
+    @DisplayName("뜻이 있는 기호는 지우면 다른 말이 되므로, 기호가 든 표기는 정리한 형태를 넣지 않는다.")
+    void keepsMeaningfulSymbols() {
+        TitleReading reading = new TitleReading("영 플러스 영", List.of("영 더하기 영", "0 + 0"));
+
+        Song song = chartSong("0+0", 50_000).toSong(RELEASE_DATE, CATEGORIES, reading);
+
+        assertThat(song.getAnswers()).containsExactlyInAnyOrder("0+0", "영플러스영", "영더하기영");
+    }
+
+    @Test
+    @DisplayName("& 가 든 영어 제목은 원래 제목과 독음만 정답으로 둔다.")
+    void ampersandTitleKeepsOriginalAndReadings() {
+        TitleReading reading = new TitleReading("러브 앤 헤이트", List.of());
+
+        Song song = chartSong("Love & Hate", 50_000).toSong(RELEASE_DATE, CATEGORIES, reading);
+
+        assertThat(song.getAnswers()).containsExactlyInAnyOrder("Love & Hate", "러브앤헤이트");
+    }
+
+    @Test
     @DisplayName("정답을 이어 붙인 길이가 저장 칸(255자)을 넘으면 넘치는 별칭부터 버린다.")
     void keepsAnswersWithinColumnLength() {
         String longAlias = "가".repeat(230);
