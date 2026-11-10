@@ -29,6 +29,7 @@ spring:
       - classpath:redis-core.yml
       - classpath:client-mail.yml
       - classpath:client-discord.yml
+      - classpath:client-gemini.yml
       - classpath:monitoring.yml
 server:
   shutdown: graceful

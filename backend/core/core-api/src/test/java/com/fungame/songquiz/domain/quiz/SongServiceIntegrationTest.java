@@ -43,6 +43,24 @@ class SongServiceIntegrationTest extends ApiIntegrationTest {
     }
 
     @Test
+    @DisplayName("저장된 곡과 가수 · 제목이 같으면 아는 곡이다.")
+    void knowsSavedSongBySingerAndTitle() {
+        assertThat(songService.isKnown("아이유", "밤편지")).isTrue();
+        assertThat(songService.isKnown("아이유", "좋은날")).isFalse();
+    }
+
+    @Test
+    @DisplayName("새 곡은 한 번만 대기열에 들어가고, 그 뒤로는 아는 곡이 된다.")
+    void enqueuesNewSongOnlyOnce() {
+        Song song = Song.of("좋은날", "아이유", List.of(Category.KPOP), LocalDate.of(2010, 12, 9), null, 0,
+                List.of(), "ㅈㅇㄴ");
+
+        assertThat(songService.enqueueIfNew(song)).isTrue();
+        assertThat(songService.enqueueIfNew(song)).isFalse();
+        assertThat(songService.isKnown("아이유", "좋은날")).isTrue();
+    }
+
+    @Test
     @DisplayName("실제 DB에서 정확한 제목과 발매일로 곡 존재 여부를 확인한다.")
     void existSongQuiz_withExactTitleAndReleaseDate() {
         // when

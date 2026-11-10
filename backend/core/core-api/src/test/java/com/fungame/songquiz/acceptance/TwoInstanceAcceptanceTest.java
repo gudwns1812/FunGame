@@ -96,6 +96,7 @@ class TwoInstanceAcceptanceTest {
         properties.put("spring.data.redis.host", REDIS.getHost());
         properties.put("spring.data.redis.port", REDIS.getMappedPort(REDIS_PORT));
         properties.put("app.song-scrape.enabled", false);
+        properties.put("app.melon-chart.enabled", false);
         properties.put("app.room.leave-grace-seconds", 1);
 
         String[] commandLine = properties.entrySet().stream()

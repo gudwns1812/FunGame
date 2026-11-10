@@ -3,6 +3,7 @@ package com.fungame.songquiz.support.availability;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.fungame.songquiz.domain.member.ExpiredTokenCleaner;
+import com.fungame.songquiz.domain.quiz.MelonChartScheduler;
 import com.fungame.songquiz.domain.quiz.SongScrapeScheduler;
 import com.fungame.songquiz.domain.room.IdleRoomCleaner;
 import com.fungame.songquiz.domain.session.GameTimerPoller;
@@ -27,6 +28,17 @@ class SchedulerLockTest {
     void workThatTouchesTheOutsideWorldRunsOnOneInstance() {
         assertThat(lockNameOf(SongScrapeScheduler.class, "fillPendingSongs")).isNotEmpty();
         assertThat(lockNameOf(ExpiredTokenCleaner.class, "deleteExpiredTokens")).isNotEmpty();
+        assertThat(lockNameOf(MelonChartScheduler.class, "collectMelonChart")).isNotEmpty();
+    }
+
+    @Test
+    @DisplayName("멜론 차트는 한국 시간 매일 12시에 모은다. 서버 시간대를 따르지 않는다.")
+    void melonChartRunsAtNoonInSeoul() {
+        Scheduled scheduled = scheduledMethodOf(MelonChartScheduler.class, "collectMelonChart")
+                .getAnnotation(Scheduled.class);
+
+        assertThat(scheduled.cron()).isEqualTo("0 0 12 * * *");
+        assertThat(scheduled.zone()).isEqualTo("Asia/Seoul");
     }
 
     @Test

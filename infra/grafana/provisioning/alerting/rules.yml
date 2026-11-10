@@ -320,6 +320,50 @@ groups:
     annotations:
       summary: 10분 동안 백엔드 로그가 Loki 에 하나도 없다. 앱 서버의 fungame-alloy 를 확인한다.
     isPaused: false
+  - uid: fungame-melon-chart
+    title: 멜론 수집 실패
+    condition: C
+    data:
+    - refId: A
+      relativeTimeRange:
+        from: 600
+        to: 0
+      datasourceUid: afvghsyndws8we
+      model:
+        refId: A
+        expr: sum(increase(fungame_melon_chart_runs_total{namespace="prod", result!="ok"}[1h])) or vector(0)
+        instant: true
+        range: false
+        intervalMs: 1000
+        maxDataPoints: 43200
+    - refId: B
+      datasourceUid: __expr__
+      model:
+        refId: B
+        type: reduce
+        expression: A
+        reducer: last
+        settings:
+          mode: dropNN
+    - refId: C
+      datasourceUid: __expr__
+      model:
+        refId: C
+        type: threshold
+        expression: B
+        conditions:
+        - evaluator:
+            type: gt
+            params:
+            - 0
+    for: 0m
+    noDataState: OK
+    execErrState: Error
+    labels:
+      severity: warning
+    annotations:
+      summary: 12시 멜론 차트 수집이 ok 로 끝나지 않았다. 로그에서 "멜론 차트 수집" 을 찾는다. empty 면 멜론 페이지 구조가 바뀐 것이고, gemini_failed 면 키 · 한도를 본다.
+    isPaused: false
 - orgId: 1
   name: 호스트
   folder: FunGame

@@ -73,6 +73,44 @@ class SongServiceTest {
     }
 
     @Test
+    @DisplayName("겹치는 곡이 없으면 대기열에 넣고 참을 돌려준다.")
+    void enqueuesNewSong() {
+        given(songReader.existsSameSong(any())).willReturn(false);
+        given(songScrapeRequestReader.existsSameSong(any())).willReturn(false);
+
+        assertThat(songService.enqueueIfNew(song())).isTrue();
+        verify(songScrapeRequestWriter).append(any());
+    }
+
+    @Test
+    @DisplayName("겹치는 곡이 있으면 예외 없이 거짓을 돌려주고 넣지 않는다.")
+    void skipsKnownSong() {
+        given(songReader.existsSameSong(any())).willReturn(false);
+        given(songScrapeRequestReader.existsSameSong(any())).willReturn(true);
+
+        assertThat(songService.enqueueIfNew(song())).isFalse();
+        verify(songScrapeRequestWriter, never()).append(any());
+    }
+
+    @Test
+    @DisplayName("가수와 제목이 같은 곡이 저장됐거나 대기열에 있으면 아는 곡이다.")
+    void knownBySingerAndTitle() {
+        given(songReader.existsBySingerAndTitle("아이유", TITLE)).willReturn(false);
+        given(songScrapeRequestReader.existsBySingerAndTitle("아이유", TITLE)).willReturn(true);
+
+        assertThat(songService.isKnown("아이유", TITLE)).isTrue();
+    }
+
+    @Test
+    @DisplayName("가수와 제목이 같은 곡이 어디에도 없으면 모르는 곡이다.")
+    void unknownBySingerAndTitle() {
+        given(songReader.existsBySingerAndTitle("아이유", TITLE)).willReturn(false);
+        given(songScrapeRequestReader.existsBySingerAndTitle("아이유", TITLE)).willReturn(false);
+
+        assertThat(songService.isKnown("아이유", TITLE)).isFalse();
+    }
+
+    @Test
     @DisplayName("이미 대기열에 있는 곡이면 거부한다.")
     void rejectsSongAlreadyQueued() {
         given(songReader.existsSameSong(any())).willReturn(false);

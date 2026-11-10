@@ -19,6 +19,9 @@ x-backend-env: &backend-env
   # 신고 알림을 받을 디스코드 웹훅. 정답과 힌트까지 실리므로 비공개 채널이어야 합니다.
   # 주소를 아는 사람은 누구나 그 채널에 메시지를 쏠 수 있으므로 .env 에만 둡니다.
   DISCORD_REPORT_WEBHOOK_URL: ${DISCORD_REPORT_WEBHOOK_URL}
+  # 영어 제목의 한글 독음을 받는 Gemini 키. 배포 워크플로가 GitHub Secret 에서 서버 .env 로 채운다.
+  # 비어 있으면 Gemini 를 부르지 않고 한글 제목 곡만 대기열에 넣는다.
+  GEMINI_API_KEY: ${GEMINI_API_KEY:-}
   # Redis 도 전용 호스트에 있습니다.
   REDIS_HOST: ${REDIS_HOST}
   REDIS_PORT: ${REDIS_PORT}

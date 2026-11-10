@@ -1,0 +1,8 @@
+client:
+  gemini:
+    # 영어 제목의 한글 독음과 정답 별칭을 받는 데 쓴다. 하루 한 번만 부른다.
+    # 이 저장소는 public 이라 기본값을 두지 않는다. 서버 .env 의 GEMINI_API_KEY 로만 주입된다.
+    # 비어 있으면 부르지 않고, 한글 제목 곡만 대기열에 들어간다.
+    api-key: ${GEMINI_API_KEY:}
+    # 무료 등급 한도는 모델마다 따로이고 자주 바뀐다. AI Studio 의 프로젝트 한도를 보고 고른다.
+    model: ${GEMINI_MODEL:gemini-3.5-flash-lite}
