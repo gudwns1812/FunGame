@@ -15,7 +15,6 @@ public class RedisTestContainer {
     @ServiceConnection(name = "redis")
     static GenericContainer<?> redisContainer() {
         return new GenericContainer<>(IMAGE)
-                .withExposedPorts(PORT)
-                .withReuse(true);
+                .withExposedPorts(PORT);
     }
 }

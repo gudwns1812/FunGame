@@ -60,8 +60,7 @@ class TwoInstanceAcceptanceTest {
             .withCommand("mysqld", "--skip-log-bin", "--skip-performance-schema")
             .withReuse(true);
     private static final GenericContainer<?> REDIS = new GenericContainer<>("redis:7-alpine")
-            .withExposedPorts(REDIS_PORT)
-            .withReuse(true);
+            .withExposedPorts(REDIS_PORT);
 
     private static ConfigurableApplicationContext instanceA;
     private static ConfigurableApplicationContext instanceB;
