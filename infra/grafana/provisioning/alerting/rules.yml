@@ -277,17 +277,17 @@ groups:
   interval: 1m
   rules:
   - uid: fungame-log-ingestion
-    title: 로그 수집 끊김
+    title: 로그 수집기 중단 · 비정상
     condition: C
     data:
     - refId: A
       relativeTimeRange:
         from: 600
         to: 0
-      datasourceUid: loki
+      datasourceUid: afvghsyndws8we
       model:
         refId: A
-        expr: sum(count_over_time({container=~"fungame-backend.*"}[10m]))
+        expr: (1 - (min(up{job="alloy"}) or vector(0))) + (sum(alloy_component_controller_running_components{job="alloy", health_type="unhealthy"}) or vector(0))
         instant: true
         range: false
         intervalMs: 1000
@@ -309,16 +309,60 @@ groups:
         expression: B
         conditions:
         - evaluator:
-            type: lt
+            type: gt
             params:
-            - 1
+            - 0
     for: 5m
     noDataState: Alerting
     execErrState: Error
     labels:
       severity: warning
     annotations:
-      summary: 10분 동안 백엔드 로그가 Loki 에 하나도 없다. 앱 서버의 fungame-alloy 를 확인한다.
+      summary: fungame-alloy 가 중단됐거나 내부 컴포넌트가 비정상이다. 앱 서버의 fungame-alloy 상태와 로그를 확인한다.
+    isPaused: false
+  - uid: fungame-log-dropped
+    title: 로그 전송 유실
+    condition: C
+    data:
+    - refId: A
+      relativeTimeRange:
+        from: 600
+        to: 0
+      datasourceUid: afvghsyndws8we
+      model:
+        refId: A
+        expr: sum(increase(loki_write_dropped_entries_total{job="alloy"}[5m]))
+        instant: true
+        range: false
+        intervalMs: 1000
+        maxDataPoints: 43200
+    - refId: B
+      datasourceUid: __expr__
+      model:
+        refId: B
+        type: reduce
+        expression: A
+        reducer: last
+        settings:
+          mode: dropNN
+    - refId: C
+      datasourceUid: __expr__
+      model:
+        refId: C
+        type: threshold
+        expression: B
+        conditions:
+        - evaluator:
+            type: gt
+            params:
+            - 0
+    for: 5m
+    noDataState: OK
+    execErrState: Error
+    labels:
+      severity: warning
+    annotations:
+      summary: fungame-alloy 가 Loki 로 보내지 못하고 버린 로그가 있다. Loki 상태와 3100 포트 연결을 확인한다.
     isPaused: false
 - orgId: 1
   name: 호스트

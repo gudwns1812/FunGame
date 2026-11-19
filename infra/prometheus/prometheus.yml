@@ -32,3 +32,12 @@ scrape_configs:
           service: fungame-server
           environment: production
           instance: app-1
+
+  - job_name: alloy
+    static_configs:
+      - targets:
+          - "172.31.34.226:12345"
+        labels:
+          service: fungame-alloy
+          environment: production
+          instance: app-1
