@@ -36,7 +36,7 @@ scrape_configs:
   - job_name: alloy
     static_configs:
       - targets:
-          - "172.31.34.226:12345"
+          - "172.31.3.38:12345"
         labels:
           service: fungame-alloy
           environment: production
