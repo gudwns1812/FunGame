@@ -89,7 +89,8 @@ sudo chown -R ubuntu:ubuntu /opt/monitoring
 | 한 대로만 운영 중 | 받는 인스턴스 1대가 10분 | warning |
 | 응답 지연 | p95 > 1초가 10분 | warning |
 | ERROR 로그 급증 | 5분간 ERROR > 20건 | warning |
-| 로그 수집 끊김 | Loki 에 백엔드 로그가 10분간 0건 | warning |
+| 로그 수집기 중단 · 비정상 | `fungame-alloy` 중단(`up == 0`) 또는 비정상 컴포넌트 > 0 이 5분 | warning |
+| 로그 전송 유실 | `fungame-alloy` 가 Loki 전송 실패로 버린 로그 > 0 이 5분 | warning |
 | 앱 서버 디스크 · 메모리 | 디스크 > 85%, 사용 가능 메모리 < 10% | warning |
 
 - 웹훅 주소는 GitHub Secret `DISCORD_ALERT_WEBHOOK_URL` 이고 `deploy-infra` 가 서버 `.env` 에 넣습니다.
@@ -118,6 +119,7 @@ sudo chown -R ubuntu:ubuntu /opt/monitoring
 | --- | --- | --- |
 | `fungame-backend` | `:8081/actuator/prometheus` | 앱 compose 의 `MANAGEMENT_BIND_IP` 가 묶는 포트 |
 | `node` | `:9100` | node_exporter. **앱 compose 에 없습니다** — 그 호스트에 따로 떠 있습니다 |
+| `alloy` | `:12345/metrics` | 앱 compose 의 `fungame-alloy` (`MANAGEMENT_BIND_IP` 바인딩) |
 
 타깃마다 `instance: app-1` 라벨이 붙어 있습니다. 인스턴스를 2대로 늘릴 때
 `app-2` 블록을 여기 더하면 되고, 인프라 설정이 이 저장소에 있으니 **앱 변경과 같은 PR 로 흐릅니다.**

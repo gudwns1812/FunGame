@@ -7,6 +7,9 @@ plugins {
 ext {
     lombokVersion = '1.18.36'
     queryDslVersion = '7.0'
+    // Docker Engine 29+ (ubuntu-latest 등) 가 API 1.40 미만 요청을 거부해
+    // Spring Boot 3.4.3 기본 Testcontainers(1.20.5, API 1.32) 가 실패한다.
+    set('testcontainers.version', '1.21.4')
 }
 
 subprojects {
